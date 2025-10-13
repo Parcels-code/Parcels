@@ -1,7 +1,5 @@
 from __future__ import annotations
 
-import math  # noqa: F401
-import random  # noqa: F401
 import types
 import warnings
 from typing import TYPE_CHECKING
@@ -116,15 +114,13 @@ class Kernel:
     def add_positionupdate_kernels(self):
         # Adding kernels that set and update the coordinate changes
         def Setcoords(particles, fieldset):  # pragma: no cover
-            import numpy as np  # noqa
-
             particles.lon += particles.dlon
             particles.lat += particles.dlat
-            particles.depth += particles.ddepth
+            particles.z += particles.dz
 
             particles.dlon = 0
             particles.dlat = 0
-            particles.ddepth = 0
+            particles.dz = 0
 
             particles.time = particles.time_nextloop
 
@@ -286,6 +282,6 @@ class Kernel:
                     if error_code == StatusCode.ErrorTimeExtrapolation:
                         error_func(pset[inds].time)
                     else:
-                        error_func(pset[inds].depth, pset[inds].lat, pset[inds].lon)
+                        error_func(pset[inds].z, pset[inds].lat, pset[inds].lon)
 
         return pset

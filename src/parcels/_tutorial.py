@@ -13,7 +13,7 @@ __all__ = ["download_example_dataset", "list_example_datasets"]
 # make a new release in the repo and update the DATA_REPO_TAG to the new tag
 DATA_REPO_TAG = "main"
 
-DATA_URL = f"https://github.com/OceanParcels/parcels-data/raw/{DATA_REPO_TAG}/data"
+DATA_URL = f"https://github.com/Parcels-code/parcels-data/raw/{DATA_REPO_TAG}/data"
 
 # Keys are the dataset names. Values are the filenames in the dataset folder. Note that
 # you can specify subfolders in the dataset folder putting slashes in the filename list.
@@ -26,7 +26,7 @@ DATA_URL = f"https://github.com/OceanParcels/parcels-data/raw/{DATA_REPO_TAG}/da
 # └── folder2/
 #     └── file2.nc
 #
-# See instructions at https://github.com/OceanParcels/parcels-data for adding new datasets
+# See instructions at https://github.com/Parcels-code/parcels-data for adding new datasets
 EXAMPLE_DATA_FILES: dict[str, list[str]] = {
     "MovingEddies_data": [
         "moving_eddiesP.nc",
@@ -47,6 +47,7 @@ EXAMPLE_DATA_FILES: dict[str, list[str]] = {
     ],
     "CopernicusMarine_data_for_Argo_tutorial": [
         "cmems_mod_glo_phy-cur_anfc_0.083deg_P1D-m_uo-vo_31.00E-33.00E_33.00S-30.00S_0.49-2225.08m_2024-01-01-2024-02-01.nc",
+        "cmems_mod_glo_phy-so_anfc_0.083deg_P1D-m_so_31.00E-33.00E_33.00S-30.00S_0.49-2225.08m_2024-01-01-2024-02-01.nc",
         "cmems_mod_glo_phy-thetao_anfc_0.083deg_P1D-m_thetao_31.00E-33.00E_33.00S-30.00S_0.49-2225.08m_2024-01-01-2024-02-01.nc",
     ],
     "DecayingMovingEddy_data": [
