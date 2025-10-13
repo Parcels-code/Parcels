@@ -274,8 +274,7 @@ def CGrid_Velocity(
     U = (1 - xsi) * U0 + xsi * U1
     V = (1 - eta) * V0 + eta * V1
 
-    deg2m = 1852 * 60.0
-    meshJac = deg2m if grid._mesh == "spherical" else 1
+    meshJac = 1852 * 60.0 if grid._mesh == "spherical" else 1
 
     jac = i_u._compute_jacobian_determinant(py, px, eta, xsi) * meshJac
 
