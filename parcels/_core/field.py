@@ -312,25 +312,17 @@ class VectorField:
                 w = self.W._interp_method(self.W, ti, position, tau, time, z, y, x)
             else:
                 w = 0.0
-
-            if applyConversion:
-                u = self.U.units.to_target(u, z, y, x)
-                v = self.V.units.to_target(v, z, y, x)
-
         else:
             (u, v, w) = self._vector_interp_method(self, ti, position, tau, time, z, y, x)
-            if applyConversion and self.grid._mesh == "spherical":
-                deg2m = 1852 * 60.0
-                meshJac = deg2m * deg2m * np.cos(np.deg2rad(y))
-                u = u / meshJac
-                v = v / meshJac
-                print(u, v)
+
+        if applyConversion:
+            u = self.U.units.to_target(u, z, y, x)
+            v = self.V.units.to_target(v, z, y, x)
+            if "3D" in self.vector_type:
+                w = self.W.units.to_target(w, z, y, x)
 
         for vel in (u, v, w):
             _update_particle_states_interp_value(particles, vel)
-
-        if applyConversion and ("3D" in self.vector_type):
-            w = self.W.units.to_target(w, z, y, x) if self.W else 0.0
 
         if "3D" in self.vector_type:
             return (u, v, w)
