@@ -217,7 +217,7 @@ class Field:
             _ei = particles.ei[:, self.igrid]
 
         position = {"time": time, "z": z, "lat": y, "lon": x}
-        (position["ti"], position["tau"]) = _search_time_index(self, time)
+        position.update(_search_time_index(self, time))
         position.update(self.grid.search(z, y, x, ei=_ei))
         _update_particles_ei(particles, position, self)
         _update_particle_states_position(particles, position)
@@ -302,7 +302,7 @@ class VectorField:
             _ei = particles.ei[:, self.igrid]
 
         position = {"time": time, "z": z, "lat": y, "lon": x}
-        (position["ti"], position["tau"]) = _search_time_index(self.U, time)
+        position.update(_search_time_index(self.U, time))
         position.update(self.grid.search(z, y, x, ei=_ei))
         _update_particles_ei(particles, position, self)
         _update_particle_states_position(particles, position)
