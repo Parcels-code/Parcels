@@ -84,10 +84,10 @@ def field():
 )
 def test_raw_2d_interpolation(field, func, t, z, y, x, expected):
     """Test the interpolation functions on the Field."""
-    tau, ti = _search_time_index(field, t)
     position = field.grid.search(z, y, x)
+    position["T"] = _search_time_index(field, t)
 
-    value = func(field, ti, position, tau, 0, 0, y, x)
+    value = func(position, field)
     np.testing.assert_equal(value, expected)
 
 

@@ -216,12 +216,13 @@ class Field:
         else:
             _ei = particles.ei[:, self.igrid]
 
-        tau, ti = _search_time_index(self, time)
-        position = self.grid.search(z, y, x, ei=_ei)
+        position = {"time": time, "z": z, "lat": y, "lon": x}
+        position["T"] = _search_time_index(self, time)
+        position.update(self.grid.search(z, y, x, ei=_ei))
         _update_particles_ei(particles, position, self)
         _update_particle_states_position(particles, position)
 
-        value = self._interp_method(self, ti, position, tau, time, z, y, x)
+        value = self._interp_method(position, self)
 
         _update_particle_states_interp_value(particles, value)
 
@@ -300,20 +301,21 @@ class VectorField:
         else:
             _ei = particles.ei[:, self.igrid]
 
-        tau, ti = _search_time_index(self.U, time)
-        position = self.grid.search(z, y, x, ei=_ei)
+        position = {"time": time, "z": z, "lat": y, "lon": x}
+        position["T"] = _search_time_index(self.U, time)
+        position.update(self.grid.search(z, y, x, ei=_ei))
         _update_particles_ei(particles, position, self)
         _update_particle_states_position(particles, position)
 
         if self._vector_interp_method is None:
-            u = self.U._interp_method(self.U, ti, position, tau, time, z, y, x)
-            v = self.V._interp_method(self.V, ti, position, tau, time, z, y, x)
+            u = self.U._interp_method(position, self.U)
+            v = self.V._interp_method(position, self.V)
             if "3D" in self.vector_type:
-                w = self.W._interp_method(self.W, ti, position, tau, time, z, y, x)
+                w = self.W._interp_method(position, self.W)
             else:
                 w = 0.0
         else:
-            (u, v, w) = self._vector_interp_method(self, ti, position, tau, time, z, y, x)
+            (u, v, w) = self._vector_interp_method(position, self)
 
         if applyConversion:
             u = self.U.units.to_target(u, z, y, x)
