@@ -289,7 +289,7 @@ class XGrid(BaseGrid):
         if ds.lon.ndim == 1:
             yi, eta = _search_1d_array(ds.lat.values, y)
             xi, xsi = _search_1d_array(ds.lon.values, x)
-            return {"Z": (zi, zeta), "Y": (yi, eta), "X": (xi, xsi)}
+            return {"zi": zi, "zeta": zeta, "yi": yi, "eta": eta, "xi": xi, "xsi": xsi}
 
         yi, xi = None, None
         if ei is not None:
@@ -300,7 +300,7 @@ class XGrid(BaseGrid):
         if ds.lon.ndim == 2:
             yi, eta, xi, xsi = _search_indices_curvilinear_2d(self, y, x, yi, xi)
 
-            return {"Z": (zi, zeta), "Y": (yi, eta), "X": (xi, xsi)}
+            return {"zi": zi, "zeta": zeta, "yi": yi, "eta": eta, "xi": xi, "xsi": xsi}
 
         raise NotImplementedError("Searching in >2D lon/lat arrays is not implemented yet.")
 

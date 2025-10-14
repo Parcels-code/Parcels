@@ -97,10 +97,10 @@ def XLinear(
     field: Field,
 ):
     """Trilinear interpolation on a regular grid."""
-    xi, xsi = position["X"]
-    yi, eta = position["Y"]
-    zi, zeta = position["Z"]
-    ti, tau = position["T"]
+    xi, xsi = position["xi"], position["xsi"]
+    yi, eta = position["yi"], position["eta"]
+    zi, zeta = position["zi"], position["zeta"]
+    ti, tau = position["ti"], position["tau"]
 
     axis_dim = field.grid.get_axis_dim_mapping(field.data.dims)
     data = field.data
@@ -140,10 +140,10 @@ def CGrid_Velocity(
     Following Delandmeter and Van Sebille (2019), velocity fields should be interpolated
     only in the direction of the grid cell faces.
     """
-    xi, xsi = position["X"]
-    yi, eta = position["Y"]
-    zi, zeta = position["Z"]
-    ti, tau = position["T"]
+    xi, xsi = position["xi"], position["xsi"]
+    yi, eta = position["yi"], position["eta"]
+    zi, zeta = position["zi"], position["zeta"]
+    ti, tau = position["ti"], position["tau"]
     lon = position["lon"]
 
     U = vectorfield.U.data
@@ -335,10 +335,11 @@ def CGrid_Tracer(
     Following Delandmeter and Van Sebille (2019), tracer fields should be interpolated
     constant over the grid cell
     """
-    xi, _ = position["X"]
-    yi, _ = position["Y"]
-    zi, _ = position["Z"]
-    ti, tau = position["T"]
+    xi = position["xi"]
+    yi = position["yi"]
+    zi = position["zi"]
+    ti = position["ti"]
+    tau = position["tau"]
 
     axis_dim = field.grid.get_axis_dim_mapping(field.data.dims)
     data = field.data
@@ -383,10 +384,10 @@ def _Spatialslip(
     b: np.float32,
 ):
     """Helper function for spatial boundary condition interpolation for velocity fields."""
-    xi, xsi = position["X"]
-    yi, eta = position["Y"]
-    zi, zeta = position["Z"]
-    ti, tau = position["T"]
+    xi, xsi = position["xi"], position["xsi"]
+    yi, eta = position["yi"], position["eta"]
+    zi, zeta = position["zi"], position["zeta"]
+    ti, tau = position["ti"], position["tau"]
 
     axis_dim = vectorfield.U.grid.get_axis_dim_mapping(vectorfield.U.data.dims)
     lenT = 2 if np.any(tau > 0) else 1
@@ -511,10 +512,10 @@ def XNearest(
     Nearest-Neighbour spatial interpolation on a regular grid.
     Note that this still uses linear interpolation in time.
     """
-    xi, xsi = position["X"]
-    yi, eta = position["Y"]
-    zi, zeta = position["Z"]
-    ti, tau = position["T"]
+    xi, xsi = position["xi"], position["xsi"]
+    yi, eta = position["yi"], position["eta"]
+    zi, zeta = position["zi"], position["zeta"]
+    ti, tau = position["ti"], position["tau"]
 
     axis_dim = field.grid.get_axis_dim_mapping(field.data.dims)
     data = field.data
@@ -570,7 +571,7 @@ def UXPiecewiseConstantFace(
     This interpolation method is appropriate for fields that are
     face registered, such as u,v in FESOM.
     """
-    return field.data.values[position["T"][0], position["Z"][0], position["FACE"][0]]
+    return field.data.values[position["ti"], position["Z"][0], position["FACE"][0]]
 
 
 def UXPiecewiseLinearNode(
@@ -583,7 +584,7 @@ def UXPiecewiseLinearNode(
     velocity W in FESOM2. Effectively, it applies barycentric interpolation in the lateral direction
     and piecewise linear interpolation in the vertical direction.
     """
-    ti, _ = position["T"]
+    ti = position["ti"]
     zi, fi = position["Z"][0], position["FACE"][0]
     z = position["z"]
     bcoords = position["FACE"][1]

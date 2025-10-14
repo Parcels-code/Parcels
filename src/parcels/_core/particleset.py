@@ -298,9 +298,9 @@ class ParticleSet:
             position = grid.search(self.z, self.lat, self.lon)
             self._data["ei"][:, i] = grid.ravel_index(
                 {
-                    "X": position["X"][0],
-                    "Y": position["Y"][0],
-                    "Z": position["Z"][0],
+                    "X": position["xi"],
+                    "Y": position["yi"],
+                    "Z": position["zi"],
                 }
             )
 

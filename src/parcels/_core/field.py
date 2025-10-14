@@ -217,7 +217,7 @@ class Field:
             _ei = particles.ei[:, self.igrid]
 
         position = {"time": time, "z": z, "lat": y, "lon": x}
-        position["T"] = _search_time_index(self, time)
+        (position["ti"], position["tau"]) = _search_time_index(self, time)
         position.update(self.grid.search(z, y, x, ei=_ei))
         _update_particles_ei(particles, position, self)
         _update_particle_states_position(particles, position)
@@ -302,7 +302,7 @@ class VectorField:
             _ei = particles.ei[:, self.igrid]
 
         position = {"time": time, "z": z, "lat": y, "lon": x}
-        position["T"] = _search_time_index(self.U, time)
+        (position["ti"], position["tau"]) = _search_time_index(self.U, time)
         position.update(self.grid.search(z, y, x, ei=_ei))
         _update_particles_ei(particles, position, self)
         _update_particle_states_position(particles, position)
@@ -347,9 +347,9 @@ def _update_particles_ei(particles, position, field):
         if isinstance(field.grid, XGrid):
             particles.ei[:, field.igrid] = field.grid.ravel_index(
                 {
-                    "X": position["X"][0],
-                    "Y": position["Y"][0],
-                    "Z": position["Z"][0],
+                    "X": position["xi"],
+                    "Y": position["yi"],
+                    "Z": position["zi"],
                 }
             )
         elif isinstance(field.grid, UxGrid):
@@ -364,22 +364,22 @@ def _update_particles_ei(particles, position, field):
 def _update_particle_states_position(particles, position):
     """Update the particle states based on the position dictionary."""
     if particles:  # TODO also support uxgrid search
-        for dim in ["X", "Y"]:
+        for dim in ["xi", "yi"]:
             if dim in position:
                 particles.state = np.maximum(
-                    np.where(position[dim][0] == -1, StatusCode.ErrorOutOfBounds, particles.state), particles.state
+                    np.where(position[dim] == -1, StatusCode.ErrorOutOfBounds, particles.state), particles.state
                 )
                 particles.state = np.maximum(
-                    np.where(position[dim][0] == GRID_SEARCH_ERROR, StatusCode.ErrorGridSearching, particles.state),
+                    np.where(position[dim] == GRID_SEARCH_ERROR, StatusCode.ErrorGridSearching, particles.state),
                     particles.state,
                 )
-        if "Z" in position:
+        if "zi" in position:
             particles.state = np.maximum(
-                np.where(position["Z"][0] == RIGHT_OUT_OF_BOUNDS, StatusCode.ErrorOutOfBounds, particles.state),
+                np.where(position["zi"][0] == RIGHT_OUT_OF_BOUNDS, StatusCode.ErrorOutOfBounds, particles.state),
                 particles.state,
             )
             particles.state = np.maximum(
-                np.where(position["Z"][0] == LEFT_OUT_OF_BOUNDS, StatusCode.ErrorThroughSurface, particles.state),
+                np.where(position["zi"][0] == LEFT_OUT_OF_BOUNDS, StatusCode.ErrorThroughSurface, particles.state),
                 particles.state,
             )
 
