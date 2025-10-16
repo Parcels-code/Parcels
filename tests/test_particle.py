@@ -24,11 +24,11 @@ def test_variable_invalid_init():
     with pytest.raises(ValueError, match="to_write must be one of .*\. Got to_write="):
         Variable("name", to_write="test")
 
-    with pytest.raises(ValueError, match="to_write must be one of .*\. Got to_write="):
-        Variable("name", to_write="test")
+    with pytest.raises(TypeError, match="Expected a string for variable name, got int instead."):
+        Variable(123)
 
     for name in ["a b", "123", "while"]:
-        with pytest.raises(ValueError, match="Particle variable has to be a valid Python variable name. Got "):
+        with pytest.raises(ValueError, match=r"Received invalid Python variable name.*"):
             Variable(name)
 
     with pytest.raises(ValueError, match="Attributes cannot be set if to_write=False"):
