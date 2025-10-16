@@ -17,11 +17,11 @@ def test_field_init_param_types():
     grid = XGrid.from_dataset(data)
 
     with pytest.raises(TypeError, match="Expected a string for variable name, got int instead."):
-        Field(name=123, data=data['data_g'], grid=grid)
+        Field(name=123, data=data["data_g"], grid=grid)
 
     for name in ["a b", "123", "while"]:
         with pytest.raises(ValueError, match=r"Received invalid Python variable name.*"):
-            Field(name=name, data=data['data_g'], grid=grid)
+            Field(name=name, data=data["data_g"], grid=grid)
 
     with pytest.raises(ValueError, match="Expected `data` to be a uxarray.UxDataArray or xarray.DataArray"):
         Field(name="test", data=123, grid=grid)

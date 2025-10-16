@@ -38,6 +38,7 @@ def test_fieldset_add_constant(fieldset):
     fieldset.add_constant("test_constant", 1.0)
     assert fieldset.test_constant == 1.0
 
+
 def test_fieldset_add_constant_int_name(fieldset):
     with pytest.raises(TypeError, match="Expected a string for variable name, got int instead."):
         fieldset.add_constant(123, 1.0)
