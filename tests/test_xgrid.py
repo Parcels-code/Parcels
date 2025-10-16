@@ -201,43 +201,43 @@ def test_search_1d_array_some_out_of_bounds(array, x, expected_xi):
     [
         pytest.param(
             datasets["ds_2d_left"],
-            "U (C grid)",
+            "UCgrid",
             {
                 "XG": (np.int64(0), np.float64(0.0)),
                 "YC": (np.int64(-1), np.float64(0.5)),
                 "ZG": (np.int64(0), np.float64(0.0)),
             },
-            id="MITgcm indexing style U (C grid)",
+            id="MITgcm indexing style UCgrid",
         ),
         pytest.param(
             datasets["ds_2d_left"],
-            "V (C grid)",
+            "VCgrid",
             {
                 "XC": (np.int64(-1), np.float64(0.5)),
                 "YG": (np.int64(0), np.float64(0.0)),
                 "ZG": (np.int64(0), np.float64(0.0)),
             },
-            id="MITgcm indexing style V (C grid)",
+            id="MITgcm indexing style VCgrid",
         ),
         pytest.param(
             datasets["ds_2d_right"],
-            "U (C grid)",
+            "UCgrid",
             {
                 "XG": (np.int64(0), np.float64(0.0)),
                 "YC": (np.int64(0), np.float64(0.5)),
                 "ZG": (np.int64(0), np.float64(0.0)),
             },
-            id="NEMO indexing style U (C grid)",
+            id="NEMO indexing style UCgrid",
         ),
         pytest.param(
             datasets["ds_2d_right"],
-            "V (C grid)",
+            "VCgrid",
             {
                 "XC": (np.int64(0), np.float64(0.5)),
                 "YG": (np.int64(0), np.float64(0.0)),
                 "ZG": (np.int64(0), np.float64(0.0)),
             },
-            id="NEMO indexing style V (C grid)",
+            id="NEMO indexing style VCgrid",
         ),
     ],
 )
