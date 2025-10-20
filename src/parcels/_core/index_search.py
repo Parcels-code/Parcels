@@ -5,7 +5,7 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from parcels._core.statuscodes import _raise_time_extrapolation_error
+from parcels._core.statuscodes import _raise_outside_time_interval_error
 
 if TYPE_CHECKING:
     from parcels._core.field import Field
@@ -78,7 +78,7 @@ def _search_time_index(field: Field, time: datetime):
         return np.zeros(shape=time.shape, dtype=np.float32), np.zeros(shape=time.shape, dtype=np.int32)
 
     if not field.time_interval.is_all_time_in_interval(time):
-        _raise_time_extrapolation_error(time, field=None)
+        _raise_outside_time_interval_error(time, field=None)
 
     ti = np.searchsorted(field.data.time.data, time, side="right") - 1
     tau = (time - field.data.time.data[ti]) / (field.data.time.data[ti + 1] - field.data.time.data[ti])

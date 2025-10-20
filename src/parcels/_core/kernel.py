@@ -14,7 +14,7 @@ from parcels._core.statuscodes import (
     _raise_field_out_of_bound_surface_error,
     _raise_general_error,
     _raise_grid_searching_error,
-    _raise_time_extrapolation_error,
+    _raise_outside_time_interval_error,
 )
 from parcels._core.warnings import KernelWarning
 from parcels.kernels import (
@@ -31,7 +31,7 @@ __all__ = ["Kernel"]
 
 
 ErrorsToThrow = {
-    StatusCode.ErrorTimeExtrapolation: _raise_time_extrapolation_error,
+    StatusCode.ErrorOutsideTimeInterval: _raise_outside_time_interval_error,
     StatusCode.ErrorOutOfBounds: _raise_field_out_of_bound_error,
     StatusCode.ErrorThroughSurface: _raise_field_out_of_bound_surface_error,
     StatusCode.ErrorInterpolation: _raise_field_interpolation_error,
@@ -273,7 +273,7 @@ class Kernel:
             for error_code, error_func in ErrorsToThrow.items():
                 if np.any(pset.state == error_code):
                     inds = pset.state == error_code
-                    if error_code == StatusCode.ErrorTimeExtrapolation:
+                    if error_code == StatusCode.ErrorOutsideTimeInterval:
                         error_func(pset[inds].time)
                     else:
                         error_func(pset[inds].z, pset[inds].lat, pset[inds].lon)

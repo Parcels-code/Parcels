@@ -9,11 +9,11 @@ from parcels import (
     FieldInterpolationError,
     FieldOutOfBoundError,
     FieldSet,
+    OutsideTimeInterval,
     Particle,
     ParticleFile,
     ParticleSet,
     StatusCode,
-    TimeExtrapolationError,
     UxGrid,
     Variable,
     VectorField,
@@ -286,7 +286,7 @@ def test_some_particles_throw_outoftime(fieldset):
     def FieldAccessOutsideTime(particles, fieldset):  # pragma: no cover
         fieldset.U[particles.time + np.timedelta64(400, "D"), particles.z, particles.lat, particles.lon, particles]
 
-    with pytest.raises(TimeExtrapolationError):
+    with pytest.raises(OutsideTimeInterval):
         pset.execute(FieldAccessOutsideTime, runtime=np.timedelta64(1, "D"), dt=np.timedelta64(10, "D"))
 
 
