@@ -420,7 +420,7 @@ class ParticleSet:
         dt_dtype : np.dtype
             New dtype for dt.
         """
-        if dt_dtype not in [np.timedelta64, "timedelta64[ns]", "timedelta64[ms]", "timedelta64[s]"]:
+        if dt_dtype not in [np.timedelta64, "timedelta64[ns]", "timedelta64[μs]", "timedelta64[ms]", "timedelta64[s]"]:
             raise ValueError(f"dt_dtype must be a numpy timedelta64 dtype. Got {dt_dtype=!r}")
 
         self._data["dt"] = self._data["dt"].astype(dt_dtype)

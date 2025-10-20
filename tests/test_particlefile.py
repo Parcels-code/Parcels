@@ -112,20 +112,16 @@ def test_pfile_array_remove_all_particles(fieldset, chunks_obs, tmp_zarrfile):
         assert np.all(np.isnan(ds["time"][:, 1:]))
 
 
-@pytest.mark.skip(reason="TODO v4: stuck in infinite loop")
 def test_variable_write_double(fieldset, tmp_zarrfile):
     def Update_lon(particles, fieldset):  # pragma: no cover
         particles.dlon += 0.1
 
+    dt = np.timedelta64(1, "us")
     particle = get_default_particle(np.float64)
     pset = ParticleSet(fieldset, pclass=particle, lon=[0], lat=[0])
-    ofile = ParticleFile(tmp_zarrfile, outputdt=np.timedelta64(10, "us"))
-    pset.execute(
-        pset.Kernel(Update_lon),
-        runtime=np.timedelta64(1, "ms"),
-        dt=np.timedelta64(10, "us"),
-        output_file=ofile,
-    )
+    pset.update_dt_dtype(dt.dtype)
+    ofile = ParticleFile(tmp_zarrfile, outputdt=dt)
+    pset.execute(Update_lon, runtime=np.timedelta64(10, "us"), dt=dt, output_file=ofile)
 
     ds = xr.open_zarr(tmp_zarrfile, decode_cf=False)  # TODO v4: Fix metadata and re-enable decode_cf
     lons = ds["lon"][:]
