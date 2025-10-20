@@ -171,9 +171,7 @@ def test_variable_written_once():
 def test_pset_repeated_release_delayed_adding_deleting(fieldset, tmp_zarrfile, dt, maxvar):
     """Tests that if particles are released and deleted based on age that resulting output file is correct."""
     npart = 10
-    runtime = np.timedelta64(npart, "s")
     fieldset.add_constant("maxvar", maxvar)
-    pset = None
 
     MyParticle = Particle.add_variable(
         [Variable("sample_var", initial=0.0), Variable("v_once", dtype=np.float64, initial=0.0, to_write="once")]
@@ -200,11 +198,8 @@ def test_pset_repeated_release_delayed_adding_deleting(fieldset, tmp_zarrfile, d
         pset.execute(IncrLon, dt=dt, runtime=np.timedelta64(1, "s"), output_file=pfile)
 
     ds = xr.open_zarr(tmp_zarrfile, decode_cf=False)
-    pytest.skip(
-        "TODO v4: Set decode_cf=True, which will mean that missing values get decoded to NaT rather than fill value"
-    )
     samplevar = ds["sample_var"][:]
-    assert samplevar.shape == (runtime, min(maxvar + 1, runtime))
+    assert samplevar.shape == (npart, min(maxvar, npart + 1))
     # test whether samplevar[:, k] = k
     for k in range(samplevar.shape[1]):
         assert np.allclose([p for p in samplevar[:, k] if np.isfinite(p)], k + 1)

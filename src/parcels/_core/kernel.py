@@ -233,7 +233,10 @@ class Kernel:
         while (len(pset) > 0) and np.any(np.isin(pset.state, [StatusCode.Evaluate, StatusCode.Repeat])):
             time_to_endtime = compute_time_direction * (endtime - pset.time)
 
-            if all(time_to_endtime <= 0):
+            evaluate_particles = (np.isin(pset.state, [StatusCode.Success, StatusCode.Evaluate])) & (
+                time_to_endtime >= 0
+            )
+            if not np.any(evaluate_particles):
                 return StatusCode.Success
 
             # adapt dt to end exactly on endtime
@@ -243,7 +246,6 @@ class Kernel:
                 pset.dt = np.minimum(np.maximum(pset.dt, -time_to_endtime), 0)
 
             # run kernels for all particles that need to be evaluated
-            evaluate_particles = (pset.state == StatusCode.Evaluate) & (pset.dt != 0)
             for f in self._pyfuncs:
                 f(pset[evaluate_particles], self._fieldset)
 
@@ -257,9 +259,9 @@ class Kernel:
             if not hasattr(self.fieldset, "RK45_tol"):
                 pset._data["dt"][:] = dt
 
-            # Reset particle state for particles that signalled success and have not reached endtime yet
-            particles_to_evaluate = (pset.state == StatusCode.Success) & (time_to_endtime > 0)
-            pset[particles_to_evaluate].state = StatusCode.Evaluate
+            # Set particle state for particles that reached endtime
+            particles_endofloop = (pset.state == StatusCode.Evaluate) & (pset.time == endtime)
+            pset[particles_endofloop].state = StatusCode.EndofLoop
 
             # delete particles that signalled deletion
             self.remove_deleted(pset)

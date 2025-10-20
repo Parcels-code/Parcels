@@ -20,6 +20,7 @@ class StatusCode:
     """Class defining the status codes for particles.state."""
 
     Success = 0
+    EndofLoop = 1
     Evaluate = 10
     Repeat = 20
     Delete = 30
