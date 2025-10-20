@@ -12,7 +12,6 @@ import parcels.utils.interpolation_utils as i_u
 
 if TYPE_CHECKING:
     from parcels._core.field import Field, VectorField
-    from parcels._core.uxgrid import _UXGRID_AXES
     from parcels._core.xgrid import _XGRID_AXES
 
 __all__ = [
@@ -30,7 +29,8 @@ __all__ = [
 
 
 def ZeroInterpolator(
-    position: dict[_XGRID_AXES, tuple[int, float | np.ndarray]],
+    particle_positions: dict[str, float | np.ndarray],
+    grid_positions: dict[_XGRID_AXES, dict[str, int | float | np.ndarray]],
     field: Field,
 ) -> np.float32 | np.float64:
     """Template function used for the signature check of the lateral interpolation methods."""
@@ -38,7 +38,8 @@ def ZeroInterpolator(
 
 
 def ZeroInterpolator_Vector(
-    position: dict[_XGRID_AXES, tuple[int, float | np.ndarray]],
+    particle_positions: dict[str, float | np.ndarray],
+    grid_positions: dict[_XGRID_AXES, dict[str, int | float | np.ndarray]],
     vectorfield: VectorField,
 ) -> np.float32 | np.float64:
     """Template function used for the signature check of the interpolation methods for velocity fields."""
@@ -93,14 +94,15 @@ def _get_corner_data_Agrid(
 
 
 def XLinear(
-    position: dict[_XGRID_AXES, tuple[int, float | np.ndarray]],
+    particle_positions: dict[str, float | np.ndarray],
+    grid_positions: dict[_XGRID_AXES, dict[str, int | float | np.ndarray]],
     field: Field,
 ):
     """Trilinear interpolation on a regular grid."""
-    xi, xsi = position["xi"], position["xsi"]
-    yi, eta = position["yi"], position["eta"]
-    zi, zeta = position["zi"], position["zeta"]
-    ti, tau = position["ti"], position["tau"]
+    xi, xsi = grid_positions["X"]["index"], grid_positions["X"]["bcoord"]
+    yi, eta = grid_positions["Y"]["index"], grid_positions["Y"]["bcoord"]
+    zi, zeta = grid_positions["Z"]["index"], grid_positions["Z"]["bcoord"]
+    ti, tau = grid_positions["T"]["index"], grid_positions["T"]["bcoord"]
 
     axis_dim = field.grid.get_axis_dim_mapping(field.data.dims)
     data = field.data
@@ -132,7 +134,8 @@ def XLinear(
 
 
 def CGrid_Velocity(
-    position: dict[_XGRID_AXES, tuple[int, float | np.ndarray]],
+    particle_positions: dict[str, float | np.ndarray],
+    grid_positions: dict[_XGRID_AXES, dict[str, int | float | np.ndarray]],
     vectorfield: VectorField,
 ):
     """
@@ -140,11 +143,11 @@ def CGrid_Velocity(
     Following Delandmeter and Van Sebille (2019), velocity fields should be interpolated
     only in the direction of the grid cell faces.
     """
-    xi, xsi = position["xi"], position["xsi"]
-    yi, eta = position["yi"], position["eta"]
-    zi, zeta = position["zi"], position["zeta"]
-    ti, tau = position["ti"], position["tau"]
-    lon = position["lon"]
+    xi, xsi = grid_positions["X"]["index"], grid_positions["X"]["bcoord"]
+    yi, eta = grid_positions["Y"]["index"], grid_positions["Y"]["bcoord"]
+    zi, zeta = grid_positions["Z"]["index"], grid_positions["Z"]["bcoord"]
+    ti, tau = grid_positions["T"]["index"], grid_positions["T"]["bcoord"]
+    lon = particle_positions["lon"]
 
     U = vectorfield.U.data
     V = vectorfield.V.data
@@ -327,7 +330,8 @@ def CGrid_Velocity(
 
 
 def CGrid_Tracer(
-    position: dict[_XGRID_AXES, tuple[int, float | np.ndarray]],
+    particle_positions: dict[str, float | np.ndarray],
+    grid_positions: dict[_XGRID_AXES, dict[str, int | float | np.ndarray]],
     field: Field,
 ):
     """Interpolation kernel for tracer fields on a C-Grid.
@@ -335,11 +339,11 @@ def CGrid_Tracer(
     Following Delandmeter and Van Sebille (2019), tracer fields should be interpolated
     constant over the grid cell
     """
-    xi = position["xi"]
-    yi = position["yi"]
-    zi = position["zi"]
-    ti = position["ti"]
-    tau = position["tau"]
+    xi = grid_positions["X"]["index"]
+    yi = grid_positions["Y"]["index"]
+    zi = grid_positions["Z"]["index"]
+    ti = grid_positions["T"]["index"]
+    tau = grid_positions["T"]["bcoord"]
 
     axis_dim = field.grid.get_axis_dim_mapping(field.data.dims)
     data = field.data
@@ -378,26 +382,27 @@ def CGrid_Tracer(
 
 
 def _Spatialslip(
-    position: dict[_XGRID_AXES, tuple[int, float | np.ndarray]],
+    particle_positions: dict[str, float | np.ndarray],
+    grid_positions: dict[_XGRID_AXES, dict[str, int | float | np.ndarray]],
     vectorfield: VectorField,
     a: np.float32,
     b: np.float32,
 ):
     """Helper function for spatial boundary condition interpolation for velocity fields."""
-    xi, xsi = position["xi"], position["xsi"]
-    yi, eta = position["yi"], position["eta"]
-    zi, zeta = position["zi"], position["zeta"]
-    ti, tau = position["ti"], position["tau"]
+    xi, xsi = grid_positions["X"]["index"], grid_positions["X"]["bcoord"]
+    yi, eta = grid_positions["Y"]["index"], grid_positions["Y"]["bcoord"]
+    zi, zeta = grid_positions["Z"]["index"], grid_positions["Z"]["bcoord"]
+    ti, tau = grid_positions["T"]["index"], grid_positions["T"]["bcoord"]
 
     axis_dim = vectorfield.U.grid.get_axis_dim_mapping(vectorfield.U.data.dims)
     lenT = 2 if np.any(tau > 0) else 1
     lenZ = 2 if np.any(zeta > 0) else 1
     npart = len(xsi)
 
-    u = XLinear(position, vectorfield.U)
-    v = XLinear(position, vectorfield.V)
+    u = XLinear(particle_positions, grid_positions, vectorfield.U)
+    v = XLinear(particle_positions, grid_positions, vectorfield.V)
     if vectorfield.W:
-        w = XLinear(position, vectorfield.W)
+        w = XLinear(particle_positions, grid_positions, vectorfield.W)
 
     corner_dataU = _get_corner_data_Agrid(vectorfield.U.data, ti, zi, yi, xi, lenT, lenZ, npart, axis_dim)
     corner_dataV = _get_corner_data_Agrid(vectorfield.V.data, ti, zi, yi, xi, lenT, lenZ, npart, axis_dim)
@@ -489,33 +494,36 @@ def _Spatialslip(
 
 
 def XFreeslip(
-    position: dict[_XGRID_AXES, tuple[int, float | np.ndarray]],
+    particle_positions: dict[str, float | np.ndarray],
+    grid_positions: dict[_XGRID_AXES, dict[str, int | float | np.ndarray]],
     vectorfield: VectorField,
 ):
     """Free-slip boundary condition interpolation for velocity fields."""
-    return _Spatialslip(position, vectorfield, a=1.0, b=0.0)
+    return _Spatialslip(particle_positions, grid_positions, vectorfield, a=1.0, b=0.0)
 
 
 def XPartialslip(
-    position: dict[_XGRID_AXES, tuple[int, float | np.ndarray]],
+    particle_positions: dict[str, float | np.ndarray],
+    grid_positions: dict[_XGRID_AXES, dict[str, int | float | np.ndarray]],
     vectorfield: VectorField,
 ):
     """Partial-slip boundary condition interpolation for velocity fields."""
-    return _Spatialslip(position, vectorfield, a=0.5, b=0.5)
+    return _Spatialslip(particle_positions, grid_positions, vectorfield, a=0.5, b=0.5)
 
 
 def XNearest(
-    position: dict[_XGRID_AXES, tuple[int, float | np.ndarray]],
+    particle_positions: dict[str, float | np.ndarray],
+    grid_positions: dict[_XGRID_AXES, dict[str, int | float | np.ndarray]],
     field: Field,
 ):
     """
     Nearest-Neighbour spatial interpolation on a regular grid.
     Note that this still uses linear interpolation in time.
     """
-    xi, xsi = position["xi"], position["xsi"]
-    yi, eta = position["yi"], position["eta"]
-    zi, zeta = position["zi"], position["zeta"]
-    ti, tau = position["ti"], position["tau"]
+    xi, xsi = grid_positions["X"]["index"], grid_positions["X"]["bcoord"]
+    yi, eta = grid_positions["Y"]["index"], grid_positions["Y"]["bcoord"]
+    zi, zeta = grid_positions["Z"]["index"], grid_positions["Z"]["bcoord"]
+    ti, tau = grid_positions["T"]["index"], grid_positions["T"]["bcoord"]
 
     axis_dim = field.grid.get_axis_dim_mapping(field.data.dims)
     data = field.data
@@ -563,7 +571,8 @@ def XNearest(
 
 
 def UXPiecewiseConstantFace(
-    position: dict[_UXGRID_AXES, tuple[int, float | np.ndarray]],
+    particle_positions: dict[str, float | np.ndarray],
+    grid_positions: dict[_XGRID_AXES, dict[str, int | float | np.ndarray]],
     field: Field,
 ):
     """
@@ -571,11 +580,14 @@ def UXPiecewiseConstantFace(
     This interpolation method is appropriate for fields that are
     face registered, such as u,v in FESOM.
     """
-    return field.data.values[position["ti"], position["Z"][0], position["FACE"][0]]
+    return field.data.values[
+        grid_positions["T"]["index"], grid_positions["Z"]["index"], grid_positions["FACE"]["index"]
+    ]
 
 
 def UXPiecewiseLinearNode(
-    position: dict[_UXGRID_AXES, tuple[int, float | np.ndarray]],
+    particle_positions: dict[str, float | np.ndarray],
+    grid_positions: dict[_XGRID_AXES, dict[str, int | float | np.ndarray]],
     field: Field,
 ):
     """
@@ -584,10 +596,10 @@ def UXPiecewiseLinearNode(
     velocity W in FESOM2. Effectively, it applies barycentric interpolation in the lateral direction
     and piecewise linear interpolation in the vertical direction.
     """
-    ti = position["ti"]
-    zi, fi = position["Z"][0], position["FACE"][0]
-    z = position["z"]
-    bcoords = position["FACE"][1]
+    ti = grid_positions["T"]["index"]
+    zi, fi = grid_positions["Z"]["index"], grid_positions["FACE"]["index"]
+    z = particle_positions["z"]
+    bcoords = grid_positions["FACE"]["bcoord"]
     node_ids = field.grid.uxgrid.face_node_connectivity[fi, :].values
     # The zi refers to the vertical layer index. The field in this routine are assumed to be defined at the vertical interface levels.
     # For interface zi, the interface indices are [zi, zi+1], so we need to use the values at zi and zi+1.

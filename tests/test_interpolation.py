@@ -84,10 +84,11 @@ def field():
 )
 def test_raw_2d_interpolation(field, func, t, z, y, x, expected):
     """Test the interpolation functions on the Field."""
-    position = field.grid.search(z, y, x)
-    position.update(_search_time_index(field, t))
+    particle_positions = {"time": t, "z": z, "lat": y, "lon": x}
+    grid_positions = field.grid.search(z, y, x)
+    grid_positions.update(_search_time_index(field, t))
 
-    value = func(position, field)
+    value = func(particle_positions, grid_positions, field)
     np.testing.assert_equal(value, expected)
 
 

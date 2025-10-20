@@ -132,11 +132,11 @@ def test_xgrid_search_cpoints(ds):
 
     for xi in range(grid.xdim - 1):
         for yi in range(grid.ydim - 1):
-            axis_indices = {"zi": 0, "yi": yi, "xi": xi}
+            axis_indices = {"Z": 0, "Y": yi, "X": xi}
 
             lat, lon = lat_array[yi, xi], lon_array[yi, xi]
             axis_indices_bcoords = grid.search(0, np.atleast_1d(lat), np.atleast_1d(lon), ei=None)
-            axis_indices_test = {k: v for k, v in axis_indices_bcoords.items() if k in axis_indices}
+            axis_indices_test = {k: v["index"] for k, v in axis_indices_bcoords.items() if k in axis_indices}
             assert axis_indices == axis_indices_test
 
             # assert np.isclose(bcoords[0], 0.5) #? Should this not be the case with the cell center points?

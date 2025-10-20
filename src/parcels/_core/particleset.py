@@ -295,12 +295,12 @@ class ParticleSet:
     def populate_indices(self):
         """Pre-populate guesses of particle ei (element id) indices"""
         for i, grid in enumerate(self.fieldset.gridset):
-            position = grid.search(self.z, self.lat, self.lon)
+            grid_positions = grid.search(self.z, self.lat, self.lon)
             self._data["ei"][:, i] = grid.ravel_index(
                 {
-                    "X": position["xi"],
-                    "Y": position["yi"],
-                    "Z": position["zi"],
+                    "X": grid_positions["X"]["index"],
+                    "Y": grid_positions["Y"]["index"],
+                    "Z": grid_positions["Z"]["index"],
                 }
             )
 
