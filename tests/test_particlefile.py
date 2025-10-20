@@ -178,7 +178,7 @@ def test_pset_repeated_release_delayed_adding_deleting(fieldset, tmp_zarrfile, d
         lon=np.zeros(npart),
         lat=np.zeros(npart),
         pclass=MyParticle,
-        time=fieldset.time_interval.left + np.array([np.timedelta64(i + 1, "s") for i in range(npart)]),
+        time=fieldset.time_interval.left + [np.timedelta64(i + 1, "s") for i in range(npart)],
     )
     pfile = ParticleFile(tmp_zarrfile, outputdt=abs(dt), chunks=(1, 1))
 
@@ -203,25 +203,23 @@ def test_pset_repeated_release_delayed_adding_deleting(fieldset, tmp_zarrfile, d
     assert filesize < 1024 * 65  # test that chunking leads to filesize less than 65KB
 
 
-@pytest.mark.xfail(reason="need to fix backwards in time")
 def test_write_timebackward(fieldset, tmp_zarrfile):
-    def Update_lon(particles, fieldset):  # pragma: no cover
-        dt = particles.dt / np.timedelta64(1, "s")
-        particles.dlon -= 0.1 * dt
-
-    pset = ParticleSet(
-        fieldset,
-        pclass=Particle,
-        lat=np.linspace(0, 1, 3),
-        lon=[0, 0, 0],
-        time=np.array([np.datetime64("2000-01-01") for _ in range(3)]),
-    )
+    release_time = fieldset.time_interval.left + [np.timedelta64(i + 1, "s") for i in range(3)]
+    pset = ParticleSet(fieldset, lat=[0, 1, 2], lon=[0, 0, 0], time=release_time)
     pfile = ParticleFile(tmp_zarrfile, outputdt=np.timedelta64(1, "s"))
-    pset.execute(pset.Kernel(Update_lon), runtime=np.timedelta64(1, "s"), dt=-np.timedelta64(1, "s"), output_file=pfile)
-    ds = xr.open_zarr(tmp_zarrfile)
+    pset.execute(DoNothing, runtime=np.timedelta64(3, "s"), dt=-np.timedelta64(1, "s"), output_file=pfile)
+
+    # TODO v4: Fix decode_cf and remove the following lines
+    ds = xr.open_zarr(tmp_zarrfile, decode_cf=False)
     trajs = ds["trajectory"][:]
+
+    output_time = ds["time"][:].values
+    output_time = np.where(output_time > 100.0, np.nan, output_time)  # ignore fill values
+
     assert trajs.values.dtype == "int64"
     assert np.all(np.diff(trajs.values) < 0)  # all particles written in order of release
+    doutput_time = np.diff(output_time, axis=1)
+    assert np.all(doutput_time[~np.isnan(doutput_time)] < 0)  # all times written in decreasing order
 
 
 @pytest.mark.xfail
