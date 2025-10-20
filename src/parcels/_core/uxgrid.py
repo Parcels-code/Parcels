@@ -118,4 +118,4 @@ class UxGrid(BaseGrid):
             coords[zero_indices, :] = coords_q
             fi[zero_indices] = face_ids_q
 
-        return {"Z": {"index":zi, "bcoord":zeta}, "FACE": {"index":fi, "bcoord":coords}}
+        return {"Z": {"index": zi, "bcoord": zeta}, "FACE": {"index": fi, "bcoord": coords}}
