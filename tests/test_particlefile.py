@@ -275,6 +275,31 @@ def test_write_xiyi(fieldset, tmp_zarrfile):
             assert fieldset.U.grid.lat[yi] <= lat < fieldset.U.grid.lat[yi + 1]
 
 
+@pytest.mark.parametrize("outputdt", [np.timedelta64(1, "s"), np.timedelta64(2, "s"), np.timedelta64(3, "s")])
+def test_time_is_age(fieldset, tmp_zarrfile, outputdt):
+    # Test that particle age is same as time - initial_time
+    npart = 10
+
+    AgeParticle = get_default_particle(np.float64).add_variable(Variable("age", initial=0.0))
+
+    def IncreaseAge(particles, fieldset):  # pragma: no cover
+        particles.age += particles.dt / np.timedelta64(1, "s")
+
+    time = fieldset.time_interval.left + np.arange(npart) * np.timedelta64(1, "s")
+    pset = ParticleSet(fieldset, pclass=AgeParticle, lon=npart * [0], lat=npart * [0], time=time)
+    ofile = ParticleFile(tmp_zarrfile, outputdt=outputdt)
+
+    pset.execute(IncreaseAge, runtime=np.timedelta64(npart * 2, "s"), dt=np.timedelta64(1, "s"), output_file=ofile)
+
+    # TODO v4: Fix metadata and re-enable decode_cf
+    ds = xr.open_zarr(tmp_zarrfile, decode_cf=False)
+    age = ds["age"][:].values
+    ds_time = np.zeros_like(age)
+    for i in range(npart):
+        ds_time[i, :] = ds.time.values[i, :] - (time[i] - fieldset.time_interval.left) / np.timedelta64(1, "s")
+    assert np.allclose(age[~np.isnan(age)], ds_time[~np.isnan(age)])
+
+
 def test_reset_dt(fieldset, tmp_zarrfile):
     # Assert that p.dt gets reset when a write_time is not a multiple of dt
     # for p.dt=0.02 to reach outputdt=0.05 and endtime=0.1, the steps should be [0.2, 0.2, 0.1, 0.2, 0.2, 0.1], resulting in 6 kernel executions
