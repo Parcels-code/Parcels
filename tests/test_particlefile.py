@@ -275,20 +275,19 @@ def test_write_xiyi(fieldset, tmp_zarrfile):
             assert fieldset.U.grid.lat[yi] <= lat < fieldset.U.grid.lat[yi + 1]
 
 
-@pytest.mark.skip
-@pytest.mark.v4alpha
 def test_reset_dt(fieldset, tmp_zarrfile):
     # Assert that p.dt gets reset when a write_time is not a multiple of dt
     # for p.dt=0.02 to reach outputdt=0.05 and endtime=0.1, the steps should be [0.2, 0.2, 0.1, 0.2, 0.2, 0.1], resulting in 6 kernel executions
+    dt = np.timedelta64(20, "ms")
 
     def Update_lon(particles, fieldset):  # pragma: no cover
         particles.dlon += 0.1
 
     particle = get_default_particle(np.float64)
     pset = ParticleSet(fieldset, pclass=particle, lon=[0], lat=[0])
+    pset.update_dt_dtype(dt.dtype)
     ofile = ParticleFile(tmp_zarrfile, outputdt=np.timedelta64(50, "ms"))
-    dt = np.timedelta64(20, "ms")
-    pset.execute(pset.Kernel(Update_lon), runtime=6 * dt, dt=dt, output_file=ofile)
+    pset.execute(pset.Kernel(Update_lon), runtime=5 * dt, dt=dt, output_file=ofile)
 
     assert np.allclose(pset.lon, 0.6)
 
