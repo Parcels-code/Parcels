@@ -7,8 +7,18 @@ import pytest
 import xarray as xr
 from zarr.storage import MemoryStore
 
-import parcels
-from parcels import Field, FieldSet, Particle, ParticleFile, ParticleSet, StatusCode, Variable, VectorField, XGrid
+from parcels import (
+    Field,
+    FieldSet,
+    Particle,
+    ParticleFile,
+    ParticleSet,
+    StatusCode,
+    Variable,
+    VectorField,
+    XGrid,
+    download_example_dataset,
+)
 from parcels._core.particle import Particle, create_particle_data, get_default_particle
 from parcels._core.utils.time import TimeInterval
 from parcels._datasets.structured.generic import datasets
@@ -317,13 +327,11 @@ def test_reset_dt(fieldset, tmp_zarrfile):
     assert np.allclose(pset.lon, 0.6)
 
 
-@pytest.mark.v4alpha
-@pytest.mark.xfail
 def test_correct_misaligned_outputdt_dt(fieldset, tmp_zarrfile):
     """Testing that outputdt does not need to be a multiple of dt."""
 
     def Update_lon(particles, fieldset):  # pragma: no cover
-        particles.dlon += particles.dt / np.timedelta64(1, "s")
+        particles.lon += particles.dt / np.timedelta64(1, "s")
 
     particle = get_default_particle(np.float64)
     pset = ParticleSet(fieldset, pclass=particle, lon=[0], lat=[0])
@@ -332,9 +340,7 @@ def test_correct_misaligned_outputdt_dt(fieldset, tmp_zarrfile):
 
     ds = xr.open_zarr(tmp_zarrfile)
     assert np.allclose(ds.lon.values, [0, 3, 6, 9])
-    assert np.allclose(
-        ds.time.values[0, :], [np.timedelta64(t, "s") for t in [0, 3, 6, 9]], atol=np.timedelta64(1, "ns")
-    )
+    assert np.allclose((ds.time.values - ds.time.values[0, 0]) / np.timedelta64(1, "s"), [0, 3, 6, 9])
 
 
 def setup_pset_execute(*, fieldset: FieldSet, outputdt: timedelta, execute_kwargs, particle_class=Particle):
@@ -382,7 +388,6 @@ def test_pset_execute_output_time_forwards(fieldset):
     )
 
 
-@pytest.mark.skip(reason="backwards in time not yet working")
 def test_pset_execute_outputdt_backwards(fieldset):
     """Testing output data dt matches outputdt in backwards time."""
     outputdt = timedelta(hours=1)
@@ -394,7 +399,6 @@ def test_pset_execute_outputdt_backwards(fieldset):
     assert np.all(file_outputdt == np.timedelta64(-outputdt))
 
 
-@pytest.mark.xfail(reason="TODO v4: Update dataset loading")
 def test_pset_execute_outputdt_backwards_fieldset_timevarying():
     """test_pset_execute_outputdt_backwards() still passed despite #1722 as it doesn't account for time-varying fields,
     which for some reason #1722
@@ -404,14 +408,9 @@ def test_pset_execute_outputdt_backwards_fieldset_timevarying():
     dt = -timedelta(minutes=5)
 
     # TODO: Not ideal using the `download_example_dataset` here, but I'm struggling to recreate this error using the test suite fieldsets we have
-    example_dataset_folder = parcels.download_example_dataset("MovingEddies_data")
-    filenames = {
-        "U": str(example_dataset_folder / "moving_eddiesU.nc"),
-        "V": str(example_dataset_folder / "moving_eddiesV.nc"),
-    }
-    variables = {"U": "vozocrtx", "V": "vomecrty"}
-    dimensions = {"lon": "nav_lon", "lat": "nav_lat", "time": "time_counter"}
-    fieldset = parcels.FieldSet.from_netcdf(filenames, variables, dimensions)
+    example_dataset_folder = download_example_dataset("CopernicusMarine_data_for_Argo_tutorial")
+    ds_in = xr.open_mfdataset(f"{example_dataset_folder}/*.nc", combine="by_coords")
+    fieldset = FieldSet.from_copernicusmarine(ds_in)
 
     ds = setup_pset_execute(outputdt=outputdt, execute_kwargs=dict(runtime=runtime, dt=dt), fieldset=fieldset)
     file_outputdt = ds.isel(trajectory=0).time.diff(dim="obs").values
