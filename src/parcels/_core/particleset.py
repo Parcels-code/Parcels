@@ -420,7 +420,7 @@ class ParticleSet:
         dt_dtype : np.dtype
             New dtype for dt.
         """
-        if dt_dtype not in [np.timedelta64, "timedelta64[ns]", "timedelta64[ms]", "timedelta64[s]"]:
+        if dt_dtype not in [np.timedelta64, "timedelta64[ns]", "timedelta64[μs]", "timedelta64[ms]", "timedelta64[s]"]:
             raise ValueError(f"dt_dtype must be a numpy timedelta64 dtype. Got {dt_dtype=!r}")
 
         self._data["dt"] = self._data["dt"].astype(dt_dtype)
@@ -515,6 +515,8 @@ class ParticleSet:
                 raise ValueError(
                     f"The runtime must be a datetime.timedelta or np.timedelta64 object. Got {type(runtime)}"
                 ) from e
+            if runtime < np.timedelta64(0, "s"):
+                raise ValueError(f"The runtime must be a non-negative timedelta. Got {runtime=!r}")
 
         start_time, end_time = _get_simulation_start_and_end_times(
             self.fieldset.time_interval, self._data["time"], runtime, endtime, sign_dt
@@ -551,7 +553,7 @@ class ParticleSet:
                     if output_file:
                         output_file.write(self, next_output)
                     if np.isfinite(outputdt):
-                        next_output += outputdt
+                        next_output += outputdt * sign_dt
 
             if verbose_progress:
                 pbar.set_description("Integration time: " + str(time))

@@ -71,6 +71,9 @@ class ParticleFile:
         if not isinstance(outputdt, np.timedelta64):
             raise ValueError(f"Expected outputdt to be a np.timedelta64 or datetime.timedelta, got {type(outputdt)}")
 
+        if outputdt <= np.timedelta64(0, "s"):
+            raise ValueError(f"outputdt must be a positive non-zero timedelta. Got {outputdt=!r}")
+
         self._outputdt = outputdt
 
         _assert_valid_chunks_tuple(chunks)

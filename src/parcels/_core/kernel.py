@@ -14,7 +14,7 @@ from parcels._core.statuscodes import (
     _raise_field_out_of_bound_surface_error,
     _raise_general_error,
     _raise_grid_searching_error,
-    _raise_time_extrapolation_error,
+    _raise_outside_time_interval_error,
 )
 from parcels._core.warnings import KernelWarning
 from parcels.kernels import (
@@ -31,7 +31,7 @@ __all__ = ["Kernel"]
 
 
 ErrorsToThrow = {
-    StatusCode.ErrorTimeExtrapolation: _raise_time_extrapolation_error,
+    StatusCode.ErrorOutsideTimeInterval: _raise_outside_time_interval_error,
     StatusCode.ErrorOutOfBounds: _raise_field_out_of_bound_error,
     StatusCode.ErrorThroughSurface: _raise_field_out_of_bound_surface_error,
     StatusCode.ErrorInterpolation: _raise_field_interpolation_error,
@@ -233,7 +233,10 @@ class Kernel:
         while (len(pset) > 0) and np.any(np.isin(pset.state, [StatusCode.Evaluate, StatusCode.Repeat])):
             time_to_endtime = compute_time_direction * (endtime - pset.time)
 
-            if all(time_to_endtime <= 0):
+            evaluate_particles = (np.isin(pset.state, [StatusCode.Success, StatusCode.Evaluate])) & (
+                time_to_endtime >= 0
+            )
+            if not np.any(evaluate_particles):
                 return StatusCode.Success
 
             # adapt dt to end exactly on endtime
@@ -243,7 +246,6 @@ class Kernel:
                 pset.dt = np.minimum(np.maximum(pset.dt, -time_to_endtime), 0)
 
             # run kernels for all particles that need to be evaluated
-            evaluate_particles = (pset.state == StatusCode.Evaluate) & (pset.dt != 0)
             for f in self._pyfuncs:
                 f(pset[evaluate_particles], self._fieldset)
 
@@ -257,9 +259,9 @@ class Kernel:
             if not hasattr(self.fieldset, "RK45_tol"):
                 pset._data["dt"][:] = dt
 
-            # Reset particle state for particles that signalled success and have not reached endtime yet
-            particles_to_evaluate = (pset.state == StatusCode.Success) & (time_to_endtime > 0)
-            pset[particles_to_evaluate].state = StatusCode.Evaluate
+            # Set particle state for particles that reached endtime
+            particles_endofloop = (pset.state == StatusCode.Evaluate) & (pset.time == endtime)
+            pset[particles_endofloop].state = StatusCode.EndofLoop
 
             # delete particles that signalled deletion
             self.remove_deleted(pset)
@@ -271,11 +273,12 @@ class Kernel:
             for error_code, error_func in ErrorsToThrow.items():
                 if np.any(pset.state == error_code):
                     inds = pset.state == error_code
-                    if error_code == StatusCode.ErrorTimeExtrapolation:
+                    if error_code == StatusCode.ErrorOutsideTimeInterval:
                         error_func(pset[inds].time)
                     else:
                         error_func(pset[inds].z, pset[inds].lat, pset[inds].lon)
 
+            # Only add PositionUpdate kernel at the end of the first execute call to avoid adding dt to time too early
             if not self._positionupdate_kernel_added:
                 self.add_positionupdate_kernel()
                 self._positionupdate_kernel_added = True

@@ -7,8 +7,18 @@ import pytest
 import xarray as xr
 from zarr.storage import MemoryStore
 
-import parcels
-from parcels import Field, FieldSet, Particle, ParticleFile, ParticleSet, StatusCode, Variable, VectorField, XGrid
+from parcels import (
+    Field,
+    FieldSet,
+    Particle,
+    ParticleFile,
+    ParticleSet,
+    StatusCode,
+    Variable,
+    VectorField,
+    XGrid,
+    download_example_dataset,
+)
 from parcels._core.particle import Particle, create_particle_data, get_default_particle
 from parcels._core.utils.time import TimeInterval
 from parcels._datasets.structured.generic import datasets
@@ -112,20 +122,16 @@ def test_pfile_array_remove_all_particles(fieldset, chunks_obs, tmp_zarrfile):
         assert np.all(np.isnan(ds["time"][:, 1:]))
 
 
-@pytest.mark.skip(reason="TODO v4: stuck in infinite loop")
 def test_variable_write_double(fieldset, tmp_zarrfile):
     def Update_lon(particles, fieldset):  # pragma: no cover
         particles.dlon += 0.1
 
+    dt = np.timedelta64(1, "us")
     particle = get_default_particle(np.float64)
     pset = ParticleSet(fieldset, pclass=particle, lon=[0], lat=[0])
-    ofile = ParticleFile(tmp_zarrfile, outputdt=np.timedelta64(10, "us"))
-    pset.execute(
-        pset.Kernel(Update_lon),
-        runtime=np.timedelta64(1, "ms"),
-        dt=np.timedelta64(10, "us"),
-        output_file=ofile,
-    )
+    pset.update_dt_dtype(dt.dtype)
+    ofile = ParticleFile(tmp_zarrfile, outputdt=dt)
+    pset.execute(Update_lon, runtime=np.timedelta64(10, "us"), dt=dt, output_file=ofile)
 
     ds = xr.open_zarr(tmp_zarrfile, decode_cf=False)  # TODO v4: Fix metadata and re-enable decode_cf
     lons = ds["lon"][:]
@@ -166,20 +172,12 @@ def test_variable_written_once():
     ...
 
 
-@pytest.mark.parametrize(
-    "dt",
-    [
-        # pytest.param(-np.timedelta64(1, "s"), marks=pytest.mark.xfail(reason="need to fix backwards in time")),
-        np.timedelta64(1, "s"),
-    ],
-)
+@pytest.mark.parametrize("dt", [-np.timedelta64(1, "s"), np.timedelta64(1, "s")])
 @pytest.mark.parametrize("maxvar", [2, 4, 10])
 def test_pset_repeated_release_delayed_adding_deleting(fieldset, tmp_zarrfile, dt, maxvar):
     """Tests that if particles are released and deleted based on age that resulting output file is correct."""
     npart = 10
-    runtime = np.timedelta64(npart, "s")
     fieldset.add_constant("maxvar", maxvar)
-    pset = None
 
     MyParticle = Particle.add_variable(
         [Variable("sample_var", initial=0.0), Variable("v_once", dtype=np.float64, initial=0.0, to_write="once")]
@@ -190,7 +188,7 @@ def test_pset_repeated_release_delayed_adding_deleting(fieldset, tmp_zarrfile, d
         lon=np.zeros(npart),
         lat=np.zeros(npart),
         pclass=MyParticle,
-        time=fieldset.time_interval.left + np.array([np.timedelta64(i, "s") for i in range(npart)]),
+        time=fieldset.time_interval.left + [np.timedelta64(i + 1, "s") for i in range(npart)],
     )
     pfile = ParticleFile(tmp_zarrfile, outputdt=abs(dt), chunks=(1, 1))
 
@@ -206,11 +204,8 @@ def test_pset_repeated_release_delayed_adding_deleting(fieldset, tmp_zarrfile, d
         pset.execute(IncrLon, dt=dt, runtime=np.timedelta64(1, "s"), output_file=pfile)
 
     ds = xr.open_zarr(tmp_zarrfile, decode_cf=False)
-    pytest.skip(
-        "TODO v4: Set decode_cf=True, which will mean that missing values get decoded to NaT rather than fill value"
-    )
     samplevar = ds["sample_var"][:]
-    assert samplevar.shape == (runtime, min(maxvar + 1, runtime))
+    assert samplevar.shape == (npart, min(maxvar, npart + 1))
     # test whether samplevar[:, k] = k
     for k in range(samplevar.shape[1]):
         assert np.allclose([p for p in samplevar[:, k] if np.isfinite(p)], k + 1)
@@ -218,25 +213,23 @@ def test_pset_repeated_release_delayed_adding_deleting(fieldset, tmp_zarrfile, d
     assert filesize < 1024 * 65  # test that chunking leads to filesize less than 65KB
 
 
-@pytest.mark.xfail(reason="need to fix backwards in time")
 def test_write_timebackward(fieldset, tmp_zarrfile):
-    def Update_lon(particles, fieldset):  # pragma: no cover
-        dt = particles.dt / np.timedelta64(1, "s")
-        particles.dlon -= 0.1 * dt
-
-    pset = ParticleSet(
-        fieldset,
-        pclass=Particle,
-        lat=np.linspace(0, 1, 3),
-        lon=[0, 0, 0],
-        time=np.array([np.datetime64("2000-01-01") for _ in range(3)]),
-    )
+    release_time = fieldset.time_interval.left + [np.timedelta64(i + 1, "s") for i in range(3)]
+    pset = ParticleSet(fieldset, lat=[0, 1, 2], lon=[0, 0, 0], time=release_time)
     pfile = ParticleFile(tmp_zarrfile, outputdt=np.timedelta64(1, "s"))
-    pset.execute(pset.Kernel(Update_lon), runtime=np.timedelta64(1, "s"), dt=-np.timedelta64(1, "s"), output_file=pfile)
-    ds = xr.open_zarr(tmp_zarrfile)
+    pset.execute(DoNothing, runtime=np.timedelta64(3, "s"), dt=-np.timedelta64(1, "s"), output_file=pfile)
+
+    # TODO v4: Fix decode_cf and remove the following lines
+    ds = xr.open_zarr(tmp_zarrfile, decode_cf=False)
     trajs = ds["trajectory"][:]
+
+    output_time = ds["time"][:].values
+    output_time = np.where(output_time > 100.0, np.nan, output_time)  # ignore fill values
+
     assert trajs.values.dtype == "int64"
     assert np.all(np.diff(trajs.values) < 0)  # all particles written in order of release
+    doutput_time = np.diff(output_time, axis=1)
+    assert np.all(doutput_time[~np.isnan(doutput_time)] < 0)  # all times written in decreasing order
 
 
 @pytest.mark.xfail
@@ -292,31 +285,53 @@ def test_write_xiyi(fieldset, tmp_zarrfile):
             assert fieldset.U.grid.lat[yi] <= lat < fieldset.U.grid.lat[yi + 1]
 
 
-@pytest.mark.skip
-@pytest.mark.v4alpha
+@pytest.mark.parametrize("outputdt", [np.timedelta64(1, "s"), np.timedelta64(2, "s"), np.timedelta64(3, "s")])
+def test_time_is_age(fieldset, tmp_zarrfile, outputdt):
+    # Test that particle age is same as time - initial_time
+    npart = 10
+
+    AgeParticle = get_default_particle(np.float64).add_variable(Variable("age", initial=0.0))
+
+    def IncreaseAge(particles, fieldset):  # pragma: no cover
+        particles.age += particles.dt / np.timedelta64(1, "s")
+
+    time = fieldset.time_interval.left + np.arange(npart) * np.timedelta64(1, "s")
+    pset = ParticleSet(fieldset, pclass=AgeParticle, lon=npart * [0], lat=npart * [0], time=time)
+    ofile = ParticleFile(tmp_zarrfile, outputdt=outputdt)
+
+    pset.execute(IncreaseAge, runtime=np.timedelta64(npart * 2, "s"), dt=np.timedelta64(1, "s"), output_file=ofile)
+
+    # TODO v4: Fix metadata and re-enable decode_cf
+    ds = xr.open_zarr(tmp_zarrfile, decode_cf=False)
+    age = ds["age"][:].values
+    ds_time = np.zeros_like(age)
+    for i in range(npart):
+        ds_time[i, :] = ds.time.values[i, :] - (time[i] - fieldset.time_interval.left) / np.timedelta64(1, "s")
+    assert np.allclose(age[~np.isnan(age)], ds_time[~np.isnan(age)])
+
+
 def test_reset_dt(fieldset, tmp_zarrfile):
     # Assert that p.dt gets reset when a write_time is not a multiple of dt
     # for p.dt=0.02 to reach outputdt=0.05 and endtime=0.1, the steps should be [0.2, 0.2, 0.1, 0.2, 0.2, 0.1], resulting in 6 kernel executions
+    dt = np.timedelta64(20, "ms")
 
     def Update_lon(particles, fieldset):  # pragma: no cover
         particles.dlon += 0.1
 
     particle = get_default_particle(np.float64)
     pset = ParticleSet(fieldset, pclass=particle, lon=[0], lat=[0])
+    pset.update_dt_dtype(dt.dtype)
     ofile = ParticleFile(tmp_zarrfile, outputdt=np.timedelta64(50, "ms"))
-    dt = np.timedelta64(20, "ms")
-    pset.execute(pset.Kernel(Update_lon), runtime=6 * dt, dt=dt, output_file=ofile)
+    pset.execute(pset.Kernel(Update_lon), runtime=5 * dt, dt=dt, output_file=ofile)
 
     assert np.allclose(pset.lon, 0.6)
 
 
-@pytest.mark.v4alpha
-@pytest.mark.xfail
 def test_correct_misaligned_outputdt_dt(fieldset, tmp_zarrfile):
     """Testing that outputdt does not need to be a multiple of dt."""
 
     def Update_lon(particles, fieldset):  # pragma: no cover
-        particles.dlon += particles.dt / np.timedelta64(1, "s")
+        particles.lon += particles.dt / np.timedelta64(1, "s")
 
     particle = get_default_particle(np.float64)
     pset = ParticleSet(fieldset, pclass=particle, lon=[0], lat=[0])
@@ -325,9 +340,7 @@ def test_correct_misaligned_outputdt_dt(fieldset, tmp_zarrfile):
 
     ds = xr.open_zarr(tmp_zarrfile)
     assert np.allclose(ds.lon.values, [0, 3, 6, 9])
-    assert np.allclose(
-        ds.time.values[0, :], [np.timedelta64(t, "s") for t in [0, 3, 6, 9]], atol=np.timedelta64(1, "ns")
-    )
+    assert np.allclose((ds.time.values - ds.time.values[0, 0]) / np.timedelta64(1, "s"), [0, 3, 6, 9])
 
 
 def setup_pset_execute(*, fieldset: FieldSet, outputdt: timedelta, execute_kwargs, particle_class=Particle):
@@ -375,7 +388,6 @@ def test_pset_execute_output_time_forwards(fieldset):
     )
 
 
-@pytest.mark.skip(reason="backwards in time not yet working")
 def test_pset_execute_outputdt_backwards(fieldset):
     """Testing output data dt matches outputdt in backwards time."""
     outputdt = timedelta(hours=1)
@@ -387,7 +399,6 @@ def test_pset_execute_outputdt_backwards(fieldset):
     assert np.all(file_outputdt == np.timedelta64(-outputdt))
 
 
-@pytest.mark.xfail(reason="TODO v4: Update dataset loading")
 def test_pset_execute_outputdt_backwards_fieldset_timevarying():
     """test_pset_execute_outputdt_backwards() still passed despite #1722 as it doesn't account for time-varying fields,
     which for some reason #1722
@@ -397,14 +408,9 @@ def test_pset_execute_outputdt_backwards_fieldset_timevarying():
     dt = -timedelta(minutes=5)
 
     # TODO: Not ideal using the `download_example_dataset` here, but I'm struggling to recreate this error using the test suite fieldsets we have
-    example_dataset_folder = parcels.download_example_dataset("MovingEddies_data")
-    filenames = {
-        "U": str(example_dataset_folder / "moving_eddiesU.nc"),
-        "V": str(example_dataset_folder / "moving_eddiesV.nc"),
-    }
-    variables = {"U": "vozocrtx", "V": "vomecrty"}
-    dimensions = {"lon": "nav_lon", "lat": "nav_lat", "time": "time_counter"}
-    fieldset = parcels.FieldSet.from_netcdf(filenames, variables, dimensions)
+    example_dataset_folder = download_example_dataset("CopernicusMarine_data_for_Argo_tutorial")
+    ds_in = xr.open_mfdataset(f"{example_dataset_folder}/*.nc", combine="by_coords")
+    fieldset = FieldSet.from_copernicusmarine(ds_in)
 
     ds = setup_pset_execute(outputdt=outputdt, execute_kwargs=dict(runtime=runtime, dt=dt), fieldset=fieldset)
     file_outputdt = ds.isel(trajectory=0).time.diff(dim="obs").values
