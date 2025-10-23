@@ -204,7 +204,7 @@ class FieldSet:
         expected_axes = set("XYZT")  # TODO: Update after we have support for 2D spatial fields
         if missing_axes := (expected_axes - set(ds.cf.axes)):
             raise ValueError(
-                f"Dataset missing axes {missing_axes} to have coordinates for all {expected_axes} axes according to CF conventions."
+                f"Dataset missing metadata for axes {missing_axes} to have coordinates for all {expected_axes} axes according to CF conventions. HINT: Add metadata attribute axis - e.g., ds['lat'].attrs['axis'] = 'Y'"
             )
 
         ds = _rename_coords_copernicusmarine(ds)
