@@ -24,8 +24,8 @@ from tests.utils import round_and_hash_float_array
 def fieldset() -> FieldSet:
     ds = datasets_structured["ds_2d_left"]
     grid = XGrid.from_dataset(ds, mesh="flat")
-    U = Field("U", ds["U (A grid)"], grid)
-    V = Field("V", ds["V (A grid)"], grid)
+    U = Field("U", ds["U_A_grid"], grid)
+    V = Field("V", ds["V_A_grid"], grid)
     return FieldSet([U, V])
 
 
