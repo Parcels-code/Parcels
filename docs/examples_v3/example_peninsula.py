@@ -8,9 +8,9 @@ import pytest
 import parcels
 
 method = {
-    "RK4": parcels.AdvectionRK4,
-    "EE": parcels.AdvectionEE,
-    "RK45": parcels.AdvectionRK45,
+    "RK4": parcels.kernels.AdvectionRK4,
+    "EE": parcels.kernels.AdvectionEE,
+    "RK45": parcels.kernels.AdvectionRK45,
 }
 
 
@@ -102,7 +102,7 @@ def peninsula_example(
     degree=1,
     verbose=False,
     output=True,
-    method=parcels.AdvectionRK4,
+    method=parcels.kernels.AdvectionRK4,
 ):
     """Example configuration of particle flow around an idealised Peninsula
 
@@ -199,7 +199,7 @@ def test_peninsula_fieldset_AnalyticalAdvection(mesh, tmpdir):
     fieldset = peninsula_fieldset(101, 51, "flat", grid_type="C")
     outfile = tmpdir.join("PeninsulaAA")
     pset = peninsula_example(
-        fieldset, outfile, npart=10, method=parcels.AdvectionAnalytical
+        fieldset, outfile, npart=10, method=parcels.kernels.AdvectionAnalytical
     )
     # Test advection accuracy by comparing streamline values
     err_adv = np.array([abs(p.p_start - p.p) for p in pset])

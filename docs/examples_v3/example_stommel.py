@@ -8,9 +8,9 @@ import pytest
 import parcels
 
 method = {
-    "RK4": parcels.AdvectionRK4,
-    "EE": parcels.AdvectionEE,
-    "RK45": parcels.AdvectionRK45,
+    "RK4": parcels.kernels.AdvectionRK4,
+    "EE": parcels.kernels.AdvectionEE,
+    "RK45": parcels.kernels.AdvectionRK45,
 }
 
 
@@ -96,7 +96,7 @@ def simple_partition_function(coords, mpi_size=1):
 def stommel_example(
     npart=1,
     verbose=False,
-    method=parcels.AdvectionRK4,
+    method=parcels.kernels.AdvectionRK4,
     grid_type="A",
     outfile="StommelParticle.zarr",
     repeatdt=None,

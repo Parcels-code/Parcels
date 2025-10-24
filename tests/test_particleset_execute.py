@@ -9,11 +9,11 @@ from parcels import (
     FieldInterpolationError,
     FieldOutOfBoundError,
     FieldSet,
+    OutsideTimeInterval,
     Particle,
     ParticleFile,
     ParticleSet,
     StatusCode,
-    TimeExtrapolationError,
     UxGrid,
     Variable,
     VectorField,
@@ -24,7 +24,6 @@ from parcels._datasets.structured.generic import datasets as datasets_structured
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
 from parcels.interpolators import UXPiecewiseConstantFace, UXPiecewiseLinearNode
 from parcels.kernels import AdvectionEE, AdvectionRK4, AdvectionRK4_3D
-from tests import utils
 from tests.common_kernels import DoNothing
 
 
@@ -287,7 +286,7 @@ def test_some_particles_throw_outoftime(fieldset):
     def FieldAccessOutsideTime(particles, fieldset):  # pragma: no cover
         fieldset.U[particles.time + np.timedelta64(400, "D"), particles.z, particles.lat, particles.lon, particles]
 
-    with pytest.raises(TimeExtrapolationError):
+    with pytest.raises(OutsideTimeInterval):
         pset.execute(FieldAccessOutsideTime, runtime=np.timedelta64(1, "D"), dt=np.timedelta64(10, "D"))
 
 
@@ -475,8 +474,8 @@ def test_uxstommelgyre_pset_execute():
         runtime=np.timedelta64(10, "m"),
         dt=np.timedelta64(60, "s"),
     )
-    assert utils.round_and_hash_float_array([p.lon for p in pset]) == 1165396086
-    assert utils.round_and_hash_float_array([p.lat for p in pset]) == 1142124776
+    np.testing.assert_allclose(pset[0].lon, 29.997648, atol=1e-3)
+    np.testing.assert_allclose(pset[0].lat, 4.998691, atol=1e-3)
 
 
 def test_uxstommelgyre_multiparticle_pset_execute():

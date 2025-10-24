@@ -51,12 +51,12 @@ def test_ofam_xarray_vs_netcdf(dt):
     psetN = parcels.ParticleSet(
         fieldsetNetcdf, pclass=parcels.Particle, lon=lonstart, lat=latstart
     )
-    psetN.execute(parcels.AdvectionRK4, runtime=runtime, dt=dt)
+    psetN.execute(parcels.kernels.AdvectionRK4, runtime=runtime, dt=dt)
 
     psetX = parcels.ParticleSet(
         fieldsetxarray, pclass=parcels.Particle, lon=lonstart, lat=latstart
     )
-    psetX.execute(parcels.AdvectionRK4, runtime=runtime, dt=dt)
+    psetX.execute(parcels.kernels.AdvectionRK4, runtime=runtime, dt=dt)
 
     assert np.allclose(psetN[0].lon, psetX[0].lon)
     assert np.allclose(psetN[0].lat, psetX[0].lat)
@@ -80,7 +80,9 @@ def test_ofam_particles(use_xarray):
     )
 
     pset.execute(
-        parcels.AdvectionRK4, runtime=timedelta(days=10), dt=timedelta(minutes=5)
+        parcels.kernels.AdvectionRK4,
+        runtime=timedelta(days=10),
+        dt=timedelta(minutes=5),
     )
 
     assert abs(pset[0].lon - 173) < 1

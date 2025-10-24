@@ -29,8 +29,8 @@ from parcels._core.statuscodes import (
     FieldOutOfBoundError,
     FieldSamplingError,
     KernelError,
+    OutsideTimeInterval,
     StatusCode,
-    TimeExtrapolationError,
 )
 from parcels._core.uxgrid import UxGrid
 from parcels._core.warnings import (
@@ -69,8 +69,8 @@ __all__ = [  # noqa: RUF022
     "FieldOutOfBoundError",
     "FieldSamplingError",
     "KernelError",
+    "OutsideTimeInterval",
     "StatusCode",
-    "TimeExtrapolationError",
     # Warnings
     "FieldSetWarning",
     "FileWarning",

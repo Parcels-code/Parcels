@@ -57,8 +57,8 @@ def test_globcurrent_fieldset_advancetime(dt, lonstart, latstart):
         psetsub[0].time_nextloop = fieldsetsub.U.grid.time[-1]
         psetall[0].time_nextloop = fieldsetall.U.grid.time[-1]
 
-    psetsub.execute(parcels.AdvectionRK4, runtime=timedelta(days=7), dt=dt)
-    psetall.execute(parcels.AdvectionRK4, runtime=timedelta(days=7), dt=dt)
+    psetsub.execute(parcels.kernels.AdvectionRK4, runtime=timedelta(days=7), dt=dt)
+    psetall.execute(parcels.kernels.AdvectionRK4, runtime=timedelta(days=7), dt=dt)
 
     assert abs(psetsub[0].lon - psetall[0].lon) < 1e-4
 
@@ -74,7 +74,7 @@ def test_globcurrent_particles():
     )
 
     pset.execute(
-        parcels.AdvectionRK4, runtime=timedelta(days=1), dt=timedelta(minutes=5)
+        parcels.kernels.AdvectionRK4, runtime=timedelta(days=1), dt=timedelta(minutes=5)
     )
 
     assert abs(pset[0].lon - 23.8) < 1
@@ -121,7 +121,7 @@ def test__particles_init_time():
     assert pset[0].time - pset4[0].time == 0
 
 
-def test_globcurrent_time_extrapolation_error():
+def test_globcurrent_outside_time_interval_error():
     fieldset = set_globcurrent_fieldset()
     pset = parcels.ParticleSet(
         fieldset,
@@ -130,9 +130,11 @@ def test_globcurrent_time_extrapolation_error():
         lat=[-35],
         time=fieldset.U.grid.time[0] - timedelta(days=1).total_seconds(),
     )
-    with pytest.raises(parcels.TimeExtrapolationError):
+    with pytest.raises(parcels.OutsideTimeInterval):
         pset.execute(
-            parcels.AdvectionRK4, runtime=timedelta(days=1), dt=timedelta(minutes=5)
+            parcels.kernels.AdvectionRK4,
+            runtime=timedelta(days=1),
+            dt=timedelta(minutes=5),
         )
 
 
@@ -177,15 +179,15 @@ def test_globcurrent_startparticles_between_time_arrays(dt, with_starttime):
         pset = parcels.ParticleSet(fieldset, pclass=MyParticle, lon=[25], lat=[-35])
 
     if with_starttime:
-        with pytest.raises(parcels.TimeExtrapolationError):
+        with pytest.raises(parcels.OutsideTimeInterval):
             pset.execute(
-                pset.Kernel(parcels.AdvectionRK4) + SampleP,
+                pset.Kernel(parcels.kernels.AdvectionRK4) + SampleP,
                 runtime=timedelta(days=1),
                 dt=dt,
             )
     else:
         pset.execute(
-            pset.Kernel(parcels.AdvectionRK4) + SampleP,
+            pset.Kernel(parcels.kernels.AdvectionRK4) + SampleP,
             runtime=timedelta(days=1),
             dt=dt,
         )
@@ -204,7 +206,7 @@ def test_globcurrent_particle_independence(rundays=5):
     )
 
     pset0.execute(
-        pset0.Kernel(DeleteP0) + parcels.AdvectionRK4,
+        pset0.Kernel(DeleteP0) + parcels.kernels.AdvectionRK4,
         runtime=timedelta(days=rundays),
         dt=timedelta(minutes=5),
     )
@@ -214,7 +216,9 @@ def test_globcurrent_particle_independence(rundays=5):
     )
 
     pset1.execute(
-        parcels.AdvectionRK4, runtime=timedelta(days=rundays), dt=timedelta(minutes=5)
+        parcels.kernels.AdvectionRK4,
+        runtime=timedelta(days=rundays),
+        dt=timedelta(minutes=5),
     )
 
     assert np.allclose([pset0[-1].lon, pset0[-1].lat], [pset1[-1].lon, pset1[-1].lat])
@@ -230,7 +234,10 @@ def test_globcurrent_pset_fromfile(dt, pid_offset, tmpdir):
     pset = parcels.ParticleSet(fieldset, pclass=parcels.Particle, lon=25, lat=-35)
     pfile = pset.ParticleFile(filename, outputdt=timedelta(hours=6))
     pset.execute(
-        parcels.AdvectionRK4, runtime=timedelta(days=1), dt=dt, output_file=pfile
+        parcels.kernels.AdvectionRK4,
+        runtime=timedelta(days=1),
+        dt=dt,
+        output_file=pfile,
     )
     pfile.write_latest_locations(pset, max(pset.time_nextloop))
 
@@ -241,8 +248,8 @@ def test_globcurrent_pset_fromfile(dt, pid_offset, tmpdir):
         filename=filename,
         restarttime=restarttime,
     )
-    pset.execute(parcels.AdvectionRK4, runtime=timedelta(days=1), dt=dt)
-    pset_new.execute(parcels.AdvectionRK4, runtime=timedelta(days=1), dt=dt)
+    pset.execute(parcels.kernels.AdvectionRK4, runtime=timedelta(days=1), dt=dt)
+    pset_new.execute(parcels.kernels.AdvectionRK4, runtime=timedelta(days=1), dt=dt)
 
     for var in ["lon", "lat", "depth", "time", "trajectory"]:
         assert np.allclose(
