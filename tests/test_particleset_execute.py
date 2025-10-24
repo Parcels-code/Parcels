@@ -365,7 +365,6 @@ def test_execution_recover_out_of_bounds(fieldset):
 
     def MoveLeft(particles, fieldset):  # pragma: no cover
         inds = np.where(particles.state == StatusCode.ErrorOutOfBounds)
-        print(inds, particles.state)
         particles[inds].dlon -= 1.0
         particles[inds].state = StatusCode.Success
 
@@ -400,7 +399,6 @@ def test_changing_dt_in_kernel(fieldset):
     pset = ParticleSet(fieldset, lon=np.zeros(1), lat=np.zeros(1))
     pset.execute(KernelCounter, dt=np.timedelta64(2, "s"), runtime=np.timedelta64(5, "s"))
     assert pset.lon == 3
-    print(pset.dt)
     assert pset.dt == np.timedelta64(2, "s")
 
 
