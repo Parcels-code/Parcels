@@ -162,14 +162,28 @@ def test_particleset_run_to_endtime(fieldset):
     assert pset[0].time + pset[0].dt == endtime
 
 
-def test_particleset_interpolate_domainedge(fieldset):
+def test_particleset_interpolate_on_domainedge(zonal_flow_fieldset):
+    fieldset = zonal_flow_fieldset
+
     def SampleU(particles, fieldset):  # pragma: no cover
         particles.dlon = fieldset.U[particles]
 
-    print(fieldset.U.grid.lon)
-    pset = ParticleSet(fieldset, lon=fieldset.U.grid.lon[0], lat=fieldset.U.grid.lat[0])
+    pset = ParticleSet(fieldset, lon=fieldset.U.grid.lon[-1], lat=fieldset.U.grid.lat[-1])
     pset.execute(SampleU, runtime=np.timedelta64(1, "D"), dt=np.timedelta64(1, "D"))
-    assert np.isfinite(pset[0].dlon)
+    np.testing.assert_equal(pset[0].dlon, 1)
+
+
+def test_particleset_interpolate_outside_domainedge(zonal_flow_fieldset):
+    fieldset = zonal_flow_fieldset
+
+    def SampleU(particles, fieldset):  # pragma: no cover
+        particles.dlon = fieldset.U[particles]
+
+    dlat = 1e-3
+    pset = ParticleSet(fieldset, lon=fieldset.U.grid.lon[-1], lat=fieldset.U.grid.lat[-1] + dlat)
+
+    with pytest.raises(FieldOutOfBoundError):
+        pset.execute(SampleU, runtime=np.timedelta64(1, "D"), dt=np.timedelta64(1, "D"))
 
 
 @pytest.mark.parametrize(
