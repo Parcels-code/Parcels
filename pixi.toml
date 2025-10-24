@@ -26,9 +26,8 @@ docs = { features = ["docs"], solve-group = "docs" }
 typing = { features = ["typing"], solve-group = "typing" }
 pre-commit = { features = ["pre-commit"], no-default-feature = true }
 
-[dependencies] # keep section in sync with pyproject.toml dependencies
+[package.run-dependencies] # keep section in sync with pyproject.toml dependencies
 python = ">=3.11"
-parcels = { path = "." }
 netcdf4 = ">=1.7.2"
 numpy = ">=2.1.0"
 tqdm = ">=4.50.0"
@@ -40,6 +39,9 @@ xgcm = ">=0.9.0"
 cf_xarray = ">=0.8.6"
 cftime = ">=1.6.3"
 pooch = ">=1.8.0"
+
+[dependencies]
+parcels = { path = "." }
 
 [feature.minimum.dependencies]
 python = "==3.11"
