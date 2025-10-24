@@ -31,8 +31,8 @@ from tests.common_kernels import DoNothing
 def fieldset() -> FieldSet:
     ds = datasets_structured["ds_2d_left"]
     grid = XGrid.from_dataset(ds, mesh="flat")
-    U = Field("U", ds["U (A grid)"], grid)
-    V = Field("V", ds["V (A grid)"], grid)
+    U = Field("U", ds["U_A_grid"], grid)
+    V = Field("V", ds["V_A_grid"], grid)
     UV = VectorField("UV", U, V)
     return FieldSet([U, V, UV])
 
@@ -43,8 +43,8 @@ def fieldset_no_time_interval() -> FieldSet:
     ds = datasets_structured["ds_2d_left"].isel(time=0).drop_vars("time")
 
     grid = XGrid.from_dataset(ds, mesh="flat")
-    U = Field("U", ds["U (A grid)"], grid)
-    V = Field("V", ds["V (A grid)"], grid)
+    U = Field("U", ds["U_A_grid"], grid)
+    V = Field("V", ds["V_A_grid"], grid)
     UV = VectorField("UV", U, V)
     return FieldSet([U, V, UV])
 
