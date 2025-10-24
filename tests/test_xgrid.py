@@ -47,9 +47,7 @@ def assert_equal(actual, expected):
 
 @pytest.mark.parametrize("ds", [datasets["ds_2d_left"]])
 def test_grid_init_param_types(ds):
-    with pytest.raises(
-        ValueError, match="Invalid value 'invalid'. Valid options are.*"
-    ):
+    with pytest.raises(ValueError, match="Invalid value 'invalid'. Valid options are.*"):
         XGrid.from_dataset(ds, mesh="invalid")
 
 
@@ -60,9 +58,7 @@ def test_xgrid_properties_ground_truth(ds, attr, expected):
     assert_equal(actual, expected)
 
 
-@pytest.mark.parametrize(
-    "ds", [pytest.param(ds, id=key) for key, ds in datasets.items()]
-)
+@pytest.mark.parametrize("ds", [pytest.param(ds, id=key) for key, ds in datasets.items()])
 def test_xgrid_from_dataset_on_generic_datasets(ds):
     XGrid.from_dataset(ds)
 
@@ -147,9 +143,7 @@ def test_xgrid_search_cpoints(ds):
             axis_indices = {"Z": 0, "Y": yi, "X": xi}
 
             lat, lon = lat_array[yi, xi], lon_array[yi, xi]
-            axis_indices_bcoords = grid.search(
-                0, np.atleast_1d(lat), np.atleast_1d(lon), ei=None
-            )
+            axis_indices_bcoords = grid.search(0, np.atleast_1d(lat), np.atleast_1d(lon), ei=None)
             axis_indices_test = {k: v[0] for k, v in axis_indices_bcoords.items()}
             assert axis_indices == axis_indices_test
 

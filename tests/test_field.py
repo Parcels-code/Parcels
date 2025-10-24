@@ -16,24 +16,44 @@ def test_field_init_param_types():
     data = datasets_structured["ds_2d_left"]
     grid = XGrid.from_dataset(data)
 
-    with pytest.raises(TypeError, match="Expected a string for variable name, got int instead."):
+    with pytest.raises(
+        TypeError, match="Expected a string for variable name, got int instead."
+    ):
         Field(name=123, data=data["data_g"], grid=grid)
 
-    for name in ["a b", "123", "while"]:
-        with pytest.raises(ValueError, match=r"Received invalid Python variable name.*"):
+    for name in ["a b", "123"]:
+        with pytest.raises(
+            ValueError,
+            match=r"Received invalid Python variable name.*: not a valid identifier. HINT: avoid using spaces, special characters, and starting with a number.",
+        ):
             Field(name=name, data=data["data_g"], grid=grid)
 
-    with pytest.raises(ValueError, match="Expected `data` to be a uxarray.UxDataArray or xarray.DataArray"):
+    with pytest.raises(
+        ValueError,
+        match=r"Received invalid Python variable name.*: it is a reserved keyword. HINT: avoid using the following names:.*",
+    ):
+        Field(name="while", data=data["data_g"], grid=grid)
+
+    with pytest.raises(
+        ValueError,
+        match="Expected `data` to be a uxarray.UxDataArray or xarray.DataArray",
+    ):
         Field(name="test", data=123, grid=grid)
 
-    with pytest.raises(ValueError, match="Expected `grid` to be a parcels UxGrid, or parcels XGrid"):
+    with pytest.raises(
+        ValueError, match="Expected `grid` to be a parcels UxGrid, or parcels XGrid"
+    ):
         Field(name="test", data=data["data_g"], grid=123)
 
 
 @pytest.mark.parametrize(
     "data,grid",
     [
-        pytest.param(ux.UxDataArray(), XGrid.from_dataset(datasets_structured["ds_2d_left"]), id="uxdata-grid"),
+        pytest.param(
+            ux.UxDataArray(),
+            XGrid.from_dataset(datasets_structured["ds_2d_left"]),
+            id="uxdata-grid",
+        ),
         pytest.param(
             xr.DataArray(),
             UxGrid(
@@ -81,7 +101,11 @@ def test_field_init_fail_on_float_time_dim():
     (users are expected to use timedelta64 or datetime).
     """
     ds = datasets_structured["ds_2d_left"].copy()
-    ds["time"] = (ds["time"].dims, np.arange(0, T_structured, dtype="float64"), ds["time"].attrs)
+    ds["time"] = (
+        ds["time"].dims,
+        np.arange(0, T_structured, dtype="float64"),
+        ds["time"].attrs,
+    )
 
     data = ds["data_g"]
     grid = XGrid.from_dataset(ds)
@@ -127,14 +151,21 @@ def test_field_invalid_interpolator():
 
     # Test invalid interpolator with wrong signature
     with pytest.raises(ValueError, match=".*incorrect name.*"):
-        Field(name="test", data=ds["data_g"], grid=grid, interp_method=invalid_interpolator_wrong_signature)
+        Field(
+            name="test",
+            data=ds["data_g"],
+            grid=grid,
+            interp_method=invalid_interpolator_wrong_signature,
+        )
 
 
 def test_vectorfield_invalid_interpolator():
     ds = datasets_structured["ds_2d_left"]
     grid = XGrid.from_dataset(ds)
 
-    def invalid_interpolator_wrong_signature(self, ti, position, tau, t, z, y, applyConversion, invalid):
+    def invalid_interpolator_wrong_signature(
+        self, ti, position, tau, t, z, y, applyConversion, invalid
+    ):
         return 0.0
 
     # Create component fields
@@ -143,7 +174,12 @@ def test_vectorfield_invalid_interpolator():
 
     # Test invalid interpolator with wrong signature
     with pytest.raises(ValueError, match=".*incorrect name.*"):
-        VectorField(name="UV", U=U, V=V, vector_interp_method=invalid_interpolator_wrong_signature)
+        VectorField(
+            name="UV",
+            U=U,
+            V=V,
+            vector_interp_method=invalid_interpolator_wrong_signature,
+        )
 
 
 def test_field_unstructured_z_linear():
@@ -151,7 +187,9 @@ def test_field_unstructured_z_linear():
     The example dataset is a FESOM2 square Delaunay grid with uniform z-coordinate. Cell centered and layer registered data are defined to be
     linear functions of the vertical coordinate. This allows for testing of exactness of the interpolation methods.
     """
-    ds = datasets_unstructured["fesom2_square_delaunay_uniform_z_coordinate"].copy(deep=True)
+    ds = datasets_unstructured["fesom2_square_delaunay_uniform_z_coordinate"].copy(
+        deep=True
+    )
 
     # Change the pressure values to be linearly dependent on the vertical coordinate
     for k, z in enumerate(ds.coords["nz1"]):
@@ -166,18 +204,46 @@ def test_field_unstructured_z_linear():
     P = Field(name="p", data=ds.p, grid=grid, interp_method=UXPiecewiseConstantFace)
 
     # Test above first cell center - for piecewise constant, should return the depth of the first cell center
-    assert np.isclose(P.eval(time=ds.time[0].values, z=[10.0], y=[30.0], x=[30.0], applyConversion=False), 55.555557)
+    assert np.isclose(
+        P.eval(
+            time=ds.time[0].values, z=[10.0], y=[30.0], x=[30.0], applyConversion=False
+        ),
+        55.555557,
+    )
     # Test below first cell center, but in the first layer  - for piecewise constant, should return the depth of the first cell center
-    assert np.isclose(P.eval(time=ds.time[0].values, z=[65.0], y=[30.0], x=[30.0], applyConversion=False), 55.555557)
+    assert np.isclose(
+        P.eval(
+            time=ds.time[0].values, z=[65.0], y=[30.0], x=[30.0], applyConversion=False
+        ),
+        55.555557,
+    )
     # Test bottom layer  - for piecewise constant, should return the depth of the of the bottom layer cell center
     assert np.isclose(
-        P.eval(time=ds.time[0].values, z=[900.0], y=[30.0], x=[30.0], applyConversion=False), 944.44445801
+        P.eval(
+            time=ds.time[0].values, z=[900.0], y=[30.0], x=[30.0], applyConversion=False
+        ),
+        944.44445801,
     )
 
     W = Field(name="W", data=ds.W, grid=grid, interp_method=UXPiecewiseLinearNode)
-    assert np.isclose(W.eval(time=ds.time[0].values, z=[10.0], y=[30.0], x=[30.0], applyConversion=False), 10.0)
-    assert np.isclose(W.eval(time=ds.time[0].values, z=[65.0], y=[30.0], x=[30.0], applyConversion=False), 65.0)
-    assert np.isclose(W.eval(time=ds.time[0].values, z=[900.0], y=[30.0], x=[30.0], applyConversion=False), 900.0)
+    assert np.isclose(
+        W.eval(
+            time=ds.time[0].values, z=[10.0], y=[30.0], x=[30.0], applyConversion=False
+        ),
+        10.0,
+    )
+    assert np.isclose(
+        W.eval(
+            time=ds.time[0].values, z=[65.0], y=[30.0], x=[30.0], applyConversion=False
+        ),
+        65.0,
+    )
+    assert np.isclose(
+        W.eval(
+            time=ds.time[0].values, z=[900.0], y=[30.0], x=[30.0], applyConversion=False
+        ),
+        900.0,
+    )
 
 
 def test_field_constant_in_time():
@@ -190,7 +256,13 @@ def test_field_constant_in_time():
     # Assert that the field can be evaluated at any time, and returns the same value
     time = np.datetime64("2000-01-01T00:00:00")
     P1 = P.eval(time=time, z=[10.0], y=[30.0], x=[30.0], applyConversion=False)
-    P2 = P.eval(time=time + np.timedelta64(1, "D"), z=[10.0], y=[30.0], x=[30.0], applyConversion=False)
+    P2 = P.eval(
+        time=time + np.timedelta64(1, "D"),
+        z=[10.0],
+        y=[30.0],
+        x=[30.0],
+        applyConversion=False,
+    )
     assert np.isclose(P1, P2)
 
 
