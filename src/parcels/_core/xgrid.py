@@ -104,8 +104,11 @@ class XGrid(BaseGrid):
         if "lat" in ds:
             ds.set_coords("lat")
 
-        if len(set(grid.axes) & {"X", "Y", "Z"}) > 0:  # Only if spatial grid is >0D (see #2054 for further development)
+        if len(set(grid.axes) & {"X", "Y"}) > 0:  # Only if spatial grid is >0D (see #2054 for further development)
             assert_valid_lat_lon(ds["lat"], ds["lon"], grid.axes)
+
+        if "Z" in grid.axes:
+            assert_valid_depth(ds["depth"])
 
         assert_valid_mesh(mesh)
         self._ds = ds
@@ -472,6 +475,11 @@ def assert_valid_lat_lon(da_lat, da_lon, axes: _XGCM_AXES):
             raise ValueError(
                 f"Longitude DataArray {da_lon.name!r} with dims {da_lon.dims} and Latitude DataArray {da_lat.name!r} with dims {da_lat.dims} must be defined on the X and Y axes and transposed to have dimensions in order of Y, X."
             )
+
+
+def assert_valid_depth(da_depth):
+    if not np.all(np.diff(da_depth.values) > 0):
+        raise ValueError(f"Depth DataArray {da_depth.name!r} with dims {da_depth.dims} must be strictly increasing.")
 
 
 def _convert_center_pos_to_fpoint(
