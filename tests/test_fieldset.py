@@ -20,8 +20,8 @@ ds = datasets_structured["ds_2d_left"]
 def fieldset() -> FieldSet:
     """Fixture to create a FieldSet object for testing."""
     grid = XGrid.from_dataset(ds, mesh="flat")
-    U = Field("U", ds["UAgrid"], grid)
-    V = Field("V", ds["VAgrid"], grid)
+    U = Field("U", ds["U_A_grid"], grid)
+    V = Field("V", ds["V_A_grid"], grid)
     UV = VectorField("UV", U, V)
 
     return FieldSet(
@@ -65,7 +65,7 @@ def test_fieldset_add_constant_field(fieldset):
 
 def test_fieldset_add_field(fieldset):
     grid = XGrid.from_dataset(ds, mesh="flat")
-    field = Field("test_field", ds["UAgrid"], grid)
+    field = Field("test_field", ds["U_A_grid"], grid)
     fieldset.add_field(field)
     assert fieldset.test_field == field
 
@@ -78,7 +78,7 @@ def test_fieldset_add_field_wrong_type(fieldset):
 
 def test_fieldset_add_field_already_exists(fieldset):
     grid = XGrid.from_dataset(ds, mesh="flat")
-    field = Field("test_field", ds["UAgrid"], grid)
+    field = Field("test_field", ds["U_A_grid"], grid)
     fieldset.add_field(field, "test_field")
     with pytest.raises(ValueError, match="FieldSet already has a Field with name 'test_field'"):
         fieldset.add_field(field, "test_field")
@@ -115,12 +115,12 @@ def test_fieldset_gridset_multiple_grids(): ...
 
 def test_fieldset_time_interval():
     grid1 = XGrid.from_dataset(ds, mesh="flat")
-    field1 = Field("field1", ds["UAgrid"], grid1)
+    field1 = Field("field1", ds["U_A_grid"], grid1)
 
     ds2 = ds.copy()
     ds2["time"] = (ds2["time"].dims, ds2["time"].data + np.timedelta64(timedelta(days=1)), ds2["time"].attrs)
     grid2 = XGrid.from_dataset(ds2, mesh="flat")
-    field2 = Field("field2", ds2["UAgrid"], grid2)
+    field2 = Field("field2", ds2["U_A_grid"], grid2)
 
     fieldset = FieldSet([field1, field2])
     fieldset.add_constant_field("constant_field", 1.0)
@@ -146,8 +146,8 @@ def test_fieldset_init_incompatible_calendars():
     )
 
     grid = XGrid.from_dataset(ds1, mesh="flat")
-    U = Field("U", ds1["UAgrid"], grid)
-    V = Field("V", ds1["VAgrid"], grid)
+    U = Field("U", ds1["U_A_grid"], grid)
+    V = Field("V", ds1["V_A_grid"], grid)
     UV = VectorField("UV", U, V)
 
     ds2 = ds.copy()

@@ -21,8 +21,8 @@ def fieldset() -> FieldSet:  # TODO v4: Move into a `conftest.py` file and remov
     """Fixture to create a FieldSet object for testing."""
     ds = datasets["ds_2d_left"]
     grid = XGrid.from_dataset(ds)
-    U = Field("U", ds["UAgrid"], grid)
-    V = Field("V", ds["VAgrid"], grid)
+    U = Field("U", ds["U_A_grid"], grid)
+    V = Field("V", ds["V_A_grid"], grid)
     UV = VectorField("UV", U, V)
 
     return FieldSet(

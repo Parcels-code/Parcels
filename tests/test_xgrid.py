@@ -6,7 +6,11 @@ import pytest
 import xarray as xr
 from numpy.testing import assert_allclose
 
-from parcels._core.index_search import LEFT_OUT_OF_BOUNDS, RIGHT_OUT_OF_BOUNDS, _search_1d_array
+from parcels._core.index_search import (
+    LEFT_OUT_OF_BOUNDS,
+    RIGHT_OUT_OF_BOUNDS,
+    _search_1d_array,
+)
 from parcels._core.xgrid import (
     XGrid,
     _transpose_xfield_data_to_tzyx,
@@ -20,7 +24,11 @@ test_cases = [
     GridTestCase(datasets["ds_2d_left"], "lon", datasets["ds_2d_left"].XG.values),
     GridTestCase(datasets["ds_2d_left"], "lat", datasets["ds_2d_left"].YG.values),
     GridTestCase(datasets["ds_2d_left"], "depth", datasets["ds_2d_left"].ZG.values),
-    GridTestCase(datasets["ds_2d_left"], "time", datasets["ds_2d_left"].time.values.astype(np.float64) / 1e9),
+    GridTestCase(
+        datasets["ds_2d_left"],
+        "time",
+        datasets["ds_2d_left"].time.values.astype(np.float64) / 1e9,
+    ),
     GridTestCase(datasets["ds_2d_left"], "xdim", X - 1),
     GridTestCase(datasets["ds_2d_left"], "ydim", Y - 1),
     GridTestCase(datasets["ds_2d_left"], "zdim", Z - 1),
@@ -39,7 +47,9 @@ def assert_equal(actual, expected):
 
 @pytest.mark.parametrize("ds", [datasets["ds_2d_left"]])
 def test_grid_init_param_types(ds):
-    with pytest.raises(ValueError, match="Invalid value 'invalid'. Valid options are.*"):
+    with pytest.raises(
+        ValueError, match="Invalid value 'invalid'. Valid options are.*"
+    ):
         XGrid.from_dataset(ds, mesh="invalid")
 
 
@@ -50,7 +60,9 @@ def test_xgrid_properties_ground_truth(ds, attr, expected):
     assert_equal(actual, expected)
 
 
-@pytest.mark.parametrize("ds", [pytest.param(ds, id=key) for key, ds in datasets.items()])
+@pytest.mark.parametrize(
+    "ds", [pytest.param(ds, id=key) for key, ds in datasets.items()]
+)
 def test_xgrid_from_dataset_on_generic_datasets(ds):
     XGrid.from_dataset(ds)
 
@@ -135,7 +147,9 @@ def test_xgrid_search_cpoints(ds):
             axis_indices = {"Z": 0, "Y": yi, "X": xi}
 
             lat, lon = lat_array[yi, xi], lon_array[yi, xi]
-            axis_indices_bcoords = grid.search(0, np.atleast_1d(lat), np.atleast_1d(lon), ei=None)
+            axis_indices_bcoords = grid.search(
+                0, np.atleast_1d(lat), np.atleast_1d(lon), ei=None
+            )
             axis_indices_test = {k: v[0] for k, v in axis_indices_bcoords.items()}
             assert axis_indices == axis_indices_test
 
@@ -201,43 +215,43 @@ def test_search_1d_array_some_out_of_bounds(array, x, expected_xi):
     [
         pytest.param(
             datasets["ds_2d_left"],
-            "UCgrid",
+            "U_C_grid",
             {
                 "XG": (np.int64(0), np.float64(0.0)),
                 "YC": (np.int64(-1), np.float64(0.5)),
                 "ZG": (np.int64(0), np.float64(0.0)),
             },
-            id="MITgcm indexing style UCgrid",
+            id="MITgcm indexing style U_C_grid",
         ),
         pytest.param(
             datasets["ds_2d_left"],
-            "VCgrid",
+            "V_C_grid",
             {
                 "XC": (np.int64(-1), np.float64(0.5)),
                 "YG": (np.int64(0), np.float64(0.0)),
                 "ZG": (np.int64(0), np.float64(0.0)),
             },
-            id="MITgcm indexing style VCgrid",
+            id="MITgcm indexing style V_C_grid",
         ),
         pytest.param(
             datasets["ds_2d_right"],
-            "UCgrid",
+            "U_C_grid",
             {
                 "XG": (np.int64(0), np.float64(0.0)),
                 "YC": (np.int64(0), np.float64(0.5)),
                 "ZG": (np.int64(0), np.float64(0.0)),
             },
-            id="NEMO indexing style UCgrid",
+            id="NEMO indexing style U_C_grid",
         ),
         pytest.param(
             datasets["ds_2d_right"],
-            "VCgrid",
+            "V_C_grid",
             {
                 "XC": (np.int64(0), np.float64(0.5)),
                 "YG": (np.int64(0), np.float64(0.0)),
                 "ZG": (np.int64(0), np.float64(0.0)),
             },
-            id="NEMO indexing style VCgrid",
+            id="NEMO indexing style V_C_grid",
         ),
     ],
 )
