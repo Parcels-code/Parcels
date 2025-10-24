@@ -6,7 +6,11 @@ import pytest
 import xarray as xr
 from numpy.testing import assert_allclose
 
-from parcels._core.index_search import LEFT_OUT_OF_BOUNDS, RIGHT_OUT_OF_BOUNDS, _search_1d_array
+from parcels._core.index_search import (
+    LEFT_OUT_OF_BOUNDS,
+    RIGHT_OUT_OF_BOUNDS,
+    _search_1d_array,
+)
 from parcels._core.xgrid import (
     XGrid,
     _transpose_xfield_data_to_tzyx,
@@ -20,7 +24,11 @@ test_cases = [
     GridTestCase(datasets["ds_2d_left"], "lon", datasets["ds_2d_left"].XG.values),
     GridTestCase(datasets["ds_2d_left"], "lat", datasets["ds_2d_left"].YG.values),
     GridTestCase(datasets["ds_2d_left"], "depth", datasets["ds_2d_left"].ZG.values),
-    GridTestCase(datasets["ds_2d_left"], "time", datasets["ds_2d_left"].time.values.astype(np.float64) / 1e9),
+    GridTestCase(
+        datasets["ds_2d_left"],
+        "time",
+        datasets["ds_2d_left"].time.values.astype(np.float64) / 1e9,
+    ),
     GridTestCase(datasets["ds_2d_left"], "xdim", X - 1),
     GridTestCase(datasets["ds_2d_left"], "ydim", Y - 1),
     GridTestCase(datasets["ds_2d_left"], "zdim", Z - 1),
@@ -201,43 +209,43 @@ def test_search_1d_array_some_out_of_bounds(array, x, expected_xi):
     [
         pytest.param(
             datasets["ds_2d_left"],
-            "U (C grid)",
+            "U_C_grid",
             {
                 "XG": (np.int64(0), np.float64(0.0)),
                 "YC": (np.int64(-1), np.float64(0.5)),
                 "ZG": (np.int64(0), np.float64(0.0)),
             },
-            id="MITgcm indexing style U (C grid)",
+            id="MITgcm indexing style U_C_grid",
         ),
         pytest.param(
             datasets["ds_2d_left"],
-            "V (C grid)",
+            "V_C_grid",
             {
                 "XC": (np.int64(-1), np.float64(0.5)),
                 "YG": (np.int64(0), np.float64(0.0)),
                 "ZG": (np.int64(0), np.float64(0.0)),
             },
-            id="MITgcm indexing style V (C grid)",
+            id="MITgcm indexing style V_C_grid",
         ),
         pytest.param(
             datasets["ds_2d_right"],
-            "U (C grid)",
+            "U_C_grid",
             {
                 "XG": (np.int64(0), np.float64(0.0)),
                 "YC": (np.int64(0), np.float64(0.5)),
                 "ZG": (np.int64(0), np.float64(0.0)),
             },
-            id="NEMO indexing style U (C grid)",
+            id="NEMO indexing style U_C_grid",
         ),
         pytest.param(
             datasets["ds_2d_right"],
-            "V (C grid)",
+            "V_C_grid",
             {
                 "XC": (np.int64(0), np.float64(0.5)),
                 "YG": (np.int64(0), np.float64(0.0)),
                 "ZG": (np.int64(0), np.float64(0.0)),
             },
-            id="NEMO indexing style V (C grid)",
+            id="NEMO indexing style V_C_grid",
         ),
     ],
 )
