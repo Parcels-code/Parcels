@@ -150,6 +150,28 @@ def test_particleset_endtime_type(fieldset, endtime, expectation):
         pset.execute(endtime=endtime, dt=np.timedelta64(10, "m"), pyfunc=DoNothing)
 
 
+def test_particleset_run_to_endtime(fieldset):
+    starttime = fieldset.time_interval.left
+    endtime = fieldset.time_interval.right
+
+    def SampleU(particles, fieldset):  # pragma: no cover
+        _ = fieldset.U[particles]
+
+    pset = ParticleSet(fieldset, lon=[0.2], lat=[5.0], time=[starttime])
+    pset.execute(SampleU, endtime=endtime, dt=np.timedelta64(1, "D"))
+    assert pset[0].time + pset[0].dt == endtime
+
+
+def test_particleset_interpolate_domainedge(fieldset):
+    def SampleU(particles, fieldset):  # pragma: no cover
+        particles.dlon = fieldset.U[particles]
+
+    print(fieldset.U.grid.lon)
+    pset = ParticleSet(fieldset, lon=fieldset.U.grid.lon[0], lat=fieldset.U.grid.lat[0])
+    pset.execute(SampleU, runtime=np.timedelta64(1, "D"), dt=np.timedelta64(1, "D"))
+    assert np.isfinite(pset[0].dlon)
+
+
 @pytest.mark.parametrize(
     "dt", [np.timedelta64(1, "s"), np.timedelta64(1, "ms"), np.timedelta64(10, "ms"), np.timedelta64(1, "ns")]
 )
