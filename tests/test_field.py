@@ -16,9 +16,7 @@ def test_field_init_param_types():
     data = datasets_structured["ds_2d_left"]
     grid = XGrid.from_dataset(data)
 
-    with pytest.raises(
-        TypeError, match="Expected a string for variable name, got int instead."
-    ):
+    with pytest.raises(TypeError, match="Expected a string for variable name, got int instead."):
         Field(name=123, data=data["data_g"], grid=grid)
 
     for name in ["a b", "123"]:
@@ -40,9 +38,7 @@ def test_field_init_param_types():
     ):
         Field(name="test", data=123, grid=grid)
 
-    with pytest.raises(
-        ValueError, match="Expected `grid` to be a parcels UxGrid, or parcels XGrid"
-    ):
+    with pytest.raises(ValueError, match="Expected `grid` to be a parcels UxGrid, or parcels XGrid"):
         Field(name="test", data=data["data_g"], grid=123)
 
 
@@ -163,9 +159,7 @@ def test_vectorfield_invalid_interpolator():
     ds = datasets_structured["ds_2d_left"]
     grid = XGrid.from_dataset(ds)
 
-    def invalid_interpolator_wrong_signature(
-        self, ti, position, tau, t, z, y, applyConversion, invalid
-    ):
+    def invalid_interpolator_wrong_signature(self, ti, position, tau, t, z, y, applyConversion, invalid):
         return 0.0
 
     # Create component fields
@@ -187,9 +181,7 @@ def test_field_unstructured_z_linear():
     The example dataset is a FESOM2 square Delaunay grid with uniform z-coordinate. Cell centered and layer registered data are defined to be
     linear functions of the vertical coordinate. This allows for testing of exactness of the interpolation methods.
     """
-    ds = datasets_unstructured["fesom2_square_delaunay_uniform_z_coordinate"].copy(
-        deep=True
-    )
+    ds = datasets_unstructured["fesom2_square_delaunay_uniform_z_coordinate"].copy(deep=True)
 
     # Change the pressure values to be linearly dependent on the vertical coordinate
     for k, z in enumerate(ds.coords["nz1"]):
@@ -205,43 +197,31 @@ def test_field_unstructured_z_linear():
 
     # Test above first cell center - for piecewise constant, should return the depth of the first cell center
     assert np.isclose(
-        P.eval(
-            time=ds.time[0].values, z=[10.0], y=[30.0], x=[30.0], applyConversion=False
-        ),
+        P.eval(time=ds.time[0].values, z=[10.0], y=[30.0], x=[30.0], applyConversion=False),
         55.555557,
     )
     # Test below first cell center, but in the first layer  - for piecewise constant, should return the depth of the first cell center
     assert np.isclose(
-        P.eval(
-            time=ds.time[0].values, z=[65.0], y=[30.0], x=[30.0], applyConversion=False
-        ),
+        P.eval(time=ds.time[0].values, z=[65.0], y=[30.0], x=[30.0], applyConversion=False),
         55.555557,
     )
     # Test bottom layer  - for piecewise constant, should return the depth of the of the bottom layer cell center
     assert np.isclose(
-        P.eval(
-            time=ds.time[0].values, z=[900.0], y=[30.0], x=[30.0], applyConversion=False
-        ),
+        P.eval(time=ds.time[0].values, z=[900.0], y=[30.0], x=[30.0], applyConversion=False),
         944.44445801,
     )
 
     W = Field(name="W", data=ds.W, grid=grid, interp_method=UXPiecewiseLinearNode)
     assert np.isclose(
-        W.eval(
-            time=ds.time[0].values, z=[10.0], y=[30.0], x=[30.0], applyConversion=False
-        ),
+        W.eval(time=ds.time[0].values, z=[10.0], y=[30.0], x=[30.0], applyConversion=False),
         10.0,
     )
     assert np.isclose(
-        W.eval(
-            time=ds.time[0].values, z=[65.0], y=[30.0], x=[30.0], applyConversion=False
-        ),
+        W.eval(time=ds.time[0].values, z=[65.0], y=[30.0], x=[30.0], applyConversion=False),
         65.0,
     )
     assert np.isclose(
-        W.eval(
-            time=ds.time[0].values, z=[900.0], y=[30.0], x=[30.0], applyConversion=False
-        ),
+        W.eval(time=ds.time[0].values, z=[900.0], y=[30.0], x=[30.0], applyConversion=False),
         900.0,
     )
 
