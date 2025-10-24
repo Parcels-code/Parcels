@@ -243,6 +243,20 @@ def test_fieldset_from_copernicusmarine(ds, caplog):
     assert "renamed it to 'V'" in caplog.text
 
 
+@pytest.mark.parametrize("ds", [datasets_circulation_models["ds_copernicusmarine"].copy()])
+def test_fieldset_from_copernicusmarine_missing_axis(ds, caplog):
+    del ds["latitude"].attrs["axis"]
+
+    with pytest.raises(
+        ValueError,
+        match="Dataset missing CF compliant metadata for axes "
+        ".*. Expected 'axis' attribute to be set "
+        "on all dimension axes .*. "
+        "HINT: Add xarray metadata attribute 'axis' to dimension .*",
+    ):
+        FieldSet.from_copernicusmarine(ds)
+
+
 def test_fieldset_from_copernicusmarine_no_currents(caplog):
     ds = datasets_circulation_models["ds_copernicusmarine"].cf.drop_vars(
         ["eastward_sea_water_velocity", "northward_sea_water_velocity"]
