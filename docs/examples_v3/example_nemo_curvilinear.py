@@ -8,7 +8,10 @@ import pytest
 
 import parcels
 
-advection = {"RK4": parcels.AdvectionRK4, "AA": parcels.AdvectionAnalytical}
+advection = {
+    "RK4": parcels.kernels.AdvectionRK4,
+    "AA": parcels.kernels.AdvectionAnalytical,
+}
 
 
 def run_nemo_curvilinear(outfile, advtype="RK4"):

@@ -11,6 +11,7 @@ import xgcm
 
 from parcels._core.converters import Geographic, GeographicPolar
 from parcels._core.field import Field, VectorField
+from parcels._core.utils.string import _assert_str_and_python_varname
 from parcels._core.utils.time import get_datetime_type_calendar
 from parcels._core.utils.time import is_compatible as datetime_is_compatible
 from parcels._core.xgrid import _DEFAULT_XGCM_KWARGS, XGrid
@@ -163,6 +164,8 @@ class FieldSet:
         `Diffusion <../examples/tutorial_diffusion.ipynb>`__
         `Periodic boundaries <../examples/tutorial_periodic_boundaries.ipynb>`__
         """
+        _assert_str_and_python_varname(name)
+
         if name in self.constants:
             raise ValueError(f"FieldSet already has a constant with name '{name}'")
         if not isinstance(value, (float, np.floating, int, np.integer)):
@@ -204,7 +207,10 @@ class FieldSet:
         expected_axes = set("XYZT")  # TODO: Update after we have support for 2D spatial fields
         if missing_axes := (expected_axes - set(ds.cf.axes)):
             raise ValueError(
-                f"Dataset missing axes {missing_axes} to have coordinates for all {expected_axes} axes according to CF conventions."
+                f"Dataset missing CF compliant metadata for axes "
+                f"{missing_axes}. Expected 'axis' attribute to be set "
+                f"on all dimension axes {expected_axes}. "
+                "HINT: Add xarray metadata attribute 'axis' to dimension - e.g., ds['lat'].attrs['axis'] = 'Y'"
             )
 
         ds = _rename_coords_copernicusmarine(ds)

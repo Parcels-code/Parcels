@@ -21,8 +21,8 @@ def fieldset() -> FieldSet:  # TODO v4: Move into a `conftest.py` file and remov
     """Fixture to create a FieldSet object for testing."""
     ds = datasets["ds_2d_left"]
     grid = XGrid.from_dataset(ds)
-    U = Field("U", ds["U (A grid)"], grid)
-    V = Field("V", ds["V (A grid)"], grid)
+    U = Field("U", ds["U_A_grid"], grid)
+    V = Field("V", ds["V_A_grid"], grid)
     UV = VectorField("UV", U, V)
 
     return FieldSet(
@@ -30,14 +30,14 @@ def fieldset() -> FieldSet:  # TODO v4: Move into a `conftest.py` file and remov
     )
 
 
-@pytest.mark.skip
 def test_metadata(fieldset, tmp_zarrfile):
     pset = ParticleSet(fieldset, pclass=Particle, lon=0, lat=0)
 
-    pset.execute(DoNothing, runtime=1, output_file=ParticleFile(tmp_zarrfile, outputdt=np.timedelta64(1, "s")))
+    ofile = ParticleFile(tmp_zarrfile, outputdt=np.timedelta64(1, "s"))
+    pset.execute(DoNothing, runtime=np.timedelta64(1, "s"), dt=np.timedelta64(1, "s"), output_file=ofile)
 
-    ds = xr.open_zarr(tmp_zarrfile, decode_cf=False)  # TODO v4: Fix metadata and re-enable decode_cf
-    assert ds.attrs["parcels_kernels"].lower() == "ParticleDoNothing".lower()
+    ds = xr.open_zarr(tmp_zarrfile)
+    assert ds.attrs["parcels_kernels"].lower() == "DoNothing".lower()
 
 
 def test_pfile_array_write_zarr_memorystore(fieldset):
@@ -76,11 +76,8 @@ def test_pfile_array_remove_particles(fieldset, tmp_zarrfile):
     pset._data["time"][:] = new_time
     pset._data["time_nextloop"][:] = new_time
     pfile.write(pset, new_time)
-    ds = xr.open_zarr(tmp_zarrfile, decode_cf=False)
+    ds = xr.open_zarr(tmp_zarrfile)
     timearr = ds["time"][:]
-    pytest.skip(
-        "TODO v4: Set decode_cf=True, which will mean that missing values get decoded to NaT rather than fill value"
-    )
     assert (np.isnat(timearr[3, 1])) and (np.isfinite(timearr[3, 0]))
 
 
@@ -129,7 +126,7 @@ def test_variable_write_double(fieldset, tmp_zarrfile):
         output_file=ofile,
     )
 
-    ds = xr.open_zarr(tmp_zarrfile, decode_cf=False)  # TODO v4: Fix metadata and re-enable decode_cf
+    ds = xr.open_zarr(tmp_zarrfile)
     lons = ds["lon"][:]
     assert isinstance(lons.values[0, 0], np.float64)
 

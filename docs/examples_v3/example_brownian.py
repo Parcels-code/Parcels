@@ -40,7 +40,9 @@ def test_brownian_example(mesh, npart=3000):
         lat=np.zeros(npart),
     )
     pset.execute(
-        pset.Kernel(parcels.DiffusionUniformKh), runtime=runtime, dt=timedelta(hours=1)
+        pset.Kernel(parcels.kernels.DiffusionUniformKh),
+        runtime=runtime,
+        dt=timedelta(hours=1),
     )
 
     expected_std_x = np.sqrt(2 * kh_zonal * runtime.total_seconds())
