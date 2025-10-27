@@ -1,21 +1,3 @@
 # Community
 
-These sections contain documentation relevant to the Parcels community.
-See the sections in the primary sidebar and below to explore.
-
-```{toctree}
-:caption: User documentation
-:maxdepth: 1
-
-contributing
-Versioning Policy <policies>
-Release Notes <https://github.com/Parcels-code/Parcels/releases>
-Parcels v4.0 Migration Guide <v4-migration>
-```
-
-```{toctree}
-:caption: Maintainer documentation
-:maxdepth: 1
-
-maintainer
-```
+Parcels users and developers interact in a vibrant community: if you are running any kind of Lagrangian simulations check out [Zulip](). If you need more help with Parcels, try the [Discussions page on GitHub](https://github.com/Parcels-code/parcels/discussions). If you think you found a bug, file an [Issue on GitHub](https://github.com/Parcels-code/parcels/issues). If you want to help improve Parcels, see the [Contributing](contributing/index.md) page.
