@@ -47,7 +47,7 @@ def true_values(age):  # Calculate the expected values for particle 2 at the end
     return [x, y]
 
 
-def rotation_example(fieldset, outfile, method=parcels.AdvectionRK4):
+def rotation_example(fieldset, outfile, method=parcels.kernels.AdvectionRK4):
     npart = 2  # Test two particles on the rotating fieldset.
     pset = parcels.ParticleSet.from_line(
         fieldset,

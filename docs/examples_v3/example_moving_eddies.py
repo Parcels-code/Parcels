@@ -8,9 +8,9 @@ import pytest
 import parcels
 
 method = {
-    "RK4": parcels.AdvectionRK4,
-    "EE": parcels.AdvectionEE,
-    "RK45": parcels.AdvectionRK45,
+    "RK4": parcels.kernels.AdvectionRK4,
+    "EE": parcels.kernels.AdvectionEE,
+    "RK45": parcels.kernels.AdvectionRK45,
 }
 
 
@@ -112,7 +112,7 @@ def moving_eddies_fieldset(xdim=200, ydim=350, mesh="flat"):
 
 
 def moving_eddies_example(
-    fieldset, outfile, npart=2, verbose=False, method=parcels.AdvectionRK4
+    fieldset, outfile, npart=2, verbose=False, method=parcels.kernels.AdvectionRK4
 ):
     """Configuration of a particle set that follows two moving eddies.
 
@@ -161,7 +161,7 @@ def moving_eddies_example(
 
 @pytest.mark.parametrize("mesh", ["flat", "spherical"])
 def test_moving_eddies_fwdbwd(mesh, tmpdir, npart=2):
-    method = parcels.AdvectionRK4
+    method = parcels.kernels.AdvectionRK4
     fieldset = moving_eddies_fieldset(mesh=mesh)
 
     lons = [3.3, 3.3] if fieldset.U.grid.mesh == "spherical" else [3.3e5, 3.3e5]
@@ -284,7 +284,9 @@ def test_periodic_and_computeTimeChunk_eddies():
         particle.dlon -= 5 * particle.dt / 1e5
         particle.dlat -= 3 * particle.dt / 1e5
 
-    kernels = pset.Kernel(parcels.AdvectionRK4) + slowlySouthWestward + periodicBC
+    kernels = (
+        pset.Kernel(parcels.kernels.AdvectionRK4) + slowlySouthWestward + periodicBC
+    )
     pset.execute(kernels, runtime=timedelta(days=6), dt=timedelta(hours=1))
 
 

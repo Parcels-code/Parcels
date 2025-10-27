@@ -67,7 +67,7 @@ def true_values(
     return np.array([x, y])
 
 
-def decaying_moving_example(fieldset, outfile, method=parcels.AdvectionRK4):
+def decaying_moving_example(fieldset, outfile, method=parcels.kernels.AdvectionRK4):
     pset = parcels.ParticleSet(
         fieldset, pclass=parcels.Particle, lon=start_lon, lat=start_lat
     )
