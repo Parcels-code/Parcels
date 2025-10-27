@@ -128,7 +128,7 @@ def test_invalid_lon_lat():
 
 def test_invalid_depth():
     ds = datasets["ds_2d_left"].copy()
-    ds = ds.reindex({"ZG": -ds.ZG})
+    ds = ds.reindex({"ZG": ds.ZG[::-1})
 
     with pytest.raises(ValueError, match="Depth DataArray .* must be strictly increasing*"):
         XGrid.from_dataset(ds)
