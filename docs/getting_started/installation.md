@@ -47,4 +47,4 @@ The next time you start a terminal and want to work with Parcels, activate the e
 
 # Installation for developers
 
-See the [development section in our contributing guide](./community/contributing.md#development) for development instructions.
+See the [development section in our contributing guide](../contributing/index.md#development) for development instructions.

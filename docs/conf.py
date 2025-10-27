@@ -520,3 +520,6 @@ epub_exclude_files = ["search.html"]
 
 # If false, no index is generated.
 # epub_use_index = True
+
+# -- Options for MyST parser ----------------------------------------------
+myst_heading_anchors = 3
