@@ -479,7 +479,10 @@ def assert_valid_lat_lon(da_lat, da_lon, axes: _XGCM_AXES):
 
 def assert_valid_depth(da_depth):
     if not np.all(np.diff(da_depth.values) > 0):
-        raise ValueError(f"Depth DataArray {da_depth.name!r} with dims {da_depth.dims} must be strictly increasing.")
+        raise ValueError(
+            f"Depth DataArray {da_depth.name!r} with dims {da_depth.dims} must be strictly increasing. "
+            f'HINT: you may be able to use ds.reindex to flip depth - e.g., ds = ds.reindex({da_depth.name}=ds["{da_depth.name}"][::-1])'
+        )
 
 
 def _convert_center_pos_to_fpoint(
