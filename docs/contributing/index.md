@@ -55,7 +55,7 @@ Exactly how to use Git and GitHub is beyond the scope of this documentation, and
 There are many ways that you can contribute to Parcels. You can:
 
 - Participate in discussion about Parcels, either through the [issues](https://github.com/Parcels-code/parcels/issues) or [discussions](https://github.com/Parcels-code/parcels/discussions) tab
-- Suggest improvements to [tutorials](../documentation/index.md)
+- Suggest improvements to [tutorials and how-to guides](../user_guide/index.md)
 - Suggest improvements to [documentation](../index.md)
 - Write code (fix bugs, implement features, codebase improvements, etc)
 

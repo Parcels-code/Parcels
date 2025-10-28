@@ -1,12 +1,13 @@
-# Documentation and Tutorials
+# User guide
 
 ```{toctree}
 :hidden:
 v3 to v4 migration guide <v4-migration>
 Example scripts <additional_examples>
+User contributions
 ```
 
-Shown below are several documentation and tutorial Jupyter notebooks and scripts which go through various aspects of Parcels.
+The core of our user guide is a series of Jupyter notebooks which document how to implement specific Lagrangian simulations with the flexibility of **Parcels**. Before diving into these advanced _how-to_ guides, we suggest users get started by reading the explanation of the core concepts and trying the quickstart tutorial. For Kernels and examples written by users, check out the [parcels contributing repository](https://github.com/Parcels-code/parcels_contributions). For a description of the specific classes and functions, check out the [API reference](../reference.md).
 
 ```{note}
 The tutorials written for Parcels v3 are currently being updated for Parcels v4. Shown below are only the notebooks which have been updated.

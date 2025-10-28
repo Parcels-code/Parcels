@@ -44,13 +44,13 @@ Wondering how to load a `FieldSet` or write a `Kernel`? Find **tutorials** and e
 
 +++
 
-```{button-ref} documentation/index
+```{button-ref} user_guide/index
 :ref-type: doc
 :click-parent:
 :color: secondary
 :expand:
 
-To the documentation
+To the user guide
 ```
 ````
 ````{grid-item-card} Contributing
@@ -94,7 +94,7 @@ Connect with our community!
 Home <self>
 v4 <v4/index>
 Getting started <getting_started/index>
-Documentation <documentation/index>
+Documentation <user_guide/index>
 Community <community/index>
 Contributing <contributing/index>
 API reference <reference>
