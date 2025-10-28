@@ -8,7 +8,6 @@
 Contributing Guidelines <self>
 Versioning Policy <policies>
 Release Notes <https://github.com/Parcels-code/Parcels/releases>
-Parcels v4.0 Migration Guide <../documentation/v4-migration>
 ```
 
 ```{toctree}

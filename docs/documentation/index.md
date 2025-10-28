@@ -1,5 +1,11 @@
 # Documentation and Tutorials
 
+```{toctree}
+:hidden:
+v3 to v4 migration guide <v4-migration>
+Example scripts <additional_examples>
+```
+
 Shown below are several documentation and tutorial Jupyter notebooks and scripts which go through various aspects of Parcels.
 
 ```{note}
@@ -78,9 +84,3 @@ The tutorials written for Parcels v3 are currently being updated for Parcels v4.
 ../examples/tutorial_Argofloats.ipynb
 <!-- ../examples/documentation_homepage_animation.ipynb -->
 ```
-
-<!-- ## Python Example Scripts
-
-```{toctree}
-additional_examples
-``` -->

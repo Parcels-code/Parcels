@@ -1,5 +1,30 @@
 # Community
 
+```{toctree}
+:caption: CLAM Community
+:maxdepth: 1
+:hidden:
+
+Website <https://clam-community.github.io/>
+```
+
+```{toctree}
+:caption: GitHub
+:maxdepth: 1
+:hidden:
+
+Discussions <https://github.com/Parcels-code/parcels/discussions>
+Issues <https://github.com/Parcels-code/parcels/issues>
+```
+
+```{toctree}
+:caption: parcels_contributions
+:maxdepth: 1
+:hidden:
+
+Repository <https://github.com/Parcels-code/parcels_contributions>
+```
+
 Parcels users and developers interact in a vibrant community on a few different platforms. Check out the cards below to see how you can interact with us.
 
 `````{grid} 1 2 2 2
@@ -59,27 +84,3 @@ Curious to see if someone has already written the custom `Kernel` you are thinki
 Share custom Parcels code
 ```
 `````
-
-```{toctree}
-:caption: CLAM Community
-:maxdepth: 1
-:hidden:
-
-Website <https://clam-community.github.io/>
-```
-```{toctree}
-:caption: GitHub
-:maxdepth: 1
-:hidden:
-
-Discussions <https://github.com/Parcels-code/parcels/discussions>
-Issues <https://github.com/Parcels-code/parcels/issues>
-```
-
-```{toctree}
-:caption: parcels_contributions
-:maxdepth: 1
-:hidden:
-
-Repository <https://github.com/Parcels-code/parcels_contributions>
-```
