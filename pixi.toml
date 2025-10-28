@@ -91,6 +91,7 @@ pydata-sphinx-theme = "*"
 sphinx-autobuild = "*"
 myst-parser = "*"
 sphinxcontrib-mermaid = "*"
+sphinx-design = "*"
 
 [feature.docs.tasks]
 docs = "sphinx-build docs docs/_build"

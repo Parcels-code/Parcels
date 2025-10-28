@@ -40,6 +40,7 @@ extensions = [
     "nbsphinx",
     "numpydoc",
     "sphinxcontrib.mermaid",
+    "sphinx_design",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -523,3 +524,5 @@ epub_exclude_files = ["search.html"]
 
 # -- Options for MyST parser ----------------------------------------------
 myst_heading_anchors = 3
+
+myst_enable_extensions = ["substitution"]
