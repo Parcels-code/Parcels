@@ -74,11 +74,11 @@ def _get_corner_data_Agrid(
 
     # Y coordinates: [yi, yi, yi+1, yi+1] for each spatial point, repeated for time/z
     yi_1 = np.clip(yi + 1, 0, data.shape[2] - 1)
-    yi = np.tile(np.repeat(np.column_stack([yi, yi_1]), 2), (lenT) * (lenZ))
+    yi = np.tile(np.array([yi, yi, yi_1, yi_1]).flatten(), lenT * lenZ)
 
     # X coordinates: [xi, xi+1, xi, xi+1] for each spatial point, repeated for time/z
     xi_1 = np.clip(xi + 1, 0, data.shape[3] - 1)
-    xi = np.tile(np.column_stack([xi, xi_1, xi, xi_1]).flatten(), (lenT) * (lenZ))
+    xi = np.tile(np.array([xi, xi_1]).flatten(), lenT * lenZ * 2)
 
     # Create DataArrays for indexing
     selection_dict = {
@@ -90,7 +90,7 @@ def _get_corner_data_Agrid(
     if "time" in data.dims:
         selection_dict["time"] = xr.DataArray(ti, dims=("points"))
 
-    return data.isel(selection_dict).data.reshape(lenT, lenZ, npart, 4)
+    return data.isel(selection_dict).data.reshape(lenT, lenZ, 2, 2, npart)
 
 
 def XLinear(
@@ -113,22 +113,22 @@ def XLinear(
     corner_data = _get_corner_data_Agrid(data, ti, zi, yi, xi, lenT, lenZ, len(xsi), axis_dim)
 
     if lenT == 2:
-        tau = tau[np.newaxis, :, np.newaxis]
-        corner_data = corner_data[0, :, :, :] * (1 - tau) + corner_data[1, :, :, :] * tau
+        tau = tau[np.newaxis, :]
+        corner_data = corner_data[0, :] * (1 - tau) + corner_data[1, :] * tau
     else:
-        corner_data = corner_data[0, :, :, :]
+        corner_data = corner_data[0, :]
 
     if lenZ == 2:
-        zeta = zeta[:, np.newaxis]
-        corner_data = corner_data[0, :, :] * (1 - zeta) + corner_data[1, :, :] * zeta
+        zeta = zeta[np.newaxis, :]
+        corner_data = corner_data[0, :] * (1 - zeta) + corner_data[1, :] * zeta
     else:
-        corner_data = corner_data[0, :, :]
+        corner_data = corner_data[0, :]
 
     value = (
-        (1 - xsi) * (1 - eta) * corner_data[:, 0]
-        + xsi * (1 - eta) * corner_data[:, 1]
-        + (1 - xsi) * eta * corner_data[:, 2]
-        + xsi * eta * corner_data[:, 3]
+        (1 - xsi) * (1 - eta) * corner_data[0, 0, :]
+        + xsi * (1 - eta) * corner_data[0, 1, :]
+        + (1 - xsi) * eta * corner_data[1, 0, :]
+        + xsi * eta * corner_data[1, 1, :]
     )
     return value.compute() if is_dask_collection(value) else value
 
@@ -408,8 +408,8 @@ def _Spatialslip(
     corner_dataV = _get_corner_data_Agrid(vectorfield.V.data, ti, zi, yi, xi, lenT, lenZ, npart, axis_dim)
 
     def is_land(ti: int, zi: int, yi: int, xi: int):
-        uval = corner_dataU[ti, zi, :, xi + 2 * yi]
-        vval = corner_dataV[ti, zi, :, xi + 2 * yi]
+        uval = corner_dataU[ti, zi, yi, xi, :]
+        vval = corner_dataV[ti, zi, yi, xi, :]
         return np.where(np.isclose(uval, 0.0) & np.isclose(vval, 0.0), True, False)
 
     f_u = np.ones_like(xsi)
