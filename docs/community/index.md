@@ -36,7 +36,11 @@ Parcels users and developers interact in a vibrant community on a few different 
 :img-top: ../_static/clam-full-white-buffer.svg
 :shadow: md
 
-If you are doing any kind of Lagrangian modelling and/or analysis check out CLAM (Computational Lagrangian Analysis and Modelling) on Zulip and their online community meetings
+If you are doing any kind of Lagrangian modelling and/or analysis check out the CLAM (Computational Lagrangian Analysis and Modelling) Community
+
+```{image} https://img.shields.io/badge/Zulip-50ADFF?style=for-the-badge&logo=Zulip&logoColor=white
+:width: 30%
+```
 
 +++
 
@@ -83,4 +87,21 @@ Curious to see if someone has already written the custom `Kernel` you are thinki
 
 Share custom Parcels code
 ```
+````
+````{grid-item-card} Lagrangian Diagnostics
+:img-top: ../_static/LAdiag-logo.svg
+:shadow: md
+
+Are you interested in advanced analysis and diagnostics of Parcels output or Lagrangian trajectories in general? The Lagrangian Diagnostics project provides code and descriptions of different analyses.
+
++++
+
+```{button-link} https://github.com/Parcels-code/Lagrangian_diags
+:click-parent:
+:color: secondary
+:expand:
+
+Visit Lagrangian Diagnostics
+```
+````
 `````
