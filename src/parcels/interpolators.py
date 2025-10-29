@@ -21,6 +21,7 @@ __all__ = [
     "UXPiecewiseLinearNode",
     "XFreeslip",
     "XLinear",
+    "XLinearInvdistLandTracer",
     "XNearest",
     "XPartialslip",
     "ZeroInterpolator",
@@ -568,6 +569,52 @@ def XNearest(
         value = corner_data[0, :]
 
     return value.compute() if is_dask_collection(value) else value
+
+
+def XLinearInvdistLandTracer(
+    particle_positions: dict[str, float | np.ndarray],
+    grid_positions: dict[_XGRID_AXES, dict[str, int | float | np.ndarray]],
+    field: Field,
+):
+    """Linear spatial interpolation on a regular grid, where points on land are not used."""
+    values = XLinear(particle_positions, grid_positions, field)
+
+    on_land = np.argwhere(np.isnan(values))
+
+    xi, xsi = grid_positions["X"]["index"], grid_positions["X"]["bcoord"]
+    yi, eta = grid_positions["Y"]["index"], grid_positions["Y"]["bcoord"]
+    zi, zeta = grid_positions["Z"]["index"], grid_positions["Z"]["bcoord"]
+    ti, tau = grid_positions["T"]["index"], grid_positions["T"]["bcoord"]
+
+    axis_dim = field.grid.get_axis_dim_mapping(field.data.dims)
+    lenT = 2 if np.any(tau > 0) else 1
+    lenZ = 2 if np.any(zeta > 0) else 1
+
+    corner_data = _get_corner_data_Agrid(field.data, ti, zi, yi, xi, lenT, lenZ, len(xsi), axis_dim)
+
+    def is_land(p: int):
+        value = corner_data[:, :, :, :, p]
+        return np.where(np.isnan(value), True, False)
+
+    for p in on_land:
+        land = is_land(p)
+        nb_land = np.sum(land)
+        if nb_land == 4 * lenZ * lenT:
+            values[p] = 0.0
+        else:
+            val = 0
+            w_sum = 0
+            for t in range(lenT):
+                for k in range(lenZ):
+                    for j in range(2):
+                        for i in range(2):
+                            if land[t][k][j][i] == 0:
+                                distance = pow((eta[p] - j), 2) + pow((xsi[p] - i), 2)
+                                val += corner_data[t, k, j, i, p] / distance
+                                w_sum += 1 / distance
+            values[p] = val / w_sum
+
+    return values.compute() if is_dask_collection(values) else values
 
 
 def UXPiecewiseConstantFace(
