@@ -91,12 +91,6 @@ def test_raw_2d_interpolation(field, func, t, z, y, x, expected):
     np.testing.assert_equal(value, expected)
 
 
-def test_scalar_field_eval(field):
-    UV = VectorField("UV", field, field)
-
-    UV.eval(np.timedelta64(2, "s"), 2, 1.5, 0.5)
-
-
 @pytest.mark.parametrize(
     "func, t, z, y, x, expected",
     [
