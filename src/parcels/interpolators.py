@@ -579,8 +579,6 @@ def XLinearInvdistLandTracer(
     """Linear spatial interpolation on a regular grid, where points on land are not used."""
     values = XLinear(particle_positions, grid_positions, field)
 
-    on_land = np.argwhere(np.isnan(values))
-
     xi, xsi = grid_positions["X"]["index"], grid_positions["X"]["bcoord"]
     yi, eta = grid_positions["Y"]["index"], grid_positions["Y"]["bcoord"]
     zi, zeta = grid_positions["Z"]["index"], grid_positions["Z"]["bcoord"]
@@ -592,27 +590,29 @@ def XLinearInvdistLandTracer(
 
     corner_data = _get_corner_data_Agrid(field.data, ti, zi, yi, xi, lenT, lenZ, len(xsi), axis_dim)
 
-    def is_land(p: int):
-        value = corner_data[:, :, :, :, p]
-        return np.where(np.isnan(value), True, False)
+    land_mask = np.isnan(corner_data)
+    nb_land = np.sum(land_mask, axis=(0, 1, 2, 3))
 
-    for p in on_land:
-        land = is_land(p)
-        nb_land = np.sum(land)
-        if nb_land == 4 * lenZ * lenT:
-            values[p] = 0.0
-        else:
-            val = 0
-            w_sum = 0
-            for t in range(lenT):
-                for k in range(lenZ):
-                    for j in range(2):
-                        for i in range(2):
-                            if land[t][k][j][i] == 0:
-                                distance = pow((eta[p] - j), 2) + pow((xsi[p] - i), 2)
-                                val += corner_data[t, k, j, i, p] / distance
-                                w_sum += 1 / distance
-            values[p] = val / w_sum
+    if np.any(nb_land):
+        all_land_mask = nb_land == 4 * lenZ * lenT
+        values[all_land_mask] = 0.0
+
+        not_all_land = ~all_land_mask
+        if np.any(not_all_land):
+            i_grid = np.arange(2)[None, None, None, :, None]
+            j_grid = np.arange(2)[None, None, :, None, None]
+            eta_b = eta[None, None, None, None, :]
+            xsi_b = xsi[None, None, None, None, :]
+
+            inv_dist = 1.0 / ((eta_b - j_grid) ** 2 + (xsi_b - i_grid) ** 2)
+
+            valid_mask = ~land_mask
+            weighted = np.where(valid_mask, corner_data * inv_dist, 0.0)
+
+            val = np.sum(weighted, axis=(0, 1, 2, 3))
+            w_sum = np.sum(np.where(valid_mask, inv_dist, 0.0), axis=(0, 1, 2, 3))
+
+            values[not_all_land] = val[not_all_land] / w_sum[not_all_land]
 
     return values.compute() if is_dask_collection(values) else values
 
