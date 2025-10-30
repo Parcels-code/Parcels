@@ -103,14 +103,6 @@ ignore = [
   "RUF046", # Value being cast to `int` is already an integer
 
   # TODO: ignore for now (requires more work). Remove ignore once fixed
-  # Missing docstring in public module
-  "D100",
-  # Missing docstring in public class
-  "D101",
-  # Missing docstring in public method
-  "D102",
-  # Missing docstring in public function
-  "D103",
   # Missing docstring in public package
   "D104",
   # Missing docstring in magic method
@@ -124,6 +116,19 @@ ignore = [
   # 1 blank line required between summary line and description (requires writing of summaries)
   "D205",
   "F811",
+]
+
+[tool.ruff.lint.per-file-ignores]
+# Ignore docstring rules everywhere except for the stable files (particleset.py).
+"!src/parcels/_core/{particleset}.py" = [
+  # Missing docstring in public module
+  "D100",
+  # Missing docstring in public class
+  "D101",
+  # Missing docstring in public method
+  "D102",
+  # Missing docstring in public function
+  "D103",
 ]
 
 [tool.ruff.lint.pydocstyle]
