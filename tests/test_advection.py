@@ -457,7 +457,7 @@ def test_nemo_curvilinear_fieldset():
     U = parcels.Field("U", ds["U"], grid)
     V = parcels.Field("V", ds["V"], grid)
     U.units = parcels.GeographicPolar()
-    V.units = parcels.GeographicPolar()  # U and V need GoegraphicPolar for  C-Grid interpolation to work correctly
+    V.units = parcels.Geographic()
     UV = parcels.VectorField("UV", U, V, vector_interp_method=CGrid_Velocity)
     fieldset = parcels.FieldSet([U, V, UV])
 
@@ -543,7 +543,7 @@ def test_nemo_3D_curvilinear_fieldset(method):
     V = parcels.Field("V", ds["V"], grid)
     W = parcels.Field("W", ds["W"], grid)
     U.units = parcels.GeographicPolar()
-    V.units = parcels.GeographicPolar()  # U and V need GoegraphicPolar for C-Grid interpolation to work correctly
+    V.units = parcels.Geographic()
     UV = parcels.VectorField("UV", U, V, vector_interp_method=CGrid_Velocity)
     UVW = parcels.VectorField("UVW", U, V, W, vector_interp_method=CGrid_Velocity)
     fieldset = parcels.FieldSet([U, V, W, UV, UVW])

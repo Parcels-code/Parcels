@@ -52,6 +52,7 @@ def ZeroInterpolator_Vector(
     z: np.float32 | np.float64,
     y: np.float32 | np.float64,
     x: np.float32 | np.float64,
+    applyConversion: bool,
 ) -> np.float32 | np.float64:
     """Template function used for the signature check of the interpolation methods for velocity fields."""
     return 0.0
@@ -157,6 +158,7 @@ def CGrid_Velocity(
     z: np.float32 | np.float64,
     y: np.float32 | np.float64,
     x: np.float32 | np.float64,
+    applyConversion: bool,
 ):
     """
     Interpolation kernel for velocity fields on a C-Grid.
@@ -274,7 +276,11 @@ def CGrid_Velocity(
     U = (1 - xsi) * U0 + xsi * U1
     V = (1 - eta) * V0 + eta * V1
 
-    meshJac = 1852 * 60.0 if grid._mesh == "spherical" else 1
+    deg2m = 1852 * 60.0
+    if applyConversion:
+        meshJac = (deg2m * deg2m * np.cos(np.deg2rad(y))) if grid._mesh == "spherical" else 1
+    else:
+        meshJac = deg2m if grid._mesh == "spherical" else 1
 
     jac = i_u._compute_jacobian_determinant(py, px, eta, xsi) * meshJac
 
@@ -527,6 +533,7 @@ def XFreeslip(
     z: np.float32 | np.float64,
     y: np.float32 | np.float64,
     x: np.float32 | np.float64,
+    applyConversion: bool,
 ):
     """Free-slip boundary condition interpolation for velocity fields."""
     return _Spatialslip(vectorfield, ti, position, tau, t, z, y, x, a=1.0, b=0.0)
@@ -541,6 +548,7 @@ def XPartialslip(
     z: np.float32 | np.float64,
     y: np.float32 | np.float64,
     x: np.float32 | np.float64,
+    applyConversion: bool,
 ):
     """Partial-slip boundary condition interpolation for velocity fields."""
     return _Spatialslip(vectorfield, ti, position, tau, t, z, y, x, a=0.5, b=0.5)
