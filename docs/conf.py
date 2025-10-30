@@ -114,7 +114,7 @@ language = "en"
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
-exclude_patterns = ["_build", "**.ipynb_checkpoints", "examples_v3"]
+exclude_patterns = ["_build", "**.ipynb_checkpoints", "user_guide/examples_v3"]
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.
