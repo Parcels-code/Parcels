@@ -32,7 +32,7 @@ _DATATYPES_TO_FILL_VALUES = {
     np.dtype(np.int8): np.iinfo(np.int8).max,
     np.dtype(np.int16): np.iinfo(np.int16).max,
     np.dtype(np.int32): np.iinfo(np.int32).max,
-    np.dtype(np.int64): np.iinfo(np.int64).max,
+    np.dtype(np.int64): np.iinfo(np.int64).min,
     np.dtype(np.uint8): np.iinfo(np.uint8).max,
     np.dtype(np.uint16): np.iinfo(np.uint16).max,
     np.dtype(np.uint32): np.iinfo(np.uint32).max,
@@ -318,7 +318,7 @@ def _maybe_convert_time_dtype(dtype: np.dtype | _SAME_AS_FIELDSET_TIME_INTERVAL)
     """Convert the dtype of time to float64 if it is not already."""
     if dtype is _SAME_AS_FIELDSET_TIME_INTERVAL.VALUE:
         return np.dtype(
-            np.uint64
+            np.int64
         )  #! We need to have here some proper mechanism for converting particle data to the data that is to be output to zarr (namely the time needs to be converted to float seconds by subtracting the time_interval.left)
     return dtype
 

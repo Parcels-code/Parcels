@@ -31,8 +31,8 @@ def fieldset() -> FieldSet:  # TODO v4: Move into a `conftest.py` file and remov
     """Fixture to create a FieldSet object for testing."""
     ds = datasets["ds_2d_left"]
     grid = XGrid.from_dataset(ds)
-    U = Field("U", ds["U (A grid)"], grid)
-    V = Field("V", ds["V (A grid)"], grid)
+    U = Field("U", ds["U_A_grid"], grid)
+    V = Field("V", ds["V_A_grid"], grid)
     UV = VectorField("UV", U, V)
 
     return FieldSet(
@@ -40,14 +40,14 @@ def fieldset() -> FieldSet:  # TODO v4: Move into a `conftest.py` file and remov
     )
 
 
-@pytest.mark.skip
 def test_metadata(fieldset, tmp_zarrfile):
     pset = ParticleSet(fieldset, pclass=Particle, lon=0, lat=0)
 
-    pset.execute(DoNothing, runtime=1, output_file=ParticleFile(tmp_zarrfile, outputdt=np.timedelta64(1, "s")))
+    ofile = ParticleFile(tmp_zarrfile, outputdt=np.timedelta64(1, "s"))
+    pset.execute(DoNothing, runtime=np.timedelta64(1, "s"), dt=np.timedelta64(1, "s"), output_file=ofile)
 
-    ds = xr.open_zarr(tmp_zarrfile, decode_cf=False)  # TODO v4: Fix metadata and re-enable decode_cf
-    assert ds.attrs["parcels_kernels"].lower() == "ParticleDoNothing".lower()
+    ds = xr.open_zarr(tmp_zarrfile)
+    assert ds.attrs["parcels_kernels"].lower() == "DoNothing".lower()
 
 
 def test_pfile_array_write_zarr_memorystore(fieldset):
@@ -84,11 +84,8 @@ def test_pfile_array_remove_particles(fieldset, tmp_zarrfile):
     new_time = fieldset.time_interval.left + np.timedelta64(1, "D")
     pset._data["time"][:] = new_time
     pfile.write(pset, new_time)
-    ds = xr.open_zarr(tmp_zarrfile, decode_cf=False)
+    ds = xr.open_zarr(tmp_zarrfile)
     timearr = ds["time"][:]
-    pytest.skip(
-        "TODO v4: Set decode_cf=True, which will mean that missing values get decoded to NaT rather than fill value"
-    )
     assert (np.isnat(timearr[3, 1])) and (np.isfinite(timearr[3, 0]))
 
 
@@ -110,11 +107,8 @@ def test_pfile_array_remove_all_particles(fieldset, chunks_obs, tmp_zarrfile):
     pfile.write(pset, fieldset.time_interval.left + np.timedelta64(1, "D"))
     pfile.write(pset, fieldset.time_interval.left + np.timedelta64(2, "D"))
 
-    ds = xr.open_zarr(tmp_zarrfile, decode_cf=False).load()
-    pytest.skip(
-        "TODO v4: Set decode_cf=True, which will mean that missing values get decoded to NaT rather than fill value"
-    )
-    assert np.allclose(ds["time"][:, 0], np.timedelta64(0, "s"), atol=np.timedelta64(1, "ms"))
+    ds = xr.open_zarr(tmp_zarrfile)
+    np.testing.assert_allclose(ds["time"][:, 0] - fieldset.time_interval.left, np.timedelta64(0, "s"))
     if chunks_obs is not None:
         assert ds["time"][:].shape == chunks
     else:
@@ -133,7 +127,7 @@ def test_variable_write_double(fieldset, tmp_zarrfile):
     ofile = ParticleFile(tmp_zarrfile, outputdt=dt)
     pset.execute(Update_lon, runtime=np.timedelta64(10, "us"), dt=dt, output_file=ofile)
 
-    ds = xr.open_zarr(tmp_zarrfile, decode_cf=False)  # TODO v4: Fix metadata and re-enable decode_cf
+    ds = xr.open_zarr(tmp_zarrfile)
     lons = ds["lon"][:]
     assert isinstance(lons.values[0, 0], np.float64)
 
@@ -203,7 +197,7 @@ def test_pset_repeated_release_delayed_adding_deleting(fieldset, tmp_zarrfile, d
     for _ in range(npart):
         pset.execute(IncrLon, dt=dt, runtime=np.timedelta64(1, "s"), output_file=pfile)
 
-    ds = xr.open_zarr(tmp_zarrfile, decode_cf=False)
+    ds = xr.open_zarr(tmp_zarrfile)
     samplevar = ds["sample_var"][:]
     assert samplevar.shape == (npart, min(maxvar, npart + 1))
     # test whether samplevar[:, k] = k
@@ -219,12 +213,10 @@ def test_write_timebackward(fieldset, tmp_zarrfile):
     pfile = ParticleFile(tmp_zarrfile, outputdt=np.timedelta64(1, "s"))
     pset.execute(DoNothing, runtime=np.timedelta64(3, "s"), dt=-np.timedelta64(1, "s"), output_file=pfile)
 
-    # TODO v4: Fix decode_cf and remove the following lines
-    ds = xr.open_zarr(tmp_zarrfile, decode_cf=False)
+    ds = xr.open_zarr(tmp_zarrfile)
     trajs = ds["trajectory"][:]
 
     output_time = ds["time"][:].values
-    output_time = np.where(output_time > 100.0, np.nan, output_time)  # ignore fill values
 
     assert trajs.values.dtype == "int64"
     assert np.all(np.diff(trajs.values) < 0)  # all particles written in order of release
@@ -301,13 +293,12 @@ def test_time_is_age(fieldset, tmp_zarrfile, outputdt):
 
     pset.execute(IncreaseAge, runtime=np.timedelta64(npart * 2, "s"), dt=np.timedelta64(1, "s"), output_file=ofile)
 
-    # TODO v4: Fix metadata and re-enable decode_cf
-    ds = xr.open_zarr(tmp_zarrfile, decode_cf=False)
+    ds = xr.open_zarr(tmp_zarrfile)
     age = ds["age"][:].values
-    ds_time = np.zeros_like(age)
+    ds_timediff = np.zeros_like(age)
     for i in range(npart):
-        ds_time[i, :] = ds.time.values[i, :] - (time[i] - fieldset.time_interval.left) / np.timedelta64(1, "s")
-    assert np.allclose(age[~np.isnan(age)], ds_time[~np.isnan(age)])
+        ds_timediff[i, :] = (ds.time.values[i, :] - time[i]) / np.timedelta64(1, "s")
+    np.testing.assert_equal(age, ds_timediff)
 
 
 def test_reset_dt(fieldset, tmp_zarrfile):
