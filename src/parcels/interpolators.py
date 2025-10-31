@@ -22,6 +22,7 @@ __all__ = [
     "UXPiecewiseLinearNode",
     "XFreeslip",
     "XLinear",
+    "XLinearInvdistLandTracer",
     "XNearest",
     "XPartialslip",
     "ZeroInterpolator",
@@ -75,11 +76,11 @@ def _get_corner_data_Agrid(
 
     # Y coordinates: [yi, yi, yi+1, yi+1] for each spatial point, repeated for time/z
     yi_1 = np.clip(yi + 1, 0, data.shape[2] - 1)
-    yi = np.tile(np.repeat(np.column_stack([yi, yi_1]), 2), (lenT) * (lenZ))
+    yi = np.tile(np.array([yi, yi, yi_1, yi_1]).flatten(), lenT * lenZ)
 
     # X coordinates: [xi, xi+1, xi, xi+1] for each spatial point, repeated for time/z
     xi_1 = np.clip(xi + 1, 0, data.shape[3] - 1)
-    xi = np.tile(np.column_stack([xi, xi_1, xi, xi_1]).flatten(), (lenT) * (lenZ))
+    xi = np.tile(np.array([xi, xi_1]).flatten(), lenT * lenZ * 2)
 
     # Create DataArrays for indexing
     selection_dict = {
@@ -91,7 +92,7 @@ def _get_corner_data_Agrid(
     if "time" in data.dims:
         selection_dict["time"] = xr.DataArray(ti, dims=("points"))
 
-    return data.isel(selection_dict).data.reshape(lenT, lenZ, npart, 4)
+    return data.isel(selection_dict).data.reshape(lenT, lenZ, 2, 2, npart)
 
 
 def XLinear(
@@ -114,22 +115,22 @@ def XLinear(
     corner_data = _get_corner_data_Agrid(data, ti, zi, yi, xi, lenT, lenZ, len(xsi), axis_dim)
 
     if lenT == 2:
-        tau = tau[np.newaxis, :, np.newaxis]
-        corner_data = corner_data[0, :, :, :] * (1 - tau) + corner_data[1, :, :, :] * tau
+        tau = tau[np.newaxis, :]
+        corner_data = corner_data[0, :] * (1 - tau) + corner_data[1, :] * tau
     else:
-        corner_data = corner_data[0, :, :, :]
+        corner_data = corner_data[0, :]
 
     if lenZ == 2:
-        zeta = zeta[:, np.newaxis]
-        corner_data = corner_data[0, :, :] * (1 - zeta) + corner_data[1, :, :] * zeta
+        zeta = zeta[np.newaxis, :]
+        corner_data = corner_data[0, :] * (1 - zeta) + corner_data[1, :] * zeta
     else:
-        corner_data = corner_data[0, :, :]
+        corner_data = corner_data[0, :]
 
     value = (
-        (1 - xsi) * (1 - eta) * corner_data[:, 0]
-        + xsi * (1 - eta) * corner_data[:, 1]
-        + (1 - xsi) * eta * corner_data[:, 2]
-        + xsi * eta * corner_data[:, 3]
+        (1 - xsi) * (1 - eta) * corner_data[0, 0, :]
+        + xsi * (1 - eta) * corner_data[0, 1, :]
+        + (1 - xsi) * eta * corner_data[1, 0, :]
+        + xsi * eta * corner_data[1, 1, :]
     )
     return value.compute() if is_dask_collection(value) else value
 
@@ -409,8 +410,8 @@ def _Spatialslip(
     corner_dataV = _get_corner_data_Agrid(vectorfield.V.data, ti, zi, yi, xi, lenT, lenZ, npart, axis_dim)
 
     def is_land(ti: int, zi: int, yi: int, xi: int):
-        uval = corner_dataU[ti, zi, :, xi + 2 * yi]
-        vval = corner_dataV[ti, zi, :, xi + 2 * yi]
+        uval = corner_dataU[ti, zi, yi, xi, :]
+        vval = corner_dataV[ti, zi, yi, xi, :]
         return np.where(np.isclose(uval, 0.0) & np.isclose(vval, 0.0), True, False)
 
     f_u = np.ones_like(xsi)
@@ -569,6 +570,52 @@ def XNearest(
         value = corner_data[0, :]
 
     return value.compute() if is_dask_collection(value) else value
+
+
+def XLinearInvdistLandTracer(
+    particle_positions: dict[str, float | np.ndarray],
+    grid_positions: dict[_XGRID_AXES, dict[str, int | float | np.ndarray]],
+    field: Field,
+):
+    """Linear spatial interpolation on a regular grid, where points on land are not used."""
+    values = XLinear(particle_positions, grid_positions, field)
+
+    xi, xsi = grid_positions["X"]["index"], grid_positions["X"]["bcoord"]
+    yi, eta = grid_positions["Y"]["index"], grid_positions["Y"]["bcoord"]
+    zi, zeta = grid_positions["Z"]["index"], grid_positions["Z"]["bcoord"]
+    ti, tau = grid_positions["T"]["index"], grid_positions["T"]["bcoord"]
+
+    axis_dim = field.grid.get_axis_dim_mapping(field.data.dims)
+    lenT = 2 if np.any(tau > 0) else 1
+    lenZ = 2 if np.any(zeta > 0) else 1
+
+    corner_data = _get_corner_data_Agrid(field.data, ti, zi, yi, xi, lenT, lenZ, len(xsi), axis_dim)
+
+    land_mask = np.isnan(corner_data)
+    nb_land = np.sum(land_mask, axis=(0, 1, 2, 3))
+
+    if np.any(nb_land):
+        all_land_mask = nb_land == 4 * lenZ * lenT
+        values[all_land_mask] = 0.0
+
+        not_all_land = ~all_land_mask
+        if np.any(not_all_land):
+            i_grid = np.arange(2)[None, None, None, :, None]
+            j_grid = np.arange(2)[None, None, :, None, None]
+            eta_b = eta[None, None, None, None, :]
+            xsi_b = xsi[None, None, None, None, :]
+
+            inv_dist = 1.0 / ((eta_b - j_grid) ** 2 + (xsi_b - i_grid) ** 2)
+
+            valid_mask = ~land_mask
+            weighted = np.where(valid_mask, corner_data * inv_dist, 0.0)
+
+            val = np.sum(weighted, axis=(0, 1, 2, 3))
+            w_sum = np.sum(np.where(valid_mask, inv_dist, 0.0), axis=(0, 1, 2, 3))
+
+            values[not_all_land] = val[not_all_land] / w_sum[not_all_land]
+
+    return values.compute() if is_dask_collection(values) else values
 
 
 def UXPiecewiseConstantFace(
