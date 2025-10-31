@@ -297,8 +297,8 @@ def test_raise_general_error(): ...
 
 
 def test_errorinterpolation(fieldset):
-    def NaNInterpolator(field, ti, position, tau, t, z, y, x):  # pragma: no cover
-        return np.nan * np.zeros_like(x)
+    def NaNInterpolator(particle_positions, grid_positions, field):  # pragma: no cover
+        return np.nan * np.zeros_like(particle_positions["lon"])
 
     def SampleU(particles, fieldset):  # pragma: no cover
         fieldset.U[particles.time, particles.z, particles.lat, particles.lon, particles]
