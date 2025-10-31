@@ -71,6 +71,9 @@ class ParticleFile:
         if not isinstance(outputdt, np.timedelta64):
             raise ValueError(f"Expected outputdt to be a np.timedelta64 or datetime.timedelta, got {type(outputdt)}")
 
+        if outputdt <= np.timedelta64(0, "s"):
+            raise ValueError(f"outputdt must be a positive non-zero timedelta. Got {outputdt=!r}")
+
         self._outputdt = outputdt
 
         _assert_valid_chunks_tuple(chunks)
@@ -242,23 +245,6 @@ class ParticleFile:
 
         particle_data["obs_written"][indices_to_write] = obs + 1
 
-    def write_latest_locations(self, pset, time):
-        """Write the current (latest) particle locations to zarr file.
-        This can be useful at the end of a pset.execute(), when the last locations are not written yet.
-        Note that this only updates the locations, not any of the other Variables. Therefore, use with care.
-
-        Parameters
-        ----------
-        pset :
-            ParticleSet object to write
-        time :
-            Time at which to write ParticleSet. Note that typically this would be pset.time_nextloop
-        """
-        for var in ["lon", "lat", "z"]:
-            pset._data[f"{var}"] += pset._data[f"d{var}"]
-        pset._data["time"] = pset._data["time_nextloop"]
-        self.write(pset, time)
-
 
 def _get_store_from_pathlike(path: Path | str) -> DirectoryStore:
     path = str(Path(path))  # Ensure valid path, and convert to string
@@ -301,21 +287,21 @@ def _to_write_particles(particle_data, time):
         (
             np.less_equal(
                 time - np.abs(particle_data["dt"] / 2),
-                particle_data["time_nextloop"],
-                where=np.isfinite(particle_data["time_nextloop"]),
+                particle_data["time"],
+                where=np.isfinite(particle_data["time"]),
             )
             & np.greater_equal(
                 time + np.abs(particle_data["dt"] / 2),
-                particle_data["time_nextloop"],
-                where=np.isfinite(particle_data["time_nextloop"]),
+                particle_data["time"],
+                where=np.isfinite(particle_data["time"]),
             )  # check time - dt/2 <= particle_data["time"] <= time + dt/2
             | (
                 (np.isnan(particle_data["dt"]))
-                & np.equal(time, particle_data["time_nextloop"], where=np.isfinite(particle_data["time_nextloop"]))
+                & np.equal(time, particle_data["time"], where=np.isfinite(particle_data["time"]))
             )  # or dt is NaN and time matches particle_data["time"]
         )
         & (np.isfinite(particle_data["trajectory"]))
-        & (np.isfinite(particle_data["time_nextloop"]))
+        & (np.isfinite(particle_data["time"]))
     )[0]
 
 
@@ -324,9 +310,6 @@ def _convert_particle_data_time_to_float_seconds(particle_data, time_interval):
     particle_data = particle_data.copy()
 
     particle_data["time"] = ((particle_data["time"] - time_interval.left) / np.timedelta64(1, "s")).astype(np.float64)
-    particle_data["time_nextloop"] = (
-        (particle_data["time_nextloop"] - time_interval.left) / np.timedelta64(1, "s")
-    ).astype(np.float64)
     particle_data["dt"] = (particle_data["dt"] / np.timedelta64(1, "s")).astype(np.float64)
     return particle_data
 

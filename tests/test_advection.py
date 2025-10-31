@@ -102,8 +102,8 @@ def test_advection_zonal_periodic():
     startlon = np.array([0.5, 0.4])
     pset = ParticleSet(fieldset, pclass=PeriodicParticle, lon=startlon, lat=[0.5, 0.5])
     pset.execute([AdvectionEE, periodicBC], runtime=np.timedelta64(40, "s"), dt=np.timedelta64(1, "s"))
-    np.testing.assert_allclose(pset.total_dlon, 4, atol=1e-5)
-    np.testing.assert_allclose(pset.lon + pset.dlon, startlon, atol=1e-5)
+    np.testing.assert_allclose(pset.total_dlon, 4.1, atol=1e-5)
+    np.testing.assert_allclose(pset.lon, startlon, atol=1e-5)
     np.testing.assert_allclose(pset.lat, 0.5, atol=1e-5)
 
 
@@ -165,7 +165,7 @@ def test_advection_3D_outofbounds(direction, wErrorThroughSurface):
     kernels.append(DeleteParticle)
 
     pset = ParticleSet(fieldset=fieldset, lon=0.5, lat=0.5, z=0.9)
-    pset.execute(kernels, runtime=np.timedelta64(11, "s"), dt=np.timedelta64(1, "s"))
+    pset.execute(kernels, runtime=np.timedelta64(10, "s"), dt=np.timedelta64(1, "s"))
 
     if direction == "up" and wErrorThroughSurface:
         np.testing.assert_allclose(pset.lon[0], 0.6, atol=1e-5)
@@ -222,7 +222,7 @@ def test_length1dimensions(u, v, w):  # TODO: Refactor this test to be more read
     x0, y0, z0 = 2, 8, -4
     pset = ParticleSet(fieldset, lon=x0, lat=y0, z=z0)
     kernel = AdvectionRK4 if w is None else AdvectionRK4_3D
-    pset.execute(kernel, runtime=np.timedelta64(5, "s"), dt=np.timedelta64(1, "s"))
+    pset.execute(kernel, runtime=np.timedelta64(4, "s"), dt=np.timedelta64(1, "s"))
 
     assert len(pset.lon) == len([p.lon for p in pset])
     np.testing.assert_allclose(np.array([p.lon - x0 for p in pset]), 4 * u, atol=1e-6)
@@ -332,7 +332,7 @@ def test_decaying_moving_eddy(method, rtol):
         fieldset.add_constant("RK45_min_dt", 10 * 60)
 
     pset = ParticleSet(fieldset, lon=start_lon, lat=start_lat, time=np.timedelta64(0, "s"))
-    pset.execute(kernel[method], dt=dt, endtime=np.timedelta64(1, "D"))
+    pset.execute(kernel[method], dt=dt, endtime=np.timedelta64(23, "h"))
 
     def truth_moving(x_0, y_0, t):
         t /= np.timedelta64(1, "s")
@@ -412,7 +412,7 @@ def test_peninsula_fieldset(method, rtol, grid_type):
     fieldset = FieldSet([U, V, P, UV])
 
     dt = np.timedelta64(30, "m")
-    runtime = np.timedelta64(1, "D")
+    runtime = np.timedelta64(23, "h")
     start_lat = np.linspace(3e3, 47e3, npart)
     start_lon = 3e3 * np.ones_like(start_lat)
 
@@ -553,7 +553,7 @@ def test_nemo_3D_curvilinear_fieldset(method):
     lats = np.linspace(52.5, 51.6, npart)
     pset = parcels.ParticleSet(fieldset, lon=lons, lat=lats, z=np.ones_like(lons))
 
-    pset.execute(kernel[method], runtime=np.timedelta64(4, "D"), dt=np.timedelta64(6, "h"))
+    pset.execute(kernel[method], runtime=np.timedelta64(3, "D") + np.timedelta64(18, "h"), dt=np.timedelta64(6, "h"))
 
     if method == "RK4":
         np.testing.assert_equal(round_and_hash_float_array([p.lon for p in pset], decimals=5), 29977383852960156017546)
