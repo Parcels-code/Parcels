@@ -159,18 +159,21 @@ def test_particleset_run_to_endtime(fieldset):
 
     pset = ParticleSet(fieldset, lon=[0.2], lat=[5.0], time=[starttime])
     pset.execute(SampleU, endtime=endtime, dt=np.timedelta64(1, "D"))
-    assert pset[0].time + pset[0].dt == endtime
+    assert pset[0].time == endtime
 
 
 def test_particleset_interpolate_on_domainedge(zonal_flow_fieldset):
     fieldset = zonal_flow_fieldset
 
-    def SampleU(particles, fieldset):  # pragma: no cover
-        particles.dlon = fieldset.U[particles]
+    MyParticle = Particle.add_variable(Variable("var"))
 
-    pset = ParticleSet(fieldset, lon=fieldset.U.grid.lon[-1], lat=fieldset.U.grid.lat[-1])
+    def SampleU(particles, fieldset):  # pragma: no cover
+        particles.var = fieldset.U[particles]
+
+    print(fieldset.U.grid.lon)
+    pset = ParticleSet(fieldset, pclass=MyParticle, lon=fieldset.U.grid.lon[-1], lat=fieldset.U.grid.lat[-1])
     pset.execute(SampleU, runtime=np.timedelta64(1, "D"), dt=np.timedelta64(1, "D"))
-    np.testing.assert_equal(pset[0].dlon, 1)
+    np.testing.assert_equal(pset[0].var, 1)
 
 
 def test_particleset_interpolate_outside_domainedge(zonal_flow_fieldset):

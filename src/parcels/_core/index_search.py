@@ -85,8 +85,8 @@ def _search_time_index(field: Field, time: datetime):
     if not field.time_interval.is_all_time_in_interval(time):
         _raise_outside_time_interval_error(time, field=None)
 
-    ti = np.searchsorted(field.data.time.data, time, side="right") - 1
-    tau = (time - field.data.time.data[ti]) / (field.data.time.data[ti + 1] - field.data.time.data[ti])
+    ti, tau = _search_1d_array(field.data.time.data, time)
+
     return {"T": {"index": np.atleast_1d(ti), "bcoord": np.atleast_1d(tau)}}
 
 
