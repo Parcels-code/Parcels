@@ -75,14 +75,19 @@ def _search_time_index(field: Field, time: datetime):
     if the sampled value is outside the time value range.
     """
     if field.time_interval is None:
-        return np.zeros(shape=time.shape, dtype=np.float32), np.zeros(shape=time.shape, dtype=np.int32)
+        return {
+            "T": {
+                "index": np.zeros(shape=time.shape, dtype=np.int32),
+                "bcoord": np.zeros(shape=time.shape, dtype=np.float32),
+            }
+        }
 
     if not field.time_interval.is_all_time_in_interval(time):
         _raise_outside_time_interval_error(time, field=None)
 
     ti = np.searchsorted(field.data.time.data, time, side="right") - 1
     tau = (time - field.data.time.data[ti]) / (field.data.time.data[ti + 1] - field.data.time.data[ti])
-    return np.atleast_1d(tau), np.atleast_1d(ti)
+    return {"T": {"index": np.atleast_1d(ti), "bcoord": np.atleast_1d(tau)}}
 
 
 def curvilinear_point_in_cell(grid, y: np.ndarray, x: np.ndarray, yi: np.ndarray, xi: np.ndarray):

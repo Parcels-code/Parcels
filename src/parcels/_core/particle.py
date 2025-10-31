@@ -180,7 +180,6 @@ def get_default_particle(spatial_dtype: np.float32 | np.float64) -> ParticleClas
                 dtype=_SAME_AS_FIELDSET_TIME_INTERVAL.VALUE,
                 attrs={"standard_name": "time", "units": "seconds", "axis": "T"},
             ),
-            Variable("time_nextloop", dtype=_SAME_AS_FIELDSET_TIME_INTERVAL.VALUE, to_write=False),
             Variable(
                 "trajectory",
                 dtype=np.int64,

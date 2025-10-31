@@ -124,7 +124,6 @@ class ParticleSet:
                 lat=lat,
                 z=z,
                 time=time,
-                time_nextloop=time,
                 trajectory=trajectory_ids,
             ),
         )
@@ -295,12 +294,12 @@ class ParticleSet:
     def populate_indices(self):
         """Pre-populate guesses of particle ei (element id) indices"""
         for i, grid in enumerate(self.fieldset.gridset):
-            position = grid.search(self.z, self.lat, self.lon)
+            grid_positions = grid.search(self.z, self.lat, self.lon)
             self._data["ei"][:, i] = grid.ravel_index(
                 {
-                    "X": position["X"][0],
-                    "Y": position["Y"][0],
-                    "Z": position["Z"][0],
+                    "X": grid_positions["X"]["index"],
+                    "Y": grid_positions["Y"]["index"],
+                    "Z": grid_positions["Z"]["index"],
                 }
             )
 
@@ -421,7 +420,7 @@ class ParticleSet:
         dt_dtype : np.dtype
             New dtype for dt.
         """
-        if dt_dtype not in [np.timedelta64, "timedelta64[ns]", "timedelta64[ms]", "timedelta64[s]"]:
+        if dt_dtype not in [np.timedelta64, "timedelta64[ns]", "timedelta64[μs]", "timedelta64[ms]", "timedelta64[s]"]:
             raise ValueError(f"dt_dtype must be a numpy timedelta64 dtype. Got {dt_dtype=!r}")
 
         self._data["dt"] = self._data["dt"].astype(dt_dtype)
@@ -516,15 +515,16 @@ class ParticleSet:
                 raise ValueError(
                     f"The runtime must be a datetime.timedelta or np.timedelta64 object. Got {type(runtime)}"
                 ) from e
+            if runtime < np.timedelta64(0, "s"):
+                raise ValueError(f"The runtime must be a non-negative timedelta. Got {runtime=!r}")
 
         start_time, end_time = _get_simulation_start_and_end_times(
-            self.fieldset.time_interval, self._data["time_nextloop"], runtime, endtime, sign_dt
+            self.fieldset.time_interval, self._data["time"], runtime, endtime, sign_dt
         )
 
         # Set the time of the particles if it hadn't been set on initialisation
         if np.isnat(self._data["time"]).any():
             self._data["time"][:] = start_time
-            self._data["time_nextloop"][:] = start_time
 
         outputdt = output_file.outputdt if output_file else None
 
@@ -536,7 +536,7 @@ class ParticleSet:
             pbar = tqdm(total=(end_time - start_time) / np.timedelta64(1, "s"), file=sys.stdout)
             pbar.set_description("Integration time: " + str(start_time))
 
-        next_output = start_time + sign_dt * outputdt if output_file else None
+        next_output = start_time if output_file else None
 
         time = start_time
         while sign_dt * (time - end_time) < 0:
@@ -553,7 +553,7 @@ class ParticleSet:
                     if output_file:
                         output_file.write(self, next_output)
                     if np.isfinite(outputdt):
-                        next_output += outputdt
+                        next_output += outputdt * sign_dt
 
             if verbose_progress:
                 pbar.set_description("Integration time: " + str(time))
