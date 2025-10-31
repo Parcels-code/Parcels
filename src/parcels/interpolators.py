@@ -12,6 +12,7 @@ import parcels.utils.interpolation_utils as i_u
 
 if TYPE_CHECKING:
     from parcels._core.field import Field, VectorField
+    from parcels._core.uxgrid import _UXGRID_AXES
     from parcels._core.xgrid import _XGRID_AXES
 
 __all__ = [
@@ -572,7 +573,7 @@ def XNearest(
 
 def UXPiecewiseConstantFace(
     particle_positions: dict[str, float | np.ndarray],
-    grid_positions: dict[_XGRID_AXES, dict[str, int | float | np.ndarray]],
+    grid_positions: dict[_UXGRID_AXES, dict[str, int | float | np.ndarray]],
     field: Field,
 ):
     """
@@ -587,7 +588,7 @@ def UXPiecewiseConstantFace(
 
 def UXPiecewiseLinearNode(
     particle_positions: dict[str, float | np.ndarray],
-    grid_positions: dict[_XGRID_AXES, dict[str, int | float | np.ndarray]],
+    grid_positions: dict[_UXGRID_AXES, dict[str, int | float | np.ndarray]],
     field: Field,
 ):
     """
