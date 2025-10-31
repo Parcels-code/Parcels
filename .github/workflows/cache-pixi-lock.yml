@@ -2,6 +2,9 @@ name: Generate and cache Pixi lockfile
 
 on:
   workflow_call:
+    inputs:
+      pixi-version:
+        type: string
     outputs:
       cache-id:
         description: "The lock file contents"
@@ -30,7 +33,7 @@ jobs:
       - uses: prefix-dev/setup-pixi@v0.9.0
         if: ${{ !steps.restore.outputs.cache-hit }}
         with:
-          pixi-version: v0.56.0
+          pixi-version: ${{ inputs.pixi-version }}
           run-install: false
       - name: Run pixi lock
         if: ${{ !steps.restore.outputs.cache-hit }}
