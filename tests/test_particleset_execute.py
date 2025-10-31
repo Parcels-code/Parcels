@@ -150,6 +150,45 @@ def test_particleset_endtime_type(fieldset, endtime, expectation):
         pset.execute(endtime=endtime, dt=np.timedelta64(10, "m"), pyfunc=DoNothing)
 
 
+def test_particleset_run_to_endtime(fieldset):
+    starttime = fieldset.time_interval.left
+    endtime = fieldset.time_interval.right
+
+    def SampleU(particles, fieldset):  # pragma: no cover
+        _ = fieldset.U[particles]
+
+    pset = ParticleSet(fieldset, lon=[0.2], lat=[5.0], time=[starttime])
+    pset.execute(SampleU, endtime=endtime, dt=np.timedelta64(1, "D"))
+    assert pset[0].time == endtime
+
+
+def test_particleset_interpolate_on_domainedge(zonal_flow_fieldset):
+    fieldset = zonal_flow_fieldset
+
+    MyParticle = Particle.add_variable(Variable("var"))
+
+    def SampleU(particles, fieldset):  # pragma: no cover
+        particles.var = fieldset.U[particles]
+
+    print(fieldset.U.grid.lon)
+    pset = ParticleSet(fieldset, pclass=MyParticle, lon=fieldset.U.grid.lon[-1], lat=fieldset.U.grid.lat[-1])
+    pset.execute(SampleU, runtime=np.timedelta64(1, "D"), dt=np.timedelta64(1, "D"))
+    np.testing.assert_equal(pset[0].var, 1)
+
+
+def test_particleset_interpolate_outside_domainedge(zonal_flow_fieldset):
+    fieldset = zonal_flow_fieldset
+
+    def SampleU(particles, fieldset):  # pragma: no cover
+        particles.dlon = fieldset.U[particles]
+
+    dlat = 1e-3
+    pset = ParticleSet(fieldset, lon=fieldset.U.grid.lon[-1], lat=fieldset.U.grid.lat[-1] + dlat)
+
+    with pytest.raises(FieldOutOfBoundError):
+        pset.execute(SampleU, runtime=np.timedelta64(1, "D"), dt=np.timedelta64(1, "D"))
+
+
 @pytest.mark.parametrize(
     "dt", [np.timedelta64(1, "s"), np.timedelta64(1, "ms"), np.timedelta64(10, "ms"), np.timedelta64(1, "ns")]
 )
@@ -329,7 +368,6 @@ def test_execution_recover_out_of_bounds(fieldset):
 
     def MoveLeft(particles, fieldset):  # pragma: no cover
         inds = np.where(particles.state == StatusCode.ErrorOutOfBounds)
-        print(inds, particles.state)
         particles[inds].dlon -= 1.0
         particles[inds].state = StatusCode.Success
 

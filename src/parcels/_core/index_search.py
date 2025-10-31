@@ -44,7 +44,7 @@ def _search_1d_array(
     # TODO v4: We probably rework this to deal with 0D arrays before this point (as we already know field dimensionality)
     if len(arr) < 2:
         return np.zeros(shape=x.shape, dtype=np.int32), np.zeros_like(x)
-    index = np.searchsorted(arr, x, side="right") - 1
+    index = np.clip(np.searchsorted(arr, x, side="right") - 1, 0, len(arr) - 2)
     # Use broadcasting to avoid repeated array access
     arr_index = arr[index]
     arr_next = arr[np.clip(index + 1, 1, len(arr) - 1)]  # Ensure we don't go out of bounds
@@ -57,7 +57,7 @@ def _search_1d_array(
     # bcoord = (x - arr[index]) / dx
 
     index = np.where(x < arr[0], LEFT_OUT_OF_BOUNDS, index)
-    index = np.where(x >= arr[-1], RIGHT_OUT_OF_BOUNDS, index)
+    index = np.where(x > arr[-1], RIGHT_OUT_OF_BOUNDS, index)
 
     return np.atleast_1d(index), np.atleast_1d(bcoord)
 
@@ -85,8 +85,8 @@ def _search_time_index(field: Field, time: datetime):
     if not field.time_interval.is_all_time_in_interval(time):
         _raise_outside_time_interval_error(time, field=None)
 
-    ti = np.searchsorted(field.data.time.data, time, side="right") - 1
-    tau = (time - field.data.time.data[ti]) / (field.data.time.data[ti + 1] - field.data.time.data[ti])
+    ti, tau = _search_1d_array(field.data.time.data, time)
+
     return {"T": {"index": np.atleast_1d(ti), "bcoord": np.atleast_1d(tau)}}
 
 
