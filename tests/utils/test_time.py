@@ -8,7 +8,7 @@ from cftime import datetime as cftime_datetime
 from hypothesis import given
 from hypothesis import strategies as st
 
-from parcels._core.utils.time import TimeInterval, maybe_convert_python_timedelta_to_numpy
+from parcels._core.utils.time import TimeInterval, maybe_convert_python_timedelta_to_numpy, timedelta_to_float
 
 calendar_strategy = st.sampled_from(
     [
@@ -198,3 +198,20 @@ def test_time_interval_intersection_different_calendars():
 def test_maybe_convert_python_timedelta_to_numpy(td, expected):
     result = maybe_convert_python_timedelta_to_numpy(td)
     assert result == expected
+
+
+@pytest.mark.parametrize(
+    "input, expected",
+    [
+        (timedelta(days=1), 24 * 60 * 60),
+        (np.timedelta64(1, "D"), 24 * 60 * 60),
+        (3600.0, 3600.0),
+    ],
+)
+def test_timedelta_to_float(input, expected):
+    assert timedelta_to_float(input) == expected
+
+
+def test_timedelta_to_float_exceptions():
+    with pytest.raises((ValueError, TypeError)):
+        timedelta_to_float("invalid_type")
