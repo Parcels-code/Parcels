@@ -1,12 +1,5 @@
 # User guide
 
-```{toctree}
-:hidden:
-v3 to v4 migration guide <v4-migration>
-Example scripts <additional_examples>
-Community examples <https://github.com/Parcels-code/parcels_contributions>
-```
-
 The core of our user guide is a series of Jupyter notebooks which document how to implement specific Lagrangian simulations with the flexibility of **Parcels**. Before diving into these advanced _how-to_ guides, we suggest users get started by reading the explanation of the core concepts and trying the quickstart tutorial. For Kernels and examples written by users, check out the [parcels contributing repository](https://github.com/Parcels-code/parcels_contributions). For a description of the specific classes and functions, check out the [API reference](../reference.md).
 
 ```{note}
@@ -18,10 +11,10 @@ The tutorials written for Parcels v3 are currently being updated for Parcels v4.
 
 ```{nbgallery}
 :caption: Getting started
-:name: tutorial-overview
+:name: getting-started
 
-<!-- examples/tutorial_parcels_structure.ipynb -->
-<!-- examples/parcels_tutorial.ipynb -->
+<!-- examples/explanation_parcels_concepts.md -->
+<!-- examples/tutorial_quickstart.ipynb -->
 <!-- examples/tutorial_output.ipynb -->
 ```
 
@@ -33,55 +26,74 @@ The tutorials written for Parcels v3 are currently being updated for Parcels v4.
 
 ```{nbgallery}
 :caption: Set up FieldSets
-:name: tutorial-fieldsets
+:name: how-to-fieldsets
 
-<!-- examples/documentation_indexing.ipynb -->
-<!-- examples/tutorial_nemo_curvilinear.ipynb -->
-<!-- examples/tutorial_nemo_3D.ipynb -->
-<!-- examples/tutorial_croco_3D.ipynb -->
-<!-- examples/tutorial_timevaryingdepthdimensions.ipynb -->
-<!-- examples/tutorial_periodic_boundaries.ipynb -->
-<!-- examples/tutorial_interpolation.ipynb -->
-<!-- examples/tutorial_unitconverters.ipynb -->
+<!-- examples/explanation_fieldset.md -->
+<!-- examples/explanation_grid_indexing.md -->
+<!-- examples/how-to_nemo_curvilinear.ipynb -->
+<!-- examples/how-to_nemo_3D.ipynb -->
+<!-- examples/how-to_croco_3D.ipynb -->
+<!-- examples/how-to_timevaryingdepthdimensions.ipynb -->
+<!-- examples/how-to_periodic_boundaries.ipynb -->
+<!-- examples/how-to_interpolation.ipynb -->
+<!-- examples/how-to_unitconverters.ipynb -->
 ```
 
 ```{nbgallery}
 :caption: Create ParticleSets
-:name: tutorial-particlesets
+:name: how-to-particlesets
 
-<!-- examples/tutorial_delaystart.ipynb -->
+<!-- examples/how-to_delaystart.ipynb -->
 ```
 
 ```{nbgallery}
-:caption: Write a custom kernel
-:name: tutorial-kernels
+:caption: Write a custom `Kernel`
+:name: how-to-kernels
 
-<!-- examples/tutorial_diffusion.ipynb -->
-examples/tutorial_sampling.ipynb
-examples/tutorial_gsw_density.ipynb
-<!-- examples/tutorial_particle_field_interaction.ipynb -->
-<!-- examples/tutorial_interaction.ipynb -->
-<!-- examples/tutorial_analyticaladvection.ipynb -->
-<!-- examples/tutorial_kernelloop.ipynb -->
+
+<!-- examples/explanation_kernelloop.md -->
+<!-- examples/how-to_diffusion.ipynb -->
+examples/how-to_sampling.ipynb
+examples/how-to_gsw_density.ipynb
+<!-- examples/how-to_particle_field_interaction.ipynb -->
+<!-- examples/how-to_interaction.ipynb -->
+<!-- examples/how-to_analyticaladvection.ipynb -->
+```
+
+```{nbgallery}
+:caption: Write an `Interpolator`
+:name: how-to-interpolators
+```
+
+```{nbgallery}
+:caption: Run an accurate and efficient simulation
+:name: how-to-simulation
 ```
 
 ```{nbgallery}
 :caption: Other tutorials
-:name: tutorial-other
+:name: how-to-other
 
-<!-- examples/tutorial_peninsula_AvsCgrid.ipynb -->
-<!-- examples/documentation_MPI.ipynb -->
-<!-- examples/documentation_stuck_particles.ipynb -->
-<!-- examples/documentation_unstuck_Agrid.ipynb -->
-<!-- examples/documentation_LargeRunsOutput.ipynb -->
-<!-- examples/documentation_geospatial.ipynb -->
-<!-- examples/documentation_advanced_zarr.ipynb -->
+<!-- examples/explanation_peninsula_AvsCgrid.ipynb -->
+<!-- examples/how-to_MPI.ipynb -->
+<!-- examples/explanation_stuck_particles.ipynb -->
+<!-- examples/how-to_unstuck_Agrid.ipynb -->
+<!-- examples/how-to_LargeRunsOutput.ipynb -->
+<!-- examples/how-to_geospatial.ipynb -->
+<!-- examples/how-to_advanced_zarr.ipynb -->
 ```
 
 ```{nbgallery}
 :caption: Worked examples
-:name: tutorial-examples
+:name: how-to-examples
 
-examples/tutorial_Argofloats.ipynb
-<!-- ../examples/documentation_homepage_animation.ipynb -->
+examples/how-to_Argofloats.ipynb
+<!-- ../examples/how-to_homepage_animation.ipynb -->
+```
+
+```{toctree}
+:hidden:
+v3 to v4 migration guide <v4-migration>
+Example scripts <additional_examples>
+Community examples <https://github.com/Parcels-code/parcels_contributions>
 ```

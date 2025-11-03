@@ -1,0 +1,1 @@
+A markdown document explaining the core Parcels classes
