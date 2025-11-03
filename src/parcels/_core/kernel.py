@@ -17,12 +17,12 @@ from parcels._core.statuscodes import (
     _raise_outside_time_interval_error,
 )
 from parcels._core.warnings import KernelWarning
+from parcels._python import assert_same_function_signature
 from parcels.kernels import (
     AdvectionAnalytical,
     AdvectionRK4,
     AdvectionRK45,
 )
-from parcels.utils._helpers import _assert_same_function_signature
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -67,7 +67,7 @@ class Kernel:
         for f in pyfuncs:
             if not isinstance(f, types.FunctionType):
                 raise TypeError(f"Argument pyfunc should be a function or list of functions. Got {type(f)}")
-            _assert_same_function_signature(f, ref=AdvectionRK4, context="Kernel")
+            assert_same_function_signature(f, ref=AdvectionRK4, context="Kernel")
 
         if len(pyfuncs) == 0:
             raise ValueError("List of `pyfuncs` should have at least one function.")
