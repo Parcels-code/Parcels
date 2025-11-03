@@ -1,7 +1,7 @@
 # Parcels v4 migration guide
 
 ```{warning}
-Version 4 of Parcels is unreleased at the moment. The information in this migration guide is a work in progress, and is subject to change. If you would like to provide feedback on this migration guide (or generally on the development of v4) please [submit an issue](https://github.com/OceanParcels/Parcels/issues/new/choose).
+Version 4 of Parcels is unreleased at the moment. The information in this migration guide is a work in progress, and is subject to change. If you would like to provide feedback on this migration guide (or generally on the development of v4) please [submit an issue](https://github.com/Parcels-code/Parcels/issues/new/choose).
 ```
 
 ## Kernels
@@ -34,3 +34,12 @@ Version 4 of Parcels is unreleased at the moment. The information in this migrat
 
 - Particlefiles should be created by `ParticleFile(...)` instead of `pset.ParticleFile(...)`
 - The `name` argument in `ParticleFile` has been replaced by `store` and can now be a string, a Path or a zarr store.
+
+## Field
+
+- `Field.eval()` returns an array of floats instead of a single float (related to the vectorization)
+- `Field.eval()` does not throw OutOfBounds or other errors
+
+## GridSet
+
+- `GridSet` is now a list, so change `fieldset.gridset.grids[0]` to `fieldset.gridset[0]`.

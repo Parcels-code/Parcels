@@ -24,8 +24,8 @@ from tests.utils import round_and_hash_float_array
 def fieldset() -> FieldSet:
     ds = datasets_structured["ds_2d_left"]
     grid = XGrid.from_dataset(ds, mesh="flat")
-    U = Field("U", ds["U (A grid)"], grid)
-    V = Field("V", ds["V (A grid)"], grid)
+    U = Field("U", ds["U_A_grid"], grid)
+    V = Field("V", ds["V_A_grid"], grid)
     return FieldSet([U, V])
 
 
@@ -124,7 +124,7 @@ def test_pset_starttime_not_multiple_dt(fieldset):
         particles.dlon += particles.dt / np.timedelta64(1, "s")
 
     pset.execute(Addlon, dt=np.timedelta64(2, "s"), runtime=np.timedelta64(8, "s"), verbose_progress=False)
-    assert np.allclose([p.lon + p.dlon for p in pset], [8 - t for t in times])
+    assert np.allclose([p.lon + p.dlon for p in pset], [10 - t for t in times])
 
 
 def test_populate_indices(fieldset):

@@ -11,12 +11,12 @@ on:
 jobs:
   build-artifacts:
     runs-on: ubuntu-latest
-    if: github.repository == 'OceanParcels/parcels'
+    if: github.repository == 'Parcels-code/parcels'
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
         with:
           fetch-depth: 0
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         name: Install Python
         with:
           python-version: "3.11"
@@ -42,7 +42,7 @@ jobs:
           else
             echo "✅ Looks good"
           fi
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         with:
           name: releases
           path: dist
@@ -51,11 +51,11 @@ jobs:
     needs: build-artifacts
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/setup-python@v5
+      - uses: actions/setup-python@v6
         name: Install Python
         with:
           python-version: "3.11"
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v6
         with:
           name: releases
           path: dist
@@ -84,7 +84,7 @@ jobs:
     if: github.event_name == 'release'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/download-artifact@v4
+      - uses: actions/download-artifact@v6
         with:
           name: releases
           path: dist
@@ -102,5 +102,5 @@ jobs:
           channels: conda-forge
       - run: conda install -c conda-forge pip
       - run: pip install parcels --no-cache
-      - run: curl https://raw.githubusercontent.com/OceanParcels/parcels/main/docs/examples/example_peninsula.py > example_peninsula.py
+      - run: curl https://raw.githubusercontent.com/Parcels-code/parcels/main/docs/examples/example_peninsula.py > example_peninsula.py
       - run: python example_peninsula.py
