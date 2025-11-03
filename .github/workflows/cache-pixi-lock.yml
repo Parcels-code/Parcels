@@ -46,7 +46,7 @@ jobs:
             pixi.lock
           key: ${{ steps.restore.outputs.cache-primary-key }}
       - name: Upload pixi.lock
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: pixi-lock
           path: pixi.lock
