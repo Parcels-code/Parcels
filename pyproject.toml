@@ -100,7 +100,12 @@ ignore = [
   "RUF015",
   # Use `X | Y` in `isinstance` (see https://github.com/home-assistant/core/issues/123850)
   "UP038",
+  # Pattern passed to `match=` contains metacharacters but is neither escaped nor raw
+  "RUF043",
   "RUF046", # Value being cast to `int` is already an integer
+
+  # TODO: Move this ignore so that it only applies in the tests folder. Do in conjunction with any doc related rules
+  "RUF059", # Unpacked variable `coords` is never used
 
   # TODO: ignore for now (requires more work). Remove ignore once fixed
   # Missing docstring in public module
