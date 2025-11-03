@@ -598,7 +598,7 @@ def XLinearInvdistLandTracer(
         all_land_mask = nb_land == 4 * lenZ * lenT
         values[all_land_mask] = 0.0
 
-        not_all_land = ~all_land_mask
+        not_all_land = np.asarray(~all_land_mask, dtype=bool)
         if np.any(not_all_land):
             i_grid = np.arange(2)[None, None, None, :, None]
             j_grid = np.arange(2)[None, None, :, None, None]
