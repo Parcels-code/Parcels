@@ -11,9 +11,9 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Build conda package
-        uses: prefix-dev/rattler-build-action@v0.2.19
+        uses: prefix-dev/rattler-build-action@v0.2.34
         with:
           recipe-path: .github/ci/recipe.yaml
 

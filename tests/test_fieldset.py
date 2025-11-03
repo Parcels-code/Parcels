@@ -21,8 +21,8 @@ ds = datasets_structured["ds_2d_left"]
 def fieldset() -> FieldSet:
     """Fixture to create a FieldSet object for testing."""
     grid = XGrid.from_dataset(ds, mesh="flat")
-    U = Field("U", ds["U (A grid)"], grid)
-    V = Field("V", ds["V (A grid)"], grid)
+    U = Field("U", ds["U_A_grid"], grid)
+    V = Field("V", ds["V_A_grid"], grid)
     UV = VectorField("UV", U, V)
 
     return FieldSet(
@@ -40,6 +40,17 @@ def test_fieldset_add_constant(fieldset):
     assert fieldset.test_constant == 1.0
 
 
+def test_fieldset_add_constant_int_name(fieldset):
+    with pytest.raises(TypeError, match="Expected a string for variable name, got int instead."):
+        fieldset.add_constant(123, 1.0)
+
+
+@pytest.mark.parametrize("name", ["a b", "123", "while"])
+def test_fieldset_add_constant_invalid_name(fieldset, name):
+    with pytest.raises(ValueError, match=r"Received invalid Python variable name.*"):
+        fieldset.add_constant(name, 1.0)
+
+
 def test_fieldset_add_constant_field(fieldset):
     fieldset.add_constant_field("test_constant_field", 1.0)
 
@@ -55,7 +66,7 @@ def test_fieldset_add_constant_field(fieldset):
 
 def test_fieldset_add_field(fieldset):
     grid = XGrid.from_dataset(ds, mesh="flat")
-    field = Field("test_field", ds["U (A grid)"], grid)
+    field = Field("test_field", ds["U_A_grid"], grid)
     fieldset.add_field(field)
     assert fieldset.test_field == field
 
@@ -68,7 +79,7 @@ def test_fieldset_add_field_wrong_type(fieldset):
 
 def test_fieldset_add_field_already_exists(fieldset):
     grid = XGrid.from_dataset(ds, mesh="flat")
-    field = Field("test_field", ds["U (A grid)"], grid)
+    field = Field("test_field", ds["U_A_grid"], grid)
     fieldset.add_field(field, "test_field")
     with pytest.raises(ValueError, match="FieldSet already has a Field with name 'test_field'"):
         fieldset.add_field(field, "test_field")
@@ -105,12 +116,12 @@ def test_fieldset_gridset_multiple_grids(): ...
 
 def test_fieldset_time_interval():
     grid1 = XGrid.from_dataset(ds, mesh="flat")
-    field1 = Field("field1", ds["U (A grid)"], grid1)
+    field1 = Field("field1", ds["U_A_grid"], grid1)
 
     ds2 = ds.copy()
     ds2["time"] = (ds2["time"].dims, ds2["time"].data + np.timedelta64(timedelta(days=1)), ds2["time"].attrs)
     grid2 = XGrid.from_dataset(ds2, mesh="flat")
-    field2 = Field("field2", ds2["U (A grid)"], grid2)
+    field2 = Field("field2", ds2["U_A_grid"], grid2)
 
     fieldset = FieldSet([field1, field2])
     fieldset.add_constant_field("constant_field", 1.0)
@@ -136,8 +147,8 @@ def test_fieldset_init_incompatible_calendars():
     )
 
     grid = XGrid.from_dataset(ds1, mesh="flat")
-    U = Field("U", ds1["U (A grid)"], grid)
-    V = Field("V", ds1["V (A grid)"], grid)
+    U = Field("U", ds1["U_A_grid"], grid)
+    V = Field("V", ds1["V_A_grid"], grid)
     UV = VectorField("UV", U, V)
 
     ds2 = ds.copy()
@@ -231,6 +242,20 @@ def test_fieldset_from_copernicusmarine(ds, caplog):
     assert "UV" in fieldset.fields
     assert "renamed it to 'U'" in caplog.text
     assert "renamed it to 'V'" in caplog.text
+
+
+@pytest.mark.parametrize("ds", [datasets_circulation_models["ds_copernicusmarine"].copy()])
+def test_fieldset_from_copernicusmarine_missing_axis(ds, caplog):
+    del ds["latitude"].attrs["axis"]
+
+    with pytest.raises(
+        ValueError,
+        match="Dataset missing CF compliant metadata for axes "
+        ".*. Expected 'axis' attribute to be set "
+        "on all dimension axes .*. "
+        "HINT: Add xarray metadata attribute 'axis' to dimension .*",
+    ):
+        FieldSet.from_copernicusmarine(ds)
 
 
 def test_fieldset_from_copernicusmarine_no_currents(caplog):

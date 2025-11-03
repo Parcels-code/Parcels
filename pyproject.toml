@@ -8,7 +8,7 @@ description = "Framework for Lagrangian tracking of virtual ocean particles in t
 readme = "README.md"
 dynamic = ["version"]
 authors = [{ name = "Parcels team" }]
-requires-python = ">=3.11,<3.13"
+requires-python = ">=3.11"
 license = { file = "LICENSE.md" }
 classifiers = [
   "License :: OSI Approved :: MIT License",
@@ -100,7 +100,12 @@ ignore = [
   "RUF015",
   # Use `X | Y` in `isinstance` (see https://github.com/home-assistant/core/issues/123850)
   "UP038",
+  # Pattern passed to `match=` contains metacharacters but is neither escaped nor raw
+  "RUF043",
   "RUF046", # Value being cast to `int` is already an integer
+
+  # TODO: Move this ignore so that it only applies in the tests folder. Do in conjunction with any doc related rules
+  "RUF059", # Unpacked variable `coords` is never used
 
   # TODO: ignore for now (requires more work). Remove ignore once fixed
   # Missing docstring in public module

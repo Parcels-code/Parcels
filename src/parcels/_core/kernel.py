@@ -14,15 +14,15 @@ from parcels._core.statuscodes import (
     _raise_field_out_of_bound_surface_error,
     _raise_general_error,
     _raise_grid_searching_error,
-    _raise_time_extrapolation_error,
+    _raise_outside_time_interval_error,
 )
 from parcels._core.warnings import KernelWarning
+from parcels._python import assert_same_function_signature
 from parcels.kernels import (
     AdvectionAnalytical,
     AdvectionRK4,
     AdvectionRK45,
 )
-from parcels.utils._helpers import _assert_same_function_signature
 
 if TYPE_CHECKING:
     from collections.abc import Callable
@@ -31,7 +31,7 @@ __all__ = ["Kernel"]
 
 
 ErrorsToThrow = {
-    StatusCode.ErrorTimeExtrapolation: _raise_time_extrapolation_error,
+    StatusCode.ErrorOutsideTimeInterval: _raise_outside_time_interval_error,
     StatusCode.ErrorOutOfBounds: _raise_field_out_of_bound_error,
     StatusCode.ErrorThroughSurface: _raise_field_out_of_bound_surface_error,
     StatusCode.ErrorInterpolation: _raise_field_interpolation_error,
@@ -67,7 +67,7 @@ class Kernel:
         for f in pyfuncs:
             if not isinstance(f, types.FunctionType):
                 raise TypeError(f"Argument pyfunc should be a function or list of functions. Got {type(f)}")
-            _assert_same_function_signature(f, ref=AdvectionRK4, context="Kernel")
+            assert_same_function_signature(f, ref=AdvectionRK4, context="Kernel")
 
         if len(pyfuncs) == 0:
             raise ValueError("List of `pyfuncs` should have at least one function.")
@@ -75,7 +75,7 @@ class Kernel:
         self._fieldset = fieldset
         self._ptype = ptype
 
-        self._positionupdate_kernels_added = False
+        self._positionupdate_kernel_added = False
 
         for f in pyfuncs:
             self.check_fieldsets_in_kernels(f)
@@ -111,23 +111,19 @@ class Kernel:
         if len(indices) > 0:
             pset.remove_indices(indices)
 
-    def add_positionupdate_kernels(self):
+    def add_positionupdate_kernel(self):
         # Adding kernels that set and update the coordinate changes
-        def Setcoords(particles, fieldset):  # pragma: no cover
+        def PositionUpdate(particles, fieldset):  # pragma: no cover
             particles.lon += particles.dlon
             particles.lat += particles.dlat
             particles.z += particles.dz
+            particles.time += particles.dt
 
             particles.dlon = 0
             particles.dlat = 0
             particles.dz = 0
 
-            particles.time = particles.time_nextloop
-
-        def UpdateTime(particles, fieldset):  # pragma: no cover
-            particles.time_nextloop = particles.time + particles.dt
-
-        self._pyfuncs = (Setcoords + self + UpdateTime)._pyfuncs
+        self._pyfuncs = (PositionUpdate + self)._pyfuncs
 
     def check_fieldsets_in_kernels(self, pyfunc):  # TODO v4: this can go into another method? assert_is_compatible()?
         """
@@ -234,14 +230,13 @@ class Kernel:
 
         pset._data["state"][:] = StatusCode.Evaluate
 
-        if not self._positionupdate_kernels_added:
-            self.add_positionupdate_kernels()
-            self._positionupdate_kernels_added = True
-
         while (len(pset) > 0) and np.any(np.isin(pset.state, [StatusCode.Evaluate, StatusCode.Repeat])):
-            time_to_endtime = compute_time_direction * (endtime - pset.time_nextloop)
+            time_to_endtime = compute_time_direction * (endtime - pset.time)
 
-            if all(time_to_endtime <= 0):
+            evaluate_particles = (np.isin(pset.state, [StatusCode.Success, StatusCode.Evaluate])) & (
+                time_to_endtime >= 0
+            )
+            if not np.any(evaluate_particles):
                 return StatusCode.Success
 
             # adapt dt to end exactly on endtime
@@ -251,7 +246,6 @@ class Kernel:
                 pset.dt = np.minimum(np.maximum(pset.dt, -time_to_endtime), 0)
 
             # run kernels for all particles that need to be evaluated
-            evaluate_particles = (pset.state == StatusCode.Evaluate) & (pset.dt != 0)
             for f in self._pyfuncs:
                 f(pset[evaluate_particles], self._fieldset)
 
@@ -265,9 +259,9 @@ class Kernel:
             if not hasattr(self.fieldset, "RK45_tol"):
                 pset._data["dt"][:] = dt
 
-            # Reset particle state for particles that signalled success and have not reached endtime yet
-            particles_to_evaluate = (pset.state == StatusCode.Success) & (time_to_endtime > 0)
-            pset[particles_to_evaluate].state = StatusCode.Evaluate
+            # Set particle state for particles that reached endtime
+            particles_endofloop = (pset.state == StatusCode.Evaluate) & (pset.time == endtime)
+            pset[particles_endofloop].state = StatusCode.EndofLoop
 
             # delete particles that signalled deletion
             self.remove_deleted(pset)
@@ -279,9 +273,14 @@ class Kernel:
             for error_code, error_func in ErrorsToThrow.items():
                 if np.any(pset.state == error_code):
                     inds = pset.state == error_code
-                    if error_code == StatusCode.ErrorTimeExtrapolation:
+                    if error_code == StatusCode.ErrorOutsideTimeInterval:
                         error_func(pset[inds].time)
                     else:
                         error_func(pset[inds].z, pset[inds].lat, pset[inds].lon)
+
+            # Only add PositionUpdate kernel at the end of the first execute call to avoid adding dt to time too early
+            if not self._positionupdate_kernel_added:
+                self.add_positionupdate_kernel()
+                self._positionupdate_kernel_added = True
 
         return pset

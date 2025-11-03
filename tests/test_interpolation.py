@@ -21,6 +21,7 @@ from parcels.interpolators import (
     UXPiecewiseLinearNode,
     XFreeslip,
     XLinear,
+    XLinearInvdistLandTracer,
     XNearest,
     XPartialslip,
     ZeroInterpolator,
@@ -68,9 +69,19 @@ def field():
             [0.49, 0.49],
             [0.51, 0.51],
             [1.49, 6.49],
-            id="Linear",
+            id="Linear-1",
         ),
         pytest.param(XLinear, np.timedelta64(1, "s"), 2.5, 0.49, 0.51, 13.99, id="Linear-2"),
+        pytest.param(
+            XLinear,
+            [np.timedelta64(0, "s"), np.timedelta64(1, "s"), np.timedelta64(1, "s")],
+            [0, 0, 2.5],
+            [0.49, 0.49, 0.49],
+            [0.51, 0.51, 0.51],
+            [1.49, 6.49, 13.99],
+            id="Linear-3",
+        ),
+        pytest.param(XLinearInvdistLandTracer, np.timedelta64(1, "s"), 2.5, 0.49, 0.51, 13.99, id="LinearInvDistLand"),
         pytest.param(
             XNearest,
             [np.timedelta64(0, "s"), np.timedelta64(3, "s")],
@@ -84,10 +95,11 @@ def field():
 )
 def test_raw_2d_interpolation(field, func, t, z, y, x, expected):
     """Test the interpolation functions on the Field."""
-    tau, ti = _search_time_index(field, t)
-    position = field.grid.search(z, y, x)
+    particle_positions = {"time": t, "z": z, "lat": y, "lon": x}
+    grid_positions = field.grid.search(z, y, x)
+    grid_positions.update(_search_time_index(field, t))
 
-    value = func(field, ti, position, tau, 0, 0, y, x)
+    value = func(particle_positions, grid_positions, field)
     np.testing.assert_equal(value, expected)
 
 
@@ -119,6 +131,38 @@ def test_spatial_slip_interpolation(field, func, t, z, y, x, expected):
 
     velocities = UV[t, z, y, x]
     np.testing.assert_array_almost_equal(velocities, expected)
+
+
+@pytest.mark.parametrize(
+    "func, t, z, y, x, expected",
+    [
+        (XLinearInvdistLandTracer, np.timedelta64(1, "s"), 0, 0.5, 0.5, 1.0),
+        (XLinearInvdistLandTracer, np.timedelta64(1, "s"), 0, 1.5, 1.5, 0.0),
+        (
+            XLinearInvdistLandTracer,
+            [np.timedelta64(0, "s"), np.timedelta64(1, "s")],
+            [0, 2],
+            [0.5, 0.5],
+            [0.5, 0.5],
+            1.0,
+        ),
+        (
+            XLinearInvdistLandTracer,
+            [np.timedelta64(0, "s"), np.timedelta64(1, "s")],
+            [0, 2],
+            [0.5, 1.5],
+            [0.5, 1.5],
+            [1.0, 0.0],
+        ),
+    ],
+)
+def test_invdistland_interpolation(field, func, t, z, y, x, expected):
+    field.data[:] = 1.0
+    field.data[:, :, 1:3, 1:3] = np.nan  # Set NaN land value to test inv_dist
+    field.interp_method = func
+
+    value = field[t, z, y, x]
+    np.testing.assert_array_almost_equal(value, expected)
 
 
 @pytest.mark.parametrize("mesh", ["spherical", "flat"])

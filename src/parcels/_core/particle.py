@@ -2,13 +2,13 @@ from __future__ import annotations
 
 import enum
 import operator
-from keyword import iskeyword
 from typing import Literal
 
 import numpy as np
 
 from parcels._compat import _attrgetter_helper
 from parcels._core.statuscodes import StatusCode
+from parcels._core.utils.string import _assert_str_and_python_varname
 from parcels._core.utils.time import TimeInterval
 from parcels._reprs import _format_list_items_multiline
 
@@ -45,9 +45,7 @@ class Variable:
         to_write: bool | Literal["once"] = True,
         attrs: dict | None = None,
     ):
-        if not isinstance(name, str):
-            raise TypeError(f"Variable name must be a string. Got {name=!r}")
-        _assert_valid_python_varname(name)
+        _assert_str_and_python_varname(name)
 
         try:
             dtype = np.dtype(dtype)
@@ -153,12 +151,6 @@ def _assert_no_duplicate_variable_names(*, existing_vars: list[Variable], new_va
             raise ValueError(f"Variable name already exists: {var.name}")
 
 
-def _assert_valid_python_varname(name):
-    if name.isidentifier() and not iskeyword(name):
-        return
-    raise ValueError(f"Particle variable has to be a valid Python variable name. Got {name=!r}")
-
-
 def get_default_particle(spatial_dtype: np.float32 | np.float64) -> ParticleClass:
     if spatial_dtype not in [np.float32, np.float64]:
         raise ValueError(f"spatial_dtype must be np.float32 or np.float64. Got {spatial_dtype=!r}")
@@ -188,7 +180,6 @@ def get_default_particle(spatial_dtype: np.float32 | np.float64) -> ParticleClas
                 dtype=_SAME_AS_FIELDSET_TIME_INTERVAL.VALUE,
                 attrs={"standard_name": "time", "units": "seconds", "axis": "T"},
             ),
-            Variable("time_nextloop", dtype=_SAME_AS_FIELDSET_TIME_INTERVAL.VALUE, to_write=False),
             Variable(
                 "trajectory",
                 dtype=np.int64,
