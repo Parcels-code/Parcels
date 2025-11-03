@@ -33,6 +33,7 @@ The tutorials written for Parcels v3 are currently being updated for Parcels v4.
 <!-- examples/how-to_nemo_curvilinear.ipynb -->
 <!-- examples/how-to_nemo_3D.ipynb -->
 <!-- examples/how-to_croco_3D.ipynb -->
+<!-- examples/how-to_stommel_uxarray.ipynb -->
 <!-- examples/how-to_timevaryingdepthdimensions.ipynb -->
 <!-- examples/how-to_periodic_boundaries.ipynb -->
 <!-- examples/how-to_interpolation.ipynb -->
@@ -68,16 +69,18 @@ examples/how-to_gsw_density.ipynb
 ```{nbgallery}
 :caption: Run an accurate and efficient simulation
 :name: how-to-simulation
+
+<!-- examples/how-to_choose_advectionKernel.ipynb -->
+<!-- examples/explanation_AvsCgrid_output.ipynb -->
+<!-- examples/explanation_stuck_particles.ipynb -->
+<!-- examples/how-to_unstuck_Agrid.ipynb -->
 ```
 
 ```{nbgallery}
 :caption: Other tutorials
 :name: how-to-other
 
-<!-- examples/explanation_peninsula_AvsCgrid.ipynb -->
 <!-- examples/how-to_MPI.ipynb -->
-<!-- examples/explanation_stuck_particles.ipynb -->
-<!-- examples/how-to_unstuck_Agrid.ipynb -->
 <!-- examples/how-to_LargeRunsOutput.ipynb -->
 <!-- examples/how-to_geospatial.ipynb -->
 <!-- examples/how-to_advanced_zarr.ipynb -->
