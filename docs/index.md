@@ -53,14 +53,14 @@ Wondering how to load a `FieldSet` or write a `Kernel`? Find **tutorials** and e
 To the user guide
 ```
 ````
-````{grid-item-card} Contributing
+````{grid-item-card} Development
 :shadow: md
 
 We encourage anyone to help improve **Parcels**: read our guidelines to get started!
 
 +++
 
-```{button-ref} contributing/index
+```{button-ref} development/index
 :ref-type: doc
 :click-parent:
 :color: secondary
@@ -96,7 +96,7 @@ v4 <v4/index>
 Getting started <getting_started/index>
 Documentation <user_guide/index>
 Community <community/index>
-Contributing <contributing/index>
+Development <development/index>
 API reference <reference>
 Parcels website <https://parcels-code.org/>
 ```
