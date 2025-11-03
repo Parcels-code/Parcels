@@ -33,7 +33,7 @@ Parcels users and developers interact in a vibrant community on a few different 
 :class-container: sd-text-center
 
 ````{grid-item-card} CLAM Community on Zulip
-:img-top: ../_static/clam-full-white-buffer.svg
+:img-top: https://raw.githubusercontent.com/CLAM-community/CLAM-community.github.io/ca1b93cb79410f7ffbbca7ae6860c5d5e0430d31/docs/assets/branding/svg/clam-full-white-buffer.svg
 :shadow: md
 
 If you are doing any kind of Lagrangian modelling and/or analysis check out the CLAM (Computational Lagrangian Analysis and Modelling) Community
