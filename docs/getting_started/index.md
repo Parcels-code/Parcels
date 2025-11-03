@@ -9,6 +9,7 @@ The installation guide <installation.md>
 - a simple tutorial on how to analyse the output from your first simulation <../examples_v3/tutorial_output.ipynb> -->
 
 ```
+
 ```{note}
 TODO: Include one line conda installation for most common use
 ```

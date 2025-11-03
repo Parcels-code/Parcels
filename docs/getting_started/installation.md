@@ -27,20 +27,6 @@ For some of the examples, `pytest` also needs to be installed. This can be quick
 conda activate parcels
 ```
 
-**Step 4:** Download [a zipped copy](https://docs.parcels-code.org/en/latest/_downloads/307c382eb1813dc691e8a80d6c0098f7/parcels_tutorials.zip) of the Parcels tutorials and examples and unzip it.
-
-**Step 5:** Go to the unzipped folder and run one of the examples to validate that you have a working Parcels setup:
-
-```bash
-python example_peninsula.py --fieldset 100 100
-```
-
-_Optionally:_ if you want to run all the examples and tutorials, start Jupyter and open the tutorial notebooks:
-
-```bash
-jupyter notebook
-```
-
 ```{note}
 The next time you start a terminal and want to work with Parcels, activate the environment with `conda activate parcels`.
 ```

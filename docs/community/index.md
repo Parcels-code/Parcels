@@ -17,6 +17,14 @@ Discussions <https://github.com/Parcels-code/parcels/discussions>
 Issues <https://github.com/Parcels-code/parcels/issues>
 ```
 
+```{toctree}
+:caption: Community examples
+:maxdepth: 1
+:hidden:
+
+Repository <https://github.com/Parcels-code/parcels_contributions>
+```
+
 Parcels users and developers interact in a vibrant community on a few different platforms. Check out the cards below to see how you can interact with us.
 
 `````{grid} 1 2 2 2

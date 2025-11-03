@@ -98,5 +98,4 @@ examples/how-to_Argofloats.ipynb
 :hidden:
 v3 to v4 migration guide <v4-migration>
 Example scripts <additional_examples>
-Community examples <https://github.com/Parcels-code/parcels_contributions>
 ```
