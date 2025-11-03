@@ -33,19 +33,3 @@ def assert_same_function_signature(f: Callable, *, ref: Callable, context: str) 
             raise ValueError(
                 f"Parameter '{param2.name}' has incorrect name. Expected '{param1.name}', got '{param2.name}'"
             )
-
-
-def test_isinstance_noimport():
-    class A:
-        pass
-
-    class B:
-        pass
-
-    a = A()
-    b = B()
-
-    assert isinstance_noimport(a, "A")
-    assert not isinstance_noimport(a, "B")
-    assert isinstance_noimport(b, ("A", "B"))
-    assert not isinstance_noimport(b, "C")
