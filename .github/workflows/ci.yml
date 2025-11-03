@@ -28,7 +28,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu] #, mac, windows] # TODO v4: Re-enable windows and mac
+        os: [ubuntu, mac, windows]
         pixi-environment: [test-latest]
         include:
           - os: ubuntu
