@@ -189,7 +189,7 @@ def AdvectionAnalytical(particles, fieldset):  # pragma: no cover
     """
     import numpy as np
 
-    import parcels.utils.interpolation_utils as i_u
+    import parcels._core.utils.interpolation as i_u
 
     tol = 1e-10
     I_s = 10  # number of intermediate time steps
