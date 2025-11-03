@@ -18,21 +18,13 @@ from parcels.kernels import (
     AdvectionDiffusionEM,
     AdvectionDiffusionM1,
     AdvectionEE,
+    AdvectionRK2,
+    AdvectionRK2_3D,
     AdvectionRK4,
     AdvectionRK4_3D,
     AdvectionRK45,
 )
 from tests.utils import round_and_hash_float_array
-
-kernel = {
-    "EE": AdvectionEE,
-    "RK4": AdvectionRK4,
-    "RK4_3D": AdvectionRK4_3D,
-    "RK45": AdvectionRK45,
-    # "AA": AdvectionAnalytical,
-    "AdvDiffEM": AdvectionDiffusionEM,
-    "AdvDiffM1": AdvectionDiffusionM1,
-}
 
 
 @pytest.mark.parametrize("mesh", ["spherical", "flat"])
@@ -256,22 +248,24 @@ def test_radialrotation(npart=10):
 
 
 @pytest.mark.parametrize(
-    "method, rtol",
+    "kernel, rtol",
     [
-        ("EE", 1e-2),
-        ("AdvDiffEM", 1e-2),
-        ("AdvDiffM1", 1e-2),
-        ("RK4", 1e-5),
-        ("RK4_3D", 1e-5),
-        ("RK45", 1e-4),
+        (AdvectionEE, 1e-2),
+        (AdvectionDiffusionEM, 1e-2),
+        (AdvectionDiffusionM1, 1e-2),
+        (AdvectionRK2, 1e-4),
+        (AdvectionRK2_3D, 1e-4),
+        (AdvectionRK4, 1e-5),
+        (AdvectionRK4_3D, 1e-5),
+        (AdvectionRK45, 1e-4),
     ],
 )
-def test_moving_eddy(method, rtol):
+def test_moving_eddy(kernel, rtol):
     ds = moving_eddy_dataset()
     grid = XGrid.from_dataset(ds)
     U = Field("U", ds["U"], grid, interp_method=XLinear)
     V = Field("V", ds["V"], grid, interp_method=XLinear)
-    if method == "RK4_3D":
+    if kernel in [AdvectionRK2_3D, AdvectionRK4_3D]:
         # Using W to test 3D advection (assuming same velocity as V)
         W = Field("W", ds["V"], grid, interp_method=XLinear)
         UVW = VectorField("UVW", U, V, W)
@@ -279,7 +273,7 @@ def test_moving_eddy(method, rtol):
     else:
         UV = VectorField("UV", U, V)
         fieldset = FieldSet([U, V, UV])
-    if method in ["AdvDiffEM", "AdvDiffM1"]:
+    if kernel in [AdvectionDiffusionEM, AdvectionDiffusionM1]:
         # Add zero diffusivity field for diffusion kernels
         ds["Kh"] = (["time", "depth", "YG", "XG"], np.full(ds["U"].shape, 0))
         fieldset.add_field(Field("Kh", ds["Kh"], grid, interp_method=XLinear), "Kh_zonal")
@@ -289,11 +283,11 @@ def test_moving_eddy(method, rtol):
     start_lon, start_lat, start_z = 12000, 12500, 12500
     dt = np.timedelta64(30, "m")
 
-    if method == "RK45":
+    if kernel == AdvectionRK45:
         fieldset.add_constant("RK45_tol", rtol)
 
     pset = ParticleSet(fieldset, lon=start_lon, lat=start_lat, z=start_z, time=np.timedelta64(0, "s"))
-    pset.execute(kernel[method], dt=dt, endtime=np.timedelta64(1, "h"))
+    pset.execute(kernel, dt=dt, endtime=np.timedelta64(1, "h"))
 
     def truth_moving(x_0, y_0, t):
         t /= np.timedelta64(1, "s")
@@ -304,19 +298,20 @@ def test_moving_eddy(method, rtol):
     exp_lon, exp_lat = truth_moving(start_lon, start_lat, pset.time[0])
     np.testing.assert_allclose(pset.lon, exp_lon, rtol=rtol)
     np.testing.assert_allclose(pset.lat, exp_lat, rtol=rtol)
-    if method == "RK4_3D":
+    if kernel == AdvectionRK4_3D:
         np.testing.assert_allclose(pset.z, exp_lat, rtol=rtol)
 
 
 @pytest.mark.parametrize(
-    "method, rtol",
+    "kernel, rtol",
     [
-        ("EE", 1e-1),
-        ("RK4", 1e-5),
-        ("RK45", 1e-4),
+        (AdvectionEE, 1e-1),
+        (AdvectionRK2, 3e-3),
+        (AdvectionRK4, 1e-5),
+        (AdvectionRK45, 1e-4),
     ],
 )
-def test_decaying_moving_eddy(method, rtol):
+def test_decaying_moving_eddy(kernel, rtol):
     ds = decaying_moving_eddy_dataset()
     grid = XGrid.from_dataset(ds)
     U = Field("U", ds["U"], grid, interp_method=XLinear)
@@ -327,12 +322,12 @@ def test_decaying_moving_eddy(method, rtol):
     start_lon, start_lat = 10000, 10000
     dt = np.timedelta64(60, "m")
 
-    if method == "RK45":
+    if kernel == AdvectionRK45:
         fieldset.add_constant("RK45_tol", rtol)
         fieldset.add_constant("RK45_min_dt", 10 * 60)
 
     pset = ParticleSet(fieldset, lon=start_lon, lat=start_lat, time=np.timedelta64(0, "s"))
-    pset.execute(kernel[method], dt=dt, endtime=np.timedelta64(23, "h"))
+    pset.execute(kernel, dt=dt, endtime=np.timedelta64(23, "h"))
 
     def truth_moving(x_0, y_0, t):
         t /= np.timedelta64(1, "s")
@@ -354,14 +349,15 @@ def test_decaying_moving_eddy(method, rtol):
 
 
 @pytest.mark.parametrize(
-    "method, rtol",
+    "kernel, rtol",
     [
-        ("RK4", 0.1),
-        ("RK45", 0.1),
+        (AdvectionRK2, 0.1),
+        (AdvectionRK4, 0.1),
+        (AdvectionRK45, 0.1),
     ],
 )
 @pytest.mark.parametrize("grid_type", ["A", "C"])
-def test_stommelgyre_fieldset(method, rtol, grid_type):
+def test_stommelgyre_fieldset(kernel, rtol, grid_type):
     npart = 2
     ds = stommel_gyre_dataset(grid_type=grid_type)
     grid = XGrid.from_dataset(ds)
@@ -377,7 +373,7 @@ def test_stommelgyre_fieldset(method, rtol, grid_type):
     start_lon = np.linspace(10e3, 100e3, npart)
     start_lat = np.ones_like(start_lon) * 5000e3
 
-    if method == "RK45":
+    if kernel == AdvectionRK45:
         fieldset.add_constant("RK45_tol", rtol)
 
     SampleParticle = Particle.add_variable(
@@ -389,19 +385,20 @@ def test_stommelgyre_fieldset(method, rtol, grid_type):
         particles.p_start = np.where(particles.time == 0, particles.p, particles.p_start)
 
     pset = ParticleSet(fieldset, pclass=SampleParticle, lon=start_lon, lat=start_lat, time=np.timedelta64(0, "s"))
-    pset.execute([kernel[method], UpdateP], dt=dt, runtime=runtime)
+    pset.execute([kernel, UpdateP], dt=dt, runtime=runtime)
     np.testing.assert_allclose(pset.p, pset.p_start, rtol=rtol)
 
 
 @pytest.mark.parametrize(
-    "method, rtol",
+    "kernel, rtol",
     [
-        ("RK4", 5e-3),
-        ("RK45", 1e-4),
+        (AdvectionRK2, 2e-2),
+        (AdvectionRK4, 5e-3),
+        (AdvectionRK45, 1e-4),
     ],
 )
 @pytest.mark.parametrize("grid_type", ["A"])  # TODO also implement C-grid once available
-def test_peninsula_fieldset(method, rtol, grid_type):
+def test_peninsula_fieldset(kernel, rtol, grid_type):
     npart = 2
     ds = peninsula_dataset(grid_type=grid_type)
     grid = XGrid.from_dataset(ds)
@@ -416,7 +413,7 @@ def test_peninsula_fieldset(method, rtol, grid_type):
     start_lat = np.linspace(3e3, 47e3, npart)
     start_lon = 3e3 * np.ones_like(start_lat)
 
-    if method == "RK45":
+    if kernel == AdvectionRK45:
         fieldset.add_constant("RK45_tol", rtol)
 
     SampleParticle = Particle.add_variable(
@@ -428,7 +425,7 @@ def test_peninsula_fieldset(method, rtol, grid_type):
         particles.p_start = np.where(particles.time == 0, particles.p, particles.p_start)
 
     pset = ParticleSet(fieldset, pclass=SampleParticle, lon=start_lon, lat=start_lat, time=np.timedelta64(0, "s"))
-    pset.execute([kernel[method], UpdateP], dt=dt, runtime=runtime)
+    pset.execute([kernel, UpdateP], dt=dt, runtime=runtime)
     np.testing.assert_allclose(pset.p, pset.p_start, rtol=rtol)
 
 
@@ -474,8 +471,8 @@ def test_nemo_curvilinear_fieldset():
     np.testing.assert_allclose(pset.lat, latp, atol=1e-1)
 
 
-@pytest.mark.parametrize("method", ["RK4", "RK4_3D"])
-def test_nemo_3D_curvilinear_fieldset(method):
+@pytest.mark.parametrize("kernel", [AdvectionRK4, AdvectionRK4_3D])
+def test_nemo_3D_curvilinear_fieldset(kernel):
     download_dir = parcels.download_example_dataset("NemoNorthSeaORCA025-N006_data")
     ufiles = download_dir.glob("*U.nc")
     dsu = xr.open_mfdataset(ufiles, decode_times=False, drop_variables=["nav_lat", "nav_lon"])
@@ -553,10 +550,10 @@ def test_nemo_3D_curvilinear_fieldset(method):
     lats = np.linspace(52.5, 51.6, npart)
     pset = parcels.ParticleSet(fieldset, lon=lons, lat=lats, z=np.ones_like(lons))
 
-    pset.execute(kernel[method], runtime=np.timedelta64(3, "D") + np.timedelta64(18, "h"), dt=np.timedelta64(6, "h"))
+    pset.execute(kernel, runtime=np.timedelta64(3, "D") + np.timedelta64(18, "h"), dt=np.timedelta64(6, "h"))
 
-    if method == "RK4":
+    if kernel == AdvectionRK4:
         np.testing.assert_equal(round_and_hash_float_array([p.lon for p in pset], decimals=5), 29977383852960156017546)
-    elif method == "RK4_3D":
+    elif kernel == AdvectionRK4_3D:
         # TODO check why decimals needs to be so low in RK4_3D (compare to v3)
         np.testing.assert_equal(round_and_hash_float_array([p.z for p in pset], decimals=1), 29747210774230389239432)
