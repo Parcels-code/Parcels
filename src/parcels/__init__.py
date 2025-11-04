@@ -4,7 +4,7 @@ try:
     __version__ = _version("parcels")
 except Exception:
     # Local copy or not installed with setuptools.
-    __version__ = "9999"
+    __version__ = "unknown"
 
 import warnings as _stdlib_warnings
 
