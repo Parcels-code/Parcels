@@ -92,11 +92,11 @@ Connect with our community!
 :hidden:
 
 Home <self>
-v4 <v4/index>
 Getting started <getting_started/index>
-Documentation <user_guide/index>
+User guide <user_guide/index>
 Community <community/index>
 Development <development/index>
 API reference <reference>
+v4 <v4/index>
 Parcels website <https://parcels-code.org/>
 ```
