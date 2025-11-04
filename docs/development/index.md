@@ -16,6 +16,7 @@ Release Notes <https://github.com/Parcels-code/Parcels/releases>
 :hidden:
 
 maintainer
+docsguide
 ```
 
 ## Why contribute?
