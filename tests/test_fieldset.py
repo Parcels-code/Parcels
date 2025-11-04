@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 import xarray as xr
 
-from parcels import Field, VectorField, XGrid
+from parcels import Field, ParticleFile, ParticleSet, VectorField, XGrid
 from parcels._core.fieldset import CalendarError, FieldSet, _datetime_to_msg
 from parcels._datasets.structured.circulation_models import datasets as datasets_circulation_models
 from parcels._datasets.structured.generic import T as T_structured
@@ -92,6 +92,21 @@ def test_fieldset_gridset(fieldset):
 
     fieldset.add_constant_field("constant_field", 1.0)
     assert len(fieldset.gridset) == 2
+
+
+def test_fieldset_no_UV(tmp_zarrfile):
+    grid = XGrid.from_dataset(ds, mesh="flat")
+    fieldset = FieldSet([Field("P", ds["U_A_grid"], grid)])
+
+    def SampleP(particles, fieldset):
+        particles.dlon += fieldset.P[particles]
+
+    pset = ParticleSet(fieldset, lon=0, lat=0)
+    ofile = ParticleFile(tmp_zarrfile, outputdt=np.timedelta64(1, "s"))
+    pset.execute(SampleP, runtime=np.timedelta64(1, "s"), dt=np.timedelta64(1, "s"), output_file=ofile)
+
+    ds_out = xr.open_zarr(tmp_zarrfile)
+    assert ds_out["lon"].shape == (1, 2)
 
 
 @pytest.mark.parametrize("ds", [pytest.param(ds, id=k) for k, ds in datasets_structured.items()])
