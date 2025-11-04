@@ -1,4 +1,6 @@
-# Basic installation
+# Installation guide
+
+## Basic Installation
 
 The simplest way to install the Parcels code is to use Anaconda and the [Parcels conda-forge package](https://anaconda.org/conda-forge/parcels) with the latest release of Parcels. This package will automatically install all the requirements for a fully functional installation of Parcels. This is the "batteries-included" solution probably suitable for most users. Note that we support Python 3.10 and higher.
 
@@ -31,6 +33,8 @@ conda activate parcels
 The next time you start a terminal and want to work with Parcels, activate the environment with `conda activate parcels`.
 ```
 
-# Installation for developers
+**Step 4:** Create a Jupyter Notebook or Python script to set up your first Parcels simulation! The [quickstart tutorial](tutorial_quickstart.ipynb) is a great way to get started immediately. You can also first read about the core [Parcels concepts](concepts_overview.md) to familiarize yourself with the classes and methods you will use.
+
+## Installation for developers
 
 See the [development section in our contributing guide](../development/index.md#development) for development instructions.
