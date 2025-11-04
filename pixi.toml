@@ -72,7 +72,7 @@ pytest-cov = "*"
 
 [feature.test.tasks]
 tests = "pytest"
-tests-notebooks = "pytest --nbval-lax docs/examples"
+tests-notebooks = "pytest --nbval-lax docs/user_guide/examples"
 
 
 [feature.notebooks.dependencies]
