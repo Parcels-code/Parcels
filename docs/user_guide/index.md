@@ -11,10 +11,10 @@ The tutorials written for Parcels v3 are currently being updated for Parcels v4.
 
 ```{nbgallery}
 :caption: Getting started
-:name: getting-started
+:name: tutorial-overview
 
-<!-- examples/explanation_parcels_concepts.md -->
-<!-- examples/tutorial_quickstart.ipynb -->
+<!-- examples/tutorial_parcels_structure.ipynb -->
+<!-- examples/parcels_tutorial.ipynb -->
 <!-- examples/tutorial_output.ipynb -->
 ```
 
@@ -26,72 +26,57 @@ The tutorials written for Parcels v3 are currently being updated for Parcels v4.
 
 ```{nbgallery}
 :caption: Set up FieldSets
-:name: how-to-fieldsets
+:name: tutorial-fieldsets
 
-<!-- examples/explanation_fieldset.md -->
-<!-- examples/explanation_grid_indexing.md -->
-<!-- examples/how-to_nemo_curvilinear.ipynb -->
-<!-- examples/how-to_nemo_3D.ipynb -->
-<!-- examples/how-to_croco_3D.ipynb -->
-<!-- examples/how-to_stommel_uxarray.ipynb -->
-<!-- examples/how-to_timevaryingdepthdimensions.ipynb -->
-<!-- examples/how-to_periodic_boundaries.ipynb -->
-<!-- examples/how-to_interpolation.ipynb -->
-<!-- examples/how-to_unitconverters.ipynb -->
+<!-- examples/documentation_indexing.ipynb -->
+<!-- examples/tutorial_nemo_curvilinear.ipynb -->
+<!-- examples/tutorial_nemo_3D.ipynb -->
+<!-- examples/tutorial_croco_3D.ipynb -->
+<!-- examples/tutorial_timevaryingdepthdimensions.ipynb -->
+<!-- examples/tutorial_periodic_boundaries.ipynb -->
+<!-- examples/tutorial_interpolation.ipynb -->
+<!-- examples/tutorial_unitconverters.ipynb -->
 ```
 
 ```{nbgallery}
 :caption: Create ParticleSets
-:name: how-to-particlesets
+:name: tutorial-particlesets
 
-<!-- examples/how-to_delaystart.ipynb -->
+<!-- examples/tutorial_delaystart.ipynb -->
 ```
 
 ```{nbgallery}
-:caption: Write a custom `Kernel`
-:name: how-to-kernels
+:caption: Write a custom kernel
+:name: tutorial-kernels
 
-
-<!-- examples/explanation_kernelloop.md -->
-<!-- examples/how-to_diffusion.ipynb -->
-examples/how-to_sampling.ipynb
-examples/how-to_gsw_density.ipynb
-<!-- examples/how-to_particle_field_interaction.ipynb -->
-<!-- examples/how-to_interaction.ipynb -->
-<!-- examples/how-to_analyticaladvection.ipynb -->
-```
-
-```{nbgallery}
-:caption: Write an `Interpolator`
-:name: how-to-interpolators
-```
-
-```{nbgallery}
-:caption: Run an accurate and efficient simulation
-:name: how-to-simulation
-
-<!-- examples/how-to_choose_advectionKernel.ipynb -->
-<!-- examples/explanation_AvsCgrid_output.ipynb -->
-<!-- examples/explanation_stuck_particles.ipynb -->
-<!-- examples/how-to_unstuck_Agrid.ipynb -->
+<!-- examples/tutorial_diffusion.ipynb -->
+examples/tutorial_sampling.ipynb
+examples/tutorial_gsw_density.ipynb
+<!-- examples/tutorial_particle_field_interaction.ipynb -->
+<!-- examples/tutorial_interaction.ipynb -->
+<!-- examples/tutorial_analyticaladvection.ipynb -->
+<!-- examples/tutorial_kernelloop.ipynb -->
 ```
 
 ```{nbgallery}
 :caption: Other tutorials
-:name: how-to-other
+:name: tutorial-other
 
-<!-- examples/how-to_MPI.ipynb -->
-<!-- examples/how-to_LargeRunsOutput.ipynb -->
-<!-- examples/how-to_geospatial.ipynb -->
-<!-- examples/how-to_advanced_zarr.ipynb -->
+<!-- examples/tutorial_peninsula_AvsCgrid.ipynb -->
+<!-- examples/documentation_MPI.ipynb -->
+<!-- examples/documentation_stuck_particles.ipynb -->
+<!-- examples/documentation_unstuck_Agrid.ipynb -->
+<!-- examples/documentation_LargeRunsOutput.ipynb -->
+<!-- examples/documentation_geospatial.ipynb -->
+<!-- examples/documentation_advanced_zarr.ipynb -->
 ```
 
 ```{nbgallery}
 :caption: Worked examples
-:name: how-to-examples
+:name: tutorial-examples
 
-examples/how-to_Argofloats.ipynb
-<!-- ../examples/how-to_homepage_animation.ipynb -->
+examples/tutorial_Argofloats.ipynb
+<!-- ../examples/documentation_homepage_animation.ipynb -->
 ```
 
 ```{toctree}
