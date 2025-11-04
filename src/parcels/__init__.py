@@ -1,6 +1,10 @@
-from ._version import version
+from importlib.metadata import version as _version
 
-__version__ = version
+try:
+    __version__ = _version("parcels")
+except Exception:
+    # Local copy or not installed with setuptools.
+    __version__ = "9999"
 
 import warnings as _stdlib_warnings
 
