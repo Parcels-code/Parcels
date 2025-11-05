@@ -34,7 +34,7 @@ The tutorials written for Parcels v3 are currently being updated for Parcels v4.
 :caption: Creating ParticleSets
 :name: tutorial-particlesets
 
-<!-- ../examples/tutorial_delaystart.ipynb -->
+../examples/tutorial_delaystart.ipynb
 ```
 
 ```{nbgallery}
@@ -43,6 +43,8 @@ The tutorials written for Parcels v3 are currently being updated for Parcels v4.
 
 <!-- ../examples/tutorial_diffusion.ipynb -->
 ../examples/tutorial_sampling.ipynb
+../examples/tutorial_Argofloats.ipynb
+../examples/tutorial_gsw_density.ipynb
 <!-- ../examples/tutorial_particle_field_interaction.ipynb -->
 <!-- ../examples/tutorial_interaction.ipynb -->
 <!-- ../examples/tutorial_analyticaladvection.ipynb -->
@@ -66,7 +68,7 @@ The tutorials written for Parcels v3 are currently being updated for Parcels v4.
 :caption: Worked examples
 :name: tutorial-examples
 
-../examples/tutorial_Argofloats.ipynb
+
 <!-- ../examples/documentation_homepage_animation.ipynb -->
 ```
 
