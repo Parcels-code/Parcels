@@ -144,3 +144,12 @@ def maybe_convert_python_timedelta_to_numpy(dt: timedelta | np.timedelta64) -> n
             return np.timedelta64(0, "s")
     except Exception as e:
         raise ValueError(f"Could not convert {dt!r} to np.timedelta64.") from e
+
+
+def timedelta_to_float(dt: float | timedelta | np.timedelta64) -> float:
+    """Convert a timedelta to a float in seconds."""
+    if isinstance(dt, timedelta):
+        return dt.total_seconds()
+    if isinstance(dt, np.timedelta64):
+        return float(dt / np.timedelta64(1, "s"))
+    return float(dt)

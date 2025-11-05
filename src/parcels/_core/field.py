@@ -22,6 +22,7 @@ from parcels._core.utils.string import _assert_str_and_python_varname
 from parcels._core.utils.time import TimeInterval
 from parcels._core.uxgrid import UxGrid
 from parcels._core.xgrid import XGrid, _transpose_xfield_data_to_tzyx
+from parcels._python import assert_same_function_signature
 from parcels._reprs import default_repr
 from parcels._typing import VectorType
 from parcels.interpolators import (
@@ -30,7 +31,6 @@ from parcels.interpolators import (
     ZeroInterpolator,
     ZeroInterpolator_Vector,
 )
-from parcels.utils._helpers import _assert_same_function_signature
 
 __all__ = ["Field", "VectorField"]
 
@@ -139,7 +139,7 @@ class Field:
         if interp_method is None:
             self._interp_method = _DEFAULT_INTERPOLATOR_MAPPING[type(self.grid)]
         else:
-            _assert_same_function_signature(interp_method, ref=ZeroInterpolator, context="Interpolation")
+            assert_same_function_signature(interp_method, ref=ZeroInterpolator, context="Interpolation")
             self._interp_method = interp_method
 
         self.igrid = -1  # Default the grid index to -1
@@ -195,7 +195,7 @@ class Field:
 
     @interp_method.setter
     def interp_method(self, method: Callable):
-        _assert_same_function_signature(method, ref=ZeroInterpolator, context="Interpolation")
+        assert_same_function_signature(method, ref=ZeroInterpolator, context="Interpolation")
         self._interp_method = method
 
     def _check_velocitysampling(self):
@@ -218,12 +218,9 @@ class Field:
         else:
             _ei = particles.ei[:, self.igrid]
 
-        tau, ti = _search_time_index(self, time)
-        position = self.grid.search(z, y, x, ei=_ei)
-        _update_particles_ei(particles, position, self)
-        _update_particle_states_position(particles, position)
+        particle_positions, grid_positions = _get_positions(self, time, z, y, x, particles, _ei)
 
-        value = self._interp_method(self, ti, position, tau, time, z, y, x)
+        value = self._interp_method(particle_positions, grid_positions, self)
 
         _update_particle_states_interp_value(particles, value)
 
@@ -273,7 +270,7 @@ class VectorField:
         if vector_interp_method is None:
             self._vector_interp_method = None
         else:
-            _assert_same_function_signature(vector_interp_method, ref=ZeroInterpolator_Vector, context="Interpolation")
+            assert_same_function_signature(vector_interp_method, ref=ZeroInterpolator_Vector, context="Interpolation")
             self._vector_interp_method = vector_interp_method
 
     def __repr__(self):
@@ -289,7 +286,7 @@ class VectorField:
 
     @vector_interp_method.setter
     def vector_interp_method(self, method: Callable):
-        _assert_same_function_signature(method, ref=ZeroInterpolator_Vector, context="Interpolation")
+        assert_same_function_signature(method, ref=ZeroInterpolator_Vector, context="Interpolation")
         self._vector_interp_method = method
 
     def eval(self, time: datetime, z, y, x, particles=None, applyConversion=True):
@@ -304,31 +301,26 @@ class VectorField:
         else:
             _ei = particles.ei[:, self.igrid]
 
-        tau, ti = _search_time_index(self.U, time)
-        position = self.grid.search(z, y, x, ei=_ei)
-        _update_particles_ei(particles, position, self)
-        _update_particle_states_position(particles, position)
+        particle_positions, grid_positions = _get_positions(self.U, time, z, y, x, particles, _ei)
 
         if self._vector_interp_method is None:
-            u = self.U._interp_method(self.U, ti, position, tau, time, z, y, x)
-            v = self.V._interp_method(self.V, ti, position, tau, time, z, y, x)
+            u = self.U._interp_method(particle_positions, grid_positions, self.U)
+            v = self.V._interp_method(particle_positions, grid_positions, self.V)
             if "3D" in self.vector_type:
-                w = self.W._interp_method(self.W, ti, position, tau, time, z, y, x)
+                w = self.W._interp_method(particle_positions, grid_positions, self.W)
             else:
                 w = 0.0
-
-            if applyConversion:
-                u = self.U.units.to_target(u, z, y, x)
-                v = self.V.units.to_target(v, z, y, x)
-
         else:
-            (u, v, w) = self._vector_interp_method(self, ti, position, tau, time, z, y, x, applyConversion)
+            (u, v, w) = self._vector_interp_method(particle_positions, grid_positions, self)
+
+        if applyConversion:
+            u = self.U.units.to_target(u, z, y, x)
+            v = self.V.units.to_target(v, z, y, x)
+            if "3D" in self.vector_type:
+                w = self.W.units.to_target(w, z, y, x)
 
         for vel in (u, v, w):
             _update_particle_states_interp_value(particles, vel)
-
-        if applyConversion and ("3D" in self.vector_type):
-            w = self.W.units.to_target(w, z, y, x) if self.W else 0.0
 
         if "3D" in self.vector_type:
             return (u, v, w)
@@ -345,45 +337,54 @@ class VectorField:
             return _deal_with_errors(error, key, vector_type=self.vector_type)
 
 
-def _update_particles_ei(particles, position, field):
+def _update_particles_ei(particles, grid_positions: dict, field: Field):
     """Update the element index (ei) of the particles"""
     if particles is not None:
         if isinstance(field.grid, XGrid):
             particles.ei[:, field.igrid] = field.grid.ravel_index(
                 {
-                    "X": position["X"][0],
-                    "Y": position["Y"][0],
-                    "Z": position["Z"][0],
+                    "X": grid_positions["X"]["index"],
+                    "Y": grid_positions["Y"]["index"],
+                    "Z": grid_positions["Z"]["index"],
                 }
             )
         elif isinstance(field.grid, UxGrid):
             particles.ei[:, field.igrid] = field.grid.ravel_index(
                 {
-                    "Z": position["Z"][0],
-                    "FACE": position["FACE"][0],
+                    "Z": grid_positions["Z"]["index"],
+                    "FACE": grid_positions["FACE"]["index"],
                 }
             )
 
 
-def _update_particle_states_position(particles, position):
+def _update_particle_states_position(particles, grid_positions: dict):
     """Update the particle states based on the position dictionary."""
     if particles:  # TODO also support uxgrid search
         for dim in ["X", "Y"]:
-            if dim in position:
+            if dim in grid_positions:
                 particles.state = np.maximum(
-                    np.where(position[dim][0] == -1, StatusCode.ErrorOutOfBounds, particles.state), particles.state
-                )
-                particles.state = np.maximum(
-                    np.where(position[dim][0] == GRID_SEARCH_ERROR, StatusCode.ErrorGridSearching, particles.state),
+                    np.where(grid_positions[dim]["index"] == -1, StatusCode.ErrorOutOfBounds, particles.state),
                     particles.state,
                 )
-        if "Z" in position:
+                particles.state = np.maximum(
+                    np.where(
+                        grid_positions[dim]["index"] == GRID_SEARCH_ERROR,
+                        StatusCode.ErrorGridSearching,
+                        particles.state,
+                    ),
+                    particles.state,
+                )
+        if "Z" in grid_positions:
             particles.state = np.maximum(
-                np.where(position["Z"][0] == RIGHT_OUT_OF_BOUNDS, StatusCode.ErrorOutOfBounds, particles.state),
+                np.where(
+                    grid_positions["Z"]["index"] == RIGHT_OUT_OF_BOUNDS, StatusCode.ErrorOutOfBounds, particles.state
+                ),
                 particles.state,
             )
             particles.state = np.maximum(
-                np.where(position["Z"][0] == LEFT_OUT_OF_BOUNDS, StatusCode.ErrorThroughSurface, particles.state),
+                np.where(
+                    grid_positions["Z"]["index"] == LEFT_OUT_OF_BOUNDS, StatusCode.ErrorThroughSurface, particles.state
+                ),
                 particles.state,
             )
 
@@ -471,3 +472,14 @@ def _assert_same_time_interval(fields: list[Field]) -> None:
             raise ValueError(
                 f"Fields must have the same time domain. {fields[0].name}: {reference_time_interval}, {field.name}: {field.time_interval}"
             )
+
+
+def _get_positions(field: Field, time, z, y, x, particles, _ei) -> tuple[dict, dict]:
+    """Initialize and populate particle_positions and grid_positions dictionaries"""
+    particle_positions = {"time": time, "z": z, "lat": y, "lon": x}
+    grid_positions = {}
+    grid_positions.update(_search_time_index(field, time))
+    grid_positions.update(field.grid.search(z, y, x, ei=_ei))
+    _update_particles_ei(particles, grid_positions, field)
+    _update_particle_states_position(particles, grid_positions)
+    return particle_positions, grid_positions

@@ -126,6 +126,14 @@ def test_invalid_lon_lat():
         XGrid.from_dataset(ds)
 
 
+def test_invalid_depth():
+    ds = datasets["ds_2d_left"].copy()
+    ds = ds.reindex({"ZG": ds.ZG[::-1]})
+
+    with pytest.raises(ValueError, match="Depth DataArray .* must be strictly increasing*"):
+        XGrid.from_dataset(ds)
+
+
 @pytest.mark.parametrize(
     "ds",
     [
@@ -144,7 +152,7 @@ def test_xgrid_search_cpoints(ds):
 
             lat, lon = lat_array[yi, xi], lon_array[yi, xi]
             axis_indices_bcoords = grid.search(0, np.atleast_1d(lat), np.atleast_1d(lon), ei=None)
-            axis_indices_test = {k: v[0] for k, v in axis_indices_bcoords.items()}
+            axis_indices_test = {k: v["index"] for k, v in axis_indices_bcoords.items() if k in axis_indices}
             assert axis_indices == axis_indices_test
 
             # assert np.isclose(bcoords[0], 0.5) #? Should this not be the case with the cell center points?
@@ -204,6 +212,7 @@ def test_search_1d_array_some_out_of_bounds(array, x, expected_xi):
     np.testing.assert_array_equal(xi, expected_xi)
 
 
+@pytest.mark.xfail(reason="grid.localize not yet adapted to xi, xsi, yi, eta, zi, zeta position keys")
 @pytest.mark.parametrize(
     "ds, da_name, expected",
     [

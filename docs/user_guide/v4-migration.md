@@ -34,3 +34,12 @@ Version 4 of Parcels is unreleased at the moment. The information in this migrat
 
 - Particlefiles should be created by `ParticleFile(...)` instead of `pset.ParticleFile(...)`
 - The `name` argument in `ParticleFile` has been replaced by `store` and can now be a string, a Path or a zarr store.
+
+## Field
+
+- `Field.eval()` returns an array of floats instead of a single float (related to the vectorization)
+- `Field.eval()` does not throw OutOfBounds or other errors
+
+## GridSet
+
+- `GridSet` is now a list, so change `fieldset.gridset.grids[0]` to `fieldset.gridset[0]`.
