@@ -15,7 +15,7 @@ The tutorials written for Parcels v3 are currently being updated for Parcels v4.
 
 <!-- examples/tutorial_parcels_structure.ipynb -->
 <!-- examples/parcels_tutorial.ipynb -->
-<!-- examples/tutorial_output.ipynb -->
+examples/tutorial_output.ipynb
 ```
 
 ## How to:
@@ -42,7 +42,7 @@ The tutorials written for Parcels v3 are currently being updated for Parcels v4.
 :caption: Create ParticleSets
 :name: tutorial-particlesets
 
-<!-- examples/tutorial_delaystart.ipynb -->
+examples/tutorial_delaystart.ipynb
 ```
 
 ```{nbgallery}
