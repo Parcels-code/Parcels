@@ -4,7 +4,7 @@ Getting started with parcels is easy; here you will find:
 
 ```{toctree}
 Installation guide <installation.md>
-Quickstart tutorial <tutorial_quickstart.ipynb>
+Quickstart tutorial <tutorial_quickstart.md>
 Parcels concepts explainer <concepts_overview.md>
 <!-- Simple output tutorial <../examples_v3/tutorial_output.ipynb> -->
 

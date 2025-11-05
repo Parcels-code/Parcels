@@ -33,7 +33,7 @@ conda activate parcels
 The next time you start a terminal and want to work with Parcels, activate the environment with `conda activate parcels`.
 ```
 
-**Step 4:** Create a Jupyter Notebook or Python script to set up your first Parcels simulation! The [quickstart tutorial](tutorial_quickstart.ipynb) is a great way to get started immediately. You can also first read about the core [Parcels concepts](concepts_overview.md) to familiarize yourself with the classes and methods you will use.
+**Step 4:** Create a Jupyter Notebook or Python script to set up your first Parcels simulation! The [quickstart tutorial](tutorial_quickstart.md) is a great way to get started immediately. You can also first read about the core [Parcels concepts](concepts_overview.md) to familiarize yourself with the classes and methods you will use.
 
 ## Installation for developers
 

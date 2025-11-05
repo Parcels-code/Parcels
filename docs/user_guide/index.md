@@ -76,7 +76,7 @@ examples/tutorial_gsw_density.ipynb
 :name: tutorial-examples
 
 examples/tutorial_Argofloats.ipynb
-<!-- ../examples/documentation_homepage_animation.ipynb -->
+<!-- examples/documentation_homepage_animation.ipynb -->
 ```
 
 ```{toctree}
