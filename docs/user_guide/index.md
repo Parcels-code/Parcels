@@ -9,22 +9,24 @@ The tutorials written for Parcels v3 are currently being updated for Parcels v4.
 
 ## Getting started
 
-```{nbgallery}
+<!-- ```{nbgallery}
 :caption: Getting started
 :name: tutorial-overview
 
 <!-- examples/tutorial_parcels_structure.ipynb -->
 <!-- examples/parcels_tutorial.ipynb -->
+
 examples/tutorial_output.ipynb
-```
+
+````-->
 
 ## How to:
 
 ```{note}
 **Migrate from v3 to v4** using [this migration guide](v4-migration.md)
-```
+````
 
-```{nbgallery}
+<!-- ```{nbgallery}
 :caption: Set up FieldSets
 :name: tutorial-fieldsets
 
@@ -36,16 +38,17 @@ examples/tutorial_output.ipynb
 <!-- examples/tutorial_periodic_boundaries.ipynb -->
 <!-- examples/tutorial_interpolation.ipynb -->
 <!-- examples/tutorial_unitconverters.ipynb -->
-```
 
-```{nbgallery}
+````-->
+
+<!-- ```{nbgallery}
 :caption: Create ParticleSets
 :name: tutorial-particlesets
 
 examples/tutorial_delaystart.ipynb
-```
+``` -->
 
-```{nbgallery}
+<!-- ```{nbgallery}
 :caption: Write a custom kernel
 :name: tutorial-kernels
 
@@ -56,9 +59,9 @@ examples/tutorial_gsw_density.ipynb
 <!-- examples/tutorial_interaction.ipynb -->
 <!-- examples/tutorial_analyticaladvection.ipynb -->
 <!-- examples/tutorial_kernelloop.ipynb -->
-```
+``` -->
 
-```{nbgallery}
+<!-- ```{nbgallery}
 :caption: Other tutorials
 :name: tutorial-other
 
@@ -69,18 +72,18 @@ examples/tutorial_gsw_density.ipynb
 <!-- examples/documentation_LargeRunsOutput.ipynb -->
 <!-- examples/documentation_geospatial.ipynb -->
 <!-- examples/documentation_advanced_zarr.ipynb -->
-```
+``` -->
 
-```{nbgallery}
+<!-- ```{nbgallery}
 :caption: Worked examples
 :name: tutorial-examples
 
 examples/tutorial_Argofloats.ipynb
 <!-- examples/documentation_homepage_animation.ipynb -->
-```
+``` -->
 
 ```{toctree}
 :hidden:
 v3 to v4 migration guide <v4-migration>
 Example scripts <additional_examples>
-```
+````
