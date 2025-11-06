@@ -20,6 +20,7 @@ __all__ = [
     "CGrid_Velocity",
     "UXPiecewiseConstantFace",
     "UXPiecewiseLinearNode",
+    "XConstantField",
     "XFreeslip",
     "XLinear",
     "XLinearInvdistLandTracer",
@@ -133,6 +134,15 @@ def XLinear(
         + xsi * eta * corner_data[1, 1, :]
     )
     return value.compute() if is_dask_collection(value) else value
+
+
+def XConstantField(
+    particle_positions: dict[str, float | np.ndarray],
+    grid_positions: dict[_XGRID_AXES, dict[str, int | float | np.ndarray]],
+    field: Field,
+):
+    """Returning the single value of a Constant Field (with a size=(1,1,1,1) array)"""
+    return field.data[0, 0, 0, 0].values
 
 
 def CGrid_Velocity(

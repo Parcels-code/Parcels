@@ -17,6 +17,7 @@ from parcels._core.utils.time import is_compatible as datetime_is_compatible
 from parcels._core.xgrid import _DEFAULT_XGCM_KWARGS, XGrid
 from parcels._logger import logger
 from parcels._typing import Mesh
+from parcels.interpolators import XConstantField
 
 if TYPE_CHECKING:
     from parcels._core.basegrid import BaseGrid
@@ -116,7 +117,7 @@ class FieldSet:
 
         self.fields[name] = field
 
-    def add_constant_field(self, name: str, value, mesh: Mesh = "flat"):
+    def add_constant_field(self, name: str, value, mesh: Mesh = "spherical"):
         """Wrapper function to add a Field that is constant in space,
            useful e.g. when using constant horizontal diffusivity
 
@@ -134,14 +135,24 @@ class FieldSet:
                correction for zonal velocity U near the poles.
             2. flat: No conversion, lat/lon are assumed to be in m.
         """
-        ds = xr.Dataset({name: (["time", "lat", "lon", "depth"], np.full((1, 1, 1, 1), value))})
-        grid = XGrid(xgcm.Grid(ds, **_DEFAULT_XGCM_KWARGS))
+        ds = xr.Dataset(
+            {name: (["time", "depth", "lat", "lon"], np.full((1, 1, 1, 1), value))},
+            coords={
+                "time": (["time"], [np.timedelta64(0, "s")], {"axis": "T"}),
+                "depth": (["depth"], [0], {"axis": "Z"}),
+                "lat": (["lat"], [0], {"axis": "Y", "c_grid_axis_shift": -0.5}),
+                "lon": (["lon"], [0], {"axis": "X", "c_grid_axis_shift": -0.5}),
+                "lat_C": (["lat_C"], [0.5], {"axis": "Y"}),  # TODO why is this needed?
+                "lon_C": (["lon_C"], [0.5], {"axis": "X"}),  # TODO why is this needed?
+            },
+        )
+        grid = XGrid(xgcm.Grid(ds, **_DEFAULT_XGCM_KWARGS), mesh=mesh)
         self.add_field(
             Field(
                 name,
                 ds[name],
                 grid,
-                interp_method=None,  # TODO : Need to define an interpolation method for constants
+                interp_method=XConstantField,
             )
         )
 

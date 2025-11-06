@@ -59,7 +59,6 @@ def test_fieldset_add_constant_field(fieldset):
     lat = ds["lat"].mean()
     lon = ds["lon"].mean()
 
-    pytest.xfail(reason="Not yet implemented interpolation.")
     assert fieldset.test_constant_field[time, z, lat, lon] == 1.0
 
 
