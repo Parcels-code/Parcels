@@ -136,44 +136,14 @@ class FieldSet:
             2. flat: No conversion, lat/lon are assumed to be in m.
         """
         ds = xr.Dataset(
-            {name: (["time", "depth", "lat", "lon"], np.full((1, 1, 1, 1), value))},
-            coords={
-                "time": (["time"], [np.timedelta64(0, "s")], {"axis": "T"}),
-                "depth": (["depth"], [0], {"axis": "Z"}),
-                "lat": (["lat"], [0], {"axis": "Y"}),
-                "lon": (["lon"], [0], {"axis": "X"}),
-            },
+            {name: (["lat", "lon"], np.full((1, 1), value))},
+            coords={"lat": (["lat"], [0], {"axis": "Y"}), "lon": (["lon"], [0], {"axis": "X"})},
         )
-        grid = XGrid(
-            xgcm.Grid(
-                ds,
-                coords={
-                    "X": {
-                        "left": "lon",
-                    },
-                    "Y": {
-                        "left": "lat",
-                    },
-                    "Z": {
-                        "left": "depth",
-                    },
-                    "T": {
-                        "center": "time",
-                    },
-                },
-                autoparse_metadata=False,
-                **_DEFAULT_XGCM_KWARGS,
-            ),
-            mesh=mesh,
+        xgrid = xgcm.Grid(
+            ds, coords={"X": {"left": "lon"}, "Y": {"left": "lat"}}, autoparse_metadata=False, **_DEFAULT_XGCM_KWARGS
         )
-        self.add_field(
-            Field(
-                name,
-                ds[name],
-                grid,
-                interp_method=XConstantField,
-            )
-        )
+        grid = XGrid(xgrid, mesh=mesh)
+        self.add_field(Field(name, ds[name], grid, interp_method=XConstantField))
 
     def add_constant(self, name, value):
         """Add a constant to the FieldSet. Note that all constants are
