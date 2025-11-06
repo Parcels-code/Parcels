@@ -28,7 +28,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu] #, mac, windows] # TODO v4: Re-enable windows and mac
+        os: [ubuntu, mac, windows]
         pixi-environment: [test-latest]
         include:
           - os: ubuntu
@@ -38,11 +38,12 @@ jobs:
           - os: ubuntu
             pixi-environment: "test-minimum"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Restore cached pixi lockfile
         uses: actions/cache/restore@v4
         id: restore-pixi-lock
         with:
+          enableCrossOsArchive: true
           path: |
             pixi.lock
           key: ${{ needs.cache-pixi-lock.outputs.cache-id }}
@@ -54,14 +55,14 @@ jobs:
         run: |
           pixi run -e ${{ matrix.pixi-environment }} tests -v -s --cov=parcels --cov-report=xml --html="${{ env.COVERAGE_REPORT }}" --self-contained-html
       - name: Codecov
-        uses: codecov/codecov-action@v5.3.1
+        uses: codecov/codecov-action@v5.5.1
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         with:
           flags: unit-tests
       - name: Upload test results
         if: ${{ always() }} # Always run this step, even if tests fail
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: Unittest report ${{ matrix.os }}-${{ matrix.pixi-environment }}
           path: ${{ env.COVERAGE_REPORT }}
@@ -82,11 +83,12 @@ jobs:
           - os: ubuntu
             python-version: "3.11"
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@v5
       - name: Restore cached pixi lockfile
         uses: actions/cache/restore@v4
         id: restore-pixi-lock
         with:
+          enableCrossOsArchive: true
           path: |
             pixi.lock
           key: ${{ needs.cache-pixi-lock.outputs.cache-id }}
@@ -98,14 +100,14 @@ jobs:
         run: |
           pixi run test-notebooks -v -s --html="${{ env.COVERAGE_REPORT }}" --self-contained-html --cov=parcels --cov-report=xml
       - name: Codecov
-        uses: codecov/codecov-action@v5.3.1
+        uses: codecov/codecov-action@v5.5.1
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         with:
           flags: integration-tests
       - name: Upload test results
         if: ${{ always() }} # Always run this step, even if tests fail
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: Integration test report ${{ matrix.os }}-${{ matrix.pixi-environment }}
           path: ${{ env.COVERAGE_REPORT }}
@@ -117,7 +119,7 @@ jobs:
       - typechecking
     steps:
       - name: Merge Artifacts
-        uses: actions/upload-artifact/merge@v4
+        uses: actions/upload-artifact/merge@v5
         with:
           name: Testing reports
           pattern: "* report *"
@@ -129,7 +131,7 @@ jobs:
     needs: [cache-pixi-lock]
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
       - name: Restore cached pixi lockfile
         uses: actions/cache/restore@v4
         id: restore-pixi-lock
@@ -146,7 +148,7 @@ jobs:
           pixi run typing --non-interactive --html-report mypy-report
       - name: Upload test results
         if: ${{ always() }} # Upload even on mypy error
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v5
         with:
           name: Mypy report
           path: mypy-report

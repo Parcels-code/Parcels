@@ -22,6 +22,7 @@ from parcels._core.utils.string import _assert_str_and_python_varname
 from parcels._core.utils.time import TimeInterval
 from parcels._core.uxgrid import UxGrid
 from parcels._core.xgrid import XGrid, _transpose_xfield_data_to_tzyx
+from parcels._python import assert_same_function_signature
 from parcels._reprs import default_repr
 from parcels._typing import VectorType
 from parcels.interpolators import (
@@ -30,7 +31,6 @@ from parcels.interpolators import (
     ZeroInterpolator,
     ZeroInterpolator_Vector,
 )
-from parcels.utils._helpers import _assert_same_function_signature
 
 __all__ = ["Field", "VectorField"]
 
@@ -139,7 +139,7 @@ class Field:
         if interp_method is None:
             self._interp_method = _DEFAULT_INTERPOLATOR_MAPPING[type(self.grid)]
         else:
-            _assert_same_function_signature(interp_method, ref=ZeroInterpolator, context="Interpolation")
+            assert_same_function_signature(interp_method, ref=ZeroInterpolator, context="Interpolation")
             self._interp_method = interp_method
 
         self.igrid = -1  # Default the grid index to -1
@@ -195,7 +195,7 @@ class Field:
 
     @interp_method.setter
     def interp_method(self, method: Callable):
-        _assert_same_function_signature(method, ref=ZeroInterpolator, context="Interpolation")
+        assert_same_function_signature(method, ref=ZeroInterpolator, context="Interpolation")
         self._interp_method = method
 
     def _check_velocitysampling(self):
@@ -270,7 +270,7 @@ class VectorField:
         if vector_interp_method is None:
             self._vector_interp_method = None
         else:
-            _assert_same_function_signature(vector_interp_method, ref=ZeroInterpolator_Vector, context="Interpolation")
+            assert_same_function_signature(vector_interp_method, ref=ZeroInterpolator_Vector, context="Interpolation")
             self._vector_interp_method = vector_interp_method
 
     def __repr__(self):
@@ -286,7 +286,7 @@ class VectorField:
 
     @vector_interp_method.setter
     def vector_interp_method(self, method: Callable):
-        _assert_same_function_signature(method, ref=ZeroInterpolator_Vector, context="Interpolation")
+        assert_same_function_signature(method, ref=ZeroInterpolator_Vector, context="Interpolation")
         self._vector_interp_method = method
 
     def eval(self, time: datetime, z, y, x, particles=None, applyConversion=True):

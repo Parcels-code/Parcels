@@ -1,5 +1,24 @@
 # Contributing to Parcels
 
+```{toctree}
+:caption: User documentation
+:maxdepth: 1
+:hidden:
+
+Contributing Guidelines <self>
+Versioning Policy <policies>
+Release Notes <https://github.com/Parcels-code/Parcels/releases>
+```
+
+```{toctree}
+:caption: Maintainer documentation
+:maxdepth: 1
+:hidden:
+
+maintainer
+docsguide
+```
+
 ## Why contribute?
 
 [Lagrangian Ocean Analysis](https://doi.org/10.1016/j.ocemod.2017.11.008) is one of the primary modelling tools available to oceanographers to understand how ocean currents transport material. This modelling approach allows researchers to model the ocean and understand the [movement of water](https://doi.org/10.1029/2023GL105662) in the ocean itself (or even [on other planets](https://doi.org/10.3847/1538-4357/ac9d94)), as well as the transport of [nutrients](https://doi.org/10.1029/2023GL108001), [marine organisms](https://doi.org/10.3354/meps14526), [oil](https://doi.org/10.1590/0001-3765202220210391), [plastic](https://doi.org/10.1038/s41561-023-01216-0), as well as [almost](https://doi.org/10.1016/j.robot.2024.104730) [anything](https://doi.org/10.1111/cobi.14295) [else](https://doi.org/10.1016/j.marpolbul.2023.115254) that would be adrift at sea. Since ocean currents play a key role in climate by storing heat and carbon, and also in the formation of the 'plastic soup', understanding transport phenomena in the ocean is crucial to support a more sustainable future.
@@ -37,7 +56,7 @@ Exactly how to use Git and GitHub is beyond the scope of this documentation, and
 There are many ways that you can contribute to Parcels. You can:
 
 - Participate in discussion about Parcels, either through the [issues](https://github.com/Parcels-code/parcels/issues) or [discussions](https://github.com/Parcels-code/parcels/discussions) tab
-- Suggest improvements to [tutorials](../documentation/index.md)
+- Suggest improvements to [tutorials and how-to guides](../user_guide/index.md)
 - Suggest improvements to [documentation](../index.md)
 - Write code (fix bugs, implement features, codebase improvements, etc)
 

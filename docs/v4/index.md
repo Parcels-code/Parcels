@@ -22,5 +22,5 @@ api
 nojit
 TODO
 Parcels v4 Project Board <https://github.com/orgs/Parcels-code/projects/5>
-Parcels v4 migration guide <../community/v4-migration>
+Parcels v4 migration guide <../user_guide/v4-migration>
 ```
