@@ -36,8 +36,7 @@ extensions = [
     "sphinx.ext.linkcode",
     "sphinx.ext.mathjax",
     "sphinx.ext.napoleon",
-    "myst_parser",
-    "nbsphinx",
+    "myst_nb",
     "numpydoc",
     "sphinxcontrib.mermaid",
     "sphinx_design",
@@ -114,7 +113,13 @@ language = "en"
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
-exclude_patterns = ["_build", "**.ipynb_checkpoints", "user_guide/examples_v3"]
+exclude_patterns = [
+    "_build",
+    "jupyter_execute",
+    "**.ipynb_checkpoints",
+    "user_guide/examples_v3",
+]
+nb_execution_excludepatterns = ["jupyter_execute"]
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.

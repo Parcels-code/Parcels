@@ -83,13 +83,12 @@ gsw = "*"
 
 [feature.docs.dependencies]
 numpydoc = "!=1.9.0"
-nbsphinx = "*"
+myst-nb = "*"
 ipython = "*"
 sphinx = "*"
 pandoc = "*"
 pydata-sphinx-theme = "*"
 sphinx-autobuild = "*"
-myst-parser = "*"
 sphinxcontrib-mermaid = "*"
 sphinx-design = "*"
 
