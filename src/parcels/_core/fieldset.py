@@ -140,13 +140,32 @@ class FieldSet:
             coords={
                 "time": (["time"], [np.timedelta64(0, "s")], {"axis": "T"}),
                 "depth": (["depth"], [0], {"axis": "Z"}),
-                "lat": (["lat"], [0], {"axis": "Y", "c_grid_axis_shift": -0.5}),
-                "lon": (["lon"], [0], {"axis": "X", "c_grid_axis_shift": -0.5}),
-                "lat_C": (["lat_C"], [0.5], {"axis": "Y"}),  # TODO why is this needed?
-                "lon_C": (["lon_C"], [0.5], {"axis": "X"}),  # TODO why is this needed?
+                "lat": (["lat"], [0], {"axis": "Y"}),
+                "lon": (["lon"], [0], {"axis": "X"}),
             },
         )
-        grid = XGrid(xgcm.Grid(ds, **_DEFAULT_XGCM_KWARGS), mesh=mesh)
+        grid = XGrid(
+            xgcm.Grid(
+                ds,
+                coords={
+                    "X": {
+                        "left": "lon",
+                    },
+                    "Y": {
+                        "left": "lat",
+                    },
+                    "Z": {
+                        "left": "depth",
+                    },
+                    "T": {
+                        "center": "time",
+                    },
+                },
+                autoparse_metadata=False,
+                **_DEFAULT_XGCM_KWARGS,
+            ),
+            mesh=mesh,
+        )
         self.add_field(
             Field(
                 name,
