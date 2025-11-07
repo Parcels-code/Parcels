@@ -147,6 +147,18 @@ def test_vertical1D_field():
     assert field.eval(np.timedelta64(0, "s"), 0.45, 0, 0) == 4.5
 
 
+def test_time1D_field():
+    timerange = xr.date_range("2000-01-01", "2000-01-20")
+    ds = xr.Dataset(
+        {"t1d": (["time"], np.arange(0, len(timerange)))},
+        coords={"time": (["time"], timerange, {"axis": "T"})},
+    )
+    grid = XGrid.from_dataset(ds)
+    field = Field("t1d", ds["t1d"], grid)
+
+    assert field.eval(np.datetime64("2000-01-10T12:00:00"), -20, 5, 6) == 9.5
+
+
 @pytest.mark.parametrize(
     "ds",
     [
