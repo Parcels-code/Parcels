@@ -4,7 +4,6 @@ from collections import namedtuple
 import numpy as np
 import pytest
 import xarray as xr
-import xgcm
 from numpy.testing import assert_allclose
 
 from parcels import Field
@@ -14,7 +13,6 @@ from parcels._core.index_search import (
     _search_1d_array,
 )
 from parcels._core.xgrid import (
-    _DEFAULT_XGCM_KWARGS,
     XGrid,
     _transpose_xfield_data_to_tzyx,
 )
@@ -143,7 +141,7 @@ def test_vertical1D_field():
         {"z1d": (["depth"], np.linspace(0, 10, nz))},
         coords={"depth": (["depth"], np.linspace(0, 1, nz), {"axis": "Z"})},
     )
-    grid = XGrid(xgcm.Grid(ds, **_DEFAULT_XGCM_KWARGS))
+    grid = XGrid.from_dataset(ds)
     field = Field("z1d", ds["z1d"], grid)
 
     assert field.eval(np.timedelta64(0, "s"), 0.45, 0, 0) == 4.5
