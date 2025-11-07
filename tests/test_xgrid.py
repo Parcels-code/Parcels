@@ -6,6 +6,7 @@ import pytest
 import xarray as xr
 from numpy.testing import assert_allclose
 
+from parcels import Field
 from parcels._core.index_search import (
     LEFT_OUT_OF_BOUNDS,
     RIGHT_OUT_OF_BOUNDS,
@@ -132,6 +133,13 @@ def test_invalid_depth():
 
     with pytest.raises(ValueError, match="Depth DataArray .* must be strictly increasing*"):
         XGrid.from_dataset(ds)
+
+
+def test_dim_without_axis():
+    ds = xr.Dataset({"z1d": (["depth"], [0])}, coords={"depth": [0]})
+    grid = XGrid.from_dataset(ds)
+    with pytest.raises(ValueError, match='Dimension "depth" has no axis attribute*'):
+        Field("z1d", ds["z1d"], grid)
 
 
 @pytest.mark.parametrize(

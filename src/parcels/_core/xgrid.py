@@ -55,6 +55,13 @@ def _transpose_xfield_data_to_tzyx(da: xr.DataArray, xgcm_grid: xgcm.Grid) -> xr
     """
     ax_dims = [(get_axis_from_dim_name(xgcm_grid.axes, dim), dim) for dim in da.dims]
 
+    for dim in ax_dims:
+        if dim[0] is None:
+            raise ValueError(
+                f'Dimension "{dim[1]}" has no axis attribute. '
+                f'HINT: You may want to add an {{"axis": A}} to your DataSet["{dim[1]}"], where A is one of "X", "Y", "Z" or "T"'
+            )
+
     if all(ax_dim[0] is None for ax_dim in ax_dims):
         # Assuming its a 1D constant field (hence has no axes)
         assert da.shape == (1, 1, 1, 1)
