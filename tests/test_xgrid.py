@@ -139,7 +139,10 @@ def test_invalid_depth():
 
 def test_vertical1D_field():
     nz = 11
-    ds = xr.Dataset({"z1d": (["depth"], np.linspace(0, 10, nz))}, coords={"depth": np.linspace(0, 1, nz)})
+    ds = xr.Dataset(
+        {"z1d": (["depth"], np.linspace(0, 10, nz))},
+        coords={"depth": (["depth"], np.linspace(0, 1, nz), {"axis": "Z"})},
+    )
     grid = XGrid(xgcm.Grid(ds, **_DEFAULT_XGCM_KWARGS))
     field = Field("z1d", ds["z1d"], grid)
 

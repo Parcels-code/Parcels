@@ -83,10 +83,11 @@ def _get_corner_data_Agrid(
     xi = np.tile(np.array([xi, xi_1]).flatten(), lenT * lenZ * 2)
 
     # Create DataArrays for indexing
-    selection_dict = {
-        axis_dim["X"]: xr.DataArray(xi, dims=("points")),
-        axis_dim["Y"]: xr.DataArray(yi, dims=("points")),
-    }
+    selection_dict = {}
+    if "X" in axis_dim:
+        selection_dict[axis_dim["X"]] = xr.DataArray(xi, dims=("points"))
+    if "Y" in axis_dim:
+        selection_dict[axis_dim["Y"]] = xr.DataArray(yi, dims=("points"))
     if "Z" in axis_dim:
         selection_dict[axis_dim["Z"]] = xr.DataArray(zi, dims=("points"))
     if "time" in data.dims:
