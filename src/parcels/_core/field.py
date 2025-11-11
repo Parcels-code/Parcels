@@ -495,7 +495,7 @@ def _select_uxinterpolator(da: ux.UxDataArray):
         # (nz1, nface): face-center laterally, layer centers vertically — piecewise constant
         "nz1,n_face": UXPiecewiseConstantFace,
         # (nz, nnode): node/corner laterally, layer interfaces vertically — barycentric lateral & linear vertical
-        "nz,n_node": UXPiecewiseLinearNode,  # <- replace with your real interpolator
+        "nz,n_node": UXPiecewiseLinearNode,
     }
     # Extract only spatial dimensions, neglecting time
     da_spatial_dims = tuple(d for d in da.dims if d not in ("time",))
