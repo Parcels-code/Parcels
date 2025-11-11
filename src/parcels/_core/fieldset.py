@@ -410,13 +410,13 @@ def _discover_copernicusmarine_U_and_V(ds: xr.Dataset) -> xr.Dataset:
 def _discover_fesom2_U_and_V(ds: ux.UxDataset) -> ux.UxDataset:
     # Assumes that the dataset has U and V data
 
-    cf_UV_standard_name_fallbacks = [("unod", "vnod"), ("u", "v")]
-    cf_W_standard_name_fallbacks = ["w"]
+    ux_UV_standard_name_fallbacks = [("unod", "vnod"), ("u", "v")]
+    ux_W_standard_name_fallbacks = ["w"]
 
     if "W" not in ds:
-        for cf_standard_name_W in cf_W_standard_name_fallbacks:
-            if cf_standard_name_W in ds.cf.standard_names:
-                ds = _ds_rename_using_standard_names(ds, {cf_standard_name_W: "W"})
+        for ux_standard_name_W in ux_W_standard_name_fallbacks:
+            if ux_standard_name_W in ds.ux.standard_names:
+                ds = _ds_rename_using_standard_names(ds, {ux_standard_name_W: "W"})
                 break
 
     if "U" in ds and "V" in ds:
@@ -426,18 +426,18 @@ def _discover_fesom2_U_and_V(ds: ux.UxDataset) -> ux.UxDataset:
             "Dataset has only one of the two variables 'U' and 'V'. Please rename the appropriate variable in your dataset to have both 'U' and 'V' for Parcels simulation."
         )
 
-    for cf_standard_name_U, cf_standard_name_V in cf_UV_standard_name_fallbacks:
-        if cf_standard_name_U in ds.cf.standard_names:
-            if cf_standard_name_V not in ds.cf.standard_names:
+    for ux_standard_name_U, ux_standard_name_V in ux_UV_standard_name_fallbacks:
+        if ux_standard_name_U in ds.ux.standard_names:
+            if ux_standard_name_V not in ds.ux.standard_names:
                 raise ValueError(
-                    f"Dataset has variable with CF standard name {cf_standard_name_U!r}, "
-                    f"but not the matching variable with CF standard name {cf_standard_name_V!r}. "
+                    f"Dataset has variable with UXArray standard name {ux_standard_name_U!r}, "
+                    f"but not the matching variable with UXArray standard name {ux_standard_name_V!r}. "
                     "Please rename the appropriate variables in your dataset to have both 'U' and 'V' for Parcels simulation."
                 )
         else:
             continue
 
-        ds = _ds_rename_using_standard_names(ds, {cf_standard_name_U: "U", cf_standard_name_V: "V"})
+        ds = _ds_rename_using_standard_names(ds, {ux_standard_name_U: "U", ux_standard_name_V: "V"})
         break
     return ds
 
