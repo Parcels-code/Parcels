@@ -430,8 +430,8 @@ def _discover_fesom2_U_and_V(ds: ux.UxDataset) -> ux.UxDataset:
         if ux_standard_name_U in ds.ux.standard_names:
             if ux_standard_name_V not in ds.ux.standard_names:
                 raise ValueError(
-                    f"Dataset has variable with UXArray standard name {ux_standard_name_U!r}, "
-                    f"but not the matching variable with UXArray standard name {ux_standard_name_V!r}. "
+                    f"Dataset has variable with standard name {ux_standard_name_U!r}, "
+                    f"but not the matching variable with standard name {ux_standard_name_V!r}. "
                     "Please rename the appropriate variables in your dataset to have both 'U' and 'V' for Parcels simulation."
                 )
         else:
