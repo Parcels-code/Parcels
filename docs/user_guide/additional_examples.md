@@ -1,6 +1,10 @@
 # Python Example Scripts
 
-## example_brownian.py
+```{note}
+The examples written for Parcels v3 are currently being updated for Parcels v4. Shown below are only the examples which have been updated.
+```
+
+<!-- ## example_brownian.py
 
 ```{literalinclude} ../examples/example_brownian.py
 :language: python
@@ -68,4 +72,4 @@
 ```{literalinclude} ../examples/example_stommel.py
 :language: python
 :linenos:
-```
+``` -->

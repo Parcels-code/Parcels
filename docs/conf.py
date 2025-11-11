@@ -40,6 +40,7 @@ extensions = [
     "nbsphinx",
     "numpydoc",
     "sphinxcontrib.mermaid",
+    "sphinx_design",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -113,7 +114,7 @@ language = "en"
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
-exclude_patterns = ["_build", "**.ipynb_checkpoints"]
+exclude_patterns = ["_build", "**.ipynb_checkpoints", "user_guide/examples_v3"]
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.
@@ -205,6 +206,8 @@ html_theme_options = {
         }
     ],
     "announcement": "WARNING: This documentation is built for v4 of Parcels, which is unreleased and in active development. Use the version switcher in the bottom right to select your version of Parcels, or see <a href='https://docs.parcels-code.org/'>stable docs</a>.",
+    "header_links_before_dropdown": 8,
+    "navbar_align": "left",
 }
 
 html_context = {
@@ -520,3 +523,8 @@ epub_exclude_files = ["search.html"]
 
 # If false, no index is generated.
 # epub_use_index = True
+
+# -- Options for MyST parser ----------------------------------------------
+myst_heading_anchors = 3
+
+myst_enable_extensions = ["substitution"]
