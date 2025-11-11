@@ -35,7 +35,18 @@ ds_in.load()  # load the dataset into memory
 fieldset = parcels.FieldSet.from_copernicusmarine(ds_in)
 ```
 
-The 
+The reanalysis contains `U`, `V`, potential temperature (`thetao`) and salinity (`so`):
+
+```{code-cell}
+ds_in
+```
+The subset contains a region of the Agulhas current along the southeastern coast of Africa:
+```{code-cell}
+import matplotlib.pyplot as plt
+import cartopy.crs as ccrs
+import cartopy.feature as cfeature
+ds_in
+```
 
 ## Input 2: `ParticleSet`
 Now that we have read in the hydrodynamic data, we need to provide our second input: the virtual particles for which we will calculate the trajectories. We need to define the initial time and position and read those into a `parcels.ParticleSet` object, which also needs to know about the `FieldSet` in which the particles "live". Finally, we need to specify the type of `parcels.Particle` we want to use. The default particles have `time`, `lon`, `lat`, and `z` to keep track of, but with Parcels you can easily build your own particles to mimic plastic or an [ARGO float](../user_guide/tutorial_Argofloats.ipynb), adding variables such as size, temperature, or age.
