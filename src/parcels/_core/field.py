@@ -492,9 +492,9 @@ def _get_positions(field: Field, time, z, y, x, particles, _ei) -> tuple[dict, d
 def _select_uxinterpolator(da: ux.UxDataArray):
     """Selects the appropriate uxarray interpolator for a given uxarray UxDataArray"""
     supported_uxinterp_mapping = {
-        # (nz1, nface): face-center laterally, layer centers vertically — piecewise constant
+        # (nz1,n_face): face-center laterally, layer centers vertically — piecewise constant
         "nz1,n_face": UXPiecewiseConstantFace,
-        # (nz, nnode): node/corner laterally, layer interfaces vertically — barycentric lateral & linear vertical
+        # (nz,n_node): node/corner laterally, layer interfaces vertically — barycentric lateral & linear vertical
         "nz,n_node": UXPiecewiseLinearNode,
     }
     # Extract only spatial dimensions, neglecting time
