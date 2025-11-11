@@ -26,7 +26,7 @@ A Parcels simulation of Lagrangian trajectories of virtual particles requires tw
 
 ```{code-cell}
 example_dataset_folder = parcels.download_example_dataset(
-    "CopernicusMarine"
+    "CopernicusMarine_data"
 )
 
 ds_in = xr.open_mfdataset(f"{example_dataset_folder}/*.nc", combine="by_coords")
