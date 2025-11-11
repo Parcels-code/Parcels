@@ -18,6 +18,7 @@ from parcels._core.index_search import _search_time_index
 from parcels._datasets.structured.generated import simple_UV_dataset
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
 from parcels.interpolators import (
+    UXPiecewiseConstantFace,
     UXPiecewiseLinearNode,
     XFreeslip,
     XLinear,
@@ -197,7 +198,9 @@ def test_default_interpolator_set_correctly():
     ds = datasets_unstructured["stommel_gyre_delaunay"]
     grid = UxGrid(grid=ds.uxgrid, z=ds.coords["nz"])
     U = Field("U", ds["U"], grid)
-    assert U.interp_method == UXPiecewiseLinearNode
+    assert U.interp_method == UXPiecewiseConstantFace
+    W = Field("W", ds["W"], grid)
+    assert W.interp_method == UXPiecewiseLinearNode
 
 
 interp_methods = {

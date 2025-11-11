@@ -26,6 +26,7 @@ from parcels._python import assert_same_function_signature
 from parcels._reprs import default_repr
 from parcels._typing import VectorType
 from parcels.interpolators import (
+    UXPiecewiseConstantFace,
     UXPiecewiseLinearNode,
     XLinear,
     ZeroInterpolator,
@@ -137,7 +138,10 @@ class Field:
 
         # Setting the interpolation method dynamically
         if interp_method is None:
-            self._interp_method = _DEFAULT_INTERPOLATOR_MAPPING[type(self.grid)]
+            if isinstance(data, ux.UxDataArray):
+                self._interp_method = _select_uxinterpolator(data)
+            else:
+                self._interp_method = _DEFAULT_INTERPOLATOR_MAPPING[type(self.grid)]
         else:
             assert_same_function_signature(interp_method, ref=ZeroInterpolator, context="Interpolation")
             self._interp_method = interp_method
@@ -483,3 +487,34 @@ def _get_positions(field: Field, time, z, y, x, particles, _ei) -> tuple[dict, d
     _update_particles_ei(particles, grid_positions, field)
     _update_particle_states_position(particles, grid_positions)
     return particle_positions, grid_positions
+
+
+def _select_uxinterpolator(da: ux.UxDataArray):
+    """Selects the appropriate uxarray interpolator for a given uxarray UxDataArray"""
+    supported_uxinterp_mapping = {
+        # (nz1, nface): face-center laterally, layer centers vertically — piecewise constant
+        "nz1,n_face": UXPiecewiseConstantFace,
+        # (nz, nnode): node/corner laterally, layer interfaces vertically — barycentric lateral & linear vertical
+        "nz,n_node": UXPiecewiseLinearNode,  # <- replace with your real interpolator
+    }
+    # Extract only spatial dimensions, neglecting time
+    da_spatial_dims = tuple(d for d in da.dims if d not in ("time",))
+    if len(da_spatial_dims) < 2:
+        return None
+
+    # Construct key (string) for mapping to interpolator
+    # Find vertical and lateral tokens
+    vdim = None
+    ldim = None
+    for d in da_spatial_dims:
+        if d in ("nz", "nz1"):
+            vdim = d
+        if d in ("n_face", "n_node"):
+            ldim = d
+    # Map to supported interpolators
+    if vdim and ldim:
+        key = f"{vdim},{ldim}"
+        if key in supported_uxinterp_mapping.keys():
+            return supported_uxinterp_mapping[key]
+
+    return None

@@ -271,7 +271,6 @@ class FieldSet:
         -------
         FieldSet
             FieldSet object containing the fields from the dataset that can be used for a Parcels simulation.
-
         """
         ds = ds.copy()
         ds_dims = list(ds.dims)
@@ -284,6 +283,7 @@ class FieldSet:
 
         fields = {}
         if "U" in ds.data_vars and "V" in ds.data_vars:
+            # TO DO: Assign interpolator based on dimensions
             fields["U"] = Field("U", ds["U"], grid)
             fields["V"] = Field("V", ds["V"], grid)
             fields["U"].units = GeographicPolar()
