@@ -16,7 +16,9 @@ TODO: outline functions of the documentation based on resources
 - [NumPy Documentation Article](https://labs.quansight.org/blog/2020/03/documentation-as-a-way-to-build-community)
 
 ## Notebook execution
+
 We run the notebooks in our documentation using [MyST-NB](https://myst-nb.readthedocs.io/en/latest/index.html). Here is a table showing the latest notebook execution:
+
 ```{nb-exec-table}
 
 ```
