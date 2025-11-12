@@ -408,15 +408,14 @@ def _discover_copernicusmarine_U_and_V(ds: xr.Dataset) -> xr.Dataset:
 
 
 def _discover_fesom2_U_and_V(ds: ux.UxDataset) -> ux.UxDataset:
-    # Assumes that the dataset has U and V data
-
-    ux_UV_standard_name_fallbacks = [("unod", "vnod"), ("u", "v")]
-    ux_W_standard_name_fallbacks = ["w"]
+    # Common variable names for U and V found in UxDatasets
+    common_fesom_UV = [("unod", "vnod"), ("u", "v")]
+    common_fesom_W = ["w"]
 
     if "W" not in ds:
-        for ux_standard_name_W in ux_W_standard_name_fallbacks:
-            if ux_standard_name_W in ds.ux.standard_names:
-                ds = _ds_rename_using_standard_names(ds, {ux_standard_name_W: "W"})
+        for common_W in common_fesom_W:
+            if common_W in ds:
+                ds = _ds_rename_using_standard_names(ds, {common_W: "W"})
                 break
 
     if "U" in ds and "V" in ds:
@@ -426,19 +425,33 @@ def _discover_fesom2_U_and_V(ds: ux.UxDataset) -> ux.UxDataset:
             "Dataset has only one of the two variables 'U' and 'V'. Please rename the appropriate variable in your dataset to have both 'U' and 'V' for Parcels simulation."
         )
 
-    for ux_standard_name_U, ux_standard_name_V in ux_UV_standard_name_fallbacks:
-        if ux_standard_name_U in ds.ux.standard_names:
-            if ux_standard_name_V not in ds.ux.standard_names:
+    uv_found = False
+    for common_U, common_V in common_fesom_UV:
+        if common_U in ds:
+            if common_V not in ds:
                 raise ValueError(
-                    f"Dataset has variable with standard name {ux_standard_name_U!r}, "
-                    f"but not the matching variable with standard name {ux_standard_name_V!r}. "
+                    f"Dataset has variable with standard name {common_U!r}, "
+                    f"but not the matching variable with standard name {common_V!r}. "
                     "Please rename the appropriate variables in your dataset to have both 'U' and 'V' for Parcels simulation."
                 )
-        else:
-            continue
+            else:
+                ds = _ds_rename_using_standard_names(ds, {common_U: "U", common_V: "V"})
+                uv_found = True
+                break
 
-        ds = _ds_rename_using_standard_names(ds, {ux_standard_name_U: "U", ux_standard_name_V: "V"})
-        break
+        else:
+            if common_V in ds:
+                raise ValueError(
+                    f"Dataset has variable with standard name {common_V!r}, "
+                    f"but not the matching variable with standard name {common_U!r}. "
+                    "Please rename the appropriate variables in your dataset to have both 'U' and 'V' for Parcels simulation."
+                )
+            continue
+    if not uv_found:
+        raise ValueError(
+            f"Dataset has neither 'U' nor 'V' in potential options {common_fesom_UV!r}, "
+            f"Please provide a dataset that has both 'U' and 'V' for Parcels simulation."
+        )
     return ds
 
 

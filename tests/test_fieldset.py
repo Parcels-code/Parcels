@@ -318,3 +318,18 @@ def test_fieldset_from_fesom2():
     assert "U" in fieldset.fields
     assert "V" in fieldset.fields
     assert "UVW" in fieldset.fields
+
+
+def test_fieldset_from_fesom2_missingUV():
+    ds = datasets_unstructured["stommel_gyre_delaunay"]
+    # Intentionally create a dataset that is missing the U field
+    localds = ds.rename({"U": "notU"})
+    with pytest.raises(ValueError) as info:
+        _ = FieldSet.from_fesom2(localds)
+    assert "Dataset has only one of the two variables 'U' and 'V'" in str(info)
+
+    # Intentionally create a dataset that is missing both U and V
+    localds = ds.rename({"U": "notU", "V": "notV"})
+    with pytest.raises(ValueError) as info:
+        _ = FieldSet.from_fesom2(localds)
+    assert "Dataset has neither 'U' nor 'V' in potential options " in str(info)
