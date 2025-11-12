@@ -527,4 +527,4 @@ myst_enable_extensions = ["substitution"]
 nb_execution_mode = "cache"
 nb_execution_excludepatterns = ["jupyter_execute", ".jupyter_cache"]
 nb_execution_raise_on_error = True
-nb_execution_timeout = 45
+nb_execution_timeout = 75
