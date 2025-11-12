@@ -9,26 +9,25 @@ The tutorials written for Parcels v3 are currently being updated for Parcels v4.
 
 ## Getting started
 
-<!-- ```{nbgallery}
-:caption: Getting started
-:name: tutorial-overview
+- [Quickstart Tutorial](../getting_started/tutorial_quickstart.md)
+- [Output Tutorial](../getting_started/tutorial_output.ipynb)
+- [Concepts Overview](../getting_started/concepts_overview.md)
 
-<!-- examples/tutorial_parcels_structure.ipynb -->
-<!-- examples/parcels_tutorial.ipynb -->
+## How to
 
-examples/tutorial_output.ipynb
-
-````-->
-
-## How to:
+```{toctree}
+How to <self>
+```
 
 ```{note}
 **Migrate from v3 to v4** using [this migration guide](v4-migration.md)
-````
+```
 
-<!-- ```{nbgallery}
+```{toctree}
 :caption: Set up FieldSets
-:name: tutorial-fieldsets
+:titlesonly:
+
+```
 
 <!-- examples/documentation_indexing.ipynb -->
 <!-- examples/tutorial_nemo_curvilinear.ipynb -->
@@ -39,51 +38,49 @@ examples/tutorial_output.ipynb
 <!-- examples/tutorial_interpolation.ipynb -->
 <!-- examples/tutorial_unitconverters.ipynb -->
 
-````-->
-
-<!-- ```{nbgallery}
+```{toctree}
 :caption: Create ParticleSets
-:name: tutorial-particlesets
-
+:titlesonly:
 examples/tutorial_delaystart.ipynb
-``` -->
+```
 
-<!-- ```{nbgallery}
-:caption: Write a custom kernel
-:name: tutorial-kernels
+```{toctree}
+:caption: Write Kernels
+:titlesonly:
 
-<!-- examples/tutorial_diffusion.ipynb -->
 examples/tutorial_sampling.ipynb
 examples/tutorial_gsw_density.ipynb
+examples/tutorial_Argofloats.ipynb
+```
+
+<!-- examples/tutorial_diffusion.ipynb -->
 <!-- examples/tutorial_particle_field_interaction.ipynb -->
 <!-- examples/tutorial_interaction.ipynb -->
 <!-- examples/tutorial_analyticaladvection.ipynb -->
 <!-- examples/tutorial_kernelloop.ipynb -->
-``` -->
 
-<!-- ```{nbgallery}
+```{toctree}
 :caption: Other tutorials
 :name: tutorial-other
 
+```
+
 <!-- examples/tutorial_peninsula_AvsCgrid.ipynb -->
-<!-- examples/documentation_MPI.ipynb -->
 <!-- examples/documentation_stuck_particles.ipynb -->
 <!-- examples/documentation_unstuck_Agrid.ipynb -->
 <!-- examples/documentation_LargeRunsOutput.ipynb -->
 <!-- examples/documentation_geospatial.ipynb -->
 <!-- examples/documentation_advanced_zarr.ipynb -->
-``` -->
 
-<!-- ```{nbgallery}
+```{toctree}
 :caption: Worked examples
-:name: tutorial-examples
+```
 
-examples/tutorial_Argofloats.ipynb
 <!-- examples/documentation_homepage_animation.ipynb -->
-``` -->
 
 ```{toctree}
 :hidden:
+:caption: Other
 v3 to v4 migration guide <v4-migration>
 Example scripts <additional_examples>
-````
+```
