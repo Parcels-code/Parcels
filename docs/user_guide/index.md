@@ -15,10 +15,6 @@ The tutorials written for Parcels v3 are currently being updated for Parcels v4.
 
 ## How to
 
-```{toctree}
-How to <self>
-```
-
 ```{note}
 **Migrate from v3 to v4** using [this migration guide](v4-migration.md)
 ```
