@@ -19,7 +19,7 @@ from parcels._core.uxgrid import UxGrid
 from parcels._core.xgrid import _DEFAULT_XGCM_KWARGS, XGrid
 from parcels._logger import logger
 from parcels._typing import Mesh
-from parcels.interpolators import XConstantField
+from parcels.interpolators import UXPiecewiseConstantFace, UXPiecewiseLinearNode, XConstantField, XLinear
 
 if TYPE_CHECKING:
     from parcels._core.basegrid import BaseGrid
@@ -240,8 +240,8 @@ class FieldSet:
 
         fields = {}
         if "U" in ds.data_vars and "V" in ds.data_vars:
-            fields["U"] = Field("U", ds["U"], grid)
-            fields["V"] = Field("V", ds["V"], grid)
+            fields["U"] = Field("U", ds["U"], grid, XLinear)
+            fields["V"] = Field("V", ds["V"], grid, XLinear)
             fields["U"].units = GeographicPolar()
             fields["V"].units = Geographic()
 
@@ -249,13 +249,13 @@ class FieldSet:
                 ds["W"] -= ds[
                     "W"
                 ]  # Negate W to convert from up positive to down positive (as that's the direction of positive z)
-                fields["W"] = Field("W", ds["W"], grid)
+                fields["W"] = Field("W", ds["W"], grid, XLinear)
                 fields["UVW"] = VectorField("UVW", fields["U"], fields["V"], fields["W"])
             else:
                 fields["UV"] = VectorField("UV", fields["U"], fields["V"])
 
         for varname in set(ds.data_vars) - set(fields.keys()):
-            fields[varname] = Field(varname, ds[varname], grid)
+            fields[varname] = Field(varname, ds[varname], grid, XLinear)
 
         return FieldSet(list(fields.values()))
 
@@ -283,19 +283,19 @@ class FieldSet:
 
         fields = {}
         if "U" in ds.data_vars and "V" in ds.data_vars:
-            fields["U"] = Field("U", ds["U"], grid)
-            fields["V"] = Field("V", ds["V"], grid)
+            fields["U"] = Field("U", ds["U"], grid, _select_uxinterpolator(ds["U"]))
+            fields["V"] = Field("V", ds["V"], grid, _select_uxinterpolator(ds["U"]))
             fields["U"].units = GeographicPolar()
             fields["V"].units = Geographic()
 
             if "W" in ds.data_vars:
-                fields["W"] = Field("W", ds["W"], grid)
+                fields["W"] = Field("W", ds["W"], grid, _select_uxinterpolator(ds["U"]))
                 fields["UVW"] = VectorField("UVW", fields["U"], fields["V"], fields["W"])
             else:
                 fields["UV"] = VectorField("UV", fields["U"], fields["V"])
 
         for varname in set(ds.data_vars) - set(fields.keys()):
-            fields[varname] = Field(varname, ds[varname], grid)
+            fields[varname] = Field(varname, ds[varname], grid, _select_uxinterpolator(ds[varname]))
 
         return FieldSet(list(fields.values()))
 
@@ -425,7 +425,6 @@ def _discover_fesom2_U_and_V(ds: ux.UxDataset) -> ux.UxDataset:
             "Dataset has only one of the two variables 'U' and 'V'. Please rename the appropriate variable in your dataset to have both 'U' and 'V' for Parcels simulation."
         )
 
-    uv_found = False
     for common_U, common_V in common_fesom_UV:
         if common_U in ds:
             if common_V not in ds:
@@ -436,7 +435,6 @@ def _discover_fesom2_U_and_V(ds: ux.UxDataset) -> ux.UxDataset:
                 )
             else:
                 ds = _ds_rename_using_standard_names(ds, {common_U: "U", common_V: "V"})
-                uv_found = True
                 break
 
         else:
@@ -447,11 +445,7 @@ def _discover_fesom2_U_and_V(ds: ux.UxDataset) -> ux.UxDataset:
                     "Please rename the appropriate variables in your dataset to have both 'U' and 'V' for Parcels simulation."
                 )
             continue
-    if not uv_found:
-        raise ValueError(
-            f"Dataset has neither 'U' nor 'V' in potential options {common_fesom_UV!r}, "
-            f"Please provide a dataset that has both 'U' and 'V' for Parcels simulation."
-        )
+
     return ds
 
 
@@ -463,3 +457,36 @@ def _ds_rename_using_standard_names(ds: xr.Dataset | ux.UxDataset, name_dict: di
             f"cf_xarray found variable {name!r} with CF standard name {standard_name!r} in dataset, renamed it to {rename_to!r} for Parcels simulation."
         )
     return ds
+
+
+def _select_uxinterpolator(da: ux.UxDataArray):
+    """Selects the appropriate uxarray interpolator for a given uxarray UxDataArray"""
+    supported_uxinterp_mapping = {
+        # (nz1,n_face): face-center laterally, layer centers vertically — piecewise constant
+        "nz1,n_face": UXPiecewiseConstantFace,
+        # (nz,n_node): node/corner laterally, layer interfaces vertically — barycentric lateral & linear vertical
+        "nz,n_node": UXPiecewiseLinearNode,
+    }
+    # Extract only spatial dimensions, neglecting time
+    da_spatial_dims = tuple(d for d in da.dims if d not in ("time",))
+    if len(da_spatial_dims) != 2:
+        raise ValueError(
+            "Fields on unstructured grids must have two spatial dimensions, one vertical (nz or nz1) and one lateral (n_face, n_edge, or n_node)"
+        )
+
+    # Construct key (string) for mapping to interpolator
+    # Find vertical and lateral tokens
+    vdim = None
+    ldim = None
+    for d in da_spatial_dims:
+        if d in ("nz", "nz1"):
+            vdim = d
+        if d in ("n_face", "n_node"):
+            ldim = d
+    # Map to supported interpolators
+    if vdim and ldim:
+        key = f"{vdim},{ldim}"
+        if key in supported_uxinterp_mapping.keys():
+            return supported_uxinterp_mapping[key]
+
+    return None
