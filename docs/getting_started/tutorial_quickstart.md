@@ -47,7 +47,7 @@ velocity = ds_in.isel(time=0, depth=0).plot.quiver(x="longitude", y="latitude", 
 
 ## Input virtual particles: `ParticleSet`
 
-Now that we have read in the hydrodynamic data, we need to provide our second input: the virtual particles for which we will calculate the trajectories. We need to define the initial time and position and read those into a `parcels.ParticleSet` object, which also needs to know about the `FieldSet` in which the particles "live". Finally, we need to specify the type of `parcels.Particle` we want to use. The default particles have `time`, `lon`, `lat`, and `z` to keep track of, but with Parcels you can easily build your own particles to mimic plastic or an [ARGO float](../user_guide/tutorial_Argofloats.ipynb), adding variables such as size, temperature, or age.
+Now that we have read in the hydrodynamic data, we need to provide our second input: the virtual particles for which we will calculate the trajectories. We need to define the initial time and position and read those into a `parcels.ParticleSet` object, which also needs to know about the `FieldSet` in which the particles "live". Finally, we need to specify the type of `parcels.Particle` we want to use. The default particles have `time`, `lon`, `lat`, and `z` to keep track of, but with Parcels you can easily build your own particles to mimic plastic or an [ARGO float](../user_guide/examples/tutorial_Argofloats.ipynb), adding variables such as size, temperature, or age.
 
 ```{code-cell}
 # Particle locations and initial time
@@ -82,16 +82,19 @@ kernels = parcels.kernels.AdvectionEE
 ```
 
 ## Prepare output: `ParticleFile`
+
 Before starting the simulation, we must define where and how frequent we want to write the output of our simulation. We can define this in a `ParticleFile` object:
 
 ```{code-cell}
 output_file = parcels.ParticleFile("Output.zarr", outputdt=np.timedelta64(1, "h"))
 ```
 
-The output files are in `.zarr` [format]([format](https://zarr.readthedocs.io/en/stable/).), which can be read by `xarray`. See the [Parcels output tutorial](../user_guide/examples/tutorial_output.ipynb) for more information on the zarr format. We want to choose the `outputdt` argument such they capture the smallest timescales of our interest. 
+The output files are in `.zarr` [format](https://zarr.readthedocs.io/en/stable/), which can be read by `xarray`. See the [Parcels output tutorial](./tutorial_output.ipynb) for more information on the zarr format. We want to choose the `outputdt` argument such they capture the smallest timescales of our interest.
 
 ## Run Simulation: `ParticleSet.execute()`
-Finally, we can run the simulation by *executing* the `ParticleSet` using the specified `kernels`. Additionally, we need to specify: 
+
+Finally, we can run the simulation by _executing_ the `ParticleSet` using the specified `kernels`. Additionally, we need to specify:
+
 - the `runtime`: for how long we want to simulate particles.
 - the `dt`: the timestep with which to perform the numerical integration in the `kernels`. Depending on the numerical integration scheme, the accuracy of our simulation will depend on `dt`. Read [this notebook](https://github.com/Parcels-code/10year-anniversary-session2/blob/8931ef69577dbf00273a5ab4b7cf522667e146c5/advection_and_windage.ipynb) to learn more about numerical accuracy.
 
@@ -110,6 +113,7 @@ pset.execute(
 ```
 
 ## Read output
+
 To start analyzing the trajectories computed by **Parcels**, we can open the `ParticleFile` using `xarray`:
 
 ```{code-cell}
@@ -117,7 +121,7 @@ ds_out = xr.open_zarr("Output.zarr")
 ds_out
 ```
 
-The 10 particle trajectories are stored along the `trajectory` dimension, and each trajectory contains 25 observations (initial values + 24 hourly timesteps) along the `obs` dimension. The [Working with Parcels output tutorial](../user_guide/examples/tutorial_output.ipynb) provides more detail about the dataset and how to analyse it. Let's verify that Parcels has computed the advection of the virtual particles!
+The 10 particle trajectories are stored along the `trajectory` dimension, and each trajectory contains 25 observations (initial values + 24 hourly timesteps) along the `obs` dimension. The [Working with Parcels output tutorial](./tutorial_output.ipynb) provides more detail about the dataset and how to analyse it. Let's verify that Parcels has computed the advection of the virtual particles!
 
 ```{code-cell}
 import matplotlib.pyplot as plt
@@ -128,9 +132,11 @@ plt.xlabel("Longitude [deg E]")
 plt.ylabel("Latitude [deg N]")
 plt.show()
 ```
+
 That looks good! The virtual particles released in a line along the 32nd meridian (dark blue) have been advected by the flow field.
 
 ## Running a simulation backwards in time
+
 Now that we know how to run a simulation, we can easily run another and change one of the settings. We can trace back the particles from their current to their original position by running the simulation backwards in time. To do so, we can simply make `dt` < 0.
 
 ```{code-cell}
@@ -146,6 +152,7 @@ pset.execute(
     output_file=output_file,
 )
 ```
+
 When we check the output, we can see that the particles have returned to their original position!
 
 ```{code-cell}
