@@ -26,9 +26,6 @@ from parcels._python import assert_same_function_signature
 from parcels._reprs import default_repr
 from parcels._typing import VectorType
 from parcels.interpolators import (
-    UXPiecewiseConstantFace,
-    UXPiecewiseLinearNode,
-    XLinear,
     ZeroInterpolator,
     ZeroInterpolator_Vector,
 )
@@ -52,17 +49,11 @@ def _deal_with_errors(error, key, vector_type: VectorType):
         return 0
 
 
-_DEFAULT_INTERPOLATOR_MAPPING = {
-    XGrid: XLinear,
-    UxGrid: UXPiecewiseLinearNode,
-}
-
-
 class Field:
     """The Field class that holds scalar field data.
     The `Field` object is a wrapper around a xarray.DataArray or uxarray.UxDataArray object.
     Additionally, it holds a dynamic Callable procedure that is used to interpolate the field data.
-    During initialization, the user can supply a custom interpolation method that is used to interpolate the field data,
+    During initialization, the user is required to supply a custom interpolation method that is used to interpolate the field data,
     so long as the interpolation method has the correct signature.
 
     Notes
@@ -97,7 +88,7 @@ class Field:
         name: str,
         data: xr.DataArray | ux.UxDataArray,
         grid: UxGrid | XGrid,
-        interp_method: Callable | None = None,
+        interp_method: Callable,
     ):
         if not isinstance(data, (ux.UxDataArray, xr.DataArray)):
             raise ValueError(
@@ -137,14 +128,8 @@ class Field:
             raise e
 
         # Setting the interpolation method dynamically
-        if interp_method is None:
-            if isinstance(data, ux.UxDataArray):
-                self._interp_method = _select_uxinterpolator(data)
-            else:
-                self._interp_method = _DEFAULT_INTERPOLATOR_MAPPING[type(self.grid)]
-        else:
-            assert_same_function_signature(interp_method, ref=ZeroInterpolator, context="Interpolation")
-            self._interp_method = interp_method
+        assert_same_function_signature(interp_method, ref=ZeroInterpolator, context="Interpolation")
+        self._interp_method = interp_method
 
         self.igrid = -1  # Default the grid index to -1
 
@@ -487,34 +472,3 @@ def _get_positions(field: Field, time, z, y, x, particles, _ei) -> tuple[dict, d
     _update_particles_ei(particles, grid_positions, field)
     _update_particle_states_position(particles, grid_positions)
     return particle_positions, grid_positions
-
-
-def _select_uxinterpolator(da: ux.UxDataArray):
-    """Selects the appropriate uxarray interpolator for a given uxarray UxDataArray"""
-    supported_uxinterp_mapping = {
-        # (nz1,n_face): face-center laterally, layer centers vertically — piecewise constant
-        "nz1,n_face": UXPiecewiseConstantFace,
-        # (nz,n_node): node/corner laterally, layer interfaces vertically — barycentric lateral & linear vertical
-        "nz,n_node": UXPiecewiseLinearNode,
-    }
-    # Extract only spatial dimensions, neglecting time
-    da_spatial_dims = tuple(d for d in da.dims if d not in ("time",))
-    if len(da_spatial_dims) < 2:
-        return None
-
-    # Construct key (string) for mapping to interpolator
-    # Find vertical and lateral tokens
-    vdim = None
-    ldim = None
-    for d in da_spatial_dims:
-        if d in ("nz", "nz1"):
-            vdim = d
-        if d in ("n_face", "n_node"):
-            ldim = d
-    # Map to supported interpolators
-    if vdim and ldim:
-        key = f"{vdim},{ldim}"
-        if key in supported_uxinterp_mapping.keys():
-            return supported_uxinterp_mapping[key]
-
-    return None
