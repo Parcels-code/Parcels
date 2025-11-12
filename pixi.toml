@@ -22,7 +22,7 @@ test-minimum = { features = ["test", "minimum"], solve-group = "test" }
 test-py311 = { features = ["test", "py311"] }
 test-py313 = { features = ["test", "py313"] }
 test-notebooks = { features = ["test", "notebooks"], solve-group = "test" }
-docs = { features = ["docs"], solve-group = "docs" }
+docs = { features = ["docs", "notebooks"], solve-group = "docs" }
 typing = { features = ["typing"], solve-group = "typing" }
 pre-commit = { features = ["pre-commit"], no-default-feature = true }
 
