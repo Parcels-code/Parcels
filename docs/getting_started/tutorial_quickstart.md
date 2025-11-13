@@ -32,7 +32,7 @@ ds_fields.load()  # load the dataset into memory
 ds_fields
 ```
 
-As we can see, the reanalysis dataset contains eastward velocity `uo`, northward velocity `vo`, potential temperature (`thetao`) and salinity (`so`) fields. 
+As we can see, the reanalysis dataset contains eastward velocity `uo`, northward velocity `vo`, potential temperature (`thetao`) and salinity (`so`) fields.
 
 These hydrodynamic fields need to be stored in a `parcels.FieldSet` object. Parcels provides tooling to parse many types of models or observations into such a `parcels.FieldSet` object. Here, we use `FieldSet.from_copernicusmarine()`, which recognizes the standard names of a velocity field:
 
