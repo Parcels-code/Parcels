@@ -71,7 +71,7 @@ pset = parcels.ParticleSet(
 temperature = ds_fields.isel(time=0, depth=0).thetao.plot(cmap="magma")
 velocity = ds_fields.isel(time=0, depth=0).plot.quiver(x="longitude", y="latitude", u="uo", v="vo")
 ax = temperature.axes
-ax.scatter(lon,lat,s=40,c='w',edgecolors='r')
+ax.scatter(lon,lat,s=40,c='w',edgecolors='r');
 ```
 
 ## Compute: `Kernel`
@@ -134,7 +134,8 @@ Let's verify that Parcels has computed the advection of the virtual particles!
 import matplotlib.pyplot as plt
 
 # plot positions and color particles by number of observation
-scatter = plt.scatter(ds_particles.lon.T, ds_particles.lat.T, c=np.repeat(ds_particles.obs.values,npart), cmap="Greys", edgecolors='r')
+scatter = plt.scatter(ds_particles.lon.T, ds_particles.lat.T, c=np.repeat(ds_particles.obs.values,npart))
+plt.scatter(lon,lat,facecolors="none",edgecolors='r') # starting positions
 plt.xlim(31,33)
 plt.ylabel("Latitude [deg N]")
 plt.ylim(-33,-30)
@@ -171,14 +172,19 @@ When we check the output, we can see that the particles have returned to their o
 ```{code-cell}
 ds_particles_back = xr.open_zarr("output-backwards.zarr")
 
-scatter = plt.scatter(ds_particles_back.lon.T, ds_particles_back.lat.T, c=np.repeat(ds_particles_back.obs.values,npart), cmap="Greys", edgecolors='r')
+scatter = plt.scatter(ds_particles_back.lon.T, ds_particles_back.lat.T, c=np.repeat(ds_particles_back.obs.values,npart))
+plt.scatter(lon,lat,facecolors="none",edgecolors='r') # starting positions
 plt.xlabel("Longitude [deg E]")
 plt.xlim(31,33)
 plt.ylabel("Latitude [deg N]")
 plt.ylim(-33,-30)
 plt.colorbar(scatter, label="Observation number")
 plt.show()
+```
 
+Using Euler forward advection, the final positions are equal to the original positions with an accuracy of 2 decimals:
+
+```{code-cell}
 # testing that final location == original location
 np.testing.assert_almost_equal(ds_particles_back['lat'].values[:,-1],ds_particles['lat'].values[:,0], 2)
 np.testing.assert_almost_equal(ds_particles_back['lon'].values[:,-1],ds_particles['lon'].values[:,0], 2)
