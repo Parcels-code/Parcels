@@ -12,6 +12,7 @@ from parcels._datasets.structured.circulation_models import datasets as datasets
 from parcels._datasets.structured.generic import T as T_structured
 from parcels._datasets.structured.generic import datasets as datasets_structured
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
+from parcels.interpolators import XLinear
 from tests import utils
 
 ds = datasets_structured["ds_2d_left"]
@@ -21,8 +22,8 @@ ds = datasets_structured["ds_2d_left"]
 def fieldset() -> FieldSet:
     """Fixture to create a FieldSet object for testing."""
     grid = XGrid.from_dataset(ds, mesh="flat")
-    U = Field("U", ds["U_A_grid"], grid)
-    V = Field("V", ds["V_A_grid"], grid)
+    U = Field("U", ds["U_A_grid"], grid, interp_method=XLinear)
+    V = Field("V", ds["V_A_grid"], grid, interp_method=XLinear)
     UV = VectorField("UV", U, V)
 
     return FieldSet(
@@ -65,7 +66,7 @@ def test_fieldset_add_constant_field(fieldset):
 
 def test_fieldset_add_field(fieldset):
     grid = XGrid.from_dataset(ds, mesh="flat")
-    field = Field("test_field", ds["U_A_grid"], grid)
+    field = Field("test_field", ds["U_A_grid"], grid, interp_method=XLinear)
     fieldset.add_field(field)
     assert fieldset.test_field == field
 
@@ -78,7 +79,7 @@ def test_fieldset_add_field_wrong_type(fieldset):
 
 def test_fieldset_add_field_already_exists(fieldset):
     grid = XGrid.from_dataset(ds, mesh="flat")
-    field = Field("test_field", ds["U_A_grid"], grid)
+    field = Field("test_field", ds["U_A_grid"], grid, interp_method=XLinear)
     fieldset.add_field(field, "test_field")
     with pytest.raises(ValueError, match="FieldSet already has a Field with name 'test_field'"):
         fieldset.add_field(field, "test_field")
@@ -96,7 +97,7 @@ def test_fieldset_gridset(fieldset):
 
 def test_fieldset_no_UV(tmp_zarrfile):
     grid = XGrid.from_dataset(ds, mesh="flat")
-    fieldset = FieldSet([Field("P", ds["U_A_grid"], grid)])
+    fieldset = FieldSet([Field("P", ds["U_A_grid"], grid, interp_method=XLinear)])
 
     def SampleP(particles, fieldset):
         particles.dlon += fieldset.P[particles]
@@ -114,7 +115,7 @@ def test_fieldset_from_structured_generic_datasets(ds):
     grid = XGrid.from_dataset(ds, mesh="flat")
     fields = []
     for var in ds.data_vars:
-        fields.append(Field(var, ds[var], grid))
+        fields.append(Field(var, ds[var], grid, interp_method=XLinear))
 
     fieldset = FieldSet(fields)
 
@@ -130,12 +131,12 @@ def test_fieldset_gridset_multiple_grids(): ...
 
 def test_fieldset_time_interval():
     grid1 = XGrid.from_dataset(ds, mesh="flat")
-    field1 = Field("field1", ds["U_A_grid"], grid1)
+    field1 = Field("field1", ds["U_A_grid"], grid1, interp_method=XLinear)
 
     ds2 = ds.copy()
     ds2["time"] = (ds2["time"].dims, ds2["time"].data + np.timedelta64(timedelta(days=1)), ds2["time"].attrs)
     grid2 = XGrid.from_dataset(ds2, mesh="flat")
-    field2 = Field("field2", ds2["U_A_grid"], grid2)
+    field2 = Field("field2", ds2["U_A_grid"], grid2, interp_method=XLinear)
 
     fieldset = FieldSet([field1, field2])
     fieldset.add_constant_field("constant_field", 1.0)
@@ -161,8 +162,8 @@ def test_fieldset_init_incompatible_calendars():
     )
 
     grid = XGrid.from_dataset(ds1, mesh="flat")
-    U = Field("U", ds1["U_A_grid"], grid)
-    V = Field("V", ds1["V_A_grid"], grid)
+    U = Field("U", ds1["U_A_grid"], grid, interp_method=XLinear)
+    V = Field("V", ds1["V_A_grid"], grid, interp_method=XLinear)
     UV = VectorField("UV", U, V)
 
     ds2 = ds.copy()
@@ -172,7 +173,7 @@ def test_fieldset_init_incompatible_calendars():
         ds2["time"].attrs,
     )
     grid2 = XGrid.from_dataset(ds2, mesh="flat")
-    incompatible_calendar = Field("test", ds2["data_g"], grid2)
+    incompatible_calendar = Field("test", ds2["data_g"], grid2, interp_method=XLinear)
 
     with pytest.raises(CalendarError, match="Expected field '.*' to have calendar compatible with datetime object"):
         FieldSet([U, V, UV, incompatible_calendar])
@@ -186,7 +187,7 @@ def test_fieldset_add_field_incompatible_calendars(fieldset):
         ds_test["time"].attrs,
     )
     grid = XGrid.from_dataset(ds_test, mesh="flat")
-    field = Field("test_field", ds_test["data_g"], grid)
+    field = Field("test_field", ds_test["data_g"], grid, interp_method=XLinear)
 
     with pytest.raises(CalendarError, match="Expected field '.*' to have calendar compatible with datetime object"):
         fieldset.add_field(field, "test_field")
@@ -198,7 +199,7 @@ def test_fieldset_add_field_incompatible_calendars(fieldset):
         ds_test["time"].attrs,
     )
     grid = XGrid.from_dataset(ds_test, mesh="flat")
-    field = Field("test_field", ds_test["data_g"], grid)
+    field = Field("test_field", ds_test["data_g"], grid, interp_method=XLinear)
 
     with pytest.raises(CalendarError, match="Expected field '.*' to have calendar compatible with datetime object"):
         fieldset.add_field(field, "test_field")
@@ -328,8 +329,8 @@ def test_fieldset_from_fesom2_missingUV():
         _ = FieldSet.from_fesom2(localds)
     assert "Dataset has only one of the two variables 'U' and 'V'" in str(info)
 
-    # Intentionally create a dataset that is missing both U and V
-    localds = ds.rename({"U": "notU", "V": "notV"})
+    # Intentionally create a dataset that is missing the V field
+    localds = ds.rename({"V": "notV"})
     with pytest.raises(ValueError) as info:
         _ = FieldSet.from_fesom2(localds)
-    assert "Dataset has neither 'U' nor 'V' in potential options " in str(info)
+    assert "Dataset has only one of the two variables 'U' and 'V'" in str(info)
