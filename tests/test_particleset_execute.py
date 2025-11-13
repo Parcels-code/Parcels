@@ -162,6 +162,24 @@ def test_particleset_run_to_endtime(fieldset):
     assert pset[0].time == endtime
 
 
+def test_particleset_run_RK_to_endtime_fwd_bwd(fieldset):
+    """Test that RK kernels can be run to the endtime of a fieldset (and not throw OutsideTimeInterval)"""
+    starttime = fieldset.time_interval.left
+    endtime = fieldset.time_interval.right
+    dt = np.timedelta64(1, "D")
+
+    # Setting zero velocities to avoid OutofBoundsErrors
+    fieldset.U.data[:] = 0.0
+    fieldset.V.data[:] = 0.0
+
+    pset = ParticleSet(fieldset, lon=[0.2], lat=[5.0], time=[starttime])
+    pset.execute(AdvectionRK4, endtime=endtime, dt=dt)
+    assert pset[0].time == endtime
+
+    pset.execute(AdvectionRK4, endtime=starttime, dt=-dt)
+    assert pset[0].time == starttime
+
+
 def test_particleset_interpolate_on_domainedge(zonal_flow_fieldset):
     fieldset = zonal_flow_fieldset
 
