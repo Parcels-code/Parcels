@@ -81,7 +81,7 @@ TODO: link to a list of included kernels
 ```
 
 ```{code-cell}
-kernels = [parcels.kernels.AdvectionRK2]
+kernels = [parcels.kernels.AdvectionEE]
 ```
 
 ## Prepare output: `ParticleFile`
@@ -133,15 +133,16 @@ import matplotlib.pyplot as plt
 
 # plot positions and color particles by number of observation
 scatter = plt.scatter(ds_particles.lon.T, ds_particles.lat.T, c=np.repeat(ds_particles.obs.values,npart), cmap="Greys", edgecolors='r')
-plt.xlabel("Longitude [deg E]")
+plt.xlim(31,33)
 plt.ylabel("Latitude [deg N]")
+plt.ylim(-33,-30)
 plt.colorbar(scatter, label="Observation number")
 plt.show()
 ```
 
 That looks good! The virtual particles released in a line along the 32nd meridian (dark blue) have been advected by the flow field.
 
-<!-- ## Running a simulation backwards in time
+## Running a simulation backwards in time
 
 Now that we know how to run a simulation, we can easily run another and change one of the settings. We can trace back the particles from their current to their original position by running the simulation backwards in time. To do so, we can simply make `dt` < 0.
 
@@ -166,10 +167,17 @@ pset.execute(
 When we check the output, we can see that the particles have returned to their original position!
 
 ```{code-cell}
-ds_particles = xr.open_zarr("output-backwards.zarr")
+ds_particles_back = xr.open_zarr("output-backwards.zarr")
 
-plt.scatter(ds_particles.lon.T, ds_particles.lat.T, c=np.repeat(ds_particles.obs.values,npart))
+scatter = plt.scatter(ds_particles_back.lon.T, ds_particles_back.lat.T, c=np.repeat(ds_particles_back.obs.values,npart), cmap="Greys", edgecolors='r')
 plt.xlabel("Longitude [deg E]")
+plt.xlim(31,33)
 plt.ylabel("Latitude [deg N]")
+plt.ylim(-33,-30)
+plt.colorbar(scatter, label="Observation number")
 plt.show()
-``` -->
+
+# testing that final location == original location
+np.testing.assert_almost_equal(ds_particles_back['lat'].values[:,-1],ds_particles['lat'].values[:,0], 2)
+np.testing.assert_almost_equal(ds_particles_back['lon'].values[:,-1],ds_particles['lon'].values[:,0], 2)
+```
