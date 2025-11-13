@@ -2,8 +2,8 @@
 
 ## Vision
 
-We believe a clear documentation is important to community building, reproducibility, and transparency in our open-source 
-project. To make it easier to write our documentation in a consistent way, here we outline a brief vision for our 
+We believe a clear documentation is important to community building, reproducibility, and transparency in our open-source
+project. To make it easier to write our documentation in a consistent way, here we outline a brief vision for our
 documentation based heavily on a few common resources.
 
 ```{note}
@@ -19,7 +19,7 @@ TODO: outline functions of the documentation based on resources
 
 ## Notebook execution
 
-We run the notebooks in our documentation using [MyST-NB](https://myst-nb.readthedocs.io/en/latest/index.html). Here is 
+We run the notebooks in our documentation using [MyST-NB](https://myst-nb.readthedocs.io/en/latest/index.html). Here is
 a table showing the latest notebook execution:
 
 ```{nb-exec-table}
@@ -28,17 +28,17 @@ a table showing the latest notebook execution:
 
 ## Style guide
 
-- **Write out `parcels.class.method` in tutorials and how-to guides** so that we can see which classes and methods are 
-part of Parcels. Because in the alternative (using `from parcels import class`) the use of `class` in a cell further 
-along is not obviously part of `parcels`.
-- [**Avoid too much Repitition In Documentation**](https://www.writethedocs.org/guide/writing/docs-principles/#arid): 
-tutorials and how-to guides notebooks will often have repetition of the general **Parcels** steps, which is fine because 
-we want readers to see the changes to a specific class or method in the context of the simulation, e.g. `Particle` and 
-`Kernel` are often customised together, which must be defined before the `ParticleSet.execute()`. We try to limit each 
-page in the documentation to a small number of examples.
+- **Write out `parcels.class.method` in tutorials and how-to guides** so that we can see which classes and methods are
+  part of Parcels. Because in the alternative (using `from parcels import class`) the use of `class` in a cell further
+  along is not obviously part of `parcels`.
+- [**Avoid too much Repitition In Documentation**](https://www.writethedocs.org/guide/writing/docs-principles/#arid):
+  tutorials and how-to guides notebooks will often have repetition of the general **Parcels** steps, which is fine because
+  we want readers to see the changes to a specific class or method in the context of the simulation, e.g. `Particle` and
+  `Kernel` are often customised together, which must be defined before the `ParticleSet.execute()`. We try to limit each
+  page in the documentation to a small number of examples.
 - **Import packages at the top of the section in which they are first used** to show what they are used for.
-- **Write documentation in first person plural ("we").** In our open source code, tutorials and guides can be written 
-by any developer or user, so the documentation teaches all of us how to do something with Parcels. Sometimes it can be 
-more natural to take on the tone of a teacher, writing to a student/learner, in which case it is okay to use "you". 
-Please refrain from using impersonal subjects such as "the user".
+- **Write documentation in first person plural ("we").** In our open source code, tutorials and guides can be written
+  by any developer or user, so the documentation teaches all of us how to do something with Parcels. Sometimes it can be
+  more natural to take on the tone of a teacher, writing to a student/learner, in which case it is okay to use "you".
+  Please refrain from using impersonal subjects such as "the user".
 - We recommend hard wrapping prose in markdown so that reading it becomes easier in any editor.
