@@ -43,16 +43,25 @@ def AdvectionRK2_3D(particles, fieldset):  # pragma: no cover
 
 def AdvectionRK4(particles, fieldset):  # pragma: no cover
     """Advection of particles using fourth-order Runge-Kutta integration."""
-    dt = particles.dt / np.timedelta64(1, "s")  # TODO: improve API for converting dt to seconds
-    (u1, v1) = fieldset.UV[particles]
-    lon1, lat1 = (particles.lon + u1 * 0.5 * dt, particles.lat + v1 * 0.5 * dt)
-    (u2, v2) = fieldset.UV[particles.time + 0.5 * particles.dt, particles.z, lat1, lon1, particles]
-    lon2, lat2 = (particles.lon + u2 * 0.5 * dt, particles.lat + v2 * 0.5 * dt)
-    (u3, v3) = fieldset.UV[particles.time + 0.5 * particles.dt, particles.z, lat2, lon2, particles]
-    lon3, lat3 = (particles.lon + u3 * dt, particles.lat + v3 * dt)
-    (u4, v4) = fieldset.UV[particles.time + particles.dt, particles.z, lat3, lon3, particles]
-    particles.dlon += (u1 + 2 * u2 + 2 * u3 + u4) / 6.0 * dt
-    particles.dlat += (v1 + 2 * v2 + 2 * v3 + v4) / 6.0 * dt
+
+    def Update_locations(p):
+        dt = p.dt / np.timedelta64(1, "s")  # TODO: improve API for converting dt to seconds
+        (u1, v1) = fieldset.UV[p]
+        lon1, lat1 = (p.lon + u1 * 0.5 * dt, p.lat + v1 * 0.5 * dt)
+        (u2, v2) = fieldset.UV[p.time + 0.5 * p.dt, p.z, lat1, lon1, p]
+        lon2, lat2 = (p.lon + u2 * 0.5 * dt, p.lat + v2 * 0.5 * dt)
+        (u3, v3) = fieldset.UV[p.time + 0.5 * p.dt, p.z, lat2, lon2, p]
+        lon3, lat3 = (p.lon + u3 * dt, p.lat + v3 * dt)
+        (u4, v4) = fieldset.UV[p.time + p.dt, p.z, lat3, lon3, p]
+        p.dlon += (u1 + 2 * u2 + 2 * u3 + u4) / 6.0 * dt
+        p.dlat += (v1 + 2 * v2 + 2 * v3 + v4) / 6.0 * dt
+
+    Update_locations(
+        particles[
+            (particles.time + particles.dt <= fieldset.time_interval.right)
+            & (particles.time + particles.dt >= fieldset.time_interval.left)
+        ]
+    )
 
 
 def AdvectionRK4_3D(particles, fieldset):  # pragma: no cover
