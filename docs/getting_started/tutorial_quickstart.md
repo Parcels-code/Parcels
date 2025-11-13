@@ -20,7 +20,7 @@ import parcels
 
 ## Input flow fields: `FieldSet`
 
-A Parcels simulation of Lagrangian trajectories of virtual particles requires two inputs; the first is a set of hydrodynamics fields in which the particles are tracked. This set of vectorfields, with `U`, `V` (and `W`) flow velocities, can be read in to a `parcels.FieldSet` object from many types of models or observations. Here we provide an example using a subset of the [Global Ocean Physics Reanalysis](https://doi.org/10.48670/moi-00021) from the Copernicus Marine Service.
+A Parcels simulation of Lagrangian trajectories of virtual particles requires two inputs; the first is a set of hydrodynamics fields in which the particles are tracked. These hydrodynamic fields, including typically `U`, `V` (and `W`) flow velocities, need to be stored in a `parcels.FieldSet` object. Parcels provides tooling to parse many types of models or observations into such a `parcels.FieldSet` object. Here we provide an example using a subset of the [Global Ocean Physics Reanalysis](https://doi.org/10.48670/moi-00021) from the Copernicus Marine Service.
 
 ```{code-cell}
 example_dataset_folder = parcels.download_example_dataset(
@@ -47,18 +47,21 @@ velocity = ds_in.isel(time=0, depth=0).plot.quiver(x="longitude", y="latitude", 
 
 ## Input virtual particles: `ParticleSet`
 
-Now that we have read in the hydrodynamic data, we need to provide our second input: the virtual particles for which we will calculate the trajectories. We need to define the initial time and position and read those into a `parcels.ParticleSet` object, which also needs to know about the `FieldSet` in which the particles "live". Finally, we need to specify the type of `parcels.Particle` we want to use. The default particles have `time`, `lon`, `lat`, and `z` to keep track of, but with Parcels you can easily build your own particles to mimic plastic or an [ARGO float](../user_guide/examples/tutorial_Argofloats.ipynb), adding variables such as size, temperature, or age.
+Now that we have created a `parcels.FieldSet` object from the hydrodynamic data, we need to provide our second input: the virtual particles for which we will calculate the trajectories. 
+
+We need to create a `parcels.ParticleSet` object with the particles' initial time and position. The `parcels.ParticleSet` object also needs to know about the `FieldSet` in which the particles "live". Finally, we need to specify the type of `parcels.Particle` we want to use. The default particles have `time`, `lon`, `lat`, and `z`, but you can easily add other `Variables` such as size, temperature, or age to create your own particles to mimic plastic or an [ARGO float](../user_guide/examples/tutorial_Argofloats.ipynb).
 
 ```{code-cell}
 # Particle locations and initial time
 npart = 10  # number of particles to be released
+# release particles in a line along a meridian
+lat = np.linspace(-32.5, -30.5, npart) 
 lon = np.repeat(32, npart)
-lat = np.linspace(-32.5, -30.5, npart) # release particles in a line along a meridian
 time = np.repeat(ds_in.time.values[0], npart) # at initial time of input data
 z = np.repeat(ds_in.depth.values[0], npart) # at the first depth (surface)
 
 pset = parcels.ParticleSet(
-    fieldset=fieldset, pclass=parcels.Particle, lon=lon, lat=lat, time=time, z=z
+    fieldset=fieldset, pclass=parcels.Particle, time=time, z=z, lat=lat, lon=lon
 )
 ```
 
@@ -71,14 +74,14 @@ ax.scatter(lon,lat,s=40,c='w',edgecolors='r')
 
 ## Compute: `Kernel`
 
-After setting up the input data, we need to specify how to calculate the advection of the particles. These calculations, or numerical integrations, will be performed by what we call a `Kernel`, operating on each particle in the `ParticleSet`. The most common calculation is the advection of particles through the velocity field. Parcels comes with a number of standard kernels, from which we will use the Euler-forward advection kernel `AdvectionEE`:
+After setting up the input data and particle start locations and times, we need to specify what calculations to do with the particles. These calculations, or numerical integrations, will be performed by what we call a `Kernel`, operating on all particles in the `ParticleSet`. The most common calculation is the advection of particles through the velocity field. Parcels comes with a number of standard kernels, from which we will use the Euler-forward advection kernel `AdvectionEE`:
 
 ```{note}
 TODO: link to a list of included kernels
 ```
 
 ```{code-cell}
-kernels = parcels.kernels.AdvectionEE
+kernels = [parcels.kernels.AdvectionRK2]
 ```
 
 ## Prepare output: `ParticleFile`
@@ -86,14 +89,14 @@ kernels = parcels.kernels.AdvectionEE
 Before starting the simulation, we must define where and how frequent we want to write the output of our simulation. We can define this in a `ParticleFile` object:
 
 ```{code-cell}
-output_file = parcels.ParticleFile("Output.zarr", outputdt=np.timedelta64(1, "h"))
+output_file = parcels.ParticleFile("output.zarr", outputdt=np.timedelta64(1, "h"))
 ```
 
-The output files are in `.zarr` [format](https://zarr.readthedocs.io/en/stable/), which can be read by `xarray`. See the [Parcels output tutorial](./tutorial_output.ipynb) for more information on the zarr format. We want to choose the `outputdt` argument such they capture the smallest timescales of our interest.
+The output files are in `.zarr` [format](https://zarr.readthedocs.io/en/stable/), which can be read by `xarray`. See the [Parcels output tutorial](./tutorial_output.ipynb) for more information on the zarr format. We want to choose the `outputdt` argument so that it captures the smallest timescales of our interest.
 
 ## Run Simulation: `ParticleSet.execute()`
 
-Finally, we can run the simulation by _executing_ the `ParticleSet` using the specified `kernels`. Additionally, we need to specify:
+Finally, we can run the simulation by _executing_ the `ParticleSet` using the specified list of `kernels`. Additionally, we need to specify:
 
 - the `runtime`: for how long we want to simulate particles.
 - the `dt`: the timestep with which to perform the numerical integration in the `kernels`. Depending on the numerical integration scheme, the accuracy of our simulation will depend on `dt`. Read [this notebook](https://github.com/Parcels-code/10year-anniversary-session2/blob/8931ef69577dbf00273a5ab4b7cf522667e146c5/advection_and_windage.ipynb) to learn more about numerical accuracy.
@@ -121,7 +124,9 @@ ds_out = xr.open_zarr("Output.zarr")
 ds_out
 ```
 
-The 10 particle trajectories are stored along the `trajectory` dimension, and each trajectory contains 25 observations (initial values + 24 hourly timesteps) along the `obs` dimension. The [Working with Parcels output tutorial](./tutorial_output.ipynb) provides more detail about the dataset and how to analyse it. Let's verify that Parcels has computed the advection of the virtual particles!
+The 10 particle trajectories are stored along the `trajectory` dimension, and each trajectory contains 25 observations (initial values + 24 hourly timesteps) along the `obs` dimension. The [working with Parcels output tutorial](./tutorial_output.ipynb) provides more detail about the dataset and how to analyse it. 
+
+Let's verify that Parcels has computed the advection of the virtual particles!
 
 ```{code-cell}
 import matplotlib.pyplot as plt
