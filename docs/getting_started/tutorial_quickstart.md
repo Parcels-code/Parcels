@@ -74,7 +74,7 @@ ax.scatter(lon,lat,s=40,c='w',edgecolors='r')
 
 ## Compute: `Kernel`
 
-After setting up the input data and particle start locations and times, we need to specify what calculations to do with the particles. These calculations, or numerical integrations, will be performed by what we call a `Kernel`, operating on all particles in the `ParticleSet`. The most common calculation is the advection of particles through the velocity field. Parcels comes with a number of standard kernels, from which we will use the Euler-forward advection kernel `AdvectionEE`:
+After setting up the input data and particle start locations and times, we need to specify what calculations to do with the particles. These calculations, or numerical integrations, will be performed by what we call a `Kernel`, operating on all particles in the `ParticleSet`. The most common calculation is the advection of particles through the velocity field. Parcels comes with a number of standard kernels, from which we will use the Runge-Kutta advection kernel `AdvectionRK2`:
 
 ```{note}
 TODO: link to a list of included kernels
@@ -132,9 +132,10 @@ Let's verify that Parcels has computed the advection of the virtual particles!
 import matplotlib.pyplot as plt
 
 # plot positions and color particles by number of observation
-plt.scatter(ds_particles.lon.T, ds_particles.lat.T, c=np.repeat(ds_particles.obs.values,npart))
+scatter = plt.scatter(ds_particles.lon.T, ds_particles.lat.T, c=np.repeat(ds_particles.obs.values,npart), cmap="Greys", edgecolors='r')
 plt.xlabel("Longitude [deg E]")
 plt.ylabel("Latitude [deg N]")
+plt.colorbar(scatter, label="Observation number")
 plt.show()
 ```
 
@@ -144,10 +145,14 @@ That looks good! The virtual particles released in a line along the 32nd meridia
 
 Now that we know how to run a simulation, we can easily run another and change one of the settings. We can trace back the particles from their current to their original position by running the simulation backwards in time. To do so, we can simply make `dt` < 0.
 
+```{note}
+We have not edited the `ParticleSet`, which means that the new simulation will start with the particles at their current location!
+```
+
 ```{code-cell}
 :tags: [hide-output]
 # set up output file
-output_file = parcels.ParticleFile("Output-backwards.zarr", outputdt=np.timedelta64(1, "h"))
+output_file = parcels.ParticleFile("output-backwards.zarr", outputdt=np.timedelta64(1, "h"))
 
 # execute simulation in backwards time
 pset.execute(
@@ -161,7 +166,7 @@ pset.execute(
 When we check the output, we can see that the particles have returned to their original position!
 
 ```{code-cell}
-ds_particles = xr.open_zarr("Output-backwards.zarr")
+ds_particles = xr.open_zarr("output-backwards.zarr")
 
 plt.scatter(ds_particles.lon.T, ds_particles.lat.T, c=np.repeat(ds_particles.obs.values,npart))
 plt.xlabel("Longitude [deg E]")
