@@ -7,6 +7,7 @@ from parcels import Field, XGrid
 from parcels._core.index_search import _search_indices_curvilinear_2d
 from parcels._datasets.structured.generic import datasets
 from parcels._tutorial import download_example_dataset
+from parcels.interpolators import XLinear
 
 
 @pytest.fixture
@@ -17,6 +18,7 @@ def field_cone():
         name="test_field",
         data=ds["data_g"],
         grid=grid,
+        interp_method=XLinear,
     )
     return field
 

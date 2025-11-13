@@ -362,8 +362,8 @@ def test_stommelgyre_fieldset(kernel, rtol, grid_type):
     ds = stommel_gyre_dataset(grid_type=grid_type)
     grid = XGrid.from_dataset(ds)
     vector_interp_method = None if grid_type == "A" else CGrid_Velocity
-    U = Field("U", ds["U"], grid)
-    V = Field("V", ds["V"], grid)
+    U = Field("U", ds["U"], grid, interp_method=XLinear)
+    V = Field("V", ds["V"], grid, interp_method=XLinear)
     P = Field("P", ds["P"], grid, interp_method=XLinear)
     UV = VectorField("UV", U, V, vector_interp_method=vector_interp_method)
     fieldset = FieldSet([U, V, P, UV])
@@ -451,8 +451,8 @@ def test_nemo_curvilinear_fieldset():
     )
     grid = XGrid(xgcm_grid, mesh="spherical")
 
-    U = parcels.Field("U", ds["U"], grid)
-    V = parcels.Field("V", ds["V"], grid)
+    U = parcels.Field("U", ds["U"], grid, interp_method=XLinear)
+    V = parcels.Field("V", ds["V"], grid, interp_method=XLinear)
     U.units = parcels.GeographicPolar()
     V.units = parcels.GeographicPolar()  # U and V need GoegraphicPolar for  C-Grid interpolation to work correctly
     UV = parcels.VectorField("UV", U, V, vector_interp_method=CGrid_Velocity)
@@ -536,9 +536,9 @@ def test_nemo_3D_curvilinear_fieldset(kernel):
     )
     grid = XGrid(xgcm_grid, mesh="spherical")
 
-    U = parcels.Field("U", ds["U"], grid)
-    V = parcels.Field("V", ds["V"], grid)
-    W = parcels.Field("W", ds["W"], grid)
+    U = parcels.Field("U", ds["U"], grid, interp_method=XLinear)
+    V = parcels.Field("V", ds["V"], grid, interp_method=XLinear)
+    W = parcels.Field("W", ds["W"], grid, interp_method=XLinear)
     U.units = parcels.GeographicPolar()
     V.units = parcels.GeographicPolar()  # U and V need GoegraphicPolar for C-Grid interpolation to work correctly
     UV = parcels.VectorField("UV", U, V, vector_interp_method=CGrid_Velocity)

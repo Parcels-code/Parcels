@@ -22,6 +22,7 @@ from parcels import (
 from parcels._core.particle import Particle, create_particle_data, get_default_particle
 from parcels._core.utils.time import TimeInterval
 from parcels._datasets.structured.generic import datasets
+from parcels.interpolators import XLinear
 from parcels.kernels import AdvectionRK4
 from tests.common_kernels import DoNothing
 
@@ -31,8 +32,8 @@ def fieldset() -> FieldSet:  # TODO v4: Move into a `conftest.py` file and remov
     """Fixture to create a FieldSet object for testing."""
     ds = datasets["ds_2d_left"]
     grid = XGrid.from_dataset(ds)
-    U = Field("U", ds["U_A_grid"], grid)
-    V = Field("V", ds["V_A_grid"], grid)
+    U = Field("U", ds["U_A_grid"], grid, XLinear)
+    V = Field("V", ds["V_A_grid"], grid, XLinear)
     UV = VectorField("UV", U, V)
 
     return FieldSet(
@@ -228,7 +229,9 @@ def test_write_timebackward(fieldset, tmp_zarrfile):
 @pytest.mark.v4alpha
 def test_write_xiyi(fieldset, tmp_zarrfile):
     fieldset.U.data[:] = 1  # set a non-zero zonal velocity
-    fieldset.add_field(Field(name="P", data=np.zeros((3, 20)), lon=np.linspace(0, 1, 20), lat=[-2, 0, 2]))
+    fieldset.add_field(
+        Field(name="P", data=np.zeros((3, 20)), lon=np.linspace(0, 1, 20), lat=[-2, 0, 2], interp_method=XLinear)
+    )
     dt = np.timedelta64(3600, "s")
 
     particle = get_default_particle(np.float64)

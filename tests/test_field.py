@@ -9,7 +9,7 @@ from parcels import Field, UxGrid, VectorField, XGrid
 from parcels._datasets.structured.generic import T as T_structured
 from parcels._datasets.structured.generic import datasets as datasets_structured
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
-from parcels.interpolators import UXPiecewiseConstantFace, UXPiecewiseLinearNode
+from parcels.interpolators import UXPiecewiseConstantFace, UXPiecewiseLinearNode, XLinear
 
 
 def test_field_init_param_types():
@@ -17,29 +17,29 @@ def test_field_init_param_types():
     grid = XGrid.from_dataset(data)
 
     with pytest.raises(TypeError, match="Expected a string for variable name, got int instead."):
-        Field(name=123, data=data["data_g"], grid=grid)
+        Field(name=123, data=data["data_g"], grid=grid, interp_method=XLinear)
 
     for name in ["a b", "123"]:
         with pytest.raises(
             ValueError,
             match=r"Received invalid Python variable name.*: not a valid identifier. HINT: avoid using spaces, special characters, and starting with a number.",
         ):
-            Field(name=name, data=data["data_g"], grid=grid)
+            Field(name=name, data=data["data_g"], grid=grid, interp_method=XLinear)
 
     with pytest.raises(
         ValueError,
         match=r"Received invalid Python variable name.*: it is a reserved keyword. HINT: avoid using the following names:.*",
     ):
-        Field(name="while", data=data["data_g"], grid=grid)
+        Field(name="while", data=data["data_g"], grid=grid, interp_method=XLinear)
 
     with pytest.raises(
         ValueError,
         match="Expected `data` to be a uxarray.UxDataArray or xarray.DataArray",
     ):
-        Field(name="test", data=123, grid=grid)
+        Field(name="test", data=123, grid=grid, interp_method=XLinear)
 
     with pytest.raises(ValueError, match="Expected `grid` to be a parcels UxGrid, or parcels XGrid"):
-        Field(name="test", data=data["data_g"], grid=123)
+        Field(name="test", data=data["data_g"], grid=123, interp_method=XLinear)
 
 
 @pytest.mark.parametrize(
@@ -66,6 +66,7 @@ def test_field_incompatible_combination(data, grid):
             name="test_field",
             data=data,
             grid=grid,
+            interp_method=XLinear,
         )
 
 
@@ -85,6 +86,7 @@ def test_field_init_structured_grid(data, grid):
         name="test_field",
         data=data,
         grid=grid,
+        interp_method=XLinear,
     )
     assert field.name == "test_field"
     assert field.data.equals(data)
@@ -113,6 +115,7 @@ def test_field_init_fail_on_float_time_dim():
             name="test_field",
             data=data,
             grid=grid,
+            interp_method=XLinear,
         )
 
 
@@ -128,7 +131,7 @@ def test_field_init_fail_on_float_time_dim():
 )
 def test_field_time_interval(data, grid):
     """Test creating a field."""
-    field = Field(name="test_field", data=data, grid=grid)
+    field = Field(name="test_field", data=data, grid=grid, interp_method=XLinear)
     assert field.time_interval.left == np.datetime64("2000-01-01")
     assert field.time_interval.right == np.datetime64("2001-01-01")
 
@@ -163,8 +166,8 @@ def test_vectorfield_invalid_interpolator():
         return 0.0
 
     # Create component fields
-    U = Field(name="U", data=ds["data_g"], grid=grid)
-    V = Field(name="V", data=ds["data_g"], grid=grid)
+    U = Field(name="U", data=ds["data_g"], grid=grid, interp_method=XLinear)
+    V = Field(name="V", data=ds["data_g"], grid=grid, interp_method=XLinear)
 
     # Test invalid interpolator with wrong signature
     with pytest.raises(ValueError, match=".*incorrect name.*"):
