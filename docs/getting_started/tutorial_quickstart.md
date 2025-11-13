@@ -27,22 +27,22 @@ example_dataset_folder = parcels.download_example_dataset(
     "CopernicusMarine_data_for_Argo_tutorial"
 )
 
-ds_in = xr.open_mfdataset(f"{example_dataset_folder}/*.nc", combine="by_coords")
-ds_in.load()  # load the dataset into memory
-ds_in
+ds_fields = xr.open_mfdataset(f"{example_dataset_folder}/*.nc", combine="by_coords")
+ds_fields.load()  # load the dataset into memory
+ds_fields
 ```
 
 As we can see, the reanalysis dataset contains eastward velocity `uo`, northward velocity `vo`, potential temperature (`thetao`) and salinity (`so`) fields. To load the dataset into parcels we create a `FieldSet`, which recognizes the standard names of a velocity field:
 
 ```{code-cell}
-fieldset = parcels.FieldSet.from_copernicusmarine(ds_in)
+fieldset = parcels.FieldSet.from_copernicusmarine(ds_fields)
 ```
 
 The subset contains a region of the Agulhas current along the southeastern coast of Africa:
 
 ```{code-cell}
-temperature = ds_in.isel(time=0, depth=0).thetao.plot(cmap="magma")
-velocity = ds_in.isel(time=0, depth=0).plot.quiver(x="longitude", y="latitude", u="uo", v="vo")
+temperature = ds_fields.isel(time=0, depth=0).thetao.plot(cmap="magma")
+velocity = ds_fields.isel(time=0, depth=0).plot.quiver(x="longitude", y="latitude", u="uo", v="vo")
 ```
 
 ## Input virtual particles: `ParticleSet`
@@ -57,8 +57,8 @@ npart = 10  # number of particles to be released
 # release particles in a line along a meridian
 lat = np.linspace(-32.5, -30.5, npart)
 lon = np.repeat(32, npart)
-time = np.repeat(ds_in.time.values[0], npart) # at initial time of input data
-z = np.repeat(ds_in.depth.values[0], npart) # at the first depth (surface)
+time = np.repeat(ds_fields.time.values[0], npart) # at initial time of input data
+z = np.repeat(ds_fields.depth.values[0], npart) # at the first depth (surface)
 
 pset = parcels.ParticleSet(
     fieldset=fieldset, pclass=parcels.Particle, time=time, z=z, lat=lat, lon=lon
@@ -66,8 +66,8 @@ pset = parcels.ParticleSet(
 ```
 
 ```{code-cell}
-temperature = ds_in.isel(time=0, depth=0).thetao.plot(cmap="magma")
-velocity = ds_in.isel(time=0, depth=0).plot.quiver(x="longitude", y="latitude", u="uo", v="vo")
+temperature = ds_fields.isel(time=0, depth=0).thetao.plot(cmap="magma")
+velocity = ds_fields.isel(time=0, depth=0).plot.quiver(x="longitude", y="latitude", u="uo", v="vo")
 ax = temperature.axes
 ax.scatter(lon,lat,s=40,c='w',edgecolors='r')
 ```
@@ -120,8 +120,8 @@ pset.execute(
 To start analyzing the trajectories computed by **Parcels**, we can open the `ParticleFile` using `xarray`:
 
 ```{code-cell}
-ds_out = xr.open_zarr("Output.zarr")
-ds_out
+ds_particles = xr.open_zarr("Output.zarr")
+ds_particles
 ```
 
 The 10 particle trajectories are stored along the `trajectory` dimension, and each trajectory contains 25 observations (initial values + 24 hourly timesteps) along the `obs` dimension. The [working with Parcels output tutorial](./tutorial_output.ipynb) provides more detail about the dataset and how to analyse it.
@@ -132,7 +132,7 @@ Let's verify that Parcels has computed the advection of the virtual particles!
 import matplotlib.pyplot as plt
 
 # plot positions and color particles by number of observation
-plt.scatter(ds_out.lon.T, ds_out.lat.T, c=np.repeat(ds_out.obs.values,npart))
+plt.scatter(ds_particles.lon.T, ds_particles.lat.T, c=np.repeat(ds_particles.obs.values,npart))
 plt.xlabel("Longitude [deg E]")
 plt.ylabel("Latitude [deg N]")
 plt.show()
@@ -161,9 +161,9 @@ pset.execute(
 When we check the output, we can see that the particles have returned to their original position!
 
 ```{code-cell}
-ds_out = xr.open_zarr("Output-backwards.zarr")
+ds_particles = xr.open_zarr("Output-backwards.zarr")
 
-plt.scatter(ds_out.lon.T, ds_out.lat.T, c=np.repeat(ds_out.obs.values,npart))
+plt.scatter(ds_particles.lon.T, ds_particles.lat.T, c=np.repeat(ds_particles.obs.values,npart))
 plt.xlabel("Longitude [deg E]")
 plt.ylabel("Latitude [deg N]")
 plt.show()
