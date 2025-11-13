@@ -20,7 +20,7 @@ import parcels
 
 ## Input flow fields: `FieldSet`
 
-A Parcels simulation of Lagrangian trajectories of virtual particles requires two inputs; the first is a set of hydrodynamics fields in which the particles are tracked. These hydrodynamic fields, including typically `U`, `V` (and `W`) flow velocities, need to be stored in a `parcels.FieldSet` object. Parcels provides tooling to parse many types of models or observations into such a `parcels.FieldSet` object. Here we provide an example using a subset of the [Global Ocean Physics Reanalysis](https://doi.org/10.48670/moi-00021) from the Copernicus Marine Service.
+A Parcels simulation of Lagrangian trajectories of virtual particles requires two inputs; the first is a set of hydrodynamics fields in which the particles are tracked. Here we provide an example using a subset of the [Global Ocean Physics Reanalysis](https://doi.org/10.48670/moi-00021) from the Copernicus Marine Service.
 
 ```{code-cell}
 example_dataset_folder = parcels.download_example_dataset(
@@ -32,7 +32,9 @@ ds_fields.load()  # load the dataset into memory
 ds_fields
 ```
 
-As we can see, the reanalysis dataset contains eastward velocity `uo`, northward velocity `vo`, potential temperature (`thetao`) and salinity (`so`) fields. To load the dataset into parcels we create a `FieldSet`, which recognizes the standard names of a velocity field:
+As we can see, the reanalysis dataset contains eastward velocity `uo`, northward velocity `vo`, potential temperature (`thetao`) and salinity (`so`) fields. 
+
+These hydrodynamic fields need to be stored in a `parcels.FieldSet` object. Parcels provides tooling to parse many types of models or observations into such a `parcels.FieldSet` object. Here, we use `FieldSet.from_copernicusmarine()`, which recognizes the standard names of a velocity field:
 
 ```{code-cell}
 fieldset = parcels.FieldSet.from_copernicusmarine(ds_fields)
@@ -49,7 +51,7 @@ velocity = ds_fields.isel(time=0, depth=0).plot.quiver(x="longitude", y="latitud
 
 Now that we have created a `parcels.FieldSet` object from the hydrodynamic data, we need to provide our second input: the virtual particles for which we will calculate the trajectories.
 
-We need to create a `parcels.ParticleSet` object with the particles' initial time and position. The `parcels.ParticleSet` object also needs to know about the `FieldSet` in which the particles "live". Finally, we need to specify the type of `parcels.Particle` we want to use. The default particles have `time`, `lon`, `lat`, and `z`, but you can easily add other `Variables` such as size, temperature, or age to create your own particles to mimic plastic or an [ARGO float](../user_guide/examples/tutorial_Argofloats.ipynb).
+We need to create a `parcels.ParticleSet` object with the particles' initial time and position. The `parcels.ParticleSet` object also needs to know about the `FieldSet` in which the particles "live". Finally, we need to specify the type of `parcels.Particle` we want to use. The default particles have `time`, `z`, `lat`, and `lon`, but you can easily add other `Variables` such as size, temperature, or age to create your own particles to mimic plastic or an [ARGO float](../user_guide/examples/tutorial_Argofloats.ipynb).
 
 ```{code-cell}
 # Particle locations and initial time
