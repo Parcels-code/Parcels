@@ -120,7 +120,7 @@ pset.execute(
 To start analyzing the trajectories computed by **Parcels**, we can open the `ParticleFile` using `xarray`:
 
 ```{code-cell}
-ds_particles = xr.open_zarr("Output.zarr")
+ds_particles = xr.open_zarr("output.zarr")
 ds_particles
 ```
 
@@ -141,7 +141,7 @@ plt.show()
 
 That looks good! The virtual particles released in a line along the 32nd meridian (dark blue) have been advected by the flow field.
 
-## Running a simulation backwards in time
+<!-- ## Running a simulation backwards in time
 
 Now that we know how to run a simulation, we can easily run another and change one of the settings. We can trace back the particles from their current to their original position by running the simulation backwards in time. To do so, we can simply make `dt` < 0.
 
@@ -172,4 +172,4 @@ plt.scatter(ds_particles.lon.T, ds_particles.lat.T, c=np.repeat(ds_particles.obs
 plt.xlabel("Longitude [deg E]")
 plt.ylabel("Latitude [deg N]")
 plt.show()
-```
+``` -->
