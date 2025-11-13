@@ -28,14 +28,14 @@ a table showing the latest notebook execution:
 
 ## Style guide
 
-- **Prefer `import parcels` over `from parcels import class` in tutorials and how-to guides** so its obvious in later 
-code cells which classes and methods are part of Parcels.
-- [**Avoid too much Repitition In Documentation**](https://www.writethedocs.org/guide/writing/docs-principles/#arid): 
-tutorials and how-to guides notebooks will often have repetition of the general **Parcels** steps, (e.g., imports ) - 
-this is needed so that users have complete examples that they can copy and experiment with.`. We try to limit each page 
-in the documentation to a small number of examples.
-- Introduce links and cross-references to maximize discoverability of documentation. This also reduces the necessity for 
-repetition in notebooks.
+- **Prefer `import parcels` over `from parcels import class` in tutorials and how-to guides** so its obvious in later
+  code cells which classes and methods are part of Parcels.
+- [**Avoid too much Repitition In Documentation**](https://www.writethedocs.org/guide/writing/docs-principles/#arid):
+  tutorials and how-to guides notebooks will often have repetition of the general **Parcels** steps, (e.g., imports ) -
+  this is needed so that users have complete examples that they can copy and experiment with.`. We try to limit each page
+  in the documentation to a small number of examples.
+- Introduce links and cross-references to maximize discoverability of documentation. This also reduces the necessity for
+  repetition in notebooks.
 - **Import packages at the top of the section in which they are first used** to show what they are used for.
 - **Write documentation in first person plural ("we").** In our open source code, tutorials and guides can be written
   by any developer or user, so the documentation teaches all of us how to do something with Parcels. Sometimes it can be
