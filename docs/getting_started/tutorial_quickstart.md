@@ -89,7 +89,7 @@ kernels = [parcels.kernels.AdvectionEE]
 Before starting the simulation, we must define where and how frequent we want to write the output of our simulation. We can define this in a `ParticleFile` object:
 
 ```{code-cell}
-output_file = parcels.ParticleFile("output.zarr", outputdt=np.timedelta64(1, "h"))
+output_file = parcels.ParticleFile("output-quickstart.zarr", outputdt=np.timedelta64(1, "h"))
 ```
 
 The output files are in `.zarr` [format](https://zarr.readthedocs.io/en/stable/), which can be read by `xarray`. See the [Parcels output tutorial](./tutorial_output.ipynb) for more information on the zarr format. We want to choose the `outputdt` argument so that it captures the smallest timescales of our interest.
@@ -120,7 +120,7 @@ pset.execute(
 To start analyzing the trajectories computed by **Parcels**, we can open the `ParticleFile` using `xarray`:
 
 ```{code-cell}
-ds_particles = xr.open_zarr("output.zarr")
+ds_particles = xr.open_zarr("output-quickstart.zarr")
 ds_particles
 ```
 
