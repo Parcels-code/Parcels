@@ -47,7 +47,7 @@ velocity = ds_in.isel(time=0, depth=0).plot.quiver(x="longitude", y="latitude", 
 
 ## Input virtual particles: `ParticleSet`
 
-Now that we have created a `parcels.FieldSet` object from the hydrodynamic data, we need to provide our second input: the virtual particles for which we will calculate the trajectories. 
+Now that we have created a `parcels.FieldSet` object from the hydrodynamic data, we need to provide our second input: the virtual particles for which we will calculate the trajectories.
 
 We need to create a `parcels.ParticleSet` object with the particles' initial time and position. The `parcels.ParticleSet` object also needs to know about the `FieldSet` in which the particles "live". Finally, we need to specify the type of `parcels.Particle` we want to use. The default particles have `time`, `lon`, `lat`, and `z`, but you can easily add other `Variables` such as size, temperature, or age to create your own particles to mimic plastic or an [ARGO float](../user_guide/examples/tutorial_Argofloats.ipynb).
 
@@ -55,7 +55,7 @@ We need to create a `parcels.ParticleSet` object with the particles' initial tim
 # Particle locations and initial time
 npart = 10  # number of particles to be released
 # release particles in a line along a meridian
-lat = np.linspace(-32.5, -30.5, npart) 
+lat = np.linspace(-32.5, -30.5, npart)
 lon = np.repeat(32, npart)
 time = np.repeat(ds_in.time.values[0], npart) # at initial time of input data
 z = np.repeat(ds_in.depth.values[0], npart) # at the first depth (surface)
@@ -124,7 +124,7 @@ ds_out = xr.open_zarr("Output.zarr")
 ds_out
 ```
 
-The 10 particle trajectories are stored along the `trajectory` dimension, and each trajectory contains 25 observations (initial values + 24 hourly timesteps) along the `obs` dimension. The [working with Parcels output tutorial](./tutorial_output.ipynb) provides more detail about the dataset and how to analyse it. 
+The 10 particle trajectories are stored along the `trajectory` dimension, and each trajectory contains 25 observations (initial values + 24 hourly timesteps) along the `obs` dimension. The [working with Parcels output tutorial](./tutorial_output.ipynb) provides more detail about the dataset and how to analyse it.
 
 Let's verify that Parcels has computed the advection of the virtual particles!
 
