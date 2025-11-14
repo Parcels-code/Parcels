@@ -2,7 +2,7 @@
 
 ## Use of AI in development
 
-Many developers use AI (and in particular Large Language Models) to help them in their work. These LLMs have received both praise and criticism when it comes to software development.
+Many developers use AI Large Language Models to help them in their work. These LLMs have received both praise and criticism when it comes to software development.
 
 We accept that Parcels developers have their own motivation for using (or not using) AI. However, we have one policy that we expect all Parcels developers to follow:
 
