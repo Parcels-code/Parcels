@@ -67,8 +67,6 @@ jobs:
           name: Unittest report ${{ matrix.os }}-${{ matrix.pixi-environment }}
           path: ${{ env.COVERAGE_REPORT }}
   integration-test:
-    # TODO v4: Re-enable the workflow once development has stabilized and we want to run integration tests again
-    if: false
     name: "Integration: ${{ matrix.os }} | pixi run -e ${{ matrix.pixi-environment }} tests-notebooks"
     runs-on: ${{ matrix.os }}-latest
     needs: [cache-pixi-lock]
@@ -78,10 +76,10 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu] #, mac, windows] # TODO v4: Re-enable windows and mac
-        python-version: ["3.12"]
+        pixi-environment: ["test-notebooks-latest"]
         include:
           - os: ubuntu
-            python-version: "3.11"
+            pixi-environment: test-notebooks-py311
     steps:
       - uses: actions/checkout@v5
       - name: Restore cached pixi lockfile
@@ -98,7 +96,7 @@ jobs:
           cache-write: ${{ github.event_name == 'push' && github.ref_name == 'v4-dev' }} # TODO: Update v4-dev to main when v4 is released
       - name: Integration test
         run: |
-          pixi run test-notebooks -v -s --html="${{ env.COVERAGE_REPORT }}" --self-contained-html --cov=parcels --cov-report=xml
+          pixi run -e ${{matrix.pixi-environment}} tests-notebooks -v -s --html="${{ env.COVERAGE_REPORT }}" --self-contained-html --cov=parcels --cov-report=xml
       - name: Codecov
         uses: codecov/codecov-action@v5.5.1
         env:
