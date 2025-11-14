@@ -9,16 +9,13 @@ from parcels import (
     ParticleFile,
     ParticleSet,
     StatusCode,
-    UxGrid,
     Variable,
     VectorField,
     XGrid,
 )
 from parcels._core.index_search import _search_time_index
 from parcels._datasets.structured.generated import simple_UV_dataset
-from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
 from parcels.interpolators import (
-    UXPiecewiseLinearNode,
     XFreeslip,
     XLinear,
     XLinearInvdistLandTracer,
@@ -55,7 +52,7 @@ def field():
             "y": (["y"], [0.5, 1.5, 2.5, 3.5], {"axis": "Y"}),
         },
     )
-    return Field("U", ds["U"], XGrid.from_dataset(ds))
+    return Field("U", ds["U"], XGrid.from_dataset(ds), interp_method=XLinear)
 
 
 @pytest.mark.parametrize(
@@ -186,18 +183,6 @@ def test_interpolation_mesh_type(mesh, npart=10):
     assert v == 0.0
 
     assert U.eval(time, 0, lat, 0, applyConversion=False) == 1
-
-
-def test_default_interpolator_set_correctly():
-    ds = simple_UV_dataset()
-    grid = XGrid.from_dataset(ds)
-    U = Field("U", ds["U"], grid)
-    assert U.interp_method == XLinear
-
-    ds = datasets_unstructured["stommel_gyre_delaunay"]
-    grid = UxGrid(grid=ds.uxgrid, z=ds.coords["nz"])
-    U = Field("U", ds["U"], grid)
-    assert U.interp_method == UXPiecewiseLinearNode
 
 
 interp_methods = {

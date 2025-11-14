@@ -16,6 +16,7 @@ from parcels import (
     XGrid,
 )
 from parcels._datasets.structured.generic import datasets as datasets_structured
+from parcels.interpolators import XLinear
 from tests.common_kernels import DoNothing
 from tests.utils import round_and_hash_float_array
 
@@ -24,8 +25,8 @@ from tests.utils import round_and_hash_float_array
 def fieldset() -> FieldSet:
     ds = datasets_structured["ds_2d_left"]
     grid = XGrid.from_dataset(ds, mesh="flat")
-    U = Field("U", ds["U_A_grid"], grid)
-    V = Field("V", ds["V_A_grid"], grid)
+    U = Field("U", ds["U_A_grid"], grid, interp_method=XLinear)
+    V = Field("V", ds["V_A_grid"], grid, interp_method=XLinear)
     return FieldSet([U, V])
 
 

@@ -26,8 +26,6 @@ from parcels._python import assert_same_function_signature
 from parcels._reprs import default_repr
 from parcels._typing import VectorType
 from parcels.interpolators import (
-    UXPiecewiseLinearNode,
-    XLinear,
     ZeroInterpolator,
     ZeroInterpolator_Vector,
 )
@@ -51,17 +49,11 @@ def _deal_with_errors(error, key, vector_type: VectorType):
         return 0
 
 
-_DEFAULT_INTERPOLATOR_MAPPING = {
-    XGrid: XLinear,
-    UxGrid: UXPiecewiseLinearNode,
-}
-
-
 class Field:
     """The Field class that holds scalar field data.
     The `Field` object is a wrapper around a xarray.DataArray or uxarray.UxDataArray object.
     Additionally, it holds a dynamic Callable procedure that is used to interpolate the field data.
-    During initialization, the user can supply a custom interpolation method that is used to interpolate the field data,
+    During initialization, the user is required to supply a custom interpolation method that is used to interpolate the field data,
     so long as the interpolation method has the correct signature.
 
     Notes
@@ -96,7 +88,7 @@ class Field:
         name: str,
         data: xr.DataArray | ux.UxDataArray,
         grid: UxGrid | XGrid,
-        interp_method: Callable | None = None,
+        interp_method: Callable,
     ):
         if not isinstance(data, (ux.UxDataArray, xr.DataArray)):
             raise ValueError(
@@ -136,11 +128,8 @@ class Field:
             raise e
 
         # Setting the interpolation method dynamically
-        if interp_method is None:
-            self._interp_method = _DEFAULT_INTERPOLATOR_MAPPING[type(self.grid)]
-        else:
-            assert_same_function_signature(interp_method, ref=ZeroInterpolator, context="Interpolation")
-            self._interp_method = interp_method
+        assert_same_function_signature(interp_method, ref=ZeroInterpolator, context="Interpolation")
+        self._interp_method = interp_method
 
         self.igrid = -1  # Default the grid index to -1
 
@@ -217,6 +206,9 @@ class Field:
             _ei = None
         else:
             _ei = particles.ei[:, self.igrid]
+        z = np.atleast_1d(z)
+        y = np.atleast_1d(y)
+        x = np.atleast_1d(x)
 
         particle_positions, grid_positions = _get_positions(self, time, z, y, x, particles, _ei)
 
@@ -300,6 +292,9 @@ class VectorField:
             _ei = None
         else:
             _ei = particles.ei[:, self.igrid]
+        z = np.atleast_1d(z)
+        y = np.atleast_1d(y)
+        x = np.atleast_1d(x)
 
         particle_positions, grid_positions = _get_positions(self.U, time, z, y, x, particles, _ei)
 

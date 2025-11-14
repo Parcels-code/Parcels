@@ -28,7 +28,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu, mac, windows]
+        os: [ubuntu, windows]
         pixi-environment: [test-latest]
         include:
           - os: ubuntu

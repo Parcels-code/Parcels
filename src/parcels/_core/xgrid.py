@@ -289,22 +289,13 @@ class XGrid(BaseGrid):
         else:
             zi, zeta = np.zeros(z.shape, dtype=int), np.zeros(z.shape, dtype=float)
 
-        if ds.lon.ndim == 1:
-            yi, eta = _search_1d_array(ds.lat.values, y)
-            xi, xsi = _search_1d_array(ds.lon.values, x)
-            return {
-                "Z": {"index": zi, "bcoord": zeta},
-                "Y": {"index": yi, "bcoord": eta},
-                "X": {"index": xi, "bcoord": xsi},
-            }
+        if "X" in self.axes and "Y" in self.axes and ds.lon.ndim == 2:
+            yi, xi = None, None
+            if ei is not None:
+                axis_indices = self.unravel_index(ei)
+                xi = axis_indices.get("X")
+                yi = axis_indices.get("Y")
 
-        yi, xi = None, None
-        if ei is not None:
-            axis_indices = self.unravel_index(ei)
-            xi = axis_indices.get("X")
-            yi = axis_indices.get("Y")
-
-        if ds.lon.ndim == 2:
             yi, eta, xi, xsi = _search_indices_curvilinear_2d(self, y, x, yi, xi)
 
             return {
@@ -313,7 +304,24 @@ class XGrid(BaseGrid):
                 "X": {"index": xi, "bcoord": xsi},
             }
 
-        raise NotImplementedError("Searching in >2D lon/lat arrays is not implemented yet.")
+        if "X" in self.axes and ds.lon.ndim > 2:
+            raise NotImplementedError("Searching in >2D lon/lat arrays is not implemented yet.")
+
+        if "Y" in self.axes:
+            yi, eta = _search_1d_array(ds.lat.values, y)
+        else:
+            yi, eta = np.zeros(y.shape, dtype=int), np.zeros(y.shape, dtype=float)
+
+        if "X" in self.axes:
+            xi, xsi = _search_1d_array(ds.lon.values, x)
+        else:
+            xi, xsi = np.zeros(x.shape, dtype=int), np.zeros(x.shape, dtype=float)
+
+        return {
+            "Z": {"index": zi, "bcoord": zeta},
+            "Y": {"index": yi, "bcoord": eta},
+            "X": {"index": xi, "bcoord": xsi},
+        }
 
     @cached_property
     def _fpoint_info(self):
