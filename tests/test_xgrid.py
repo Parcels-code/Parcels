@@ -17,6 +17,7 @@ from parcels._core.xgrid import (
     _transpose_xfield_data_to_tzyx,
 )
 from parcels._datasets.structured.generic import X, Y, Z, datasets
+from parcels.interpolators import XLinear
 from tests import utils
 
 GridTestCase = namedtuple("GridTestCase", ["ds", "attr", "expected"])
@@ -142,7 +143,7 @@ def test_vertical1D_field():
         coords={"depth": (["depth"], np.linspace(0, 1, nz), {"axis": "Z"})},
     )
     grid = XGrid.from_dataset(ds)
-    field = Field("z1d", ds["z1d"], grid)
+    field = Field("z1d", ds["z1d"], grid, XLinear)
 
     assert field.eval(np.timedelta64(0, "s"), 0.45, 0, 0) == 4.5
 
@@ -154,7 +155,7 @@ def test_time1D_field():
         coords={"time": (["time"], timerange, {"axis": "T"})},
     )
     grid = XGrid.from_dataset(ds)
-    field = Field("t1d", ds["t1d"], grid)
+    field = Field("t1d", ds["t1d"], grid, XLinear)
 
     assert field.eval(np.datetime64("2000-01-10T12:00:00"), -20, 5, 6) == 9.5
 
