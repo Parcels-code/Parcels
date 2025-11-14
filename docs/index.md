@@ -8,8 +8,6 @@ Welcome to the documentation of Parcels. **Parcels** provides a set of Python cl
 
 _Animation of virtual particles carried by ocean surface flow in the global oceans. The particles are advected with Parcels in data from the_ [NEMO Ocean Model](https://www.nemo-ocean.eu/).
 
-**Version**: {{env.config.version}}
-
 ```{note}
 You can browse the documentation for older versions by using the version switcher in the bottom right.
 ```

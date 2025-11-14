@@ -1,6 +1,8 @@
 build/*
 docs/_build/*
 docs/_downloads
+docs/jupyter_execute/*
+docs/.jupyter_cache/*
 output
 
 *.log

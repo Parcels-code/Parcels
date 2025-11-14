@@ -36,8 +36,7 @@ extensions = [
     "sphinx.ext.linkcode",
     "sphinx.ext.mathjax",
     "sphinx.ext.napoleon",
-    "myst_parser",
-    "nbsphinx",
+    "myst_nb",
     "numpydoc",
     "sphinxcontrib.mermaid",
     "sphinx_design",
@@ -114,7 +113,13 @@ language = "en"
 
 # List of patterns, relative to source directory, that match files and
 # directories to ignore when looking for source files.
-exclude_patterns = ["_build", "**.ipynb_checkpoints", "user_guide/examples_v3"]
+exclude_patterns = [
+    "_build",
+    "jupyter_execute",
+    "**.ipynb_checkpoints",
+    "user_guide/examples_v3",
+    ".jupyter_cache",
+]
 
 # The reST default role (used for this markup: `text`) to use for all
 # documents.
@@ -294,7 +299,7 @@ html_extra_path = ["robots.txt"]
 
 # Custom sidebar templates, maps document names to template names.
 
-html_sidebars = {"**": ["sidebar-nav-bs"], "documentation/additional_examples": []}
+html_sidebars = {"**": ["sidebar-nav-bs"]}
 
 # Additional templates that should be rendered to pages, maps page names to
 # template names.
@@ -343,17 +348,6 @@ html_sidebars = {"**": ["sidebar-nav-bs"], "documentation/additional_examples": 
 # Output file base name for HTML help builder.
 htmlhelp_basename = "parcelsdoc"
 
-nbsphinx_thumbnails = {
-    "examples/tutorial_parcels_structure": "_images/parcels_user_diagram.png",
-    "examples/tutorial_timestamps": "_static/calendar-icon.jpg",
-    "examples/documentation_homepage_animation": "_images/homepage.gif",
-    "examples/tutorial_interaction": "_static/pulled_particles_twoatractors_line.gif",
-    "examples/documentation_LargeRunsOutput": "_static/harddrive.png",
-    "examples/tutorial_unitconverters": "_static/globe-icon.jpg",
-    "examples/documentation_geospatial": "_images/tutorial_geospatial_google_earth.png",
-    "examples/tutorial_kernelloop": "_static/loop-icon.jpeg",
-}
-nbsphinx_execute = "never"
 # -- Options for LaTeX output ---------------------------------------------
 
 BRANCH = (
@@ -528,3 +522,9 @@ epub_exclude_files = ["search.html"]
 myst_heading_anchors = 3
 
 myst_enable_extensions = ["substitution"]
+
+# -- Options for MyST-nb --------------------------------------------------
+nb_execution_mode = "cache"
+nb_execution_excludepatterns = ["jupyter_execute", ".jupyter_cache"]
+nb_execution_raise_on_error = True
+nb_execution_timeout = 75

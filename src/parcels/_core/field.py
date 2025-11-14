@@ -206,6 +206,9 @@ class Field:
             _ei = None
         else:
             _ei = particles.ei[:, self.igrid]
+        z = np.atleast_1d(z)
+        y = np.atleast_1d(y)
+        x = np.atleast_1d(x)
 
         particle_positions, grid_positions = _get_positions(self, time, z, y, x, particles, _ei)
 
@@ -289,6 +292,9 @@ class VectorField:
             _ei = None
         else:
             _ei = particles.ei[:, self.igrid]
+        z = np.atleast_1d(z)
+        y = np.atleast_1d(y)
+        x = np.atleast_1d(x)
 
         particle_positions, grid_positions = _get_positions(self.U, time, z, y, x, particles, _ei)
 
