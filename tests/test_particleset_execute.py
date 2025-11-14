@@ -22,7 +22,7 @@ from parcels import (
 from parcels._datasets.structured.generated import simple_UV_dataset
 from parcels._datasets.structured.generic import datasets as datasets_structured
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
-from parcels.interpolators import UXPiecewiseConstantFace, UXPiecewiseLinearNode
+from parcels.interpolators import UXPiecewiseConstantFace, UXPiecewiseLinearNode, XLinear
 from parcels.kernels import AdvectionEE, AdvectionRK4, AdvectionRK4_3D
 from tests.common_kernels import DoNothing
 
@@ -31,8 +31,8 @@ from tests.common_kernels import DoNothing
 def fieldset() -> FieldSet:
     ds = datasets_structured["ds_2d_left"]
     grid = XGrid.from_dataset(ds, mesh="flat")
-    U = Field("U", ds["U_A_grid"], grid)
-    V = Field("V", ds["V_A_grid"], grid)
+    U = Field("U", ds["U_A_grid"], grid, interp_method=XLinear)
+    V = Field("V", ds["V_A_grid"], grid, interp_method=XLinear)
     UV = VectorField("UV", U, V)
     return FieldSet([U, V, UV])
 
@@ -43,8 +43,8 @@ def fieldset_no_time_interval() -> FieldSet:
     ds = datasets_structured["ds_2d_left"].isel(time=0).drop_vars("time")
 
     grid = XGrid.from_dataset(ds, mesh="flat")
-    U = Field("U", ds["U_A_grid"], grid)
-    V = Field("V", ds["V_A_grid"], grid)
+    U = Field("U", ds["U_A_grid"], grid, interp_method=XLinear)
+    V = Field("V", ds["V_A_grid"], grid, interp_method=XLinear)
     UV = VectorField("UV", U, V)
     return FieldSet([U, V, UV])
 
@@ -54,8 +54,8 @@ def zonal_flow_fieldset() -> FieldSet:
     ds = simple_UV_dataset(mesh="flat")
     ds["U"].data[:] = 1.0
     grid = XGrid.from_dataset(ds, mesh="flat")
-    U = Field("U", ds["U"], grid)
-    V = Field("V", ds["V"], grid)
+    U = Field("U", ds["U"], grid, interp_method=XLinear)
+    V = Field("V", ds["V"], grid, interp_method=XLinear)
     UV = VectorField("UV", U, V)
     return FieldSet([U, V, UV])
 
