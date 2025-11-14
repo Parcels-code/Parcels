@@ -1,5 +1,17 @@
 # Policies
 
+## Use of AI in development
+
+Many developers use AI (and in particular Large Language Models) to help them in their work. These LLMs have received both praise and criticism when it comes to software development.
+
+We accept that Parcels developers have their own motivation for using (or not using) AI. However, we have one policy that we expect all Parcels developers to follow:
+
+> It is ultimately your responsibility to understand the code that you commit.
+
+Remember that reviews are done by human maintainers - asking us to review code that an AI wrote but you don't understand isn't kind to these maintainers.
+
+Furthermore, we also have an [AI agents policy](/CLAUDE.md) that states how we expect AI agents to engage with Parcels on GitHub.
+
 ## Versioning
 
 Parcels follows [Intended Effort Versioning (EffVer)](https://jacobtomlinson.dev/effver/), where the version number (e.g., v2.1.0) is thought of as `MACRO.MESO.MICRO`.
