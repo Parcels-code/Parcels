@@ -56,12 +56,15 @@ def AdvectionRK4(particles, fieldset):  # pragma: no cover
         p.dlon += (u1 + 2 * u2 + 2 * u3 + u4) / 6.0 * dt
         p.dlat += (v1 + 2 * v2 + 2 * v3 + v4) / 6.0 * dt
 
-    Update_locations(
-        particles[
-            (particles.time + particles.dt <= fieldset.time_interval.right)
-            & (particles.time + particles.dt >= fieldset.time_interval.left)
-        ]
-    )
+    if fieldset.time_interval is not None:
+        Update_locations(
+            particles[
+                (particles.time + particles.dt <= fieldset.time_interval.right)
+                & (particles.time + particles.dt >= fieldset.time_interval.left)
+            ]
+        )
+    else:
+        Update_locations(particles)
 
 
 def AdvectionRK4_3D(particles, fieldset):  # pragma: no cover
