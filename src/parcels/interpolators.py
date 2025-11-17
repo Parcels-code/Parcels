@@ -616,15 +616,25 @@ def XLinearInvdistLandTracer(
             eta_b = eta[None, None, None, None, :]
             xsi_b = xsi[None, None, None, None, :]
 
-            inv_dist = 1.0 / ((eta_b - j_grid) ** 2 + (xsi_b - i_grid) ** 2)
+            dist2 = (eta_b - j_grid) ** 2 + (xsi_b - i_grid) ** 2
 
             valid_mask = ~land_mask
+            # Normal inverse-distance weighting
+            inv_dist = 1.0 / dist2
             weighted = np.where(valid_mask, corner_data * inv_dist, 0.0)
 
             val = np.sum(weighted, axis=(0, 1, 2, 3))
             w_sum = np.sum(np.where(valid_mask, inv_dist, 0.0), axis=(0, 1, 2, 3))
 
             values[not_all_land] = val[not_all_land] / w_sum[not_all_land]
+
+            # If a particle hits exactly one of the 8 corner points, extract it
+            exact_mask = dist2 == 0 & valid_mask
+            exact_vals = np.sum(np.where(exact_mask, corner_data, 0.0), axis=(0, 1, 2, 3))
+            has_exact = np.any(exact_mask, axis=(0, 1, 2, 3))
+
+            exact_particles = not_all_land & has_exact
+            values[exact_particles] = exact_vals[exact_particles]
 
     return values.compute() if is_dask_collection(values) else values
 
