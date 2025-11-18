@@ -609,7 +609,6 @@ def XLinearInvdistLandTracer(
         all_land_mask = nb_land == 4 * lenZ * lenT
         values[all_land_mask] = 0.0
 
-        # not_all_land = np.asarray(~all_land_mask, dtype=bool)
         some_land = np.logical_and(nb_land > 0, nb_land < 4 * lenZ * lenT)
         if np.any(some_land):
             i_grid = np.arange(2)[None, None, None, :, None]
@@ -633,7 +632,6 @@ def XLinearInvdistLandTracer(
             exact_mask = dist2 == 0 & valid_mask
             exact_vals = np.sum(np.where(exact_mask, corner_data, 0.0), axis=(0, 1, 2, 3))
             has_exact = np.any(exact_mask, axis=(0, 1, 2, 3))
-            print(has_exact)
 
             exact_particles = some_land & has_exact
             values[exact_particles] = exact_vals[exact_particles]
