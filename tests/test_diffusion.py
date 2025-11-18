@@ -23,12 +23,10 @@ def test_fieldKh_Brownian(mesh):
     grid = XGrid.from_dataset(ds, mesh=mesh)
     U = Field("U", ds["U"], grid, interp_method=XLinear)
     V = Field("V", ds["V"], grid, interp_method=XLinear)
-    ds["Kh_zonal"] = (["time", "depth", "YG", "XG"], np.full((2, 1, 2, 2), kh_zonal))
-    ds["Kh_meridional"] = (["time", "depth", "YG", "XG"], np.full((2, 1, 2, 2), kh_meridional))
-    Kh_zonal = Field("Kh_zonal", ds["Kh_zonal"], grid=grid, interp_method=XLinear)
-    Kh_meridional = Field("Kh_meridional", ds["Kh_meridional"], grid=grid, interp_method=XLinear)
     UV = VectorField("UV", U, V)
-    fieldset = FieldSet([U, V, UV, Kh_zonal, Kh_meridional])
+    fieldset = FieldSet([U, V, UV])
+    fieldset.add_constant_field("Kh_zonal", kh_zonal, mesh=mesh)
+    fieldset.add_constant_field("Kh_meridional", kh_meridional, mesh=mesh)
 
     npart = 100
     runtime = np.timedelta64(2, "h")

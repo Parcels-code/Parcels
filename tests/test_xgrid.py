@@ -17,6 +17,7 @@ from parcels._core.xgrid import (
     _transpose_xfield_data_to_tzyx,
 )
 from parcels._datasets.structured.generic import X, Y, Z, datasets
+from parcels.interpolators import XLinear
 from tests import utils
 
 GridTestCase = namedtuple("GridTestCase", ["ds", "attr", "expected"])
@@ -139,7 +140,31 @@ def test_dim_without_axis():
     ds = xr.Dataset({"z1d": (["depth"], [0])}, coords={"depth": [0]})
     grid = XGrid.from_dataset(ds)
     with pytest.raises(ValueError, match='Dimension "depth" has no axis attribute*'):
-        Field("z1d", ds["z1d"], grid)
+        Field("z1d", ds["z1d"], grid, XLinear)
+
+
+def test_vertical1D_field():
+    nz = 11
+    ds = xr.Dataset(
+        {"z1d": (["depth"], np.linspace(0, 10, nz))},
+        coords={"depth": (["depth"], np.linspace(0, 1, nz), {"axis": "Z"})},
+    )
+    grid = XGrid.from_dataset(ds)
+    field = Field("z1d", ds["z1d"], grid, XLinear)
+
+    assert field.eval(np.timedelta64(0, "s"), 0.45, 0, 0) == 4.5
+
+
+def test_time1D_field():
+    timerange = xr.date_range("2000-01-01", "2000-01-20")
+    ds = xr.Dataset(
+        {"t1d": (["time"], np.arange(0, len(timerange)))},
+        coords={"time": (["time"], timerange, {"axis": "T"})},
+    )
+    grid = XGrid.from_dataset(ds)
+    field = Field("t1d", ds["t1d"], grid, XLinear)
+
+    assert field.eval(np.datetime64("2000-01-10T12:00:00"), -20, 5, 6) == 9.5
 
 
 @pytest.mark.parametrize(
