@@ -602,15 +602,16 @@ def XLinearInvdistLandTracer(
 
     corner_data = _get_corner_data_Agrid(field.data, ti, zi, yi, xi, lenT, lenZ, len(xsi), axis_dim)
 
-    land_mask = np.isnan(corner_data)
+    land_mask = np.isclose(corner_data, 0.0)
     nb_land = np.sum(land_mask, axis=(0, 1, 2, 3))
 
     if np.any(nb_land):
         all_land_mask = nb_land == 4 * lenZ * lenT
         values[all_land_mask] = 0.0
 
-        not_all_land = np.asarray(~all_land_mask, dtype=bool)
-        if np.any(not_all_land):
+        # not_all_land = np.asarray(~all_land_mask, dtype=bool)
+        some_land = np.logical_and(nb_land > 0, nb_land < 4 * lenZ * lenT)
+        if np.any(some_land):
             i_grid = np.arange(2)[None, None, None, :, None]
             j_grid = np.arange(2)[None, None, :, None, None]
             eta_b = eta[None, None, None, None, :]
@@ -626,14 +627,15 @@ def XLinearInvdistLandTracer(
             val = np.sum(weighted, axis=(0, 1, 2, 3))
             w_sum = np.sum(np.where(valid_mask, inv_dist, 0.0), axis=(0, 1, 2, 3))
 
-            values[not_all_land] = val[not_all_land] / w_sum[not_all_land]
+            values[some_land] = val[some_land] / w_sum[some_land]
 
             # If a particle hits exactly one of the 8 corner points, extract it
             exact_mask = dist2 == 0 & valid_mask
             exact_vals = np.sum(np.where(exact_mask, corner_data, 0.0), axis=(0, 1, 2, 3))
             has_exact = np.any(exact_mask, axis=(0, 1, 2, 3))
+            print(has_exact)
 
-            exact_particles = not_all_land & has_exact
+            exact_particles = some_land & has_exact
             values[exact_particles] = exact_vals[exact_particles]
 
     return values.compute() if is_dask_collection(values) else values
