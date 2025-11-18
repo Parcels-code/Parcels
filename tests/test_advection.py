@@ -454,14 +454,14 @@ def test_nemo_curvilinear_fieldset():
     U = parcels.Field("U", ds["U"], grid, interp_method=XLinear)
     V = parcels.Field("V", ds["V"], grid, interp_method=XLinear)
     U.units = parcels.GeographicPolar()
-    V.units = parcels.GeographicPolar()  # U and V need GoegraphicPolar for  C-Grid interpolation to work correctly
+    V.units = parcels.GeographicPolar()  # U and V need GeographicPolar for C-Grid interpolation to work correctly
     UV = parcels.VectorField("UV", U, V, vector_interp_method=CGrid_Velocity)
     fieldset = parcels.FieldSet([U, V, UV])
 
     npart = 20
     lonp = 30 * np.ones(npart)
     latp = np.linspace(-70, 88, npart)
-    runtime = np.timedelta64(12, "h")  # TODO increase to 160 days
+    runtime = np.timedelta64(160, "D")
 
     def periodicBC(particles, fieldset):  # pragma: no cover
         particles.dlon = np.where(particles.lon > 180, particles.dlon - 360, particles.dlon)
