@@ -48,6 +48,16 @@ def _drop_field_data(ds: xr.Dataset) -> xr.Dataset:
     return ds.drop_vars(ds.data_vars)
 
 
+def assert_all_field_dims_have_axis(da: xr.DataArray, xgcm_grid: xgcm.Grid) -> None:
+    ax_dims = [(get_axis_from_dim_name(xgcm_grid.axes, dim), dim) for dim in da.dims]
+    for dim in ax_dims:
+        if dim[0] is None:
+            raise ValueError(
+                f'Dimension "{dim[1]}" has no axis attribute. '
+                f'HINT: You may want to add an {{"axis": A}} to your DataSet["{dim[1]}"], where A is one of "X", "Y", "Z" or "T"'
+            )
+
+
 def _transpose_xfield_data_to_tzyx(da: xr.DataArray, xgcm_grid: xgcm.Grid) -> xr.DataArray:
     """
     Transpose a DataArray of any shape into a 4D array of order TZYX. Uses xgcm to determine
