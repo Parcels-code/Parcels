@@ -21,7 +21,7 @@ from parcels._core.statuscodes import (
 from parcels._core.utils.string import _assert_str_and_python_varname
 from parcels._core.utils.time import TimeInterval
 from parcels._core.uxgrid import UxGrid
-from parcels._core.xgrid import XGrid, _transpose_xfield_data_to_tzyx
+from parcels._core.xgrid import XGrid, _transpose_xfield_data_to_tzyx, assert_all_field_dims_have_axis
 from parcels._python import assert_same_function_signature
 from parcels._reprs import default_repr
 from parcels._typing import VectorType
@@ -111,6 +111,7 @@ class Field:
         _assert_compatible_combination(data, grid)
 
         if isinstance(grid, XGrid):
+            assert_all_field_dims_have_axis(data, grid.xgcm_grid)
             data = _transpose_xfield_data_to_tzyx(data, grid.xgcm_grid)
 
         self.name = name
