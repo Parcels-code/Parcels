@@ -18,8 +18,17 @@ __all__ = [
 ]
 
 
+def _adjust_RK_dt(time_interval, time, dt):
+    """Helper function to make sure dt does not go outside time_interval for RK methods"""
+    if time_interval:
+        dt = np.where(time + dt <= time_interval.right, dt, time_interval.right - time)
+        dt = np.where(time + dt >= time_interval.left, dt, time - time_interval.left)
+    return dt
+
+
 def AdvectionRK2(particles, fieldset):  # pragma: no cover
     """Advection of particles using second-order Runge-Kutta integration."""
+    particles.dt = _adjust_RK_dt(fieldset.time_interval, particles.time, particles.dt)
     dt = particles.dt / np.timedelta64(1, "s")  # TODO: improve API for converting dt to seconds
     (u1, v1) = fieldset.UV[particles]
     lon1, lat1 = (particles.lon + u1 * 0.5 * dt, particles.lat + v1 * 0.5 * dt)
@@ -30,6 +39,7 @@ def AdvectionRK2(particles, fieldset):  # pragma: no cover
 
 def AdvectionRK2_3D(particles, fieldset):  # pragma: no cover
     """Advection of particles using second-order Runge-Kutta integration including vertical velocity."""
+    particles.dt = _adjust_RK_dt(fieldset.time_interval, particles.time, particles.dt)
     dt = particles.dt / np.timedelta64(1, "s")
     (u1, v1, w1) = fieldset.UVW[particles]
     lon1 = particles.lon + u1 * 0.5 * dt
@@ -43,32 +53,22 @@ def AdvectionRK2_3D(particles, fieldset):  # pragma: no cover
 
 def AdvectionRK4(particles, fieldset):  # pragma: no cover
     """Advection of particles using fourth-order Runge-Kutta integration."""
-
-    def Update_locations(p):
-        dt = p.dt / np.timedelta64(1, "s")  # TODO: improve API for converting dt to seconds
-        (u1, v1) = fieldset.UV[p]
-        lon1, lat1 = (p.lon + u1 * 0.5 * dt, p.lat + v1 * 0.5 * dt)
-        (u2, v2) = fieldset.UV[p.time + 0.5 * p.dt, p.z, lat1, lon1, p]
-        lon2, lat2 = (p.lon + u2 * 0.5 * dt, p.lat + v2 * 0.5 * dt)
-        (u3, v3) = fieldset.UV[p.time + 0.5 * p.dt, p.z, lat2, lon2, p]
-        lon3, lat3 = (p.lon + u3 * dt, p.lat + v3 * dt)
-        (u4, v4) = fieldset.UV[p.time + p.dt, p.z, lat3, lon3, p]
-        p.dlon += (u1 + 2 * u2 + 2 * u3 + u4) / 6.0 * dt
-        p.dlat += (v1 + 2 * v2 + 2 * v3 + v4) / 6.0 * dt
-
-    if fieldset.time_interval is not None:
-        Update_locations(
-            particles[
-                (particles.time + particles.dt <= fieldset.time_interval.right)
-                & (particles.time + particles.dt >= fieldset.time_interval.left)
-            ]
-        )
-    else:
-        Update_locations(particles)
+    particles.dt = _adjust_RK_dt(fieldset.time_interval, particles.time, particles.dt)
+    dt = particles.dt / np.timedelta64(1, "s")  # TODO: improve API for converting dt to seconds
+    (u1, v1) = fieldset.UV[particles]
+    lon1, lat1 = (particles.lon + u1 * 0.5 * dt, particles.lat + v1 * 0.5 * dt)
+    (u2, v2) = fieldset.UV[particles.time + 0.5 * particles.dt, particles.z, lat1, lon1, particles]
+    lon2, lat2 = (particles.lon + u2 * 0.5 * dt, particles.lat + v2 * 0.5 * dt)
+    (u3, v3) = fieldset.UV[particles.time + 0.5 * particles.dt, particles.z, lat2, lon2, particles]
+    lon3, lat3 = (particles.lon + u3 * dt, particles.lat + v3 * dt)
+    (u4, v4) = fieldset.UV[particles.time + particles.dt, particles.z, lat3, lon3, particles]
+    particles.dlon += (u1 + 2 * u2 + 2 * u3 + u4) / 6.0 * dt
+    particles.dlat += (v1 + 2 * v2 + 2 * v3 + v4) / 6.0 * dt
 
 
 def AdvectionRK4_3D(particles, fieldset):  # pragma: no cover
     """Advection of particles using fourth-order Runge-Kutta integration including vertical velocity."""
+    particles.dt = _adjust_RK_dt(fieldset.time_interval, particles.time, particles.dt)
     dt = particles.dt / np.timedelta64(1, "s")
     (u1, v1, w1) = fieldset.UVW[particles]
     lon1 = particles.lon + u1 * 0.5 * dt
@@ -92,6 +92,7 @@ def AdvectionRK4_3D_CROCO(particles, fieldset):  # pragma: no cover
     """Advection of particles using fourth-order Runge-Kutta integration including vertical velocity.
     This kernel assumes the vertical velocity is the 'w' field from CROCO output and works on sigma-layers.
     """
+    particles.dt = _adjust_RK_dt(fieldset.time_interval, particles.time, particles.dt)
     dt = particles.dt / np.timedelta64(1, "s")  # TODO: improve API for converting dt to seconds
     sig_dep = particles.z / fieldset.H[particles.time, 0, particles.lat, particles.lon]
 
@@ -148,6 +149,7 @@ def AdvectionRK45(particles, fieldset):  # pragma: no cover
     Time-step dt is halved if error is larger than fieldset.RK45_tol,
     and doubled if error is smaller than 1/10th of tolerance.
     """
+    particles.dt = _adjust_RK_dt(fieldset.time_interval, particles.time, particles.dt)
     dt = particles.dt / np.timedelta64(1, "s")  # TODO: improve API for converting dt to seconds
 
     c = [1.0 / 4.0, 3.0 / 8.0, 12.0 / 13.0, 1.0, 1.0 / 2.0]
