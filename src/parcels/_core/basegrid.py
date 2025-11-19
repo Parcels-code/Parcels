@@ -1,3 +1,5 @@
+"""Module defining the BaseGrid class for XGrid and UXGrid"""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod

@@ -12,7 +12,7 @@ _Animation of virtual particles carried by ocean surface flow in the global ocea
 You can browse the documentation for older versions by using the version switcher in the bottom right.
 ```
 
-**Useful links**: [Installation instructions](getting_started/installation.md) | [Discussions on GitHub](https://github.com/Parcels-code/parcels/discussions) | [Issue on GitHub](https://github.com/Parcels-code/parcels/issues) | [Parcels website](https://parcels-code.org/) | [CLAM community website](https://clam-community.github.io/) | [API reference](reference.md)
+**Useful links**: [Installation instructions](getting_started/installation.md) | [Discussions on GitHub](https://github.com/Parcels-code/parcels/discussions) | [Issue on GitHub](https://github.com/Parcels-code/parcels/issues) | [Parcels website](https://parcels-code.org/) | [CLAM community website](https://clam-community.github.io/) | [API reference](reference/parcels/index)
 
 `````{grid} 1 2 2 2
 :gutter: 4
@@ -94,7 +94,7 @@ Getting started <getting_started/index>
 User guide <user_guide/index>
 Community <community/index>
 Development <development/index>
-API reference <reference>
+API reference <reference/parcels/index>
 v4 <v4/index>
 Parcels website <https://parcels-code.org/>
 ```

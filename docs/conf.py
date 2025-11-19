@@ -40,6 +40,7 @@ extensions = [
     "numpydoc",
     "sphinxcontrib.mermaid",
     "sphinx_design",
+    "autoapi.extension",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -528,3 +529,18 @@ nb_execution_mode = "cache"
 nb_execution_excludepatterns = ["jupyter_execute", ".jupyter_cache"]
 nb_execution_raise_on_error = True
 nb_execution_timeout = 75
+
+# -- Options for autoapi --------------------------------------------------
+autoapi_dirs = ["../src/parcels"]
+autoapi_add_toctree_entry = False
+autoapi_root = "reference"
+autoapi_options = [
+    "members",
+    "show-inheritance",
+    "undoc-members",
+    "show-module-summary",
+    "imported-members",
+]
+autoapi_member_order = "bysource"
+autodoc_typehints = "signature"
+#   'special-members',
