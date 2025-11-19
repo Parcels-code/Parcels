@@ -16,11 +16,11 @@ particles.temperature = fieldset.temperature[particles]
 ```
 
 ````{note}
-The statement above is shorthand for 
+The statement above is shorthand for
 ```python
 particles.temperature = fieldset.temperature[particles.time, particles.z, particles.lat, particles.lon, particles]
 ```
-where the `particles` argument at the end provides the grid search algorithm with a first guess for the element indices to interpolate on. 
+where the `particles` argument at the end provides the grid search algorithm with a first guess for the element indices to interpolate on.
 
 If you want to sample at a different location, or time, that is not necessarily close to the particles location, you can use
 ```python
