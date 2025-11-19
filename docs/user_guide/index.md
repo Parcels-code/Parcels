@@ -50,7 +50,7 @@ examples/tutorial_Argofloats.ipynb
 ```
 
 ```{toctree}
-:caption: Configure interpolation
+:caption: Set interpolation method
 :titlesonly:
 
 examples/explanation_interpolation.md
