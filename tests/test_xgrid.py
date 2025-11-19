@@ -136,6 +136,13 @@ def test_invalid_depth():
         XGrid.from_dataset(ds)
 
 
+def test_dim_without_axis():
+    ds = xr.Dataset({"z1d": (["depth"], [0])}, coords={"depth": [0]})
+    grid = XGrid.from_dataset(ds)
+    with pytest.raises(ValueError, match='Dimension "depth" has no axis attribute*'):
+        Field("z1d", ds["z1d"], grid, XLinear)
+
+
 def test_vertical1D_field():
     nz = 11
     ds = xr.Dataset(
