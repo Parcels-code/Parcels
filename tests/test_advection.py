@@ -463,11 +463,8 @@ def test_nemo_curvilinear_fieldset():
     latp = np.linspace(-70, 88, npart)
     runtime = np.timedelta64(160, "D")
 
-    def periodicBC(particles, fieldset):  # pragma: no cover
-        particles.dlon = np.where(particles.lon + particles.dlon > 180, particles.dlon - 360, particles.dlon)
-
     pset = parcels.ParticleSet(fieldset, lon=lonp, lat=latp)
-    pset.execute([AdvectionEE, periodicBC], runtime=runtime, dt=np.timedelta64(6, "h"))
+    pset.execute(AdvectionEE, runtime=runtime, dt=np.timedelta64(6, "h"))
     np.testing.assert_allclose(pset.lat, latp, atol=1e-1)
 
 
