@@ -21,15 +21,15 @@ relate to the value at any point within a grid cell.
 
 Each `parcels.Field` is defined on a (structured) `parcels.XGrid` or (unstructured) `parcels.UXGrid`.
 The interpolation function takes information about the particles position relative to this grid (`grid_positions`),
-as well as the `parcels.Field` values of the surrounding grid points in time and space, to calculate
-the requested value at the particles location.
+as well as the values of the grid points of the `parcels.Field` in time and space, to calculate
+the requested value at the particles location. Note that all grid values are available so that higher-order interpolation is possible.
 
 ## Interpolator API
 
 The interpolators included in Parcels are designed for common interpolation schemes in Parcels simulations.
 If we want to add a custom interpolation method, we need to look at the interpolator API:
 
-We can write an interpolator function that takes a `parcels.Field`, a dictionary with the `particle_positions`
+We can write an interpolator function that takes a `parcels.Field` (or `parcels.VectorField`), a dictionary with the `particle_positions`
 in real space and time, and a dictionary with the `grid_positions`.
 
 The `particle_positions` dictionary contains:
@@ -38,7 +38,7 @@ The `particle_positions` dictionary contains:
 particle_positions = {"time", time, "z", z, "lat", lat, "lon", lon}
 ```
 
-For structured (`X`) grids, the `grid_positions` dictionary looks like:
+For structured (`X`) grids, the `grid_positions` dictionary contains:
 
 ```
 grid_positions = {
