@@ -175,8 +175,7 @@ def CGrid_Velocity(
         py = np.array([grid.lat[yi, xi], grid.lat[yi, xi + 1], grid.lat[yi + 1, xi + 1], grid.lat[yi + 1, xi]])
 
     if grid._mesh == "spherical":
-        px[0] = np.where(px[0] < lon - 225, px[0] + 360, px[0])
-        px[0] = np.where(px[0] > lon + 225, px[0] - 360, px[0])
+        px = ((px + 180.0) % 360.0) - 180.0
         px[1:] = np.where(px[1:] - px[0] > 180, px[1:] - 360, px[1:])
         px[1:] = np.where(-px[1:] + px[0] > 180, px[1:] + 360, px[1:])
     c1 = i_u._geodetic_distance(
@@ -291,7 +290,10 @@ def CGrid_Velocity(
 
     # check whether the grid conversion has been applied correctly
     xx = (1 - xsi) * (1 - eta) * px[0] + xsi * (1 - eta) * px[1] + xsi * eta * px[2] + (1 - xsi) * eta * px[3]
-    u = np.where(np.abs((xx - lon) / lon) > 1e-4, np.nan, u)
+    dlon = xx - lon
+    if grid._mesh == "spherical":
+        dlon = ((dlon + 180.0) % 360.0) - 180.0
+    u = np.where(np.abs(dlon / lon) > 1e-4, np.nan, u)
 
     if vectorfield.W:
         data = vectorfield.W.data
