@@ -548,7 +548,7 @@ class ParticleSet:
 
             self._kernel.execute(self, endtime=next_time, dt=dt)
 
-            if next_output:
+            if next_output is not None:
                 if np.abs(next_time - next_output) < np.timedelta64(1000, "ns"):
                     if output_file:
                         output_file.write(self, next_output)
