@@ -12,8 +12,22 @@ we _evaluate_ the `parcels.Field` at the particles real position in time and spa
 In Parcels we can do this using square brackets:
 
 ```
-particles.temperature = fieldset.temperature[particles.time, particles.z, particles.lat, particles.lon]
+particles.temperature = fieldset.temperature[particles]
 ```
+
+````{note}
+The statement above is shorthand for 
+```python
+particles.temperature = fieldset.temperature[particles.time, particles.z, particles.lat, particles.lon, particles]
+```
+where the `particles` argument at the end provides the grid search algorithm with a first guess for the element indices to interpolate on. 
+
+If you want to sample at a different location, or time, that is not necessarily close to the particles location, you can use
+```python
+particles.temperature = fieldset.temperature[time, depth, lat, lon]
+```
+but this could be slower for curvilinear and unstructured because the entire grid needs to be searched.
+````
 
 The values of the `temperature` field at the particles' positions are determined using an interpolation
 method. This interpolation method defines how the discretized values of the `parcels.Field` should
