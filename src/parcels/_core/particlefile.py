@@ -158,7 +158,10 @@ class ParticleFile:
         pclass = pset._ptype
         time_interval = pset.fieldset.time_interval
         particle_data = pset._data
-        time = timedelta_to_float(time - time_interval.left)
+        if time_interval is None:
+            time = timedelta_to_float(time)
+        else:
+            time = timedelta_to_float(time - time_interval.left)
         particle_data = _convert_particle_data_time_to_float_seconds(particle_data, time_interval)
 
         self._write_particle_data(
@@ -309,7 +312,12 @@ def _convert_particle_data_time_to_float_seconds(particle_data, time_interval):
     #! Important that this is a shallow copy, so that updates to this propogate back to the original data
     particle_data = particle_data.copy()
 
-    particle_data["time"] = ((particle_data["time"] - time_interval.left) / np.timedelta64(1, "s")).astype(np.float64)
+    if time_interval is None:
+        particle_data["time"] = (particle_data["time"] / np.timedelta64(1, "s")).astype(np.float64)
+    else:
+        particle_data["time"] = ((particle_data["time"] - time_interval.left) / np.timedelta64(1, "s")).astype(
+            np.float64
+        )
     particle_data["dt"] = (particle_data["dt"] / np.timedelta64(1, "s")).astype(np.float64)
     return particle_data
 
@@ -326,10 +334,11 @@ def _maybe_convert_time_dtype(dtype: np.dtype | _SAME_AS_FIELDSET_TIME_INTERVAL)
 def _get_calendar_and_units(time_interval: TimeInterval) -> dict[str, str]:
     calendar = None
     units = "seconds"
-    if isinstance(time_interval.left, (np.datetime64, datetime)):
-        calendar = "standard"
-    elif isinstance(time_interval.left, cftime.datetime):
-        calendar = time_interval.left.calendar
+    if time_interval:
+        if isinstance(time_interval.left, (np.datetime64, datetime)):
+            calendar = "standard"
+        elif isinstance(time_interval.left, cftime.datetime):
+            calendar = time_interval.left.calendar
 
     if calendar is not None:
         units += f" since {time_interval.left}"
