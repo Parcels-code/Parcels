@@ -6,7 +6,7 @@ kernelspec:
 
 # The Parcels Kernel loop
 
-This tutorial explains how Parcels executes multiple Kernels, and what happens under the hood when you combine Kernels.
+On this page we discuss Parcels' execution loop, and what happens under the hood when you combine multiple Kernels.
 
 This is probably not very relevant when you only use the built-in Advection kernels, but can be important when you are writing and combining your own Kernels!
 
@@ -18,7 +18,7 @@ In order to make sure that the displacements of a particle in the different Kern
 
 ## Basic implementation
 
-Below is a structured overview of the Kernel loop is implemented. Note that this is for `lon` only, but the same process is applied for `lat` and `z`.
+Below is a structured overview of how the Kernel loop is implemented. Note that this is for `time` and `lon` only, but the process for `lon` is also applied to `lat` and `z`.
 
 1. Initialise an extra Variable `particles.dlon=0`
 
@@ -38,9 +38,9 @@ Below is a structured overview of the Kernel loop is implemented. Note that this
 
 Besides having commutable Kernels, the main advantage of this implementation is that, when using Field Sampling with e.g. `particles.temp = fieldset.Temp[particles.time, particles.z, particles.lat, particles.lon]`, the particle location stays the same throughout the entire Kernel loop. Additionally, this implementation ensures that the particle location is the same as the location of the sampled field in the output file.
 
-## Example with multiple Kernels
+## Example with currents and winds
 
-Below is a simple example of some particles at the surface of the ocean. We create an idealised zonal wind flow that will "push" a particle that is already affected by the surface currents. The Kernel loop ensures that these two forces act at the same time and location, as we will show.
+Below is a simple example of some particles at the surface of the ocean. We create an idealised zonal wind flow that will "push" a particle that is already affected by the surface currents. The Kernel loop ensures that these two forces act at the same time and location.
 
 ```{code-cell}
 import matplotlib.pyplot as plt
@@ -87,7 +87,7 @@ def wind_kernel(particles, fieldset):
     )
 ```
 
-Run a simulation where we apply first kernels as `[AdvectionRK4, wind_kernel]`
+First run a simulation where we apply kernels as `[AdvectionRK4, wind_kernel]`
 
 ```{code-cell}
 :tags: [hide-output]
@@ -98,29 +98,30 @@ lats = np.linspace(-32.5, -30.5, npart)
 
 pset = parcels.ParticleSet(fieldset, pclass=parcels.Particle, z=z, lat=lats, lon=lons)
 output_file = parcels.ParticleFile(
-    store="advection_then_wind.zarr", outputdt=timedelta(hours=6)
+    store="advection_then_wind.zarr", outputdt=np.timedelta64(6,'h')
 )
 pset.execute(
     [parcels.kernels.AdvectionRK4, wind_kernel],
-    runtime=timedelta(days=5),
-    dt=timedelta(hours=1),
+    runtime=np.timedelta64(5,'D'),
+    dt=np.timedelta64(1,'h'),
     output_file=output_file,
 )
 ```
 
-And also run a simulation where we apply the kernels in the reverse order as `[wind_kernel, AdvectionRK4]`
+Then also run a simulation where we apply the kernels in the reverse order as `[wind_kernel, AdvectionRK4]`
 
 ```{code-cell}
+:tags: [hide-output]
 pset_reverse = parcels.ParticleSet(
     fieldset, pclass=parcels.Particle, z=z, lat=lats,  lon=lons
 )
 output_file_reverse = parcels.ParticleFile(
-    store="wind_then_advection.zarr", outputdt=timedelta(hours=6)
+    store="wind_then_advection.zarr", outputdt=np.timedelta64(6,"h")
 )
 pset_reverse.execute(
     [wind_kernel, parcels.kernels.AdvectionRK4],
-    runtime=timedelta(days=5),
-    dt=timedelta(hours=1),
+    runtime=np.timedelta64(5,"D"),
+    dt=np.timedelta64(1,"h"),
     output_file=output_file_reverse,
 )
 ```
@@ -160,34 +161,34 @@ Once an error is thrown (for example, a Field Interpolation error), then the `pa
 For example, you can write a Kernel that checks for `particles.state == StatusCode.ErrorOutOfBounds` and deletes the particle, and then append this to the Kernel list in `pset.execute()`.
 
 ```
-def CheckOutOfBounds(particles, fieldset):
-    if particles.state == StatusCode.ErrorOutOfBounds:
-        particles.delete()
+def DeleteOutOfBounds(particles, fieldset):
+    out_of_bounds = particles.state == StatusCode.ErrorOutOfBounds
+    particles[out_of_bounds].state = StatusCode.Delete
 
 
-def CheckError(particles, fieldset):
-    if particles.state >= 50:  # This captures all Errors
-        particles.delete()
+def DeleteAnyError(particles, fieldset):
+    any_error = particles.state >= 50  # This captures all Errors
+    particles[any_error].state = StatusCode.Delete
 ```
 
 But of course, you can also write code for more sophisticated behaviour than just deleting the particle. It's up to you! Note that if you don't delete the particle, you will have to update the `particles.state = StatusCode.Success` yourself. For example:
 
 ```
 def Move1DegreeWest(particles, fieldset):
-    if particles.state == StatusCode.ErrorOutOfBounds:
-        particles.dlon -= 1.0
-        particles.state = StatusCode.Success
+    out_of_bounds = particles.state == StatusCode.ErrorOutOfBounds
+    particles[out_of_bounds].dlon -= 1.0
+    particles[out_of_bounds].state = StatusCode.Success
 ```
 
 Or, if you want to make sure that particles don't escape through the water surface
 
 ```
 def KeepInOcean(particles, fieldset):
-    if particles.state == StatusCode.ErrorThroughSurface:
-        particles.dz = 0.0
-        particles.state = StatusCode.Success
+    through_surface = particles.state == StatusCode.ErrorThroughSurface
+    particles[through_surface].dz = 0.0
+    particles[through_surface].state = StatusCode.Success
 ```
 
 Kernel functions such as the ones above can then be added to the list of kernels in `pset.execute()`.
 
-Note that these Kernels that control what to do with `particles.state` should typically be added at the _end_ of the Kernel list, because otherwise later Kernels may overwrite the `particles.state` or the `particle_dlon` variables.
+Note that these Kernels that control what to do with `particles.state` should typically be added at the _end_ of the Kernel list, because otherwise later Kernels may overwrite the `particles.state` or the `particle.dlon` variables.
