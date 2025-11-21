@@ -113,7 +113,7 @@ def test_horizontal_advection_in_3D_flow(npart=10):
     pset = ParticleSet(fieldset, lon=np.zeros(npart), lat=np.zeros(npart), z=np.linspace(0.1, 0.9, npart))
     pset.execute(AdvectionRK4, runtime=np.timedelta64(2, "h"), dt=np.timedelta64(15, "m"))
 
-    expected_lon = pset.z * (pset.time - fieldset.time_interval.left) / np.timedelta64(1, "s")
+    expected_lon = pset.z * pset.time
     np.testing.assert_allclose(pset.lon, expected_lon, atol=1.0e-1)
 
 
@@ -143,10 +143,9 @@ def test_advection_3D_outofbounds(direction, wErrorThroughSurface):
         inds = np.argwhere(particles.state == StatusCode.ErrorThroughSurface).flatten()
         if len(inds) == 0:
             return
-        dt = particles.dt / np.timedelta64(1, "s")
         (u, v) = fieldset.UV[particles[inds]]
-        particles[inds].dlon = u * dt
-        particles[inds].dlat = v * dt
+        particles[inds].dlon = u * particles.dt
+        particles[inds].dlat = v * particles.dt
         particles[inds].dz = 0.0
         particles[inds].z = 0
         particles[inds].state = StatusCode.Evaluate
@@ -239,7 +238,8 @@ def test_radialrotation(npart=10):
     pset = parcels.ParticleSet(fieldset, lon=lon, lat=lat, time=starttime)
     pset.execute(parcels.kernels.AdvectionRK4, endtime=np.timedelta64(10, "m"), dt=dt)
 
-    theta = 2 * np.pi * (pset.time - starttime) / np.timedelta64(24 * 3600, "s")
+    # TODO simplify below when starttime does not need to be timedelta anymore
+    theta = 2 * np.pi * (pset.time - (starttime / np.timedelta64(1, "s"))) / (24 * 3600)
     true_lon = (lon - 30.0) * np.cos(theta) + 30.0
     true_lat = -(lon - 30.0) * np.sin(theta) + 30.0
 
@@ -290,7 +290,6 @@ def test_moving_eddy(kernel, rtol):
     pset.execute(kernel, dt=dt, endtime=np.timedelta64(1, "h"))
 
     def truth_moving(x_0, y_0, t):
-        t /= np.timedelta64(1, "s")
         lat = y_0 - (ds.u_0 - ds.u_g) / ds.f * (1 - np.cos(ds.f * t))
         lon = x_0 + ds.u_g * t + (ds.u_0 - ds.u_g) / ds.f * np.sin(ds.f * t)
         return lon, lat
@@ -330,7 +329,6 @@ def test_decaying_moving_eddy(kernel, rtol):
     pset.execute(kernel, dt=dt, endtime=np.timedelta64(23, "h"))
 
     def truth_moving(x_0, y_0, t):
-        t /= np.timedelta64(1, "s")
         lon = (
             x_0
             + (ds.u_g / ds.gamma_g) * (1 - np.exp(-ds.gamma_g * t))

@@ -23,10 +23,9 @@ def AdvectionDiffusionM1(particles, fieldset):  # pragma: no cover
     The Wiener increment `dW` is normally distributed with zero
     mean and a standard deviation of sqrt(dt).
     """
-    dt = particles.dt / np.timedelta64(1, "s")  # TODO: improve API for converting dt to seconds
     # Wiener increment with zero mean and std of sqrt(dt)
-    dWx = np.random.normal(0, np.sqrt(np.fabs(dt)))
-    dWy = np.random.normal(0, np.sqrt(np.fabs(dt)))
+    dWx = np.random.normal(0, np.sqrt(np.fabs(particles.dt)))
+    dWy = np.random.normal(0, np.sqrt(np.fabs(particles.dt)))
 
     Kxp1 = fieldset.Kh_zonal[particles.time, particles.z, particles.lat, particles.lon + fieldset.dres, particles]
     Kxm1 = fieldset.Kh_zonal[particles.time, particles.z, particles.lat, particles.lon - fieldset.dres, particles]
@@ -42,8 +41,8 @@ def AdvectionDiffusionM1(particles, fieldset):  # pragma: no cover
     by = np.sqrt(2 * fieldset.Kh_meridional[particles.time, particles.z, particles.lat, particles.lon, particles])
 
     # Particle positions are updated only after evaluating all terms.
-    particles.dlon += u * dt + 0.5 * dKdx * (dWx**2 + dt) + bx * dWx
-    particles.dlat += v * dt + 0.5 * dKdy * (dWy**2 + dt) + by * dWy
+    particles.dlon += u * particles.dt + 0.5 * dKdx * (dWx**2 + particles.dt) + bx * dWx
+    particles.dlat += v * particles.dt + 0.5 * dKdy * (dWy**2 + particles.dt) + by * dWy
 
 
 def AdvectionDiffusionEM(particles, fieldset):  # pragma: no cover
@@ -59,10 +58,9 @@ def AdvectionDiffusionEM(particles, fieldset):  # pragma: no cover
     The Wiener increment `dW` is normally distributed with zero
     mean and a standard deviation of sqrt(dt).
     """
-    dt = particles.dt / np.timedelta64(1, "s")
     # Wiener increment with zero mean and std of sqrt(dt)
-    dWx = np.random.normal(0, np.sqrt(np.fabs(dt)))
-    dWy = np.random.normal(0, np.sqrt(np.fabs(dt)))
+    dWx = np.random.normal(0, np.sqrt(np.fabs(particles.dt)))
+    dWy = np.random.normal(0, np.sqrt(np.fabs(particles.dt)))
 
     u, v = fieldset.UV[particles.time, particles.z, particles.lat, particles.lon, particles]
 
@@ -79,8 +77,8 @@ def AdvectionDiffusionEM(particles, fieldset):  # pragma: no cover
     by = np.sqrt(2 * fieldset.Kh_meridional[particles.time, particles.z, particles.lat, particles.lon, particles])
 
     # Particle positions are updated only after evaluating all terms.
-    particles.dlon += ax * dt + bx * dWx
-    particles.dlat += ay * dt + by * dWy
+    particles.dlon += ax * particles.dt + bx * dWx
+    particles.dlat += ay * particles.dt + by * dWy
 
 
 def DiffusionUniformKh(particles, fieldset):  # pragma: no cover
@@ -101,10 +99,9 @@ def DiffusionUniformKh(particles, fieldset):  # pragma: no cover
     The Wiener increment `dW` is normally distributed with zero
     mean and a standard deviation of sqrt(dt).
     """
-    dt = particles.dt / np.timedelta64(1, "s")
     # Wiener increment with zero mean and std of sqrt(dt)
-    dWx = np.random.normal(0, np.sqrt(np.fabs(dt)))
-    dWy = np.random.normal(0, np.sqrt(np.fabs(dt)))
+    dWx = np.random.normal(0, np.sqrt(np.fabs(particles.dt)))
+    dWy = np.random.normal(0, np.sqrt(np.fabs(particles.dt)))
 
     bx = np.sqrt(2 * fieldset.Kh_zonal[particles])
     by = np.sqrt(2 * fieldset.Kh_meridional[particles])
