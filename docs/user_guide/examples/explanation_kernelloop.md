@@ -191,4 +191,4 @@ def KeepInOcean(particles, fieldset):
 
 Kernel functions such as the ones above can then be added to the list of kernels in `pset.execute()`.
 
-Note that these Kernels that control what to do with `particles.state` should typically be added at the _end_ of the Kernel list, because otherwise later Kernels may overwrite the `particles.state` or the `particle.dlon` variables.
+Note that these Kernels that control what to do with `particles.state` should typically be added at the _end_ of the Kernel list, because otherwise later Kernels may overwrite the `particles.state` or the `particles.dlon` variables.

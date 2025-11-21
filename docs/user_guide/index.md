@@ -44,6 +44,7 @@ examples/tutorial_delaystart.ipynb
 :caption: Write Kernels
 :titlesonly:
 
+examples/kernelloop_explanation.md
 examples/tutorial_sampling.ipynb
 examples/tutorial_gsw_density.ipynb
 examples/tutorial_Argofloats.ipynb
