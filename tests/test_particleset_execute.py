@@ -23,7 +23,7 @@ from parcels._datasets.structured.generated import simple_UV_dataset
 from parcels._datasets.structured.generic import datasets as datasets_structured
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
 from parcels.interpolators import UXPiecewiseConstantFace, UXPiecewiseLinearNode, XLinear
-from parcels.kernels import AdvectionEE, AdvectionRK4, AdvectionRK4_3D
+from parcels.kernels import AdvectionEE, AdvectionRK2, AdvectionRK4, AdvectionRK4_3D, AdvectionRK45
 from tests.common_kernels import DoNothing
 
 
@@ -162,7 +162,8 @@ def test_particleset_run_to_endtime(fieldset):
     assert pset[0].time == endtime
 
 
-def test_particleset_run_RK_to_endtime_fwd_bwd(fieldset):
+@pytest.mark.parametrize("kernel", [AdvectionEE, AdvectionRK2, AdvectionRK4, AdvectionRK45])
+def test_particleset_run_RK_to_endtime_fwd_bwd(fieldset, kernel):
     """Test that RK kernels can be run to the endtime of a fieldset (and not throw OutsideTimeInterval)"""
     starttime = fieldset.time_interval.left
     endtime = fieldset.time_interval.right
@@ -173,10 +174,10 @@ def test_particleset_run_RK_to_endtime_fwd_bwd(fieldset):
     fieldset.V.data[:] = 0.0
 
     pset = ParticleSet(fieldset, lon=[0.2], lat=[5.0], time=[starttime])
-    pset.execute(AdvectionRK4, endtime=endtime, dt=dt)
+    pset.execute(kernel, endtime=endtime, dt=dt)
     assert pset[0].time == endtime
 
-    pset.execute(AdvectionRK4, endtime=starttime, dt=-dt)
+    pset.execute(kernel, endtime=starttime, dt=-dt)
     assert pset[0].time == starttime
 
 
