@@ -129,9 +129,8 @@ def AdvectionEE(particles, fieldset):  # pragma: no cover
 def AdvectionRK45(particles, fieldset):  # pragma: no cover
     """Advection of particles using adaptive Runge-Kutta 4/5 integration.
 
-    Note that this kernel requires a Particle Class that has an extra Variable 'next_dt'
-    and a FieldSet with constants 'RK45_tol' (in meters), 'RK45_min_dt' (in seconds)
-    and 'RK45_max_dt' (in seconds).
+    Note that this kernel requires a FieldSet with constants 'RK45_tol' (in meters),
+    'RK45_min_dt' (in seconds) and 'RK45_max_dt' (in seconds).
 
     Time-step dt is halved if error is larger than fieldset.RK45_tol,
     and doubled if error is smaller than 1/10th of tolerance.
@@ -190,7 +189,7 @@ def AdvectionRK45(particles, fieldset):  # pragma: no cover
     )
     particles.dt = np.where(increase_dt_particles, particles.dt * 2, particles.dt)
     particles.dt = np.where(
-        np.abs(particles.next_dt) > np.abs(fieldset.RK45_max_dt * np.timedelta64(1, "s")),
+        np.abs(particles.dt) > np.abs(fieldset.RK45_max_dt * np.timedelta64(1, "s")),
         fieldset.RK45_max_dt * np.timedelta64(1, "s") * sign_dt,
         particles.dt,
     )
