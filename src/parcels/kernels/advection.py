@@ -137,6 +137,7 @@ def AdvectionRK45(particles, fieldset):  # pragma: no cover
     and doubled if error is smaller than 1/10th of tolerance.
     """
     dt = particles.dt / np.timedelta64(1, "s")  # TODO: improve API for converting dt to seconds
+    sign_dt = np.sign(dt)
 
     c = [1.0 / 4.0, 3.0 / 8.0, 12.0 / 13.0, 1.0, 1.0 / 2.0]
     A = [
@@ -189,8 +190,8 @@ def AdvectionRK45(particles, fieldset):  # pragma: no cover
     )
     particles.dt = np.where(increase_dt_particles, particles.dt * 2, particles.dt)
     particles.dt = np.where(
-        particles.dt > fieldset.RK45_max_dt * np.timedelta64(1, "s"),
-        fieldset.RK45_max_dt * np.timedelta64(1, "s"),
+        np.abs(particles.next_dt) > np.abs(fieldset.RK45_max_dt * np.timedelta64(1, "s")),
+        fieldset.RK45_max_dt * np.timedelta64(1, "s") * sign_dt,
         particles.dt,
     )
     particles.state = np.where(good_particles, StatusCode.Evaluate, particles.state)
@@ -198,8 +199,8 @@ def AdvectionRK45(particles, fieldset):  # pragma: no cover
     repeat_particles = np.invert(good_particles)
     particles.dt = np.where(repeat_particles, particles.dt / 2, particles.dt)
     particles.dt = np.where(
-        particles.dt < fieldset.RK45_min_dt * np.timedelta64(1, "s"),
-        fieldset.RK45_min_dt * np.timedelta64(1, "s"),
+        np.abs(particles.dt) < np.abs(fieldset.RK45_min_dt * np.timedelta64(1, "s")),
+        fieldset.RK45_min_dt * np.timedelta64(1, "s") * sign_dt,
         particles.dt,
     )
     particles.state = np.where(repeat_particles, StatusCode.Repeat, particles.state)
