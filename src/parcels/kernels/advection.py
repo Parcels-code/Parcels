@@ -188,11 +188,11 @@ def AdvectionRK45(particles, fieldset):  # pragma: no cover
     increase_dt_particles = (
         good_particles & (kappa <= fieldset.RK45_tol / 10) & (np.fabs(dt * 2) <= np.fabs(fieldset.RK45_max_dt))
     )
-    particles.dt = np.where(increase_dt_particles, particles.dt * 2, particles.dt)
-    particles.dt = np.where(
+    particles.next_dt = np.where(increase_dt_particles, particles.dt * 2, particles.dt)
+    particles.next_dt = np.where(
         np.abs(particles.next_dt) > np.abs(fieldset.RK45_max_dt * np.timedelta64(1, "s")),
         fieldset.RK45_max_dt * np.timedelta64(1, "s") * sign_dt,
-        particles.dt,
+        particles.next_dt,
     )
     particles.state = np.where(good_particles, StatusCode.Evaluate, particles.state)
 

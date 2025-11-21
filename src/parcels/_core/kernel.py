@@ -123,6 +123,10 @@ class Kernel:
             particles.dlat = 0
             particles.dz = 0
 
+            if hasattr(self.fieldset, "RK45_tol"):
+                # Update dt in case it's increased in RK45 kernel
+                particles.dt = particles.next_dt
+
         self._pyfuncs = (PositionUpdate + self)._pyfuncs
 
     def check_fieldsets_in_kernels(self, pyfunc):  # TODO v4: this can go into another method? assert_is_compatible()?
@@ -138,6 +142,8 @@ class Kernel:
                 if self._fieldset.U.grid._gtype not in [GridType.CurvilinearZGrid, GridType.RectilinearZGrid]:
                     raise NotImplementedError("Analytical Advection only works with Z-grids in the vertical")
             elif pyfunc is AdvectionRK45:
+                if "next_dt" not in [v.name for v in self.ptype.variables]:
+                    raise ValueError('ParticleClass requires a "next_dt" for AdvectionRK45 Kernel.')
                 if not hasattr(self.fieldset, "RK45_tol"):
                     warnings.warn(
                         "Setting RK45 tolerance to 10 m. Use fieldset.add_constant('RK45_tol', [distance]) to change.",
@@ -240,6 +246,9 @@ class Kernel:
                 return StatusCode.Success
 
             # adapt dt to end exactly on endtime
+            if hasattr(self.fieldset, "RK45_tol"):
+                pset.next_dt = np.maximum(np.minimum(pset.next_dt, time_to_endtime), 0)
+
             if compute_time_direction == 1:
                 pset.dt = np.maximum(np.minimum(pset.dt, time_to_endtime), 0)
             else:
