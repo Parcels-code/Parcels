@@ -163,11 +163,11 @@ def test_particleset_run_to_endtime(fieldset):
 
 
 @pytest.mark.parametrize("kernel", [AdvectionEE, AdvectionRK2, AdvectionRK4, AdvectionRK45])
-def test_particleset_run_RK_to_endtime_fwd_bwd(fieldset, kernel):
+@pytest.mark.parametrize("dt", [np.timedelta64(10, "D"), np.timedelta64(1, "D")])
+def test_particleset_run_RK_to_endtime_fwd_bwd(fieldset, kernel, dt):
     """Test that RK kernels can be run to the endtime of a fieldset (and not throw OutsideTimeInterval)"""
     starttime = fieldset.time_interval.left
     endtime = fieldset.time_interval.right
-    dt = np.timedelta64(1, "D")
 
     # Setting zero velocities to avoid OutofBoundsErrors
     fieldset.U.data[:] = 0.0
