@@ -155,7 +155,7 @@ def test_spatial_slip_interpolation(field, func, t, z, y, x, expected):
 )
 def test_invdistland_interpolation(field, func, t, z, y, x, expected):
     field.data[:] = 1.0
-    field.data[:, :, 1:3, 1:3] = np.nan  # Set NaN land value to test inv_dist
+    field.data[:, :, 1:3, 1:3] = 0  # Set NaN land value to test inv_dist
     field.interp_method = func
 
     value = field[t, z, y, x]
