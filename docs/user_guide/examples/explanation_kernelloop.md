@@ -137,58 +137,8 @@ plt.plot(advection_then_wind.lon.T, advection_then_wind.lat.T, "--", c="k", alph
 plt.show()
 ```
 
-## Warning! Avoid updating particle locations directly in Kernels
-
+```{warning} 
 It is better not to update `particles.lon` directly in a Kernel, as it can interfere with the loop above. Assigning a value to `particles.lon` in a Kernel will throw a warning.
 
 Instead, update the local variable `particles.dlon`.
-
-## Working with Status Codes
-
-In order to capture errors in the Kernel loop, Parcels uses a Status Code system. There are several Status Codes, listed below.
-
-```{code-cell}
-from parcels import StatusCode
-
-for statuscode, val in StatusCode.__dict__.items():
-    if statuscode.startswith("__"):
-        continue
-    print(f"{statuscode} = {val}")
 ```
-
-Once an error is thrown (for example, a Field Interpolation error), then the `particles.state` is updated to the corresponding status code. This gives you the flexibility to write a Kernel that checks for a status code and does something with it.
-
-For example, you can write a Kernel that checks for `particles.state == StatusCode.ErrorOutOfBounds` and deletes the particle, and then append this custom Kernel to the Kernel list in `pset.execute()`.
-
-```
-def DeleteOutOfBounds(particles, fieldset):
-    out_of_bounds = particles.state == StatusCode.ErrorOutOfBounds
-    particles[out_of_bounds].state = StatusCode.Delete
-
-
-def DeleteAnyError(particles, fieldset):
-    any_error = particles.state >= 50  # This captures all Errors
-    particles[any_error].state = StatusCode.Delete
-```
-
-But of course, you can also write code for more sophisticated behaviour than just deleting the particle. It's up to you! Note that if you don't delete the particle, you will have to update the `particles.state = StatusCode.Success` yourself. For example:
-
-```
-def Move1DegreeWest(particles, fieldset):
-    out_of_bounds = particles.state == StatusCode.ErrorOutOfBounds
-    particles[out_of_bounds].dlon -= 1.0
-    particles[out_of_bounds].state = StatusCode.Success
-```
-
-Or, if you want to make sure that particles don't escape through the water surface
-
-```
-def KeepInOcean(particles, fieldset):
-    through_surface = particles.state == StatusCode.ErrorThroughSurface
-    particles[through_surface].dz = 0.0
-    particles[through_surface].state = StatusCode.Success
-```
-
-Kernel functions such as the ones above can then be added to the list of kernels in `pset.execute()`.
-
-Note that these Kernels that control what to do with `particles.state` should typically be added at the _end_ of the Kernel list, because otherwise later Kernels may overwrite the `particles.state` or the `particles.dlon` variables.
