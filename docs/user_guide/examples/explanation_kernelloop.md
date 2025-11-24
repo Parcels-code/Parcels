@@ -137,7 +137,7 @@ plt.plot(advection_then_wind.lon.T, advection_then_wind.lat.T, "--", c="k", alph
 plt.show()
 ```
 
-```{warning} 
+```{warning}
 It is better not to update `particles.lon` directly in a Kernel, as it can interfere with the loop above. Assigning a value to `particles.lon` in a Kernel will throw a warning.
 
 Instead, update the local variable `particles.dlon`.
