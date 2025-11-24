@@ -8,13 +8,13 @@ kernelspec:
 
 On this page we discuss Parcels' execution loop, and what happens under the hood when you combine multiple Kernels.
 
-This is probably not very relevant when you only use the built-in Advection kernels, but can be important when you are writing and combining your own Kernels!
+This is not very relevant when you only use the built-in Advection kernels, but can be important when you are writing and combining your own Kernels!
 
 ## Background
 
-When you run a Parcels simulation (i.e. a call to `pset.execute()`), the Kernel loop is the main part of the code that is executed. This part of the code loops through all particles and executes the Kernels that are defined for each particle.
+When you run a Parcels simulation (i.e. a call to `pset.execute()`), the Kernel loop is the main part of the code that is executed. This part of the code loops through time and executes the Kernels for all particle.
 
-In order to make sure that the displacements of a particle in the different Kernels can be summed, all Kernels add to a _change_ in position (`particles.dlon`, `particles.dlat`, and `particles.dz`). This is important, because there are situations where movement kernels would otherwise not commute. Take the example of advecting particles by currents _and_ winds. If the particle would first be moved by the currents and then by the winds, the result could be different from first moving by the winds and then by the currents. Instead, by adding the changes in position, the ordering of the Kernels has no consequence on the particle displacement.
+In order to make sure that the displacements of a particle in the different Kernels can be summed, all Kernels add to a _change_ in position (`particles.dlon`, `particles.dlat`, and `particles.dz`). This is important, because there are situations where movement kernels would otherwise not commute. Take the example of advecting particles by currents _and_ winds. If the particle would first be moved by the currents and then by the winds, the result could be different from first moving by the winds and then by the currents. Instead, by summing the _changes_ in position, the ordering of the Kernels has no consequence on the particle displacement.
 
 ## Basic implementation
 
@@ -158,7 +158,7 @@ for statuscode, val in StatusCode.__dict__.items():
 
 Once an error is thrown (for example, a Field Interpolation error), then the `particles.state` is updated to the corresponding status code. This gives you the flexibility to write a Kernel that checks for a status code and does something with it.
 
-For example, you can write a Kernel that checks for `particles.state == StatusCode.ErrorOutOfBounds` and deletes the particle, and then append this to the Kernel list in `pset.execute()`.
+For example, you can write a Kernel that checks for `particles.state == StatusCode.ErrorOutOfBounds` and deletes the particle, and then append this custom Kernel to the Kernel list in `pset.execute()`.
 
 ```
 def DeleteOutOfBounds(particles, fieldset):
