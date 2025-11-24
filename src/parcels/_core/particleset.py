@@ -13,7 +13,7 @@ from parcels._core.converters import _convert_to_flat_array
 from parcels._core.kernel import Kernel
 from parcels._core.particle import KernelParticle, Particle, create_particle_data
 from parcels._core.statuscodes import StatusCode
-from parcels._core.utils.time import TimeInterval, maybe_convert_python_timedelta_to_numpy
+from parcels._core.utils.time import TimeInterval, maybe_convert_python_timedelta_to_numpy, timedelta_to_float
 from parcels._core.warnings import ParticleSetWarning
 from parcels._logger import logger
 from parcels._reprs import particleset_repr
@@ -92,12 +92,12 @@ class ParticleSet:
 
         if time is None or len(time) == 0:
             # do not set a time yet (because sign_dt not known)
-            if fieldset.time_interval is None:
-                time = np.timedelta64("NaT", "ns")
-            else:
-                time = type(fieldset.time_interval.left)("NaT", "ns")
+            time = np.array(np.nan)
         elif type(time[0]) in [np.datetime64, np.timedelta64]:
-            pass  # already in the right format
+            if self.fieldset.time_interval:
+                time = timedelta_to_float(time - self.fieldset.time_interval.left)
+            else:
+                time = timedelta_to_float(time)
         else:
             raise TypeError("particle time must be a datetime, timedelta, or date object")
         time = np.repeat(time, lon.size) if time.size == 1 else time
@@ -412,19 +412,6 @@ class ParticleSet:
         """
         return np.sum(np.isin(self._data["state"], [StatusCode.Success, StatusCode.Evaluate], invert=True))
 
-    def update_dt_dtype(self, dt_dtype: np.dtype):
-        """Update the dtype of dt
-
-        Parameters
-        ----------
-        dt_dtype : np.dtype
-            New dtype for dt.
-        """
-        if dt_dtype not in [np.timedelta64, "timedelta64[ns]", "timedelta64[μs]", "timedelta64[ms]", "timedelta64[s]"]:
-            raise ValueError(f"dt_dtype must be a numpy timedelta64 dtype. Got {dt_dtype=!r}")
-
-        self._data["dt"] = self._data["dt"].astype(dt_dtype)
-
     def set_variable_write_status(self, var, write_status):
         """Method to set the write status of a Variable.
 
@@ -497,17 +484,8 @@ class ParticleSet:
         except (ValueError, AssertionError) as e:
             raise ValueError(f"dt must be a non-zero datetime.timedelta or np.timedelta64 object, got {dt=!r}") from e
 
-        # Check if particle dt has finer resolution than input dt
-        particle_resolution = np.timedelta64(1, np.datetime_data(self._data["dt"].dtype))
-        input_resolution = np.timedelta64(1, np.datetime_data(dt.dtype))
-
-        if input_resolution >= particle_resolution:
-            self._data["dt"][:] = dt
-        else:
-            raise ValueError(
-                f"The dtype of dt ({dt.dtype}) is coarser than the dtype of the particle dt ({self._data['dt'].dtype}). Please use ParticleSet.update_dt_dtype() to provide a dt with at least the same precision as the particle dt."
-            )
-
+        dt = timedelta_to_float(dt)
+        self._data["dt"][:] = dt
         if runtime is not None:
             try:
                 runtime = maybe_convert_python_timedelta_to_numpy(runtime)
@@ -523,17 +501,17 @@ class ParticleSet:
         )
 
         # Set the time of the particles if it hadn't been set on initialisation
-        if np.isnat(self._data["time"]).any():
+        if np.isnan(self._data["time"]).any():
             self._data["time"][:] = start_time
 
-        outputdt = output_file.outputdt if output_file else None
+        outputdt = output_file.outputdt / np.timedelta64(1, "s") if output_file else None
 
         # Set up pbar
         if output_file:
             logger.info(f"Output files are stored in {_format_output_location(output_file.store)}")
 
         if verbose_progress:
-            pbar = tqdm(total=(end_time - start_time) / np.timedelta64(1, "s"), file=sys.stdout)
+            pbar = tqdm(total=end_time - start_time, file=sys.stdout)
             pbar.set_description("Integration time: " + str(start_time))
 
         next_output = start_time if output_file else None
@@ -548,8 +526,8 @@ class ParticleSet:
 
             self._kernel.execute(self, endtime=next_time, dt=dt)
 
-            if next_output:
-                if np.abs(next_time - next_output) < np.timedelta64(1000, "ns"):
+            if next_output is not None:
+                if np.abs(next_time - next_output) < 0.001:
                     if output_file:
                         output_file.write(self, next_output)
                     if np.isfinite(outputdt):
@@ -557,7 +535,7 @@ class ParticleSet:
 
             if verbose_progress:
                 pbar.set_description("Integration time: " + str(time))
-                pbar.update((next_time - time) / np.timedelta64(1, "s"))
+                pbar.update(next_time - time)
 
             time = next_time
 
@@ -578,12 +556,10 @@ def _warn_outputdt_release_desync(outputdt: float, starttime: float, release_tim
 
 
 def _warn_particle_times_outside_fieldset_time_bounds(release_times: np.ndarray, time: TimeInterval):
-    if np.isnat(release_times).all():
+    if np.isnan(release_times).all():
         return
 
-    if isinstance(time.left, np.datetime64) and isinstance(release_times[0], np.timedelta64):
-        release_times = np.array([t + time.left for t in release_times])
-    if np.any(release_times < time.left) or np.any(release_times > time.right):
+    if np.any(release_times < 0) or np.any(release_times > timedelta_to_float(time.right - time.left)):
         warnings.warn(
             "Some particles are set to be released outside the FieldSet's executable time domain.",
             ParticleSetWarning,
@@ -611,12 +587,7 @@ def _get_simulation_start_and_end_times(
     else:
         first_release_time = particle_release_times.max()
 
-    start_time = _get_start_time(first_release_time, time_interval, sign_dt, runtime)
-
-    if endtime is None:
-        endtime = start_time + sign_dt * runtime
-
-    if time_interval is not None:
+    if (time_interval is not None) and (endtime is not None):
         if type(endtime) != type(time_interval.left):  # noqa: E721
             raise ValueError(
                 f"The endtime must be of the same type as the fieldset.time_interval start time. Got {endtime=!r} with {time_interval=!r}"
@@ -632,19 +603,29 @@ def _get_simulation_start_and_end_times(
             )
             raise ValueError(msg)
 
+        endtime = timedelta_to_float(endtime - time_interval.left)
+
+    start_time = _get_start_time(first_release_time, time_interval, sign_dt, runtime)
+
+    if isinstance(runtime, np.timedelta64):
+        runtime = timedelta_to_float(runtime)
+
+    if endtime is None:
+        endtime = start_time + sign_dt * runtime
+
     return start_time, endtime
 
 
 def _get_start_time(first_release_time, time_interval, sign_dt, runtime):
     if time_interval is None:
-        time_interval = TimeInterval(left=np.timedelta64(0, "s"), right=runtime)
+        time_interval = TimeInterval(np.timedelta64(0, "s"), right=runtime)
 
     if sign_dt == 1:
-        fieldset_start = time_interval.left
+        fieldset_start = 0.0
     else:
-        fieldset_start = time_interval.right
+        fieldset_start = (time_interval.right - time_interval.left) / np.timedelta64(1, "s")
 
-    start_time = first_release_time if not np.isnat(first_release_time) else fieldset_start
+    start_time = first_release_time if not np.isnan(first_release_time) else fieldset_start
     return start_time
 
 

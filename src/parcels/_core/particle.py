@@ -40,7 +40,7 @@ class Variable:
     def __init__(
         self,
         name,
-        dtype: np.dtype | _SAME_AS_FIELDSET_TIME_INTERVAL = np.float32,
+        dtype: np.dtype = np.float32,
         initial=0,
         to_write: bool | Literal["once"] = True,
         attrs: dict | None = None,
@@ -50,8 +50,7 @@ class Variable:
         try:
             dtype = np.dtype(dtype)
         except (TypeError, ValueError) as e:
-            if dtype is not _SAME_AS_FIELDSET_TIME_INTERVAL.VALUE:
-                raise TypeError(f"Variable dtype must be a valid numpy dtype. Got {dtype=!r}") from e
+            raise TypeError(f"Variable dtype must be a valid numpy dtype. Got {dtype=!r}") from e
 
         if to_write not in _TO_WRITE_OPTIONS:
             raise ValueError(f"to_write must be one of {_TO_WRITE_OPTIONS!r}. Got {to_write=!r}")
@@ -177,7 +176,7 @@ def get_default_particle(spatial_dtype: np.float32 | np.float64) -> ParticleClas
             Variable("dz", dtype=spatial_dtype, to_write=False),
             Variable(
                 "time",
-                dtype=_SAME_AS_FIELDSET_TIME_INTERVAL.VALUE,
+                dtype=np.float64,
                 attrs={"standard_name": "time", "units": "seconds", "axis": "T"},
             ),
             Variable(
@@ -190,7 +189,7 @@ def get_default_particle(spatial_dtype: np.float32 | np.float64) -> ParticleClas
                 },
             ),
             Variable("obs_written", dtype=np.int32, initial=0, to_write=False),
-            Variable("dt", dtype="timedelta64[s]", initial=np.timedelta64(1, "s"), to_write=False),
+            Variable("dt", dtype=np.float64, initial=1.0, to_write=False),
             Variable("state", dtype=np.int32, initial=StatusCode.Evaluate, to_write=False),
         ]
     )
@@ -214,14 +213,7 @@ def create_particle_data(
 
     assert "ei" not in initial, "'ei' is for internal use, and is unique since is only non 1D array"
 
-    time_interval_dtype = _get_time_interval_dtype(time_interval)
-
-    dtypes = {}
-    for var in variables.values():
-        if var.dtype is _SAME_AS_FIELDSET_TIME_INTERVAL.VALUE:
-            dtypes[var.name] = time_interval_dtype
-        else:
-            dtypes[var.name] = var.dtype
+    dtypes = {var.name: var.dtype for var in variables.values()}
 
     for var_name in initial:
         if var_name not in variables:
@@ -250,20 +242,8 @@ def _create_array_for_variable(variable: Variable, nparticles: int, time_interva
     assert not isinstance(variable.initial, operator.attrgetter), (
         "This function cannot handle attrgetter initial values."
     )
-    if (dtype := variable.dtype) is _SAME_AS_FIELDSET_TIME_INTERVAL.VALUE:
-        dtype = _get_time_interval_dtype(time_interval)
     return np.full(
         shape=(nparticles,),
         fill_value=variable.initial,
-        dtype=dtype,
+        dtype=variable.dtype,
     )
-
-
-def _get_time_interval_dtype(time_interval: TimeInterval | None) -> np.dtype:
-    if time_interval is None:
-        return np.timedelta64(1, "ns")
-    time = time_interval.left
-    if isinstance(time, (np.datetime64, np.timedelta64)):
-        return time.dtype
-    else:
-        return object  # cftime objects needs to be stored as object dtype

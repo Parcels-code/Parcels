@@ -158,8 +158,6 @@ class ParticleFile:
         pclass = pset._ptype
         time_interval = pset.fieldset.time_interval
         particle_data = pset._data
-        time = timedelta_to_float(time - time_interval.left)
-        particle_data = _convert_particle_data_time_to_float_seconds(particle_data, time_interval)
 
         self._write_particle_data(
             particle_data=particle_data, pclass=pclass, time_interval=time_interval, time=time, indices=indices
@@ -173,6 +171,8 @@ class ParticleFile:
         #         stacklevel=2,
         #     )
         #     return
+        if isinstance(time, (np.timedelta64, np.datetime64)):
+            time = timedelta_to_float(time - time_interval.left)
         nparticles = len(particle_data["trajectory"])
         vars_to_write = _get_vars_to_write(pclass)
         if indices is None:
@@ -303,15 +303,6 @@ def _to_write_particles(particle_data, time):
         & (np.isfinite(particle_data["trajectory"]))
         & (np.isfinite(particle_data["time"]))
     )[0]
-
-
-def _convert_particle_data_time_to_float_seconds(particle_data, time_interval):
-    #! Important that this is a shallow copy, so that updates to this propogate back to the original data
-    particle_data = particle_data.copy()
-
-    particle_data["time"] = ((particle_data["time"] - time_interval.left) / np.timedelta64(1, "s")).astype(np.float64)
-    particle_data["dt"] = (particle_data["dt"] / np.timedelta64(1, "s")).astype(np.float64)
-    return particle_data
 
 
 def _maybe_convert_time_dtype(dtype: np.dtype | _SAME_AS_FIELDSET_TIME_INTERVAL) -> np.dtype:

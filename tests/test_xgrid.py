@@ -164,7 +164,8 @@ def test_time1D_field():
     grid = XGrid.from_dataset(ds)
     field = Field("t1d", ds["t1d"], grid, XLinear)
 
-    assert field.eval(np.datetime64("2000-01-10T12:00:00"), -20, 5, 6) == 9.5
+    time = (np.datetime64("2000-01-10T12:00:00") - field.time_interval.left) / np.timedelta64(1, "s")
+    assert field.eval(time, -20, 5, 6) == 9.5
 
 
 @pytest.mark.parametrize(

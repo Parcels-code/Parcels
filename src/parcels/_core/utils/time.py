@@ -44,13 +44,19 @@ class TimeInterval:
 
         self.left = left
         self.right = right
+        if isinstance(right - left, np.timedelta64):
+            self.time_length_as_flt = (right - left) / np.timedelta64(1, "s")
+        elif isinstance(right - left, timedelta):
+            self.time_length_as_flt = (right - left).total_seconds()
+        else:
+            self.time_length_as_flt = right - left
 
     def __contains__(self, item: T) -> bool:
         return self.left <= item <= self.right
 
     def is_all_time_in_interval(self, time):
         item = np.atleast_1d(time)
-        return (self.left <= item).all() and (item <= self.right).all()
+        return (0 <= item).all() and (item <= self.time_length_as_flt).all()
 
     def __repr__(self) -> str:
         return f"TimeInterval(left={self.left!r}, right={self.right!r})"
@@ -152,4 +158,6 @@ def timedelta_to_float(dt: float | timedelta | np.timedelta64) -> float:
         return dt.total_seconds()
     if isinstance(dt, np.timedelta64):
         return float(dt / np.timedelta64(1, "s"))
+    if hasattr(dt, "dtype") and np.issubdtype(dt.dtype, np.timedelta64):  # in case of array
+        return (dt / np.timedelta64(1, "s")).astype(float)
     return float(dt)
