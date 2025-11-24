@@ -23,10 +23,10 @@ The tutorials written for Parcels v3 are currently being updated for Parcels v4.
 :caption: Set up FieldSets
 :titlesonly:
 
+examples/tutorial_nemo_curvilinear.ipynb
 ```
 
 <!-- examples/documentation_indexing.ipynb -->
-<!-- examples/tutorial_nemo_curvilinear.ipynb -->
 <!-- examples/tutorial_nemo_3D.ipynb -->
 <!-- examples/tutorial_croco_3D.ipynb -->
 <!-- examples/tutorial_timevaryingdepthdimensions.ipynb -->
@@ -47,6 +47,14 @@ examples/tutorial_delaystart.ipynb
 examples/tutorial_sampling.ipynb
 examples/tutorial_gsw_density.ipynb
 examples/tutorial_Argofloats.ipynb
+```
+
+```{toctree}
+:caption: Set interpolation method
+:titlesonly:
+
+examples/explanation_interpolation.md
+examples/tutorial_interpolation.ipynb
 ```
 
 <!-- examples/tutorial_diffusion.ipynb -->
