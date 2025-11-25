@@ -175,8 +175,7 @@ def CGrid_Velocity(
         py = np.array([grid.lat[yi, xi], grid.lat[yi, xi + 1], grid.lat[yi + 1, xi + 1], grid.lat[yi + 1, xi]])
 
     if grid._mesh == "spherical":
-        px[0] = np.where(px[0] < lon - 225, px[0] + 360, px[0])
-        px[0] = np.where(px[0] > lon + 225, px[0] - 360, px[0])
+        px = ((px + 180.0) % 360.0) - 180.0
         px[1:] = np.where(px[1:] - px[0] > 180, px[1:] - 360, px[1:])
         px[1:] = np.where(-px[1:] + px[0] > 180, px[1:] + 360, px[1:])
     c1 = i_u._geodetic_distance(
@@ -291,7 +290,10 @@ def CGrid_Velocity(
 
     # check whether the grid conversion has been applied correctly
     xx = (1 - xsi) * (1 - eta) * px[0] + xsi * (1 - eta) * px[1] + xsi * eta * px[2] + (1 - xsi) * eta * px[3]
-    u = np.where(np.abs((xx - lon) / lon) > 1e-4, np.nan, u)
+    dlon = xx - lon
+    if grid._mesh == "spherical":
+        dlon = ((dlon + 180.0) % 360.0) - 180.0
+    u = np.where(np.abs(dlon / lon) > 1e-4, np.nan, u)
 
     if vectorfield.W:
         data = vectorfield.W.data
@@ -602,29 +604,39 @@ def XLinearInvdistLandTracer(
 
     corner_data = _get_corner_data_Agrid(field.data, ti, zi, yi, xi, lenT, lenZ, len(xsi), axis_dim)
 
-    land_mask = np.isnan(corner_data)
+    land_mask = np.isclose(corner_data, 0.0)
     nb_land = np.sum(land_mask, axis=(0, 1, 2, 3))
 
     if np.any(nb_land):
         all_land_mask = nb_land == 4 * lenZ * lenT
         values[all_land_mask] = 0.0
 
-        not_all_land = np.asarray(~all_land_mask, dtype=bool)
-        if np.any(not_all_land):
+        some_land = np.logical_and(nb_land > 0, nb_land < 4 * lenZ * lenT)
+        if np.any(some_land):
             i_grid = np.arange(2)[None, None, None, :, None]
             j_grid = np.arange(2)[None, None, :, None, None]
             eta_b = eta[None, None, None, None, :]
             xsi_b = xsi[None, None, None, None, :]
 
-            inv_dist = 1.0 / ((eta_b - j_grid) ** 2 + (xsi_b - i_grid) ** 2)
+            dist2 = (eta_b - j_grid) ** 2 + (xsi_b - i_grid) ** 2
 
             valid_mask = ~land_mask
+            # Normal inverse-distance weighting
+            inv_dist = 1.0 / dist2
             weighted = np.where(valid_mask, corner_data * inv_dist, 0.0)
 
             val = np.sum(weighted, axis=(0, 1, 2, 3))
             w_sum = np.sum(np.where(valid_mask, inv_dist, 0.0), axis=(0, 1, 2, 3))
 
-            values[not_all_land] = val[not_all_land] / w_sum[not_all_land]
+            values[some_land] = val[some_land] / w_sum[some_land]
+
+            # If a particle hits exactly one of the 8 corner points, extract it
+            exact_mask = dist2 == 0 & valid_mask
+            exact_vals = np.sum(np.where(exact_mask, corner_data, 0.0), axis=(0, 1, 2, 3))
+            has_exact = np.any(exact_mask, axis=(0, 1, 2, 3))
+
+            exact_particles = some_land & has_exact
+            values[exact_particles] = exact_vals[exact_particles]
 
     return values.compute() if is_dask_collection(values) else values
 

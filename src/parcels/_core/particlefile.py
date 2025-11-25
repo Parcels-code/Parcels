@@ -317,10 +317,11 @@ def _maybe_convert_time_dtype(dtype: np.dtype | _SAME_AS_FIELDSET_TIME_INTERVAL)
 def _get_calendar_and_units(time_interval: TimeInterval) -> dict[str, str]:
     calendar = None
     units = "seconds"
-    if isinstance(time_interval.left, (np.datetime64, datetime)):
-        calendar = "standard"
-    elif isinstance(time_interval.left, cftime.datetime):
-        calendar = time_interval.left.calendar
+    if time_interval:
+        if isinstance(time_interval.left, (np.datetime64, datetime)):
+            calendar = "standard"
+        elif isinstance(time_interval.left, cftime.datetime):
+            calendar = time_interval.left.calendar
 
     if calendar is not None:
         units += f" since {time_interval.left}"

@@ -234,12 +234,12 @@ def test_radialrotation(npart=10):
     lon = np.linspace(32, 50, npart)
     lat = np.ones(npart) * 30
     starttime = np.arange(np.timedelta64(0, "s"), npart * dt, dt)
+    endtime = np.timedelta64(10, "m")
 
     pset = parcels.ParticleSet(fieldset, lon=lon, lat=lat, time=starttime)
-    pset.execute(parcels.kernels.AdvectionRK4, endtime=np.timedelta64(10, "m"), dt=dt)
+    pset.execute(parcels.kernels.AdvectionRK4, endtime=endtime, dt=dt)
 
-    # TODO simplify below when starttime does not need to be timedelta anymore
-    theta = 2 * np.pi * (pset.time - (starttime / np.timedelta64(1, "s"))) / (24 * 3600)
+    theta = 2 * np.pi * (pset.time - starttime) / (24 * 3600)
     true_lon = (lon - 30.0) * np.cos(theta) + 30.0
     true_lat = -(lon - 30.0) * np.sin(theta) + 30.0
 
@@ -282,19 +282,20 @@ def test_moving_eddy(kernel, rtol):
 
     start_lon, start_lat, start_z = 12000, 12500, 12500
     dt = np.timedelta64(30, "m")
+    endtime = np.timedelta64(1, "h")
 
     if kernel == AdvectionRK45:
         fieldset.add_constant("RK45_tol", rtol)
 
     pset = ParticleSet(fieldset, lon=start_lon, lat=start_lat, z=start_z, time=np.timedelta64(0, "s"))
-    pset.execute(kernel, dt=dt, endtime=np.timedelta64(1, "h"))
+    pset.execute(kernel, dt=dt, endtime=endtime)
 
     def truth_moving(x_0, y_0, t):
         lat = y_0 - (ds.u_0 - ds.u_g) / ds.f * (1 - np.cos(ds.f * t))
         lon = x_0 + ds.u_g * t + (ds.u_0 - ds.u_g) / ds.f * np.sin(ds.f * t)
         return lon, lat
 
-    exp_lon, exp_lat = truth_moving(start_lon, start_lat, pset.time[0])
+    exp_lon, exp_lat = truth_moving(start_lon, start_lat, endtime)
     np.testing.assert_allclose(pset.lon, exp_lon, rtol=rtol)
     np.testing.assert_allclose(pset.lat, exp_lat, rtol=rtol)
     if kernel == AdvectionRK4_3D:
@@ -320,13 +321,14 @@ def test_decaying_moving_eddy(kernel, rtol):
 
     start_lon, start_lat = 10000, 10000
     dt = np.timedelta64(60, "m")
+    endtime = np.timedelta64(23, "h")
 
     if kernel == AdvectionRK45:
         fieldset.add_constant("RK45_tol", rtol)
         fieldset.add_constant("RK45_min_dt", 10 * 60)
 
     pset = ParticleSet(fieldset, lon=start_lon, lat=start_lat, time=np.timedelta64(0, "s"))
-    pset.execute(kernel, dt=dt, endtime=np.timedelta64(23, "h"))
+    pset.execute(kernel, dt=dt, endtime=endtime)
 
     def truth_moving(x_0, y_0, t):
         lon = (
@@ -341,7 +343,7 @@ def test_decaying_moving_eddy(kernel, rtol):
         )
         return lon, lat
 
-    exp_lon, exp_lat = truth_moving(start_lon, start_lat, pset.time[0])
+    exp_lon, exp_lat = truth_moving(start_lon, start_lat, endtime)
     np.testing.assert_allclose(pset.lon, exp_lon, rtol=rtol)
     np.testing.assert_allclose(pset.lat, exp_lat, rtol=rtol)
 
@@ -452,20 +454,17 @@ def test_nemo_curvilinear_fieldset():
     U = parcels.Field("U", ds["U"], grid, interp_method=XLinear)
     V = parcels.Field("V", ds["V"], grid, interp_method=XLinear)
     U.units = parcels.GeographicPolar()
-    V.units = parcels.GeographicPolar()  # U and V need GoegraphicPolar for  C-Grid interpolation to work correctly
+    V.units = parcels.GeographicPolar()  # U and V need GeographicPolar for C-Grid interpolation to work correctly
     UV = parcels.VectorField("UV", U, V, vector_interp_method=CGrid_Velocity)
     fieldset = parcels.FieldSet([U, V, UV])
 
     npart = 20
     lonp = 30 * np.ones(npart)
     latp = np.linspace(-70, 88, npart)
-    runtime = np.timedelta64(12, "h")  # TODO increase to 160 days
-
-    def periodicBC(particles, fieldset):  # pragma: no cover
-        particles.dlon = np.where(particles.lon > 180, particles.dlon - 360, particles.dlon)
+    runtime = np.timedelta64(160, "D")
 
     pset = parcels.ParticleSet(fieldset, lon=lonp, lat=latp)
-    pset.execute([AdvectionEE, periodicBC], runtime=runtime, dt=np.timedelta64(6, "h"))
+    pset.execute(AdvectionEE, runtime=runtime, dt=np.timedelta64(10, "D"))
     np.testing.assert_allclose(pset.lat, latp, atol=1e-1)
 
 

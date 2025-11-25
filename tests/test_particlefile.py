@@ -21,6 +21,7 @@ from parcels import (
 )
 from parcels._core.particle import Particle, create_particle_data, get_default_particle
 from parcels._core.utils.time import TimeInterval
+from parcels._datasets.structured.generated import peninsula_dataset
 from parcels._datasets.structured.generic import datasets
 from parcels.interpolators import XLinear
 from parcels.kernels import AdvectionRK4
@@ -67,6 +68,21 @@ def test_pfile_array_write_zarr_memorystore(fieldset):
 
     ds = xr.open_zarr(zarr_store)
     assert ds.sizes["trajectory"] == npart
+
+
+def test_write_fieldset_without_time(tmp_zarrfile):
+    ds = peninsula_dataset()  # DataSet without time
+    assert "time" not in ds.dims
+    grid = XGrid.from_dataset(ds)
+    fieldset = FieldSet([Field("U", ds["U"], grid, XLinear)])
+
+    pset = ParticleSet(fieldset, pclass=Particle, lon=0, lat=0)
+
+    ofile = ParticleFile(tmp_zarrfile, outputdt=np.timedelta64(1, "s"))
+    pset.execute(DoNothing, runtime=np.timedelta64(1, "s"), dt=np.timedelta64(1, "s"), output_file=ofile)
+
+    ds = xr.open_zarr(tmp_zarrfile)
+    assert ds.time.values[0, 1] == np.timedelta64(1, "s")
 
 
 def test_pfile_array_remove_particles(fieldset, tmp_zarrfile):
