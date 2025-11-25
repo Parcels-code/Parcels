@@ -93,11 +93,10 @@ class ParticleSet:
         if time is None or len(time) == 0:
             # do not set a time yet (because sign_dt not known)
             time = np.array(np.nan)
-        elif type(time[0]) in [np.datetime64, np.timedelta64]:
-            if self.fieldset.time_interval:
-                time = timedelta_to_float(time - self.fieldset.time_interval.left)
-            else:
-                time = timedelta_to_float(time)
+        elif isinstance(time[0], np.datetime64) and self.fieldset.time_interval:
+            time = timedelta_to_float(time - self.fieldset.time_interval.left)
+        elif isinstance(time[0], np.timedelta64):
+            time = timedelta_to_float(time)
         else:
             raise TypeError("particle time must be a datetime, timedelta, or date object")
         time = np.repeat(time, lon.size) if time.size == 1 else time
