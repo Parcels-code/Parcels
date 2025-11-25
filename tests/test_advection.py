@@ -467,7 +467,7 @@ def test_nemo_curvilinear_fieldset():
     runtime = np.timedelta64(160, "D")
 
     pset = parcels.ParticleSet(fieldset, lon=lonp, lat=latp)
-    pset.execute(AdvectionEE, runtime=runtime, dt=np.timedelta64(6, "h"))
+    pset.execute(AdvectionEE, runtime=runtime, dt=np.timedelta64(10, "D"))
     np.testing.assert_allclose(pset.lat, latp, atol=1e-1)
 
 
