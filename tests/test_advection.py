@@ -239,7 +239,7 @@ def test_radialrotation(npart=10):
     pset = parcels.ParticleSet(fieldset, lon=lon, lat=lat, time=starttime)
     pset.execute(parcels.kernels.AdvectionRK4, endtime=endtime, dt=dt)
 
-    theta = 2 * np.pi * (pset.time - starttime) / (24 * 3600)
+    theta = 2 * np.pi * (pset.time - (starttime / np.timedelta64(1, "s"))) / (24 * 3600)
     true_lon = (lon - 30.0) * np.cos(theta) + 30.0
     true_lat = -(lon - 30.0) * np.sin(theta) + 30.0
 
@@ -291,6 +291,7 @@ def test_moving_eddy(kernel, rtol):
     pset.execute(kernel, dt=dt, endtime=endtime)
 
     def truth_moving(x_0, y_0, t):
+        t /= np.timedelta64(1, "s")
         lat = y_0 - (ds.u_0 - ds.u_g) / ds.f * (1 - np.cos(ds.f * t))
         lon = x_0 + ds.u_g * t + (ds.u_0 - ds.u_g) / ds.f * np.sin(ds.f * t)
         return lon, lat
@@ -331,6 +332,7 @@ def test_decaying_moving_eddy(kernel, rtol):
     pset.execute(kernel, dt=dt, endtime=endtime)
 
     def truth_moving(x_0, y_0, t):
+        t /= np.timedelta64(1, "s")
         lon = (
             x_0
             + (ds.u_g / ds.gamma_g) * (1 - np.exp(-ds.gamma_g * t))

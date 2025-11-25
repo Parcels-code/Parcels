@@ -175,10 +175,10 @@ def test_particleset_run_RK_to_endtime_fwd_bwd(fieldset, kernel, dt):
 
     pset = ParticleSet(fieldset, lon=[0.2], lat=[5.0], time=[starttime])
     pset.execute(kernel, endtime=endtime, dt=dt)
-    assert pset[0].time == endtime
+    assert pset[0].time == fieldset.time_interval.time_length_as_flt
 
     pset.execute(kernel, endtime=starttime, dt=-dt)
-    assert pset[0].time == starttime
+    assert pset[0].time == 0.0
 
 
 def test_particleset_interpolate_on_domainedge(zonal_flow_fieldset):
