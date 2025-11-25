@@ -99,7 +99,7 @@ TODO: link to a list of included kernels
 ```
 
 ```{code-cell}
-kernels = [parcels.kernels.AdvectionEE]
+kernels = [parcels.kernels.AdvectionRK2]
 ```
 
 ## Prepare output: `ParticleFile`
