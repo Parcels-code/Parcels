@@ -29,7 +29,7 @@ def _constrain_dt_to_within_time_interval(time_interval, time, dt):
     if time_interval:
         dt = np.where(time + dt <= time_interval.right, dt, time_interval.right - time)
         dt = np.where(time + dt >= time_interval.left, dt, time - time_interval.left)
-    return dt
+    return dt.astype("timedelta64[s]")
 
 
 def AdvectionRK2(particles, fieldset):  # pragma: no cover
@@ -156,7 +156,7 @@ def AdvectionRK45(particles, fieldset):  # pragma: no cover
     """
     dt = _constrain_dt_to_within_time_interval(fieldset.time_interval, particles.time, particles.dt)
     dt_flt = dt / np.timedelta64(1, "s")  # TODO: improve API for converting dt to seconds
-    sign_dt = np.sign(dt)
+    sign_dt = np.sign(dt_flt)
 
     c = [1.0 / 4.0, 3.0 / 8.0, 12.0 / 13.0, 1.0, 1.0 / 2.0]
     A = [
