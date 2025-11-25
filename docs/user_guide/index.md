@@ -47,6 +47,7 @@ examples/tutorial_delaystart.ipynb
 examples/tutorial_sampling.ipynb
 examples/tutorial_gsw_density.ipynb
 examples/tutorial_Argofloats.ipynb
+examples/tutorial_diffusion.ipynb
 ```
 
 ```{toctree}
@@ -57,7 +58,6 @@ examples/explanation_interpolation.md
 examples/tutorial_interpolation.ipynb
 ```
 
-<!-- examples/tutorial_diffusion.ipynb -->
 <!-- examples/tutorial_particle_field_interaction.ipynb -->
 <!-- examples/tutorial_interaction.ipynb -->
 <!-- examples/tutorial_analyticaladvection.ipynb -->
