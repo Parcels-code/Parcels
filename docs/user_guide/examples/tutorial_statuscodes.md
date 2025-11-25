@@ -82,7 +82,7 @@ If we advect particles with the `AdvectionRK2_3D` kernel, Parcels will raise a `
 
 ```{code-cell}
 :tags: [raises-exception]
-pset = parcels.ParticleSet(fieldset, parcels.Particle, z=[0],lat=[2], lon=[1.5])
+pset = parcels.ParticleSet(fieldset, parcels.Particle, z=[0.5],lat=[2], lon=[1.5])
 pset.execute([parcels.kernels.AdvectionRK2_3D],runtime=np.timedelta64(1, "m"), dt=np.timedelta64(1, "s"), verbose_progress=False)
 ```
 
@@ -94,6 +94,8 @@ pset = parcels.ParticleSet(fieldset, parcels.Particle, z=[0.5],lat=[2], lon=[1.5
 kernels = [parcels.kernels.AdvectionRK2_3D, KeepInOcean]
 
 pset.execute(kernels,runtime=np.timedelta64(20, "s"), dt=np.timedelta64(1, "s"), verbose_progress=False)
+
+print(f"particle z at end of run = {pset.z}")
 ```
 
 ```{note}
