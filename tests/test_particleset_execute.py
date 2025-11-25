@@ -173,7 +173,12 @@ def test_particleset_run_RK_to_endtime_fwd_bwd(fieldset, kernel, dt):
     fieldset.U.data[:] = 0.0
     fieldset.V.data[:] = 0.0
 
-    pset = ParticleSet(fieldset, lon=[0.2], lat=[5.0], time=[starttime])
+    if kernel == AdvectionRK45:
+        MyParticle = Particle.add_variable(Variable("next_dt"))
+    else:
+        MyParticle = Particle
+
+    pset = ParticleSet(fieldset, pclass=MyParticle, lon=[0.2], lat=[5.0], time=[starttime])
     pset.execute(kernel, endtime=endtime, dt=dt)
     assert pset[0].time == fieldset.time_interval.time_length_as_flt
 
