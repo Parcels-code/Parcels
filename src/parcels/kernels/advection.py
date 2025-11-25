@@ -27,9 +27,9 @@ def _constrain_dt_to_within_time_interval(time_interval, time, dt):
     lead to an OutofTimeError.
     """
     if time_interval:
-        dt = np.where(time + dt <= time_interval.right, dt, time_interval.right - time)
-        dt = np.where(time + dt >= time_interval.left, dt, time - time_interval.left)
-    return dt.astype("timedelta64[s]")
+        dt = np.where(time + dt <= time_interval.time_length_as_flt, dt, time_interval.time_length_as_flt - time)
+        dt = np.where(time + dt >= 0, dt, time)
+    return dt
 
 
 def AdvectionRK2(particles, fieldset):  # pragma: no cover
@@ -202,8 +202,8 @@ def AdvectionRK45(particles, fieldset):  # pragma: no cover
     )
     particles.dt = np.where(increase_dt_particles, particles.dt * 2, particles.dt)
     particles.dt = np.where(
-        np.abs(particles.dt) > np.abs(fieldset.RK45_max_dt * np.timedelta64(1, "s")),
-        fieldset.RK45_max_dt * np.timedelta64(1, "s") * sign_dt,
+        np.abs(particles.dt) > np.abs(fieldset.RK45_max_dt),
+        fieldset.RK45_max_dt * sign_dt,
         particles.dt,
     )
     particles.state = np.where(good_particles, StatusCode.Evaluate, particles.state)
@@ -211,8 +211,8 @@ def AdvectionRK45(particles, fieldset):  # pragma: no cover
     repeat_particles = np.invert(good_particles)
     particles.dt = np.where(repeat_particles, particles.dt / 2, particles.dt)
     particles.dt = np.where(
-        np.abs(particles.dt) < np.abs(fieldset.RK45_min_dt * np.timedelta64(1, "s")),
-        fieldset.RK45_min_dt * np.timedelta64(1, "s") * sign_dt,
+        np.abs(particles.dt) < np.abs(fieldset.RK45_min_dt),
+        fieldset.RK45_min_dt * sign_dt,
         particles.dt,
     )
     particles.state = np.where(repeat_particles, StatusCode.Repeat, particles.state)
