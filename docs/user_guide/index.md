@@ -46,6 +46,7 @@ examples/tutorial_delaystart.ipynb
 
 examples/explanation_kernelloop.md
 examples/tutorial_sampling.ipynb
+examples/tutorial_statuscodes.ipynb
 examples/tutorial_gsw_density.ipynb
 examples/tutorial_Argofloats.ipynb
 ```
