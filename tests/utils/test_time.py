@@ -81,8 +81,8 @@ def test_time_interval_initialization(left, right):
 @given(time_interval_strategy())
 def test_time_interval_contains(interval):
     left = 0
-    right = (interval.right - interval.left) / np.timedelta64(1, "s")
-    middle = (interval.right - interval.left) / np.timedelta64(1, "s") / 2
+    right = timedelta_to_float(interval.right - interval.left)
+    middle = timedelta_to_float(interval.right - interval.left) / 2
 
     assert interval.is_all_time_in_interval(left)
     assert interval.is_all_time_in_interval(right)

@@ -3,6 +3,8 @@ import math
 import numpy as np
 import xarray as xr
 
+from parcels._core.utils.time import timedelta_to_float
+
 
 def simple_UV_dataset(dims=(360, 2, 30, 4), maxdepth=1, mesh="spherical"):
     max_lon = 180.0 if mesh == "spherical" else 1e6
@@ -74,8 +76,8 @@ def moving_eddy_dataset(xdim=2, ydim=2):  # TODO check if this also works with x
     V = np.zeros((len(time), 1, ydim, xdim), dtype=np.float32)
 
     for t in range(len(time)):
-        U[t, :, :, :] = u_g + (u_0 - u_g) * np.cos(f * (time[t] / np.timedelta64(1, "s")))
-        V[t, :, :, :] = -(u_0 - u_g) * np.sin(f * (time[t] / np.timedelta64(1, "s")))
+        U[t, :, :, :] = u_g + (u_0 - u_g) * np.cos(f * timedelta_to_float(time[t]))
+        V[t, :, :, :] = -(u_0 - u_g) * np.sin(f * timedelta_to_float(time[t]))
 
     return xr.Dataset(
         {"U": (["time", "depth", "YG", "XG"], U), "V": (["time", "depth", "YG", "XG"], V)},
@@ -121,7 +123,7 @@ def decaying_moving_eddy_dataset(xdim=2, ydim=2):
     V = np.zeros((time.size, 1, lat.size, lon.size), dtype=np.float32)
 
     for t in range(time.size):
-        t_float = time[t] / np.timedelta64(1, "s")
+        t_float = timedelta_to_float(time[t])
         U[t, :, :, :] = u_g * np.exp(-gamma_g * t_float) + (u_0 - u_g) * np.exp(-gamma * t_float) * np.cos(f * t_float)
         V[t, :, :, :] = -(u_0 - u_g) * np.exp(-gamma * t_float) * np.sin(f * t_float)
 

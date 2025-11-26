@@ -19,6 +19,7 @@ from parcels import (
     VectorField,
     XGrid,
 )
+from parcels._core.utils.time import timedelta_to_float
 from parcels._datasets.structured.generated import simple_UV_dataset
 from parcels._datasets.structured.generic import datasets as datasets_structured
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
@@ -223,7 +224,7 @@ def test_pset_execute_subsecond_dt(fieldset, dt):
     pclass = Particle.add_variable(Variable("added_dt", dtype=np.float32, initial=0))
     pset = ParticleSet(fieldset, pclass=pclass, lon=0, lat=0)
     pset.execute(AddDt, runtime=dt * 10, dt=dt)
-    np.testing.assert_allclose(pset[0].added_dt, 11.0 * dt / np.timedelta64(1, "s"), atol=1e-5)
+    np.testing.assert_allclose(pset[0].added_dt, 11.0 * timedelta_to_float(dt), atol=1e-5)
 
 
 def test_pset_remove_particle_in_kernel(fieldset):
@@ -280,7 +281,7 @@ def test_execution_endtime(fieldset, starttime, endtime, dt):
     dt = np.timedelta64(dt, "s")
     pset = ParticleSet(fieldset, time=starttime, lon=0, lat=0)
     pset.execute(DoNothing, endtime=endtime, dt=dt)
-    assert pset.time == (endtime - fieldset.time_interval.left) / np.timedelta64(1, "s")
+    assert pset.time == timedelta_to_float(endtime - fieldset.time_interval.left)
 
 
 def test_dont_run_particles_outside_starttime(fieldset):
@@ -295,9 +296,9 @@ def test_dont_run_particles_outside_starttime(fieldset):
     pset.execute(AddLon, dt=np.timedelta64(1, "s"), endtime=endtime)
 
     np.testing.assert_array_equal(pset.lon, [9, 7, 0])
-    assert pset.time[0:1] == (endtime - fieldset.time_interval.left) / np.timedelta64(1, "s")
-    assert pset.time[2] == (start_times[2] - fieldset.time_interval.left) / np.timedelta64(
-        1, "s"
+    assert pset.time[0:1] == timedelta_to_float(endtime - fieldset.time_interval.left)
+    assert pset.time[2] == timedelta_to_float(
+        start_times[2] - fieldset.time_interval.left
     )  # this particle has not been executed
 
     # Test backward in time (note third particle is outside endtime)
@@ -308,9 +309,9 @@ def test_dont_run_particles_outside_starttime(fieldset):
     pset.execute(AddLon, dt=-np.timedelta64(1, "s"), endtime=endtime)
 
     np.testing.assert_array_equal(pset.lon, [9, 7, 0])
-    assert pset.time[0:1] == (endtime - fieldset.time_interval.left) / np.timedelta64(1, "s")
-    assert pset.time[2] == (start_times[2] - fieldset.time_interval.left) / np.timedelta64(
-        1, "s"
+    assert pset.time[0:1] == timedelta_to_float(endtime - fieldset.time_interval.left)
+    assert pset.time[2] == timedelta_to_float(
+        start_times[2] - fieldset.time_interval.left
     )  # this particle has not been executed
 
 

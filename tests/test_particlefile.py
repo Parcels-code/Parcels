@@ -20,7 +20,7 @@ from parcels import (
     download_example_dataset,
 )
 from parcels._core.particle import Particle, create_particle_data, get_default_particle
-from parcels._core.utils.time import TimeInterval
+from parcels._core.utils.time import TimeInterval, timedelta_to_float
 from parcels._datasets.structured.generated import peninsula_dataset
 from parcels._datasets.structured.generic import datasets
 from parcels.interpolators import XLinear
@@ -348,7 +348,7 @@ def test_correct_misaligned_outputdt_dt(fieldset, tmp_zarrfile):
 
     ds = xr.open_zarr(tmp_zarrfile)
     assert np.allclose(ds.lon.values, [0, 3, 6, 9])
-    assert np.allclose((ds.time.values - ds.time.values[0, 0]) / np.timedelta64(1, "s"), [0, 3, 6, 9])
+    assert np.allclose(timedelta_to_float(ds.time.values - ds.time.values[0, 0]), [0, 3, 6, 9])
 
 
 def setup_pset_execute(*, fieldset: FieldSet, outputdt: timedelta, execute_kwargs, particle_class=Particle):

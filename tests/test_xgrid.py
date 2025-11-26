@@ -12,6 +12,7 @@ from parcels._core.index_search import (
     RIGHT_OUT_OF_BOUNDS,
     _search_1d_array,
 )
+from parcels._core.utils.time import timedelta_to_float
 from parcels._core.xgrid import (
     XGrid,
     _transpose_xfield_data_to_tzyx,
@@ -164,7 +165,7 @@ def test_time1D_field():
     grid = XGrid.from_dataset(ds)
     field = Field("t1d", ds["t1d"], grid, XLinear)
 
-    time = (np.datetime64("2000-01-10T12:00:00") - field.time_interval.left) / np.timedelta64(1, "s")
+    time = timedelta_to_float(np.datetime64("2000-01-10T12:00:00") - field.time_interval.left)
     assert field.eval(time, -20, 5, 6) == 9.5
 
 

@@ -503,7 +503,7 @@ class ParticleSet:
         if np.isnan(self._data["time"]).any():
             self._data["time"][:] = start_time
 
-        outputdt = output_file.outputdt / np.timedelta64(1, "s") if output_file else None
+        outputdt = timedelta_to_float(output_file.outputdt) if output_file else None
 
         # Set up pbar
         if output_file:
@@ -622,7 +622,7 @@ def _get_start_time(first_release_time, time_interval, sign_dt, runtime):
     if sign_dt == 1:
         fieldset_start = 0.0
     else:
-        fieldset_start = (time_interval.right - time_interval.left) / np.timedelta64(1, "s")
+        fieldset_start = timedelta_to_float(time_interval.right - time_interval.left)
 
     start_time = first_release_time if not np.isnan(first_release_time) else fieldset_start
     return start_time

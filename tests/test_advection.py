@@ -5,6 +5,7 @@ import xgcm
 
 import parcels
 from parcels import Field, FieldSet, Particle, ParticleFile, ParticleSet, StatusCode, Variable, VectorField, XGrid
+from parcels._core.utils.time import timedelta_to_float
 from parcels._datasets.structured.generated import (
     decaying_moving_eddy_dataset,
     moving_eddy_dataset,
@@ -239,7 +240,7 @@ def test_radialrotation(npart=10):
     pset = parcels.ParticleSet(fieldset, lon=lon, lat=lat, time=starttime)
     pset.execute(parcels.kernels.AdvectionRK4, endtime=endtime, dt=dt)
 
-    theta = 2 * np.pi * (pset.time - (starttime / np.timedelta64(1, "s"))) / (24 * 3600)
+    theta = 2 * np.pi * (pset.time - timedelta_to_float(starttime)) / (24 * 3600)
     true_lon = (lon - 30.0) * np.cos(theta) + 30.0
     true_lat = -(lon - 30.0) * np.sin(theta) + 30.0
 
