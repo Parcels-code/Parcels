@@ -165,4 +165,7 @@ def timedelta_to_float(dt: float | timedelta | np.timedelta64) -> float:
 
 def float_to_datetime(dt: float, time_interval) -> np.datetime64:
     """Convert a float time ( ins seconds from the start of the time_interval) to a datetime"""
-    return np.timedelta64(int(dt), "s") + time_interval.left
+    if time_interval:
+        return np.timedelta64(int(dt), "s") + time_interval.left
+    else:
+        return np.timedelta64(int(dt), "s")
