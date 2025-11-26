@@ -45,7 +45,7 @@ class TimeInterval:
         self.left = left
         self.right = right
         if isinstance(right - left, np.timedelta64):
-            self.time_length_as_flt = (right - left) / np.timedelta64(1, "s")
+            self.time_length_as_flt = timedelta_to_float(right - left)
         elif isinstance(right - left, timedelta):
             self.time_length_as_flt = (right - left).total_seconds()
         else:
@@ -161,3 +161,8 @@ def timedelta_to_float(dt: float | timedelta | np.timedelta64) -> float:
     if hasattr(dt, "dtype") and np.issubdtype(dt.dtype, np.timedelta64):  # in case of array
         return (dt / np.timedelta64(1, "s")).astype(float)
     return float(dt)
+
+
+def float_to_datetime(dt: float, time_interval) -> np.datetime64:
+    """Convert a float time ( ins seconds from the start of the time_interval) to a datetime"""
+    return np.timedelta64(int(dt), "s") + time_interval.left

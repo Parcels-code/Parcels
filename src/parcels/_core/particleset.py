@@ -13,7 +13,12 @@ from parcels._core.converters import _convert_to_flat_array
 from parcels._core.kernel import Kernel
 from parcels._core.particle import KernelParticle, Particle, create_particle_data
 from parcels._core.statuscodes import StatusCode
-from parcels._core.utils.time import TimeInterval, maybe_convert_python_timedelta_to_numpy, timedelta_to_float
+from parcels._core.utils.time import (
+    TimeInterval,
+    float_to_datetime,
+    maybe_convert_python_timedelta_to_numpy,
+    timedelta_to_float,
+)
 from parcels._core.warnings import ParticleSetWarning
 from parcels._logger import logger
 from parcels._reprs import particleset_repr
@@ -533,7 +538,7 @@ class ParticleSet:
                         next_output += outputdt * sign_dt
 
             if verbose_progress:
-                pbar.set_description("Integration time: " + str(time))
+                pbar.set_description("Integration time: " + str(float_to_datetime(time, self.fieldset.time_interval)))
                 pbar.update(next_time - time)
 
             time = next_time
