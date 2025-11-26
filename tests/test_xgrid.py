@@ -65,10 +65,16 @@ def test_xgrid_from_dataset_on_generic_datasets(ds):
     XGrid.from_dataset(ds)
 
 
-@pytest.mark.parametrize("ds", [datasets["ds_2d_left"]])
 def test_xgrid_axes(ds):
     grid = XGrid.from_dataset(ds)
     assert grid.axes == ["Z", "Y", "X"]
+
+
+@pytest.mark.parametrize("ds", [datasets["ds_2d_left"]])
+@pytest.mark.parametrize("mesh", ["flat", "spherical"])
+def test_uxgrid_mesh(ds, mesh):
+    grid = XGrid.from_dataset(ds, mesh=mesh)
+    assert grid._mesh == mesh
 
 
 @pytest.mark.parametrize("ds", [datasets["ds_2d_left"]])

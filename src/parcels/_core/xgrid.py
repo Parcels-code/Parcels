@@ -102,7 +102,7 @@ class XGrid(BaseGrid):
 
     """
 
-    def __init__(self, grid: xgcm.Grid, mesh="flat"):
+    def __init__(self, grid: xgcm.Grid, mesh):
         self.xgcm_grid = grid
         self._mesh = mesh
         self._spatialhash = None

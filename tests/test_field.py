@@ -55,6 +55,7 @@ def test_field_init_param_types():
             UxGrid(
                 datasets_unstructured["stommel_gyre_delaunay"].uxgrid,
                 z=datasets_unstructured["stommel_gyre_delaunay"].coords["nz"],
+                mesh="flat",
             ),
             id="xarray-uxgrid",
         ),
@@ -194,7 +195,7 @@ def test_field_unstructured_z_linear():
     for k, z in enumerate(ds.coords["nz"]):
         ds["W"].values[:, k, :] = z
 
-    grid = UxGrid(ds.uxgrid, z=ds.coords["nz"])
+    grid = UxGrid(ds.uxgrid, z=ds.coords["nz"], mesh="flat")
     # Note that the vertical coordinate is required to be the position of the layer interfaces ("nz"), not the mid-layers ("nz1")
     P = Field(name="p", data=ds.p, grid=grid, interp_method=UXPiecewiseConstantFace)
 
@@ -232,7 +233,7 @@ def test_field_unstructured_z_linear():
 def test_field_constant_in_time():
     """Tests field evaluation for a field with no time interval (i.e., constant in time)."""
     ds = datasets_unstructured["stommel_gyre_delaunay"]
-    grid = UxGrid(ds.uxgrid, z=ds.coords["nz"])
+    grid = UxGrid(ds.uxgrid, z=ds.coords["nz"], mesh="flat")
     # Note that the vertical coordinate is required to be the position of the layer interfaces ("nz"), not the mid-layers ("nz1")
     P = Field(name="p", data=ds.p, grid=grid, interp_method=UXPiecewiseConstantFace)
 
