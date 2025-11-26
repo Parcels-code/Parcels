@@ -259,6 +259,12 @@ def test_fieldset_from_copernicusmarine(ds, caplog):
     assert "renamed it to 'V'" in caplog.text
 
 
+@pytest.mark.parametrize("ds", _COPERNICUS_DATASETS)
+def test_grid_mesh_from_copernicusmarine(ds):
+    fieldset = FieldSet.from_copernicusmarine(ds)
+    assert fieldset.U.grid._mesh == "spherical"
+
+
 @pytest.mark.parametrize("ds", [datasets_circulation_models["ds_copernicusmarine"].copy()])
 def test_fieldset_from_copernicusmarine_missing_axis(ds, caplog):
     del ds["latitude"].attrs["axis"]

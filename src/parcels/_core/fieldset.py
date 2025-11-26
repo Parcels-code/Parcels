@@ -235,7 +235,8 @@ class FieldSet:
                 },
                 autoparse_metadata=False,
                 **_DEFAULT_XGCM_KWARGS,
-            )
+            ),
+            mesh="spherical",
         )
 
         fields = {}
