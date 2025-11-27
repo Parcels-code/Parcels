@@ -10,7 +10,6 @@ import uxarray as ux
 import xarray as xr
 import xgcm
 
-from parcels._core.converters import Geographic, GeographicPolar
 from parcels._core.field import Field, VectorField
 from parcels._core.utils.string import _assert_str_and_python_varname
 from parcels._core.utils.time import get_datetime_type_calendar
@@ -235,15 +234,14 @@ class FieldSet:
                 },
                 autoparse_metadata=False,
                 **_DEFAULT_XGCM_KWARGS,
-            )
+            ),
+            mesh="spherical",
         )
 
         fields = {}
         if "U" in ds.data_vars and "V" in ds.data_vars:
             fields["U"] = Field("U", ds["U"], grid, XLinear)
             fields["V"] = Field("V", ds["V"], grid, XLinear)
-            fields["U"].units = GeographicPolar()
-            fields["V"].units = Geographic()
 
             if "W" in ds.data_vars:
                 ds["W"] -= ds[
@@ -278,15 +276,13 @@ class FieldSet:
             raise ValueError(
                 f"Dataset missing one of the required dimensions 'time', 'nz', or 'nz1'. Found dimensions {ds_dims}"
             )
-        grid = UxGrid(ds.uxgrid, z=ds.coords["nz"])
+        grid = UxGrid(ds.uxgrid, z=ds.coords["nz"], mesh="spherical")
         ds = _discover_fesom2_U_and_V(ds)
 
         fields = {}
         if "U" in ds.data_vars and "V" in ds.data_vars:
             fields["U"] = Field("U", ds["U"], grid, _select_uxinterpolator(ds["U"]))
             fields["V"] = Field("V", ds["V"], grid, _select_uxinterpolator(ds["U"]))
-            fields["U"].units = GeographicPolar()
-            fields["V"].units = Geographic()
 
             if "W" in ds.data_vars:
                 fields["W"] = Field("W", ds["W"], grid, _select_uxinterpolator(ds["U"]))
