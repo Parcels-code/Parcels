@@ -235,15 +235,14 @@ class FieldSet:
                 },
                 autoparse_metadata=False,
                 **_DEFAULT_XGCM_KWARGS,
-            )
+            ),
+            mesh="spherical",
         )
 
         fields = {}
         if "U" in ds.data_vars and "V" in ds.data_vars:
             fields["U"] = Field("U", ds["U"], grid, XLinear)
             fields["V"] = Field("V", ds["V"], grid, XLinear)
-            fields["U"].units = GeographicPolar()
-            fields["V"].units = Geographic()
 
             if "W" in ds.data_vars:
                 ds["W"] -= ds[
