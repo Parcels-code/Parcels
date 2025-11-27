@@ -11,6 +11,7 @@ __all__ = [
     "GeographicPolarSquare",
     "GeographicSquare",
     "UnitConverter",
+    "Unity",
     "_convert_to_flat_array",
     "_unitconverters_map",
 ]
@@ -28,10 +29,15 @@ def _convert_to_flat_array(var: npt.ArrayLike) -> npt.NDArray:
 
 
 class UnitConverter:
-    """Interface class for spatial unit conversion during field sampling that performs no conversion."""
-
     source_unit: str | None = None
     target_unit: str | None = None
+
+
+class Unity(UnitConverter):
+    """Interface class for spatial unit conversion during field sampling that performs no conversion."""
+
+    source_unit: None
+    target_unit: None
 
     def to_target(self, value, z, y, x):
         return value
