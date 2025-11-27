@@ -78,12 +78,11 @@ Now we define a wind kernel that uses a forward Euler method to apply the wind f
 
 ```{code-cell}
 def wind_kernel(particles, fieldset):
-    dt_float = particles.dt / np.timedelta64(1, 's')
     particles.dlon += (
-        fieldset.UWind[particles] * dt_float
+        fieldset.UWind[particles] * particles.dt
     )
     particles.dlat += (
-        fieldset.VWind[particles] * dt_float
+        fieldset.VWind[particles] * particles.dt
     )
 ```
 
