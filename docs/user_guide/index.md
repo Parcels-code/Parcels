@@ -24,6 +24,7 @@ The tutorials written for Parcels v3 are currently being updated for Parcels v4.
 :titlesonly:
 
 examples/tutorial_nemo_curvilinear.ipynb
+examples/tutorial_unitconverters.ipynb
 ```
 
 <!-- examples/documentation_indexing.ipynb -->
@@ -32,7 +33,6 @@ examples/tutorial_nemo_curvilinear.ipynb
 <!-- examples/tutorial_timevaryingdepthdimensions.ipynb -->
 <!-- examples/tutorial_periodic_boundaries.ipynb -->
 <!-- examples/tutorial_interpolation.ipynb -->
-<!-- examples/tutorial_unitconverters.ipynb -->
 
 ```{toctree}
 :caption: Create ParticleSets
