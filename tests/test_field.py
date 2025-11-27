@@ -14,7 +14,7 @@ from parcels.interpolators import UXPiecewiseConstantFace, UXPiecewiseLinearNode
 
 def test_field_init_param_types():
     data = datasets_structured["ds_2d_left"]
-    grid = XGrid.from_dataset(data)
+    grid = XGrid.from_dataset(data, mesh="flat")
 
     with pytest.raises(TypeError, match="Expected a string for variable name, got int instead."):
         Field(name=123, data=data["data_g"], grid=grid, interp_method=XLinear)
@@ -47,7 +47,7 @@ def test_field_init_param_types():
     [
         pytest.param(
             ux.UxDataArray(),
-            XGrid.from_dataset(datasets_structured["ds_2d_left"]),
+            XGrid.from_dataset(datasets_structured["ds_2d_left"], mesh="flat"),
             id="uxdata-grid",
         ),
         pytest.param(
@@ -76,7 +76,7 @@ def test_field_incompatible_combination(data, grid):
     [
         pytest.param(
             datasets_structured["ds_2d_left"]["data_g"],
-            XGrid.from_dataset(datasets_structured["ds_2d_left"]),
+            XGrid.from_dataset(datasets_structured["ds_2d_left"], mesh="flat"),
             id="ds_2d_left",
         ),  # TODO: Perhaps this test should be expanded to cover more datasets?
     ],
@@ -107,7 +107,7 @@ def test_field_init_fail_on_float_time_dim():
     )
 
     data = ds["data_g"]
-    grid = XGrid.from_dataset(ds)
+    grid = XGrid.from_dataset(ds, mesh="flat")
     with pytest.raises(
         ValueError,
         match="Error getting time interval.*. Are you sure that the time dimension on the xarray dataset is stored as timedelta, datetime or cftime datetime objects\?",
@@ -125,7 +125,7 @@ def test_field_init_fail_on_float_time_dim():
     [
         pytest.param(
             datasets_structured["ds_2d_left"]["data_g"],
-            XGrid.from_dataset(datasets_structured["ds_2d_left"]),
+            XGrid.from_dataset(datasets_structured["ds_2d_left"], mesh="flat"),
             id="ds_2d_left",
         ),
     ],
@@ -144,7 +144,7 @@ def test_vectorfield_init_different_time_intervals():
 
 def test_field_invalid_interpolator():
     ds = datasets_structured["ds_2d_left"]
-    grid = XGrid.from_dataset(ds)
+    grid = XGrid.from_dataset(ds, mesh="flat")
 
     def invalid_interpolator_wrong_signature(particle_positions, grid_positions, invalid):
         return 0.0
@@ -161,7 +161,7 @@ def test_field_invalid_interpolator():
 
 def test_vectorfield_invalid_interpolator():
     ds = datasets_structured["ds_2d_left"]
-    grid = XGrid.from_dataset(ds)
+    grid = XGrid.from_dataset(ds, mesh="flat")
 
     def invalid_interpolator_wrong_signature(particle_positions, grid_positions, invalid):
         return 0.0

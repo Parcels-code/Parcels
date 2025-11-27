@@ -124,7 +124,7 @@ class XGrid(BaseGrid):
         self._ds = ds
 
     @classmethod
-    def from_dataset(cls, ds: xr.Dataset, mesh="flat", xgcm_kwargs=None):
+    def from_dataset(cls, ds: xr.Dataset, mesh, xgcm_kwargs=None):
         """WARNING: unstable API, subject to change in future versions."""  # TODO v4: make private or remove warning on v4 release
         if xgcm_kwargs is None:
             xgcm_kwargs = {}
