@@ -43,3 +43,7 @@ Version 4 of Parcels is unreleased at the moment. The information in this migrat
 ## GridSet
 
 - `GridSet` is now a list, so change `fieldset.gridset.grids[0]` to `fieldset.gridset[0]`.
+
+## UnitConverters
+
+- The default `UnitConverter` is now called `Unity()`
