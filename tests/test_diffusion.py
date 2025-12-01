@@ -4,7 +4,18 @@ import numpy as np
 import pytest
 from scipy import stats
 
-from parcels import Field, FieldSet, Particle, ParticleSet, Variable, VectorField, XGrid
+from parcels import (
+    Field,
+    FieldSet,
+    GeographicPolarSquare,
+    GeographicSquare,
+    Particle,
+    ParticleSet,
+    Unity,
+    Variable,
+    VectorField,
+    XGrid,
+)
 from parcels._datasets.structured.generated import simple_UV_dataset
 from parcels.interpolators import XLinear
 from parcels.kernels import AdvectionDiffusionEM, AdvectionDiffusionM1, DiffusionUniformKh
@@ -27,6 +38,13 @@ def test_fieldKh_Brownian(mesh):
     fieldset = FieldSet([U, V, UV])
     fieldset.add_constant_field("Kh_zonal", kh_zonal, mesh=mesh)
     fieldset.add_constant_field("Kh_meridional", kh_meridional, mesh=mesh)
+
+    if mesh == "spherical":
+        assert isinstance(fieldset.Kh_zonal.units, GeographicPolarSquare)
+        assert isinstance(fieldset.Kh_meridional.units, GeographicSquare)
+    else:
+        assert isinstance(fieldset.Kh_zonal.units, Unity)
+        assert isinstance(fieldset.Kh_meridional.units, Unity)
 
     npart = 100
     runtime = np.timedelta64(2, "h")
