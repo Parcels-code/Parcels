@@ -16,7 +16,6 @@ from parcels._core.statuscodes import StatusCode
 from parcels._core.utils.time import (
     TimeInterval,
     float_to_datetime,
-    maybe_convert_python_timedelta_to_numpy,
     timedelta_to_float,
 )
 from parcels._core.warnings import ParticleSetWarning
@@ -431,9 +430,9 @@ class ParticleSet:
     def execute(
         self,
         pyfunc,
-        dt: datetime.timedelta | np.timedelta64,
+        dt: datetime.timedelta | np.timedelta64 | float,
         endtime: np.timedelta64 | np.datetime64 | None = None,
-        runtime: datetime.timedelta | np.timedelta64 | None = None,
+        runtime: datetime.timedelta | np.timedelta64 | float | None = None,
         output_file=None,
         verbose_progress=True,
     ):
@@ -448,15 +447,15 @@ class ParticleSet:
             Kernel function to execute. This can be the name of a
             defined Python function or a :class:`parcels.kernel.Kernel` object.
             Kernels can be concatenated using the + operator.
-        dt (np.timedelta64):
-            Timestep interval (as a np.timedelta64 object) to be passed to the kernel.
+        dt (np.timedelta64 or float):
+            Timestep interval (as a np.timedelta64 object of float in seconds) to be passed to the kernel.
             Use a negative value for a backward-in-time simulation.
         endtime (np.datetime64 or np.timedelta64): :
             End time for the timestepping loop. If a np.timedelta64 is provided, it is interpreted as the total simulation time. In this case,
             the absolute end time is the start of the fieldset's time interval plus the np.timedelta64.
             If a datetime is provided, it is interpreted as the absolute end time of the simulation.
-        runtime (np.timedelta64):
-            The duration of the simuulation execution. Must be a np.timedelta64 object and is required to be set when the `fieldset.time_interval` is not defined.
+        runtime (np.timedelta64 or float):
+            The duration of the simulation execution. Must be a float (in seconds) or a np.timedelta64 object and is required to be set when the `fieldset.time_interval` is not defined.
             If the `fieldset.time_interval` is defined and the runtime is provided, the end time will be the start of the fieldset's time interval plus the runtime.
         output_file :
             mod:`parcels.particlefile.ParticleFile` object for particle output (Default value = None)
@@ -480,25 +479,10 @@ class ParticleSet:
             output_file.set_metadata(self.fieldset.gridset[0]._mesh)
             output_file.metadata["parcels_kernels"] = self._kernel.funcname
 
-        try:
-            dt = maybe_convert_python_timedelta_to_numpy(dt)
-            assert not np.isnat(dt)
-            sign_dt = np.sign(dt).astype(int)
-            assert sign_dt in [-1, 1]
-        except (ValueError, AssertionError) as e:
-            raise ValueError(f"dt must be a non-zero datetime.timedelta or np.timedelta64 object, got {dt=!r}") from e
-
-        dt = timedelta_to_float(dt)
+        dt, sign_dt = _convert_dt_to_float(dt)
         self._data["dt"][:] = dt
-        if runtime is not None:
-            try:
-                runtime = maybe_convert_python_timedelta_to_numpy(runtime)
-            except ValueError as e:
-                raise ValueError(
-                    f"The runtime must be a datetime.timedelta or np.timedelta64 object. Got {type(runtime)}"
-                ) from e
-            if runtime < np.timedelta64(0, "s"):
-                raise ValueError(f"The runtime must be a non-negative timedelta. Got {runtime=!r}")
+
+        runtime = _convert_runtime_to_float(runtime)
 
         start_time, end_time = _get_simulation_start_and_end_times(
             self.fieldset.time_interval, self._data["time"], runtime, endtime, sign_dt
@@ -569,6 +553,32 @@ def _warn_particle_times_outside_fieldset_time_bounds(release_times: np.ndarray,
             ParticleSetWarning,
             stacklevel=2,
         )
+
+
+def _convert_dt_to_float(dt):
+    try:
+        dt = timedelta_to_float(dt)
+        assert not np.isnan(dt)
+        sign_dt = np.sign(dt).astype(int)
+        assert sign_dt in [-1, 1]
+    except (ValueError, AssertionError) as e:
+        raise ValueError(f"dt must be a non-zero datetime.timedelta or np.timedelta64 object, got {dt=!r}") from e
+
+    return dt, sign_dt
+
+
+def _convert_runtime_to_float(runtime):
+    if runtime is not None:
+        try:
+            runtime = timedelta_to_float(runtime)
+        except ValueError as e:
+            raise ValueError(
+                f"The runtime must be a datetime.timedelta, np.timedelta64 or float object. Got {type(runtime)}"
+            ) from e
+        if runtime < 0:
+            raise ValueError(f"The runtime must be a non-negative timedelta or float. Got {runtime=!r}")
+
+    return runtime
 
 
 def _get_simulation_start_and_end_times(
