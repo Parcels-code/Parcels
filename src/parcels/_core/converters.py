@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from math import pi
 
 import numpy as np
@@ -28,9 +29,15 @@ def _convert_to_flat_array(var: npt.ArrayLike) -> npt.NDArray:
     return np.array(var).flatten()
 
 
-class UnitConverter:
+class UnitConverter(ABC):
     source_unit: str | None = None
     target_unit: str | None = None
+
+    @abstractmethod
+    def to_target(self, value, z, y, x): ...
+
+    @abstractmethod
+    def to_source(self, value, z, y, x): ...
 
 
 class Unity(UnitConverter):
