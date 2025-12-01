@@ -521,7 +521,7 @@ epub_exclude_files = ["search.html"]
 # -- Options for MyST parser ----------------------------------------------
 myst_heading_anchors = 3
 
-myst_enable_extensions = ["substitution"]
+myst_enable_extensions = ["substitution", "amsmath", "dollarmath"]
 
 # -- Options for MyST-nb --------------------------------------------------
 nb_execution_mode = "cache"

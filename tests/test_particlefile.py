@@ -32,7 +32,7 @@ from tests.common_kernels import DoNothing
 def fieldset() -> FieldSet:  # TODO v4: Move into a `conftest.py` file and remove duplicates
     """Fixture to create a FieldSet object for testing."""
     ds = datasets["ds_2d_left"]
-    grid = XGrid.from_dataset(ds)
+    grid = XGrid.from_dataset(ds, mesh="flat")
     U = Field("U", ds["U_A_grid"], grid, XLinear)
     V = Field("V", ds["V_A_grid"], grid, XLinear)
     UV = VectorField("UV", U, V)
@@ -73,7 +73,7 @@ def test_pfile_array_write_zarr_memorystore(fieldset):
 def test_write_fieldset_without_time(tmp_zarrfile):
     ds = peninsula_dataset()  # DataSet without time
     assert "time" not in ds.dims
-    grid = XGrid.from_dataset(ds)
+    grid = XGrid.from_dataset(ds, mesh="flat")
     fieldset = FieldSet([Field("U", ds["U"], grid, XLinear)])
 
     pset = ParticleSet(fieldset, pclass=Particle, lon=0, lat=0)

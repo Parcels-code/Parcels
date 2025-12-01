@@ -85,7 +85,7 @@ def test_advection_zonal_periodic():
     halo.XG.values = ds.XG.values[1] + 2
     ds = xr.concat([ds, halo], dim="XG")
 
-    grid = XGrid.from_dataset(ds)
+    grid = XGrid.from_dataset(ds, mesh="flat")
     U = Field("U", ds["U"], grid, interp_method=XLinear)
     V = Field("V", ds["V"], grid, interp_method=XLinear)
     UV = VectorField("UV", U, V)
@@ -104,7 +104,7 @@ def test_horizontal_advection_in_3D_flow(npart=10):
     """Flat 2D zonal flow that increases linearly with z from 0 m/s to 1 m/s."""
     ds = simple_UV_dataset(mesh="flat")
     ds["U"].data[:] = 1.0
-    grid = XGrid.from_dataset(ds)
+    grid = XGrid.from_dataset(ds, mesh="flat")
     U = Field("U", ds["U"], grid, interp_method=XLinear)
     U.data[:, 0, :, :] = 0.0  # Set U to 0 at the surface
     V = Field("V", ds["V"], grid, interp_method=XLinear)
@@ -122,7 +122,7 @@ def test_horizontal_advection_in_3D_flow(npart=10):
 @pytest.mark.parametrize("wErrorThroughSurface", [True, False])
 def test_advection_3D_outofbounds(direction, wErrorThroughSurface):
     ds = simple_UV_dataset(mesh="flat")
-    grid = XGrid.from_dataset(ds)
+    grid = XGrid.from_dataset(ds, mesh="flat")
     U = Field("U", ds["U"], grid, interp_method=XLinear)
     U.data[:] = 0.01  # Set U to small value (to avoid horizontal out of bounds)
     V = Field("V", ds["V"], grid, interp_method=XLinear)
@@ -202,7 +202,7 @@ def test_length1dimensions(u, v, w):  # TODO: Refactor this test to be more read
     if w:
         ds["W"] = (["time", "depth", "YG", "XG"], W)
 
-    grid = XGrid.from_dataset(ds)
+    grid = XGrid.from_dataset(ds, mesh="flat")
     U = Field("U", ds["U"], grid, interp_method=XLinear)
     V = Field("V", ds["V"], grid, interp_method=XLinear)
     fields = [U, V, VectorField("UV", U, V)]
@@ -263,7 +263,7 @@ def test_radialrotation(npart=10):
 )
 def test_moving_eddy(kernel, rtol):
     ds = moving_eddy_dataset()
-    grid = XGrid.from_dataset(ds)
+    grid = XGrid.from_dataset(ds, mesh="flat")
     U = Field("U", ds["U"], grid, interp_method=XLinear)
     V = Field("V", ds["V"], grid, interp_method=XLinear)
     if kernel in [AdvectionRK2_3D, AdvectionRK4_3D]:
@@ -320,7 +320,7 @@ def test_moving_eddy(kernel, rtol):
 )
 def test_decaying_moving_eddy(kernel, rtol):
     ds = decaying_moving_eddy_dataset()
-    grid = XGrid.from_dataset(ds)
+    grid = XGrid.from_dataset(ds, mesh="flat")
     U = Field("U", ds["U"], grid, interp_method=XLinear)
     V = Field("V", ds["V"], grid, interp_method=XLinear)
     UV = VectorField("UV", U, V)
@@ -371,7 +371,7 @@ def test_decaying_moving_eddy(kernel, rtol):
 def test_stommelgyre_fieldset(kernel, rtol, grid_type):
     npart = 2
     ds = stommel_gyre_dataset(grid_type=grid_type)
-    grid = XGrid.from_dataset(ds)
+    grid = XGrid.from_dataset(ds, mesh="flat")
     vector_interp_method = None if grid_type == "A" else CGrid_Velocity
     U = Field("U", ds["U"], grid, interp_method=XLinear)
     V = Field("V", ds["V"], grid, interp_method=XLinear)
@@ -413,7 +413,7 @@ def test_stommelgyre_fieldset(kernel, rtol, grid_type):
 def test_peninsula_fieldset(kernel, rtol, grid_type):
     npart = 2
     ds = peninsula_dataset(grid_type=grid_type)
-    grid = XGrid.from_dataset(ds)
+    grid = XGrid.from_dataset(ds, mesh="flat")
     U = Field("U", ds["U"], grid, interp_method=XLinear)
     V = Field("V", ds["V"], grid, interp_method=XLinear)
     P = Field("P", ds["P"], grid, interp_method=XLinear)

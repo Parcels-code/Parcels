@@ -52,7 +52,7 @@ def field():
             "y": (["y"], [0.5, 1.5, 2.5, 3.5], {"axis": "Y"}),
         },
     )
-    return Field("U", ds["U"], XGrid.from_dataset(ds), interp_method=XLinear)
+    return Field("U", ds["U"], XGrid.from_dataset(ds, mesh="flat"), interp_method=XLinear)
 
 
 @pytest.mark.parametrize(
