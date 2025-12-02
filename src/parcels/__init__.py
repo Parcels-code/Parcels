@@ -14,7 +14,7 @@ from parcels._core.converters import (
     GeographicPolar,
     GeographicPolarSquare,
     GeographicSquare,
-    UnitConverter,
+    Unity,
 )
 from parcels._core.field import Field, VectorField
 from parcels._core.fieldset import FieldSet
@@ -66,7 +66,7 @@ __all__ = [  # noqa: RUF022
     "GeographicPolar",
     "GeographicPolarSquare",
     "GeographicSquare",
-    "UnitConverter",
+    "Unity",
     # Status codes and errors
     "AllParcelsErrorCodes",
     "FieldInterpolationError",
