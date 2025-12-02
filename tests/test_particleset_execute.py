@@ -62,7 +62,7 @@ def zonal_flow_fieldset() -> FieldSet:
 
 
 def test_pset_execute_invalid_arguments(fieldset, fieldset_no_time_interval):
-    for dt in [1, np.timedelta64(0, "s"), np.timedelta64(None)]:
+    for dt in [np.timedelta64(0, "s"), np.timedelta64(None)]:
         with pytest.raises(
             ValueError,
             match="dt must be a non-zero datetime.timedelta or np.timedelta64 object, got .*",
@@ -75,14 +75,6 @@ def test_pset_execute_invalid_arguments(fieldset, fieldset_no_time_interval):
     ):
         ParticleSet(fieldset, lon=[0.2], lat=[5.0], pclass=Particle).execute(
             AdvectionRK4, runtime=np.timedelta64(1, "s"), endtime=np.datetime64("2100-01-01"), dt=np.timedelta64(1, "s")
-        )
-
-    with pytest.raises(
-        ValueError,
-        match="The runtime must be a datetime.timedelta or np.timedelta64 object. Got .*",
-    ):
-        ParticleSet(fieldset, lon=[0.2], lat=[5.0], pclass=Particle).execute(
-            AdvectionRK4, runtime=1, dt=np.timedelta64(1, "s")
         )
 
     msg = """Calculated/provided end time of .* is not in fieldset time interval .* Either reduce your runtime, modify your provided endtime, or change your release timing.*"""
@@ -124,7 +116,7 @@ def test_pset_execute_invalid_arguments(fieldset, fieldset_no_time_interval):
     [
         (np.timedelta64(5, "s"), does_not_raise()),
         (timedelta(seconds=2), does_not_raise()),
-        (5.0, pytest.raises(ValueError)),
+        (5.0, does_not_raise()),
         (np.datetime64("2001-01-02T00:00:00"), pytest.raises(ValueError)),
         (datetime(2000, 1, 2, 0, 0, 0), pytest.raises(ValueError)),
     ],

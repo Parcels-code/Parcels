@@ -558,10 +558,10 @@ def _warn_particle_times_outside_fieldset_time_bounds(release_times: np.ndarray,
 def _convert_dt_to_float(dt):
     try:
         dt = timedelta_to_float(dt)
-        assert not np.isnan(dt)
+        assert dt is not None
         sign_dt = np.sign(dt).astype(int)
         assert sign_dt in [-1, 1]
-    except (ValueError, AssertionError) as e:
+    except (ValueError, TypeError, AssertionError) as e:
         raise ValueError(f"dt must be a non-zero datetime.timedelta or np.timedelta64 object, got {dt=!r}") from e
 
     return dt, sign_dt
@@ -571,7 +571,7 @@ def _convert_runtime_to_float(runtime):
     if runtime is not None:
         try:
             runtime = timedelta_to_float(runtime)
-        except ValueError as e:
+        except (ValueError, TypeError) as e:
             raise ValueError(
                 f"The runtime must be a datetime.timedelta, np.timedelta64 or float object. Got {type(runtime)}"
             ) from e
@@ -632,7 +632,7 @@ def _get_simulation_start_and_end_times(
 
 def _get_start_time(first_release_time, time_interval, sign_dt, runtime):
     if time_interval is None:
-        time_interval = TimeInterval(np.timedelta64(0, "s"), right=runtime)
+        time_interval = TimeInterval(np.timedelta64(0, "s"), right=np.timedelta64(int(runtime), "s"))
 
     if sign_dt == 1:
         fieldset_start = 0.0
