@@ -633,7 +633,7 @@ def _get_simulation_start_and_end_times(
 
 def _get_start_time(first_release_time, time_interval, sign_dt, runtime):
     if time_interval is None:
-        time_interval = TimeInterval(np.timedelta64(0, "s"), right=np.timedelta64(int(runtime), "s"))
+        time_interval = TimeInterval(np.timedelta64(0, "s"), right=np.timedelta64(int(runtime * 1e9), "ns"))
 
     if sign_dt == 1:
         fieldset_start = 0.0
