@@ -13,7 +13,9 @@ from hypothesis import strategies as st
 
 from parcels._core.sgrid import Padding as PaddingEnum
 
-ALLOWED_DIM_LETTERS = string.ascii_letters + "-_"
+ALLOWED_DIM_LETTERS = (
+    string.ascii_letters + string.digits + "_"
+)  # We can make this more aligned with SGrid by adjusting our regex - but this is good for now
 
 padding = st.sampled_from(PaddingEnum)
 dimension_name = st.text(
