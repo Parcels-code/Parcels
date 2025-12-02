@@ -13,6 +13,7 @@ from parcels import (
     Particle,
     ParticleFile,
     ParticleSet,
+    ParticleSetWarning,
     StatusCode,
     Variable,
     VectorField,
@@ -221,6 +222,13 @@ def test_pset_repeated_release_delayed_adding_deleting(fieldset, tmp_zarrfile, d
         assert np.allclose([p for p in samplevar[:, k] if np.isfinite(p)], k + 1)
     filesize = os.path.getsize(str(tmp_zarrfile))
     assert filesize < 1024 * 65  # test that chunking leads to filesize less than 65KB
+
+
+def test_file_warnings(fieldset, tmp_zarrfile):
+    pset = ParticleSet(fieldset, lon=[0, 0], lat=[0, 0], time=[np.timedelta64(0, "s"), np.timedelta64(1, "s")])
+    pfile = ParticleFile(tmp_zarrfile, outputdt=np.timedelta64(2, "s"))
+    with pytest.warns(ParticleSetWarning, match="Some of the particles have a start time difference.*"):
+        pset.execute(AdvectionRK4, runtime=3, dt=1, output_file=pfile)
 
 
 def test_write_timebackward(fieldset, tmp_zarrfile):
