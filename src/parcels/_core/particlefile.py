@@ -14,7 +14,7 @@ import zarr
 from zarr.storage import DirectoryStore
 
 import parcels
-from parcels._core.particle import _SAME_AS_FIELDSET_TIME_INTERVAL, ParticleClass
+from parcels._core.particle import ParticleClass
 from parcels._core.utils.time import timedelta_to_float
 
 if TYPE_CHECKING:
@@ -210,18 +210,17 @@ class ParticleFile:
             attrs = _create_variables_attribute_dict(pclass, time_interval)
             obs = np.zeros((self._maxids), dtype=np.int32)
             for var in vars_to_write:
-                dtype = _maybe_convert_time_dtype(var.dtype)
                 if var.name not in ["trajectory"]:  # because 'trajectory' is written as coordinate
                     if var.to_write == "once":
                         data = np.full(
                             (arrsize[0],),
-                            _DATATYPES_TO_FILL_VALUES[dtype],
-                            dtype=dtype,
+                            _DATATYPES_TO_FILL_VALUES[var.dtype],
+                            dtype=var.dtype,
                         )
                         data[ids_once] = particle_data[var.name][indices_to_write_once]
                         dims = ["trajectory"]
                     else:
-                        data = np.full(arrsize, _DATATYPES_TO_FILL_VALUES[dtype], dtype=dtype)
+                        data = np.full(arrsize, _DATATYPES_TO_FILL_VALUES[var.dtype], dtype=var.dtype)
                         data[ids, 0] = particle_data[var.name][indices_to_write]
                         dims = ["trajectory", "obs"]
                     ds[var.name] = xr.DataArray(data=data, dims=dims, attrs=attrs[var.name])
@@ -232,15 +231,14 @@ class ParticleFile:
             Z = zarr.group(store=store, overwrite=False)
             obs = particle_data["obs_written"][indices_to_write]
             for var in vars_to_write:
-                dtype = _maybe_convert_time_dtype(var.dtype)
                 if self._maxids > Z[var.name].shape[0]:
-                    self._extend_zarr_dims(Z[var.name], store, dtype=dtype, axis=0)
+                    self._extend_zarr_dims(Z[var.name], store, dtype=var.dtype, axis=0)
                 if var.to_write == "once":
                     if len(once_ids) > 0:
                         Z[var.name].vindex[ids_once] = particle_data[var.name][indices_to_write_once]
                 else:
                     if max(obs) >= Z[var.name].shape[1]:  # type: ignore[type-var]
-                        self._extend_zarr_dims(Z[var.name], store, dtype=dtype, axis=1)
+                        self._extend_zarr_dims(Z[var.name], store, dtype=var.dtype, axis=1)
                     Z[var.name].vindex[ids, obs] = particle_data[var.name][indices_to_write]
 
         particle_data["obs_written"][indices_to_write] = obs + 1
@@ -270,9 +268,7 @@ def _create_variables_attribute_dict(particle: ParticleClass, time_interval: Tim
 
     vars = [var for var in particle.variables if var.to_write is not False]
     for var in vars:
-        fill_value = {}
-        if var.dtype is not _SAME_AS_FIELDSET_TIME_INTERVAL.VALUE:
-            fill_value = {"_FillValue": _DATATYPES_TO_FILL_VALUES[var.dtype]}
+        fill_value = {"_FillValue": _DATATYPES_TO_FILL_VALUES[var.dtype]}
 
         attrs[var.name] = {**var.attrs, **fill_value}
 
@@ -303,15 +299,6 @@ def _to_write_particles(particle_data, time):
         & (np.isfinite(particle_data["trajectory"]))
         & (np.isfinite(particle_data["time"]))
     )[0]
-
-
-def _maybe_convert_time_dtype(dtype: np.dtype | _SAME_AS_FIELDSET_TIME_INTERVAL) -> np.dtype:
-    """Convert the dtype of time to float64 if it is not already."""
-    if dtype is _SAME_AS_FIELDSET_TIME_INTERVAL.VALUE:
-        return np.dtype(
-            np.int64
-        )  #! We need to have here some proper mechanism for converting particle data to the data that is to be output to zarr (namely the time needs to be converted to float seconds by subtracting the time_interval.left)
-    return dtype
 
 
 def _get_calendar_and_units(time_interval: TimeInterval) -> dict[str, str]:

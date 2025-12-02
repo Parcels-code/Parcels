@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import enum
 import operator
 from typing import Literal
 
@@ -14,8 +13,6 @@ from parcels._reprs import _format_list_items_multiline
 
 __all__ = ["KernelParticle", "Particle", "ParticleClass", "Variable"]
 _TO_WRITE_OPTIONS = [True, False, "once"]
-
-_SAME_AS_FIELDSET_TIME_INTERVAL = enum.Enum("_SAME_AS_FIELDSET_TIME_INTERVAL", "VALUE")
 
 
 class Variable:
