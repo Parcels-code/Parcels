@@ -15,7 +15,7 @@ from parcels._core.particle import KernelParticle, Particle, create_particle_dat
 from parcels._core.statuscodes import StatusCode
 from parcels._core.utils.time import (
     TimeInterval,
-    float_to_datetime,
+    float_to_datelike,
     timedelta_to_float,
 )
 from parcels._core.warnings import ParticleSetWarning
@@ -523,7 +523,7 @@ class ParticleSet:
                         next_output += outputdt * sign_dt
 
             if verbose_progress:
-                pbar.set_description("Integration time: " + str(float_to_datetime(time, self.fieldset.time_interval)))
+                pbar.set_description("Integration time: " + str(float_to_datelike(time, self.fieldset.time_interval)))
                 pbar.update(next_time - time)
 
             time = next_time
