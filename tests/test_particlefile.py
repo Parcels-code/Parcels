@@ -1,6 +1,7 @@
 import os
 import tempfile
-from datetime import timedelta
+from contextlib import nullcontext as does_not_raise
+from datetime import datetime, timedelta
 
 import numpy as np
 import pytest
@@ -229,6 +230,23 @@ def test_file_warnings(fieldset, tmp_zarrfile):
     pfile = ParticleFile(tmp_zarrfile, outputdt=np.timedelta64(2, "s"))
     with pytest.warns(ParticleSetWarning, match="Some of the particles have a start time difference.*"):
         pset.execute(AdvectionRK4, runtime=3, dt=1, output_file=pfile)
+
+
+@pytest.mark.parametrize(
+    "outputdt, expectation",
+    [
+        (np.timedelta64(5, "s"), does_not_raise()),
+        (timedelta(seconds=2), does_not_raise()),
+        (5.0, does_not_raise()),
+        (np.datetime64("2001-01-02T00:00:00"), pytest.raises(ValueError)),
+        (datetime(2000, 1, 2, 0, 0, 0), pytest.raises(ValueError)),
+        (-np.timedelta64(5, "s"), pytest.raises(ValueError)),
+    ],
+)
+def test_outputdt_types(outputdt, expectation, tmp_zarrfile):
+    with expectation:
+        pfile = ParticleFile(tmp_zarrfile, outputdt=outputdt)
+        assert pfile.outputdt == timedelta_to_float(outputdt)
 
 
 def test_write_timebackward(fieldset, tmp_zarrfile):

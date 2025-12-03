@@ -492,7 +492,7 @@ class ParticleSet:
         if np.isnan(self._data["time"]).any():
             self._data["time"][:] = start_time
 
-        outputdt = timedelta_to_float(output_file.outputdt) if output_file else None
+        outputdt = output_file.outputdt if output_file else None
         _warn_outputdt_release_desync(outputdt, start_time, self._data["time"][:])
 
         # Set up pbar
