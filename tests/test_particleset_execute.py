@@ -26,6 +26,7 @@ from parcels._datasets.unstructured.generic import datasets as datasets_unstruct
 from parcels.interpolators import UXPiecewiseConstantFace, UXPiecewiseLinearNode, XLinear
 from parcels.kernels import AdvectionEE, AdvectionRK2, AdvectionRK4, AdvectionRK4_3D, AdvectionRK45
 from tests.common_kernels import DoNothing
+from tests.utils import DEFAULT_PARTICLES
 
 
 @pytest.fixture
@@ -166,12 +167,7 @@ def test_particleset_run_RK_to_endtime_fwd_bwd(fieldset, kernel, dt):
     fieldset.U.data[:] = 0.0
     fieldset.V.data[:] = 0.0
 
-    if kernel == AdvectionRK45:
-        MyParticle = Particle.add_variable(Variable("next_dt"))
-    else:
-        MyParticle = Particle
-
-    pset = ParticleSet(fieldset, pclass=MyParticle, lon=[0.2], lat=[5.0], time=[starttime])
+    pset = ParticleSet(fieldset, pclass=DEFAULT_PARTICLES[kernel], lon=[0.2], lat=[5.0], time=[starttime])
     pset.execute(kernel, endtime=endtime, dt=dt)
     assert pset[0].time == fieldset.time_interval.time_length_as_flt
 
