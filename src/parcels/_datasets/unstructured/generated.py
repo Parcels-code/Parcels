@@ -43,14 +43,14 @@ def simple_small_delaunay(nx=10, ny=10):
     Tface = np.zeros((1, nz1, uxgrid.n_face), dtype=np.float64)
 
     for i, (x, y) in enumerate(zip(uxgrid.face_lon, uxgrid.face_lat, strict=False)):
-        P[0, 0, i] = -vmax * delta * (1 - x) * (math.exp(-x / delta) - 1) * np.sin(math.pi * y)
-        U[0, 0, i] = -vmax * (1 - math.exp(-x / delta) - x) * np.cos(math.pi * y)
-        V[0, 0, i] = vmax * ((2.0 - x) * math.exp(-x / delta) - 1) * np.sin(math.pi * y)
-        Tface[0, 0, i] = np.sin(math.pi * y) * np.cos(math.pi * x)
+        P[0, :, i] = -vmax * delta * (1 - x) * (math.exp(-x / delta) - 1) * np.sin(math.pi * y)
+        U[0, :, i] = -vmax * (1 - math.exp(-x / delta) - x) * np.cos(math.pi * y)
+        V[0, :, i] = vmax * ((2.0 - x) * math.exp(-x / delta) - 1) * np.sin(math.pi * y)
+        Tface[0, :, i] = np.sin(math.pi * y) * np.cos(math.pi * x)
 
-    Tnode = np.zeros((1, nz1, uxgrid.n_node), dtype=np.float64)
+    Tnode = np.zeros((1, nz, uxgrid.n_node), dtype=np.float64)
     for i, (x, y) in enumerate(zip(uxgrid.node_lon, uxgrid.node_lat, strict=False)):
-        Tnode[0, 0, i] = np.sin(math.pi * y) * np.cos(math.pi * x)
+        Tnode[0, :, i] = np.sin(math.pi * y) * np.cos(math.pi * x)
 
     u = ux.UxDataArray(
         data=U,
@@ -124,10 +124,10 @@ def simple_small_delaunay(nx=10, ny=10):
         data=Tnode,
         name="T_node",
         uxgrid=uxgrid,
-        dims=["time", "nz1", "n_node"],
+        dims=["time", "nz", "n_node"],
         coords=dict(
             time=(["time"], [TIME[0]]),
-            nz1=(["nz1"], zc),
+            nz1=(["nz"], zf),
         ),
         attrs=dict(
             description="Tracer field sampled on face vertices",
