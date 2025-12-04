@@ -1,4 +1,4 @@
-# Interpolator explanation
+# Interpolators
 
 Interpolation is an important functionality of Parcels. On this page we will discuss the way it is
 implemented in **Parcels** and how to write a custom interpolator function.
