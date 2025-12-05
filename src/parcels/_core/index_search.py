@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 from parcels._core.statuscodes import _raise_outside_time_interval_error
+from parcels._core.utils.time import timedelta_to_float
 
 if TYPE_CHECKING:
     from parcels._core.field import Field
@@ -85,7 +86,8 @@ def _search_time_index(field: Field, time: datetime):
     if not field.time_interval.is_all_time_in_interval(time):
         _raise_outside_time_interval_error(time, field=None)
 
-    ti, tau = _search_1d_array(field.data.time.data, time)
+    time_flt = timedelta_to_float(field.data.time.data - field.time_interval.left)
+    ti, tau = _search_1d_array(time_flt, time)
 
     return {"T": {"index": np.atleast_1d(ti), "bcoord": np.atleast_1d(tau)}}
 

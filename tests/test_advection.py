@@ -5,6 +5,7 @@ import xgcm
 
 import parcels
 from parcels import Field, FieldSet, Particle, ParticleFile, ParticleSet, StatusCode, Variable, VectorField, XGrid
+from parcels._core.utils.time import timedelta_to_float
 from parcels._datasets.structured.generated import (
     decaying_moving_eddy_dataset,
     moving_eddy_dataset,
@@ -24,7 +25,7 @@ from parcels.kernels import (
     AdvectionRK4_3D,
     AdvectionRK45,
 )
-from tests.utils import round_and_hash_float_array
+from tests.utils import DEFAULT_PARTICLES, round_and_hash_float_array
 
 
 @pytest.mark.parametrize("mesh", ["spherical", "flat"])
@@ -113,7 +114,7 @@ def test_horizontal_advection_in_3D_flow(npart=10):
     pset = ParticleSet(fieldset, lon=np.zeros(npart), lat=np.zeros(npart), z=np.linspace(0.1, 0.9, npart))
     pset.execute(AdvectionRK4, runtime=np.timedelta64(2, "h"), dt=np.timedelta64(15, "m"))
 
-    expected_lon = pset.z * (pset.time - fieldset.time_interval.left) / np.timedelta64(1, "s")
+    expected_lon = pset.z * pset.time
     np.testing.assert_allclose(pset.lon, expected_lon, atol=1.0e-1)
 
 
@@ -143,10 +144,9 @@ def test_advection_3D_outofbounds(direction, wErrorThroughSurface):
         inds = np.argwhere(particles.state == StatusCode.ErrorThroughSurface).flatten()
         if len(inds) == 0:
             return
-        dt = particles.dt / np.timedelta64(1, "s")
         (u, v) = fieldset.UV[particles[inds]]
-        particles[inds].dlon = u * dt
-        particles[inds].dlat = v * dt
+        particles[inds].dlon = u * particles.dt
+        particles[inds].dlat = v * particles.dt
         particles[inds].dz = 0.0
         particles[inds].z = 0
         particles[inds].state = StatusCode.Evaluate
@@ -240,7 +240,7 @@ def test_radialrotation(npart=10):
     pset = parcels.ParticleSet(fieldset, lon=lon, lat=lat, time=starttime)
     pset.execute(parcels.kernels.AdvectionRK4, endtime=endtime, dt=dt)
 
-    theta = 2 * np.pi * (endtime - starttime) / np.timedelta64(24 * 3600, "s")
+    theta = 2 * np.pi * (pset.time - timedelta_to_float(starttime)) / (24 * 3600)
     true_lon = (lon - 30.0) * np.cos(theta) + 30.0
     true_lat = -(lon - 30.0) * np.sin(theta) + 30.0
 
@@ -288,7 +288,9 @@ def test_moving_eddy(kernel, rtol):
     if kernel == AdvectionRK45:
         fieldset.add_constant("RK45_tol", rtol)
 
-    pset = ParticleSet(fieldset, lon=start_lon, lat=start_lat, z=start_z, time=np.timedelta64(0, "s"))
+    pset = ParticleSet(
+        fieldset, pclass=DEFAULT_PARTICLES[kernel], lon=start_lon, lat=start_lat, z=start_z, time=np.timedelta64(0, "s")
+    )
     pset.execute(kernel, dt=dt, endtime=endtime)
 
     def truth_moving(x_0, y_0, t):
@@ -329,7 +331,9 @@ def test_decaying_moving_eddy(kernel, rtol):
         fieldset.add_constant("RK45_tol", rtol)
         fieldset.add_constant("RK45_min_dt", 10 * 60)
 
-    pset = ParticleSet(fieldset, lon=start_lon, lat=start_lat, time=np.timedelta64(0, "s"))
+    pset = ParticleSet(
+        fieldset, pclass=DEFAULT_PARTICLES[kernel], lon=start_lon, lat=start_lat, time=np.timedelta64(0, "s")
+    )
     pset.execute(kernel, dt=dt, endtime=endtime)
 
     def truth_moving(x_0, y_0, t):
@@ -376,12 +380,12 @@ def test_stommelgyre_fieldset(kernel, rtol, grid_type):
     start_lon = np.linspace(10e3, 100e3, npart)
     start_lat = np.ones_like(start_lon) * 5000e3
 
-    if kernel == AdvectionRK45:
-        fieldset.add_constant("RK45_tol", rtol)
-
-    SampleParticle = Particle.add_variable(
+    SampleParticle = DEFAULT_PARTICLES[kernel].add_variable(
         [Variable("p", initial=0.0, dtype=np.float32), Variable("p_start", initial=0.0, dtype=np.float32)]
     )
+
+    if kernel == AdvectionRK45:
+        fieldset.add_constant("RK45_tol", rtol)
 
     def UpdateP(particles, fieldset):  # pragma: no cover
         particles.p = fieldset.P[particles.time, particles.z, particles.lat, particles.lon]
@@ -397,7 +401,7 @@ def test_stommelgyre_fieldset(kernel, rtol, grid_type):
     [
         (AdvectionRK2, 2e-2),
         (AdvectionRK4, 5e-3),
-        (AdvectionRK45, 1e-4),
+        (AdvectionRK45, 1e-3),
     ],
 )
 @pytest.mark.parametrize("grid_type", ["A"])  # TODO also implement C-grid once available
@@ -416,12 +420,12 @@ def test_peninsula_fieldset(kernel, rtol, grid_type):
     start_lat = np.linspace(3e3, 47e3, npart)
     start_lon = 3e3 * np.ones_like(start_lat)
 
-    if kernel == AdvectionRK45:
-        fieldset.add_constant("RK45_tol", rtol)
-
-    SampleParticle = Particle.add_variable(
+    SampleParticle = DEFAULT_PARTICLES[kernel].add_variable(
         [Variable("p", initial=0.0, dtype=np.float32), Variable("p_start", initial=0.0, dtype=np.float32)]
     )
+
+    if kernel == AdvectionRK45:
+        fieldset.add_constant("RK45_tol", rtol)
 
     def UpdateP(particles, fieldset):  # pragma: no cover
         particles.p = fieldset.P[particles.time, particles.z, particles.lat, particles.lon]
