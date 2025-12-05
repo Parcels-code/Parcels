@@ -84,9 +84,9 @@ def test_time_interval_contains(interval):
     right = timedelta_to_float(interval.right - interval.left)
     middle = timedelta_to_float(interval.right - interval.left) / 2
 
-    assert interval.is_all_time_in_interval(left)
-    assert interval.is_all_time_in_interval(right)
-    assert interval.is_all_time_in_interval(middle)
+    assert interval.is_all_time_in_flt_interval(left)
+    assert interval.is_all_time_in_flt_interval(right)
+    assert interval.is_all_time_in_flt_interval(middle)
 
 
 @given(time_interval_strategy(calendar="365_day"), time_interval_strategy(calendar="365_day"))

@@ -83,7 +83,7 @@ def _search_time_index(field: Field, time: datetime):
             }
         }
 
-    if not field.time_interval.is_all_time_in_interval(time):
+    if not field.time_interval.is_all_time_in_flt_interval(time):
         _raise_outside_time_interval_error(time, field=None)
 
     time_flt = timedelta_to_float(field.data.time.data - field.time_interval.left)
