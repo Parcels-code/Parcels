@@ -100,7 +100,7 @@ def test_pfile_array_remove_particles(fieldset, tmp_zarrfile):
     pset._data["time"][:] = 0
     pfile.write(pset, time=fieldset.time_interval.left)
     pset.remove_indices(3)
-    new_time = 86400 # s in a day
+    new_time = 86400  # s in a day
     pset._data["time"][:] = new_time
     pfile.write(pset, new_time)
     ds = xr.open_zarr(tmp_zarrfile)
