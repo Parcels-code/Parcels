@@ -1,7 +1,8 @@
 from __future__ import annotations
 
+from collections.abc import Callable
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING, Literal, TypeVar
 
 import cftime
 import numpy as np
@@ -130,7 +131,7 @@ def get_datetime_type_calendar(
     return type(example_datetime), calendar
 
 
-_TD_PRECISION_GETTER_FOR_UNIT = (
+_TD_PRECISION_GETTER_FOR_UNIT: tuple[tuple[Callable[[timedelta], int], Literal["D", "s", "us"]], ...] = (
     (lambda dt: dt.days, "D"),
     (lambda dt: dt.seconds, "s"),
     (lambda dt: dt.microseconds, "us"),
@@ -142,14 +143,14 @@ def maybe_convert_python_timedelta_to_numpy(dt: timedelta | np.timedelta64) -> n
         return dt
 
     try:
-        dts = []
+        dts: list[np.timedelta64] = []
         for get_value_for_unit, np_unit in _TD_PRECISION_GETTER_FOR_UNIT:
             value = get_value_for_unit(dt)
             if value != 0:
                 dts.append(np.timedelta64(value, np_unit))
 
         if dts:
-            return sum(dts)
+            return np.sum(dts)
         else:
             return np.timedelta64(0, "s")
     except Exception as e:

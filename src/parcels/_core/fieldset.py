@@ -173,7 +173,7 @@ class FieldSet:
 
     @property
     def gridset(self) -> list[BaseGrid]:
-        grids = []
+        grids: list[BaseGrid] = []
         for field in self.fields.values():
             if field.grid not in grids:
                 grids.append(field.grid)
@@ -407,7 +407,8 @@ def _datetime_to_msg(example_datetime: TimeLike) -> str:
     return msg
 
 
-def _format_calendar_error_message(field: Field, reference_datetime: TimeLike) -> str:
+def _format_calendar_error_message(field: Field | VectorField, reference_datetime: TimeLike) -> str:
+    assert field.time_interval is not None
     return f"Expected field {field.name!r} to have calendar compatible with datetime object {_datetime_to_msg(reference_datetime)}. Got field with calendar {_datetime_to_msg(field.time_interval.left)}. Have you considered using xarray to update the time dimension of the dataset to have a compatible calendar?"
 
 
