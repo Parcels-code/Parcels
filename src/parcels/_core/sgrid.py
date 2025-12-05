@@ -77,7 +77,7 @@ def parse_edge_node_mapping(s: str) -> list[tuple[str, str, Padding]]:
 
 
 def serialize_edge_node_mapping(mappings: list[tuple[str, str, Padding]]) -> str:
-    """Takes in a list of face-node-padding tuples and serializes them into a string
+    """Takes in a list of edge-node-padding tuples and serializes them into a string
     according to the SGrid convention.
     """
     parts = []
