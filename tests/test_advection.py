@@ -25,7 +25,7 @@ from parcels.kernels import (
     AdvectionRK4_3D,
     AdvectionRK45,
 )
-from tests.utils import round_and_hash_float_array
+from tests.utils import DEFAULT_PARTICLES, round_and_hash_float_array
 
 
 @pytest.mark.parametrize("mesh", ["spherical", "flat"])
@@ -287,12 +287,9 @@ def test_moving_eddy(kernel, rtol):
 
     if kernel == AdvectionRK45:
         fieldset.add_constant("RK45_tol", rtol)
-        MyParticle = Particle.add_variable(Variable("next_dt"))
-    else:
-        MyParticle = Particle
 
     pset = ParticleSet(
-        fieldset, pclass=MyParticle, lon=start_lon, lat=start_lat, z=start_z, time=np.timedelta64(0, "s")
+        fieldset, pclass=DEFAULT_PARTICLES[kernel], lon=start_lon, lat=start_lat, z=start_z, time=np.timedelta64(0, "s")
     )
     pset.execute(kernel, dt=dt, endtime=endtime)
 
@@ -333,11 +330,10 @@ def test_decaying_moving_eddy(kernel, rtol):
     if kernel == AdvectionRK45:
         fieldset.add_constant("RK45_tol", rtol)
         fieldset.add_constant("RK45_min_dt", 10 * 60)
-        MyParticle = Particle.add_variable(Variable("next_dt"))
-    else:
-        MyParticle = Particle
 
-    pset = ParticleSet(fieldset, pclass=MyParticle, lon=start_lon, lat=start_lat, time=np.timedelta64(0, "s"))
+    pset = ParticleSet(
+        fieldset, pclass=DEFAULT_PARTICLES[kernel], lon=start_lon, lat=start_lat, time=np.timedelta64(0, "s")
+    )
     pset.execute(kernel, dt=dt, endtime=endtime)
 
     def truth_moving(x_0, y_0, t):
@@ -384,13 +380,12 @@ def test_stommelgyre_fieldset(kernel, rtol, grid_type):
     start_lon = np.linspace(10e3, 100e3, npart)
     start_lat = np.ones_like(start_lon) * 5000e3
 
-    SampleParticle = Particle.add_variable(
+    SampleParticle = DEFAULT_PARTICLES[kernel].add_variable(
         [Variable("p", initial=0.0, dtype=np.float32), Variable("p_start", initial=0.0, dtype=np.float32)]
     )
 
     if kernel == AdvectionRK45:
         fieldset.add_constant("RK45_tol", rtol)
-        SampleParticle = SampleParticle.add_variable(Variable("next_dt"))
 
     def UpdateP(particles, fieldset):  # pragma: no cover
         particles.p = fieldset.P[particles.time, particles.z, particles.lat, particles.lon]
@@ -425,13 +420,12 @@ def test_peninsula_fieldset(kernel, rtol, grid_type):
     start_lat = np.linspace(3e3, 47e3, npart)
     start_lon = 3e3 * np.ones_like(start_lat)
 
-    SampleParticle = Particle.add_variable(
+    SampleParticle = DEFAULT_PARTICLES[kernel].add_variable(
         [Variable("p", initial=0.0, dtype=np.float32), Variable("p_start", initial=0.0, dtype=np.float32)]
     )
 
     if kernel == AdvectionRK45:
         fieldset.add_constant("RK45_tol", rtol)
-        SampleParticle = SampleParticle.add_variable(Variable("next_dt"))
 
     def UpdateP(particles, fieldset):  # pragma: no cover
         particles.p = fieldset.P[particles.time, particles.z, particles.lat, particles.lon]
