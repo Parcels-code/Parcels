@@ -166,7 +166,7 @@ files = [
   "src/parcels/_core/field.py",
   "src/parcels/_core/fieldset.py",
 ]
-disable_error_code = "attr-defined,arg-type,assignment,operator,call-overload,index,valid-type,override,misc,union-attr"
+disable_error_code = "attr-defined,assignment,operator,call-overload,index,valid-type,override,misc,union-attr"
 
 [[tool.mypy.overrides]]
 module = [
@@ -187,4 +187,8 @@ ignore_missing_imports = true
 
 [[tool.mypy.overrides]] # TODO: This module is v3 code and should eventually be removed/converted to v4
 module = "parcels.interaction.interactionkernel"
+ignore_errors = true
+
+[[tool.mypy.overrides]] # TODO: This module should stabilize before release of v4
+module = "parcels.interpolators"
 ignore_errors = true

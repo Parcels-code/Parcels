@@ -1,8 +1,11 @@
+from __future__ import annotations
+
 import datetime
 import sys
+import types
 import warnings
 from collections.abc import Iterable
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 import xarray as xr
@@ -20,6 +23,9 @@ from parcels._core.utils.time import (
 from parcels._core.warnings import ParticleSetWarning
 from parcels._logger import logger
 from parcels._reprs import _format_zarr_output_location, particleset_repr
+
+if TYPE_CHECKING:
+    from parcels import FieldSet, ParticleClass, ParticleFile
 
 __all__ = ["ParticleSet"]
 
@@ -58,10 +64,10 @@ class ParticleSet:
 
     def __init__(
         self,
-        fieldset,
-        pclass=Particle,
-        lon=None,
-        lat=None,
+        fieldset: FieldSet,
+        pclass: ParticleClass = Particle,
+        lon: np.array[float] = None,
+        lat: np.array[float] = None,
         z=None,
         time=None,
         trajectory_ids=None,
@@ -376,12 +382,12 @@ class ParticleSet:
 
     def execute(
         self,
-        pyfunc,
+        pyfunc: types.FunctionType | Kernel,
         dt: datetime.timedelta | np.timedelta64 | float,
         endtime: np.timedelta64 | np.datetime64 | None = None,
         runtime: datetime.timedelta | np.timedelta64 | float | None = None,
-        output_file=None,
-        verbose_progress=True,
+        output_file: ParticleFile = None,
+        verbose_progress: bool = True,
     ):
         """Execute a given kernel function over the particle set for multiple timesteps.
 

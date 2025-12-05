@@ -37,7 +37,7 @@ class Variable:
     def __init__(
         self,
         name,
-        dtype: np.dtype = np.float32,
+        dtype: type[np.float32 | np.float64 | np.int32 | np.int64] | None = np.float32,
         initial=0,
         to_write: bool | Literal["once"] = True,
         attrs: dict | None = None,
@@ -122,7 +122,7 @@ def _assert_no_duplicate_variable_names(*, existing_vars: list[Variable], new_va
             raise ValueError(f"Variable name already exists: {var.name}")
 
 
-def get_default_particle(spatial_dtype: np.float32 | np.float64) -> ParticleClass:
+def get_default_particle(spatial_dtype: type[np.float32 | np.float64]) -> ParticleClass:
     if spatial_dtype not in [np.float32, np.float64]:
         raise ValueError(f"spatial_dtype must be np.float32 or np.float64. Got {spatial_dtype=!r}")
 
