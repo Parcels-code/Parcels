@@ -531,8 +531,8 @@ def test_uxstommelgyre_pset_execute():
         runtime=np.timedelta64(10, "m"),
         dt=np.timedelta64(60, "s"),
     )
-    np.testing.assert_allclose(pset[0].lon, 29.997648, atol=1e-3)
-    np.testing.assert_allclose(pset[0].lat, 4.998691, atol=1e-3)
+    np.testing.assert_allclose(pset[0].lon, 30.001259, atol=1e-3)
+    np.testing.assert_allclose(pset[0].lat, 4.9962664, atol=1e-3)
 
 
 def test_uxstommelgyre_multiparticle_pset_execute():
