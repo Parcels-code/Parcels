@@ -209,9 +209,9 @@ def uxgrid_point_in_cell(grid, y: np.ndarray, x: np.ndarray, yi: np.ndarray, xi:
     x : np.ndarray
         Array of longitudes of the points to check.
     yi : np.ndarray
-        Array of face indices corresponding to the points.
-    xi : np.ndarray
         Not used, but included for compatibility with other search functions.
+    xi : np.ndarray
+        Array of face indices corresponding to the points.
 
     Returns
     -------
@@ -227,7 +227,7 @@ def uxgrid_point_in_cell(grid, y: np.ndarray, x: np.ndarray, yi: np.ndarray, xi:
         points = np.column_stack((x_cart.flatten(), y_cart.flatten(), z_cart.flatten()))
 
         # Get the vertex indices for each face
-        nids = grid.uxgrid.face_node_connectivity[yi].values
+        nids = grid.uxgrid.face_node_connectivity[xi].values
         face_vertices = np.stack(
             (
                 grid.uxgrid.node_x[nids.ravel()].values.reshape(nids.shape),
@@ -237,7 +237,7 @@ def uxgrid_point_in_cell(grid, y: np.ndarray, x: np.ndarray, yi: np.ndarray, xi:
             axis=-1,
         )
     else:
-        nids = grid.uxgrid.face_node_connectivity[yi].values
+        nids = grid.uxgrid.face_node_connectivity[xi].values
         face_vertices = np.stack(
             (
                 grid.uxgrid.node_lon[nids.ravel()].values.reshape(nids.shape),
@@ -249,11 +249,11 @@ def uxgrid_point_in_cell(grid, y: np.ndarray, x: np.ndarray, yi: np.ndarray, xi:
 
     M = len(points)
 
-    is_in_cell = np.zeros(M, dtype=np.int32)
-
     coords = _barycentric_coordinates(face_vertices, points)
-    is_in_cell = np.where(np.all((coords >= -1e-6) & (coords <= 1 + 1e-6), axis=1), 1, 0)
 
+    is_in_cell = np.zeros(M, dtype=np.int32)
+    is_in_cell = np.where(np.all((coords >= -1e-6), axis=1), 1, 0)
+    is_in_cell &= np.isclose(np.sum(coords, axis=1), 1.0, rtol=1e-3, atol=1e-6)
     return is_in_cell, coords
 
 
@@ -278,8 +278,10 @@ def _triangle_area(A, B, C):
 def _barycentric_coordinates(nodes, points, min_area=1e-8):
     """
     Compute the barycentric coordinates of a point P inside a convex polygon using area-based weights.
-    So that this method generalizes to n-sided polygons, we use the Waschpress points as the generalized
-    barycentric coordinates, which is only valid for convex polygons.
+    This method currently only works for triangular cells (K=3)
+
+    TODO: So that this method generalizes to n-sided polygons, we can use the Waschpress points as the generalized
+    barycentric coordinates, which is valid for convex polygons.
 
     Parameters
     ----------
@@ -300,29 +302,24 @@ def _barycentric_coordinates(nodes, points, min_area=1e-8):
     """
     M, K = nodes.shape[:2]
 
-    # roll(-1) to get vi+1, roll(+1) to get vi-1
-    vi = nodes  # (M,K,2)
-    vi1 = np.roll(nodes, shift=-1, axis=1)  # (M,K,2)
-    vim1 = np.roll(nodes, shift=+1, axis=1)  # (M,K,2)
+    vi = np.squeeze(nodes[:, 0, :])  # (M,K,2)
+    vi1 = np.squeeze(nodes[:, 1, :])  # (M,K,2)
+    vim1 = np.squeeze(nodes[:, 2, :])  # (M,K,2)
 
     # a0 = area(v_{i-1}, v_i, v_{i+1})
     a0 = _triangle_area(vim1, vi, vi1)  # (M,K)
 
     # a1 = area(P, v_{i-1}, v_i); a2 = area(P, v_i, v_{i+1})
-    P = points[:, None, :]  # (M,1,2) -> (M,K,2)
-    a1 = _triangle_area(P, vim1, vi)
-    a2 = _triangle_area(P, vi, vi1)
+    P = points
+    a1 = _triangle_area(P, vi1, vim1)
+    a2 = _triangle_area(P, vim1, vi)
+    a3 = _triangle_area(P, vi, vi1)
 
-    # clamp tiny denominators for stability
-    a1c = np.maximum(a1, min_area)
-    a2c = np.maximum(a2, min_area)
-
-    wi = a0 / (a1c * a2c)  # (M,K)
-
-    sum_wi = wi.sum(axis=1, keepdims=True)  # (M,1)
-    # Avoid 0/0: if sum_wi==0 (degenerate), keep zeros
-    with np.errstate(invalid="ignore", divide="ignore"):
-        bcoords = wi / sum_wi
+    # wi = a0 / (a1c * a2c)  # (M,K)
+    bcoords = np.zeros((M, K))
+    bcoords[:, 0] = a1 / a0
+    bcoords[:, 1] = a2 / a0
+    bcoords[:, 2] = a3 / a0
 
     return bcoords
 
