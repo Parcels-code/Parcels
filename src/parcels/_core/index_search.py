@@ -9,8 +9,8 @@ from parcels._core.statuscodes import _raise_outside_time_interval_error
 from parcels._core.utils.time import timedelta_to_float
 
 if TYPE_CHECKING:
+    from parcels import XGrid
     from parcels._core.field import Field
-    from parcels.xgrid import XGrid
 
 
 GRID_SEARCH_ERROR = -3

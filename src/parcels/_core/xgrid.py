@@ -281,7 +281,7 @@ class XGrid(BaseGrid):
 
         TODO: Remove
         """
-        from parcels.grid import GridType
+        from parcels._core.basegrid import GridType
 
         if len(self.lon.shape) <= 1:
             if self.depth is None or len(self.depth.shape) <= 1:
