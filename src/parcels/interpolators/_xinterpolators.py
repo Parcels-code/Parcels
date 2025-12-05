@@ -392,8 +392,8 @@ def _Spatialslip(
     particle_positions: dict[str, float | np.ndarray],
     grid_positions: dict[_XGRID_AXES, dict[str, int | float | np.ndarray]],
     vectorfield: VectorField,
-    a: np.float32,
-    b: np.float32,
+    a: float,
+    b: float,
 ):
     """Helper function for spatial boundary condition interpolation for velocity fields."""
     xi, xsi = grid_positions["X"]["index"], grid_positions["X"]["bcoord"]

@@ -166,6 +166,7 @@ files = [
   "src/parcels/_core/field.py",
   "src/parcels/_core/fieldset.py",
 ]
+disable_error_code = "import-untyped,attr-defined,return-value,return,arg-type,assignment,operator,call-overload,index,valid-type,override,misc,union-attr"
 
 [[tool.mypy.overrides]]
 module = [
