@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from collections.abc import Callable
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, Literal, TypeVar
+from typing import TYPE_CHECKING, Generic, Literal, TypeVar
 
 import cftime
 import numpy as np
@@ -15,7 +15,7 @@ if TYPE_CHECKING:
 T = TypeVar("T", bound="TimeLike")
 
 
-class TimeInterval:
+class TimeInterval(Generic[T]):
     """A class representing a time interval between two datetime or np.timedelta64 objects.
 
     Parameters
@@ -30,7 +30,7 @@ class TimeInterval:
     For the purposes of this codebase, the interval can be thought of as closed on the left and right.
     """
 
-    def __init__(self, left: T, right: T) -> None:
+    def __init__(self, left: T, right: T):
         if not isinstance(left, (np.timedelta64, datetime, cftime.datetime, np.datetime64)):
             raise ValueError(
                 f"Expected right to be a np.timedelta64, datetime, cftime.datetime, or np.datetime64. Got {type(left)}."
