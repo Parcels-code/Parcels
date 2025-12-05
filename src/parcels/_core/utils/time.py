@@ -44,12 +44,14 @@ class TimeInterval:
 
         self.left = left
         self.right = right
-        if isinstance(right - left, np.timedelta64):
-            self.time_length_as_flt = timedelta_to_float(right - left)
-        elif isinstance(right - left, timedelta):
-            self.time_length_as_flt = (right - left).total_seconds()
-        else:
-            self.time_length_as_flt = right - left
+
+    @property
+    def time_length_as_flt(self):
+        if isinstance(self.right - self.left, np.timedelta64):
+            return timedelta_to_float(self.right - self.left)
+        if isinstance(self.right - self.left, timedelta):
+            return (self.right - self.left).total_seconds()
+        return self.right - self.left
 
     def __contains__(self, item: T) -> bool:
         return self.left <= item <= self.right
