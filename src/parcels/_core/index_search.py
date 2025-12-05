@@ -21,7 +21,7 @@ RIGHT_OUT_OF_BOUNDS = -1
 def _search_1d_array(
     arr: np.array,
     x: float,
-) -> tuple[int, int]:
+) -> tuple[np.array[int], np.array[float]]:
     """
     Searches for particle locations in a 1D array and returns barycentric coordinate along dimension.
 
