@@ -383,7 +383,7 @@ class XGrid(BaseGrid):
         return result
 
 
-def get_axis_from_dim_name(axes: _XGCM_AXES, dim: str) -> CfAxis | None:
+def get_axis_from_dim_name(axes: _XGCM_AXES, dim: Hashable) -> CfAxis | None:
     """For a given dimension name in a grid, returns the direction axis it is on."""
     for axis_name, axis in axes.items():
         if dim in axis.coords.values():

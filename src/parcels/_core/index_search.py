@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -63,14 +62,14 @@ def _search_1d_array(
     return np.atleast_1d(index), np.atleast_1d(bcoord)
 
 
-def _search_time_index(field: Field, time: datetime):
+def _search_time_index(field: Field, time: float):
     """Find and return the index and relative coordinate in the time array associated with a given time.
 
     Parameters
     ----------
     field: Field
 
-    time: datetime
+    time: float
         This is the amount of time, in seconds (time_delta), in unix epoch
     Note that we normalize to either the first or the last index
     if the sampled value is outside the time value range.
@@ -174,6 +173,8 @@ def _search_indices_curvilinear_2d(
     """
     if np.any(xi):
         # If an initial guess is provided, we first perform a point in cell check for all guessed indices
+        assert xi is not None
+        assert yi is not None
         is_in_cell, coords = curvilinear_point_in_cell(grid, y, x, yi, xi)
         y_check = y[is_in_cell == 0]
         x_check = x[is_in_cell == 0]
