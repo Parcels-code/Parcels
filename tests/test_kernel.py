@@ -11,7 +11,7 @@ from parcels import (
 )
 from parcels._datasets.structured.generic import datasets as datasets_structured
 from parcels.interpolators import XLinear
-from parcels.kernels import AdvectionRK4
+from parcels.kernels import AdvectionRK4, AdvectionRK45
 from tests.common_kernels import MoveEast, MoveNorth
 
 
@@ -86,6 +86,14 @@ def test_kernel_from_list_error_checking(fieldset):
     with pytest.raises(ValueError, match="Argument `pyfunc_list` should be a list of functions."):
         kernels_mixed = pset.Kernel([pset.Kernel(AdvectionRK4), MoveEast, MoveNorth])
         assert kernels_mixed.funcname == "AdvectionRK4MoveEastMoveNorth"
+
+
+def test_RK45Kernel_error_no_next_dt(fieldset):
+    """Tests that kernel throws error if Particle class does not have next_dt for RK45"""
+    pset = ParticleSet(fieldset, lon=[0.5], lat=[0.5])
+
+    with pytest.raises(ValueError, match='ParticleClass requires a "next_dt" for AdvectionRK45 Kernel.'):
+        pset.Kernel(AdvectionRK45)
 
 
 def test_kernel_signature(fieldset):

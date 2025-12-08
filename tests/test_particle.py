@@ -2,7 +2,6 @@ import numpy as np
 import pytest
 
 from parcels._core.particle import (
-    _SAME_AS_FIELDSET_TIME_INTERVAL,
     Particle,
     ParticleClass,
     Variable,
@@ -159,7 +158,5 @@ def test_create_particle_data(particle, nparticles):
         assert variable_array.shape[0] == nparticles
 
         dtype = variable.dtype
-        if dtype is _SAME_AS_FIELDSET_TIME_INTERVAL.VALUE:
-            dtype = type(time_interval.left)
 
         assert variable_array.dtype == dtype

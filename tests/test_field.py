@@ -201,31 +201,31 @@ def test_field_unstructured_z_linear():
 
     # Test above first cell center - for piecewise constant, should return the depth of the first cell center
     assert np.isclose(
-        P.eval(time=ds.time[0].values, z=[10.0], y=[30.0], x=[30.0], applyConversion=False),
+        P.eval(time=[0], z=[10.0], y=[30.0], x=[30.0], applyConversion=False),
         55.555557,
     )
     # Test below first cell center, but in the first layer  - for piecewise constant, should return the depth of the first cell center
     assert np.isclose(
-        P.eval(time=ds.time[0].values, z=[65.0], y=[30.0], x=[30.0], applyConversion=False),
+        P.eval(time=[0], z=[65.0], y=[30.0], x=[30.0], applyConversion=False),
         55.555557,
     )
     # Test bottom layer  - for piecewise constant, should return the depth of the of the bottom layer cell center
     assert np.isclose(
-        P.eval(time=ds.time[0].values, z=[900.0], y=[30.0], x=[30.0], applyConversion=False),
+        P.eval(time=[0], z=[900.0], y=[30.0], x=[30.0], applyConversion=False),
         944.44445801,
     )
 
     W = Field(name="W", data=ds.W, grid=grid, interp_method=UxPiecewiseLinearNode)
     assert np.isclose(
-        W.eval(time=ds.time[0].values, z=[10.0], y=[30.0], x=[30.0], applyConversion=False),
+        W.eval(time=[0], z=[10.0], y=[30.0], x=[30.0], applyConversion=False),
         10.0,
     )
     assert np.isclose(
-        W.eval(time=ds.time[0].values, z=[65.0], y=[30.0], x=[30.0], applyConversion=False),
+        W.eval(time=[0], z=[65.0], y=[30.0], x=[30.0], applyConversion=False),
         65.0,
     )
     assert np.isclose(
-        W.eval(time=ds.time[0].values, z=[900.0], y=[30.0], x=[30.0], applyConversion=False),
+        W.eval(time=[0], z=[900.0], y=[30.0], x=[30.0], applyConversion=False),
         900.0,
     )
 

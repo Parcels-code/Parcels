@@ -163,11 +163,7 @@ def test_fesom2_square_delaunay_antimeridian_eval():
     )
     fieldset = FieldSet([P])
 
-    assert np.isclose(
-        fieldset.p.eval(time=ds.time[0].values, z=[1.0], y=[30.0], x=[-170.0], applyConversion=False), 1.0
-    )
-    assert np.isclose(
-        fieldset.p.eval(time=ds.time[0].values, z=[1.0], y=[30.0], x=[-180.0], applyConversion=False), 1.0
-    )
-    assert np.isclose(fieldset.p.eval(time=ds.time[0].values, z=[1.0], y=[30.0], x=[180.0], applyConversion=False), 1.0)
-    assert np.isclose(fieldset.p.eval(time=ds.time[0].values, z=[1.0], y=[30.0], x=[170.0], applyConversion=False), 1.0)
+    assert np.isclose(fieldset.p.eval(time=[0], z=[1.0], y=[30.0], x=[-170.0], applyConversion=False), 1.0)
+    assert np.isclose(fieldset.p.eval(time=[0], z=[1.0], y=[30.0], x=[-180.0], applyConversion=False), 1.0)
+    assert np.isclose(fieldset.p.eval(time=[0], z=[1.0], y=[30.0], x=[180.0], applyConversion=False), 1.0)
+    assert np.isclose(fieldset.p.eval(time=[0], z=[1.0], y=[30.0], x=[170.0], applyConversion=False), 1.0)
