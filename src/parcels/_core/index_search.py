@@ -224,7 +224,7 @@ def uxgrid_point_in_cell(grid, y: np.ndarray, x: np.ndarray, yi: np.ndarray, xi:
         lon_rad = np.deg2rad(x)
         lat_rad = np.deg2rad(y)
         x_cart, y_cart, z_cart = _latlon_rad_to_xyz(lat_rad, lon_rad)
-        points = np.column_stack((x_cart.flatten(), y_cart.flatten(), z_cart.flatten()))
+        points = np.column_stack((x_cart.flatten(), y_cart.flatten(), z_cart.flatten()))  # (M,3)
 
         # Get the vertex indices for each face
         nids = grid.uxgrid.face_node_connectivity[xi].values
@@ -236,6 +236,20 @@ def uxgrid_point_in_cell(grid, y: np.ndarray, x: np.ndarray, yi: np.ndarray, xi:
             ),
             axis=-1,
         )
+
+        # Get projection points onto element plane
+        # for the projection, all points are computed relative to v0
+        r1 = np.squeeze(face_vertices[:, 1, :] - face_vertices[:, 0, :])  # (M,3)
+        r2 = np.squeeze(face_vertices[:, 2, :] - face_vertices[:, 0, :])  # (M,3)
+        nhat = np.cross(r1, r2)
+        norm = np.linalg.norm(nhat, axis=-1)
+        nhat = nhat / norm[:, None]
+        # Calculate the component of the points in the direction of nhat
+        ptilde = points - np.squeeze(face_vertices[:, 0, :])
+        pdotnhat = np.sum(ptilde * nhat, axis=-1)
+        # Reconstruct points with normal component removed.
+        points = ptilde - pdotnhat[:, None] * nhat + np.squeeze(face_vertices[:, 0, :])
+
     else:
         nids = grid.uxgrid.face_node_connectivity[xi].values
         face_vertices = np.stack(
@@ -254,6 +268,7 @@ def uxgrid_point_in_cell(grid, y: np.ndarray, x: np.ndarray, yi: np.ndarray, xi:
     is_in_cell = np.zeros(M, dtype=np.int32)
     is_in_cell = np.where(np.all((coords >= -1e-6), axis=1), 1, 0)
     is_in_cell &= np.isclose(np.sum(coords, axis=1), 1.0, rtol=1e-3, atol=1e-6)
+
     return is_in_cell, coords
 
 
