@@ -13,7 +13,7 @@ A Parcels simulation is generally built up from four different components:
 1. [**FieldSet**](#1-fieldset). The input dataset of gridded fields (e.g. ocean current velocity, temperature) in which virtual particles are defined.
 2. [**ParticleSet**](#2-particleset). The dataset of virtual particles. These always contain time, z, lat, and lon, for which initial values must be defined, and may contain other variables.
 3. [**Kernels**](#3-kernels). Kernels perform some specific operation on the particles every time step (e.g. interpolate the temperature from the temperature field to the particle location).
-4. [**Execute**](#4-execution). Execute the simulation. The core method which integrates the operations defined in Kernels for a given time and timestep, and writes output to a ParticleFile.
+4. [**Execute**](#4-execute). Execute the simulation. The core method which integrates the operations defined in Kernels for a given time and timestep, and writes output to a ParticleFile.
 
 We discuss each component in more detail below. The subsections titled **"Learn how to"** link to more detailed [how-to guide notebooks](../user_guide/index.md) and more detailed _explanations_ of Parcels functionality are included under **"Read more about"** subsections. The full list of classes and methods is in the [API reference](../reference.md). If you want to learn by doing, check out the [quickstart tutorial](./tutorial_quickstart.md) to start creating your first Parcels simulation.
 
@@ -57,63 +57,73 @@ Each `parcels.Field` is defined on a grid. With Parcels we can simulate particle
 
 ### Interpolation
 
-To find the value of a `parcels.Field` at any particle location, Parcels uses interpolation. Depending on the variable, grid, and required accuracy, different interpolation methods may be appropriate. Parcels comes with a number of built-in **`parcels.interpolators`**:
+To find the value of a `parcels.Field` at any particle location, Parcels interpolates the gridded field. Depending on the variable, grid, and required accuracy, different interpolation methods may be appropriate. Parcels comes with a number of built-in **`parcels.interpolators`**.
 
-```{code-cell}
-import parcels
-
-for interpolator in parcels.interpolators.__all__:
-  print(f"{interpolator}")
-```
-
-### Read more about
+### Read more about interpolation
 
 - [Interpolation explanation](../user_guide/examples/explanation_interpolation.md)
 
-### Learn how to
+### Learn how to use Parcels interpolators
 
-- [Use interpolation methods](../user_guide/examples/tutorial_interpolation.ipynb)
+- [Interpolators guide](../user_guide/examples/tutorial_interpolation.ipynb)
 
 ## 2. ParticleSet
 
 Once the environment has a `parcels.FieldSet` object, you can start defining your particles in a **`parcels.ParticleSet`** object. This object requires:
 
 1. The `parcels.FieldSet` object in which the particles will be released.
-2. The type of `parcels.Particle`: A default `Particle` or a custom `Particle`-type with additional `Variable`s.
+2. The type of `parcels.Particle`: A default `Particle` or a custom `Particle`-type with additional `Variable`s (see the [custom kernel example](custom-kernel)).
 3. Initial conditions for each `Variable` defined in the `Particle`, most notably the release coordinates of `time`, `z`, `lat` and `lon`.
 
-### Learn how to
+### Learn how to create ParticleSets
 
 - [Release particles at different times](../user_guide/examples/tutorial_delaystart.ipynb)
 
 ## 3. Kernels
 
-**`parcels.Kernel`** objects are little snippets of code, which are applied to the particles in the `ParticleSet`, for every time step during a simulation. They define the computation or numerical integration done by Parcels, and can represent many processes such as advection, ageing, growth, or simply the sampling of a field.
+A **`parcels.Kernel`** object is a little snippet of code, which is applied to the particles in the `ParticleSet`, for every time step during a simulation. Kernels define the computation or numerical integration done by Parcels, and can represent many processes such as advection, ageing, growth, or simply the sampling of a field. 
 
-Basic kernels are included in Parcels, among which several types of advection kernels:
+Advection of a particle by the flow, the change in position $\mathbf{x}(t) = (lon(t), lat(t))$ at time $t$, can be described by the equation:
 
-```{code-cell}
-for kernel in parcels.kernels.advection.__all__:
-  print(f"{kernel}")
-```
+$$
+\begin{aligned}
+\frac{\text{d}\mathbf{x}(t)}{\text{d}t} = \mathbf{v}(\mathbf{x}(t),t),
+\end{aligned}
+$$
 
-We can also write custom kernels, to add certain types of 'behaviour' to the particles. To do so we write a function with two arguments: `particles` and `fieldset`. We can then write any computation as a function of any variables defined in the `Particle` and any `Field` defined in the `FieldSet`. Kernels can then be combined by creating a `list` of the kernels. Note that the kernels are executed in order:
+where $\mathbf{v}(\mathbf{x},t) = (u(\mathbf{x},t), v(\mathbf{x},t))$ describes the ocean velocity field at position $\mathbf{x}$ at time $t$.
+
+In Parcels, we can write a kernel function which integrates this equation at each timestep `particles.dt`. To do so, we need the ocean velocity field `fieldset.UV` at the `particles` location, and compute the change in position, `particles.dlon` and `particles.dlat`. 
 
 ```python
-# Create a custom kernel which displaces each particle southward
+def AdvectionEE(particles, fieldset):
+    """Advection of particles using Explicit Euler (aka Euler Forward) integration."""
+    (u1, v1) = fieldset.UV[particles]
+    particles.dlon += u1 * particles.dt
+    particles.dlat += v1 * particles.dt
+```
 
-def NorthVel(particles, fieldset):
-    vvel = -1e-4
-    particles.dlat += vvel * particles.dt
+Basic kernels are included in Parcels to compute advection and diffusion. The standard advection kernel is `parcels.kernels.AdvectionRK4`, a [4-th order Runge-Kutta integrator](https://en.wikipedia.org/wiki/Runge%E2%80%93Kutta_methods#The_Runge%E2%80%93Kutta_method) of the advection function.
 
+```{warning}
+It is advised _not_ to update the particle coordinates (`particles.time`, `particles.z`, `particles.lat`, or `particles.lon`) directly, as that can negatively interfere with the way that particle movements by different kernels are vectorially added. Use a change in the coordinates: `particles.dlon`, `particles.dlat`, `particles.dz`, and/or `particles.dt` instead, and be careful with `particles.dt`. Read the [kernel loop tutorial](https://docs.oceanparcels.org/en/latest/examples/tutorial_kernelloop.html) to understand why.
+```
+
+(custom-kernel)=
+We can write custom kernels to add many different types of 'behaviour' to the particles. To do so we write a function with two arguments: `particles` and `fieldset`. We can then write any computation as a function of any variables defined in the `Particle` and any `Field` defined in the `FieldSet`. Kernels can then be combined by creating a `list` of the kernels. The kernels are executed in order:
+
+```python
+# Create a custom Particle object with an "age" variable
+CustomParticle =  parcels.Particle.add_variable(
+    parcels.Variable("age", initial=np.nan)
+)
 
 # Create a custom kernel which keeps track of the particle age
-
 def Age(particles, fieldset):
     particles.age += particles.dt
 
 # define all kernels to be executed on particles using an (ordered) list
-kernels = [Age, NorthVel, parcels.kernels.AdvectionRK4]
+kernels = [Age, parcels.kernels.AdvectionRK4]
 ```
 
 ```{note}
@@ -121,27 +131,23 @@ Every Kernel must be a function with the following (and only those) arguments: `
 ```
 
 ```{warning}
-It is advised _not_ to update the particle coordinates (`particles.time`, `particles.z`, `particles.lat`, or `particles.lon`) directly, as that can negatively interfere with the way that particle movements by different kernels are vectorially added. Use a change in the coordinates: `particles.dlon`, `particles.dlat`, `particles.dz`, and/or `particles.dt` instead, and be careful with `particles.dt`. See also the [kernel loop tutorial](https://docs.oceanparcels.org/en/latest/examples/tutorial_kernelloop.html).
-```
-
-```{warning}
 We have to be careful with writing kernels for vector fields on Curvilinear grids. While Parcels automatically rotates the "U" and "V" field when necessary, this is not the case for other fields such as Stokes drift. [This guide](../user_guide/examples/tutorial_nemo_curvilinear.ipynb) describes how to use a curvilinear grid in Parcels.
 ```
 
-### Read more about
+### Read more about the Kernel loop
 
 - [The Kernel loop](../user_guide/examples/explanation_kernelloop.md)
 
-### Learn how to
+### Learn how to write kernels
 
 - [Sample fields like temperature](../user_guide/examples/tutorial_sampling.ipynb).
 - [Mimic the behaviour of ARGO floats](../user_guide/examples/tutorial_Argofloats.ipynb).
 - [Add diffusion to approximate subgrid-scale processes and unresolved physics](../user_guide/examples/tutorial_diffusion.ipynb).
-- [Convert between units in m/s and degree/s](../user_guide/examples/tutorial_unitconverters.ipynb).
+- [Convert between units in m/s and degrees](../user_guide/examples/tutorial_unitconverters.ipynb).
 
-## 4. Execution
+## 4. Execute
 
-The execution of the simulation, given the `FieldSet`, `ParticleSet`, and `Kernels` defined in the previous steps, is done using the method **`parcels.ParticleSet.execute()`**. This method requires the following arguments:
+The execution of the simulation is done using the method **`parcels.ParticleSet.execute()`**, given the `FieldSet`, `ParticleSet`, and `Kernels` defined in the previous steps. This method requires the following arguments:
 
 1. The kernels to be executed.
 2. The `runtime` defining how long the execution loop runs. Alternatively, you may define the `endtime` at which the execution loop stops.
@@ -156,5 +162,5 @@ There are many ways to analyze particle output, and although we provide [a short
 
 #### Learn how to
 
-- [choose an appropriate timestep](../user_guide/examples/tutorial_numerical_accuracy.ipynb)
-- [work with Parcels output](./tutorial_output.ipynb)
+- [Choose an appropriate timestep](../user_guide/examples/tutorial_numerical_accuracy.ipynb)
+- [Work with Parcels output](./tutorial_output.ipynb)
