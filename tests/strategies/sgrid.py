@@ -1,9 +1,10 @@
 """Provides Hypothesis strategies to help testing the parsing and serialization of datasets
 According to the SGrid conventions.
 
+This code is best read alongside the SGrid conventions documentation:
 https://sgrid.github.io/sgrid/
 
-Note that these strategies don't aim to completely cover the SGrid conventions, but aim to
+Note this code doesn't aim to completely cover the SGrid conventions, but aim to
 cover SGrid to the extent to which Parcels is concerned.
 """
 

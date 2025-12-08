@@ -1,7 +1,12 @@
 """
-Utils and helpers specific for working with SGrid conventions.
+Provides helpers and utils for working with SGrid conventions, as well as data objects
+useful for representing the SGRID metadata model in code.
 
+This code is best read alongside the SGrid conventions documentation:
 https://sgrid.github.io/sgrid/
+
+Note this code doesn't aim to completely cover the SGrid conventions, but aim to
+cover SGrid to the extent to which Parcels is concerned.
 """
 
 from __future__ import annotations
@@ -10,7 +15,7 @@ import enum
 import re
 from collections.abc import Hashable, Iterable
 from dataclasses import dataclass
-from typing import Any, Literal, Protocol, Self, cast, overload
+from typing import Any, Literal, Protocol, Self, overload
 
 import xarray as xr
 
@@ -242,7 +247,7 @@ def maybe_dump_mappings(parts):
     return dump_mappings(parts)
 
 
-def load_mappings(s: Any) -> tuple[DimDimPadding | Dim, ...]:
+def load_mappings(s: str) -> tuple[DimDimPadding | Dim, ...]:
     """Takes in a string indicating the mappings of dims and dim-dim-padding
     and returns a tuple with this data destructured.
 
@@ -250,8 +255,6 @@ def load_mappings(s: Any) -> tuple[DimDimPadding | Dim, ...]:
     """
     if not isinstance(s, str):
         raise ValueError(f"Expected string input, got {s!r} of type {type(s)}")
-    assert isinstance(s, str)
-    cast(str, s)  # encountered a bug in mypy
 
     s = s.replace(": ", ":")
     ret = []
@@ -263,6 +266,7 @@ def load_mappings(s: Any) -> tuple[DimDimPadding | Dim, ...]:
             part = match.group(0)
             s_new = s[match.end() :].lstrip()
         else:
+            # no DimDimPadding match at start, assume just a Dim until next space
             part, *s_new = s.split(" ", 1)
             s_new = "".join(s_new)
 
