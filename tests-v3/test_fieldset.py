@@ -13,7 +13,7 @@ from parcels import (
     Variable,
 )
 from parcels.field import VectorField
-from parcels.tools.converters import GeographicPolar, UnitConverter
+from parcels.tools.converters import GeographicPolar, Unity
 from tests.utils import TEST_DATA
 
 
@@ -119,7 +119,7 @@ def test_field_from_netcdf_fieldtypes():
 
     # first try without setting fieldtype
     fset = FieldSet.from_nemo(filenames, variables, dimensions)
-    assert isinstance(fset.varU.units, UnitConverter)
+    assert isinstance(fset.varU.units, Unity)
 
     # now try with setting fieldtype
     fset = FieldSet.from_nemo(filenames, variables, dimensions, fieldtype={"varU": "U", "varV": "V"})

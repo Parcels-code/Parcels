@@ -13,7 +13,7 @@ from parcels.interpolators import XLinear
 @pytest.fixture
 def field_cone():
     ds = datasets["2d_left_unrolled_cone"]
-    grid = XGrid.from_dataset(ds)
+    grid = XGrid.from_dataset(ds, mesh="flat")
     field = Field(
         name="test_field",
         data=ds["data_g"],

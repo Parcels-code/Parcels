@@ -52,36 +52,36 @@ def field():
             "y": (["y"], [0.5, 1.5, 2.5, 3.5], {"axis": "Y"}),
         },
     )
-    return Field("U", ds["U"], XGrid.from_dataset(ds), interp_method=XLinear)
+    return Field("U", ds["U"], XGrid.from_dataset(ds, mesh="flat"), interp_method=XLinear)
 
 
 @pytest.mark.parametrize(
     "func, t, z, y, x, expected",
     [
-        pytest.param(ZeroInterpolator, np.timedelta64(1, "s"), 2.5, 0.49, 0.51, 0, id="Zero"),
+        pytest.param(ZeroInterpolator, 1, 2.5, 0.49, 0.51, 0, id="Zero"),
         pytest.param(
             XLinear,
-            [np.timedelta64(0, "s"), np.timedelta64(1, "s")],
+            [0, 1],
             [0, 0],
             [0.49, 0.49],
             [0.51, 0.51],
             [1.49, 6.49],
             id="Linear-1",
         ),
-        pytest.param(XLinear, np.timedelta64(1, "s"), 2.5, 0.49, 0.51, 13.99, id="Linear-2"),
+        pytest.param(XLinear, 1, 2.5, 0.49, 0.51, 13.99, id="Linear-2"),
         pytest.param(
             XLinear,
-            [np.timedelta64(0, "s"), np.timedelta64(1, "s"), np.timedelta64(1, "s")],
+            [0, 1, 1],
             [0, 0, 2.5],
             [0.49, 0.49, 0.49],
             [0.51, 0.51, 0.51],
             [1.49, 6.49, 13.99],
             id="Linear-3",
         ),
-        pytest.param(XLinearInvdistLandTracer, np.timedelta64(1, "s"), 2.5, 0.49, 0.51, 13.99, id="LinearInvDistLand"),
+        pytest.param(XLinearInvdistLandTracer, 1, 2.5, 0.49, 0.51, 13.99, id="LinearInvDistLand"),
         pytest.param(
             XNearest,
-            [np.timedelta64(0, "s"), np.timedelta64(3, "s")],
+            [0, 3],
             [0.2, 0.2],
             [0.2, 0.2],
             [0.51, 0.51],
@@ -103,15 +103,15 @@ def test_raw_2d_interpolation(field, func, t, z, y, x, expected):
 @pytest.mark.parametrize(
     "func, t, z, y, x, expected",
     [
-        (XPartialslip, np.timedelta64(1, "s"), 0, 0, 0.0, [[1], [1]]),
-        (XFreeslip, np.timedelta64(1, "s"), 0, 0.5, 1.5, [[1], [0.5]]),
-        (XPartialslip, np.timedelta64(1, "s"), 0, 2.5, 1.5, [[0.75], [0.5]]),
-        (XFreeslip, np.timedelta64(1, "s"), 0, 2.5, 1.5, [[1], [0.5]]),
-        (XPartialslip, np.timedelta64(1, "s"), 0, 1.5, 0.5, [[0.5], [0.75]]),
-        (XFreeslip, np.timedelta64(1, "s"), 0, 1.5, 0.5, [[0.5], [1]]),
+        (XPartialslip, 1, 0, 0, 0.0, [[1], [1]]),
+        (XFreeslip, 1, 0, 0.5, 1.5, [[1], [0.5]]),
+        (XPartialslip, 1, 0, 2.5, 1.5, [[0.75], [0.5]]),
+        (XFreeslip, 1, 0, 2.5, 1.5, [[1], [0.5]]),
+        (XPartialslip, 1, 0, 1.5, 0.5, [[0.5], [0.75]]),
+        (XFreeslip, 1, 0, 1.5, 0.5, [[0.5], [1]]),
         (
             XFreeslip,
-            [np.timedelta64(1, "s"), np.timedelta64(0, "s")],
+            [1, 0],
             [0, 2],
             [1.5, 1.5],
             [2.5, 0.5],
@@ -133,11 +133,11 @@ def test_spatial_slip_interpolation(field, func, t, z, y, x, expected):
 @pytest.mark.parametrize(
     "func, t, z, y, x, expected",
     [
-        (XLinearInvdistLandTracer, np.timedelta64(1, "s"), 0, 0.5, 0.5, 1.0),
-        (XLinearInvdistLandTracer, np.timedelta64(1, "s"), 0, 1.5, 1.5, 0.0),
+        (XLinearInvdistLandTracer, 1, 0, 0.5, 0.5, 1.0),
+        (XLinearInvdistLandTracer, 1, 0, 1.5, 1.5, 0.0),
         (
             XLinearInvdistLandTracer,
-            [np.timedelta64(0, "s"), np.timedelta64(1, "s")],
+            [0, 1],
             [0, 2],
             [0.5, 0.5],
             [0.5, 0.5],
@@ -145,7 +145,7 @@ def test_spatial_slip_interpolation(field, func, t, z, y, x, expected):
         ),
         (
             XLinearInvdistLandTracer,
-            [np.timedelta64(0, "s"), np.timedelta64(1, "s")],
+            [0, 1],
             [0, 2],
             [0.5, 1.5],
             [0.5, 1.5],
@@ -155,7 +155,7 @@ def test_spatial_slip_interpolation(field, func, t, z, y, x, expected):
 )
 def test_invdistland_interpolation(field, func, t, z, y, x, expected):
     field.data[:] = 1.0
-    field.data[:, :, 1:3, 1:3] = np.nan  # Set NaN land value to test inv_dist
+    field.data[:, :, 1:3, 1:3] = 0  # Set NaN land value to test inv_dist
     field.interp_method = func
 
     value = field[t, z, y, x]
@@ -172,7 +172,7 @@ def test_interpolation_mesh_type(mesh, npart=10):
     UV = VectorField("UV", U, V)
 
     lat = 30.0
-    time = U.time_interval.left
+    time = 0.0
     u_expected = 1.0 if mesh == "flat" else 1.0 / (1852 * 60 * np.cos(np.radians(lat)))
 
     assert np.isclose(U[time, 0, lat, 0], u_expected, atol=1e-7)

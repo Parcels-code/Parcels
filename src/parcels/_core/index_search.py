@@ -6,6 +6,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 from parcels._core.statuscodes import _raise_outside_time_interval_error
+from parcels._core.utils.time import timedelta_to_float
 
 if TYPE_CHECKING:
     from parcels._core.field import Field
@@ -85,7 +86,8 @@ def _search_time_index(field: Field, time: datetime):
     if not field.time_interval.is_all_time_in_interval(time):
         _raise_outside_time_interval_error(time, field=None)
 
-    ti, tau = _search_1d_array(field.data.time.data, time)
+    time_flt = timedelta_to_float(field.data.time.data - field.time_interval.left)
+    ti, tau = _search_1d_array(time_flt, time)
 
     return {"T": {"index": np.atleast_1d(ti), "bcoord": np.atleast_1d(tau)}}
 
@@ -102,6 +104,23 @@ def curvilinear_point_in_cell(grid, y: np.ndarray, x: np.ndarray, yi: np.ndarray
     )
 
     px = np.array([grid.lon[yi, xi], grid.lon[yi, xi + 1], grid.lon[yi + 1, xi + 1], grid.lon[yi + 1, xi]])
+    # Map grid and particle longitudes to [-180,180)
+    px = ((px + 180.0) % 360.0) - 180.0
+    x = ((x + 180.0) % 360.0) - 180.0
+
+    # Create a mask for antimeridian cells
+    lon_span = px.max(axis=0) - px.min(axis=0)
+    antimeridian_cell = lon_span > 180.0
+
+    if np.any(antimeridian_cell):
+        # For any antimeridian cell ...
+        #  If particle longitude is closer to 180.0, then negative cell longitudes need to be bumped by +360
+        mask = (px < 0.0) & antimeridian_cell[np.newaxis, :] & (x[np.newaxis, :] > 0.0)
+        px[mask] += 360.0
+        #  If particle longitude is closer to -180.0, then positive cell longitudes need to be bumped by -360
+        mask = (px > 0.0) & antimeridian_cell[np.newaxis, :] & (x[np.newaxis, :] < 0.0)
+        px[mask] -= 360.0
+
     py = np.array([grid.lat[yi, xi], grid.lat[yi, xi + 1], grid.lat[yi + 1, xi + 1], grid.lat[yi + 1, xi]])
 
     a, b = np.dot(invA, px), np.dot(invA, py)
@@ -119,7 +138,6 @@ def curvilinear_point_in_cell(grid, y: np.ndarray, x: np.ndarray, yi: np.ndarray
             ((y - py[0]) / (py[1] - py[0]) + (y - py[3]) / (py[2] - py[3])) * 0.5,
             (x - a[0] - a[2] * eta) / (a[1] + a[3] * eta),
         )
-
     is_in_cell = np.where((xsi >= 0) & (xsi <= 1) & (eta >= 0) & (eta <= 1), 1, 0)
 
     return is_in_cell, np.column_stack((xsi, eta))

@@ -1,6 +1,7 @@
 import os
 import tempfile
-from datetime import timedelta
+from contextlib import nullcontext as does_not_raise
+from datetime import datetime, timedelta
 
 import numpy as np
 import pytest
@@ -13,6 +14,7 @@ from parcels import (
     Particle,
     ParticleFile,
     ParticleSet,
+    ParticleSetWarning,
     StatusCode,
     Variable,
     VectorField,
@@ -20,7 +22,8 @@ from parcels import (
     download_example_dataset,
 )
 from parcels._core.particle import Particle, create_particle_data, get_default_particle
-from parcels._core.utils.time import TimeInterval
+from parcels._core.utils.time import TimeInterval, timedelta_to_float
+from parcels._datasets.structured.generated import peninsula_dataset
 from parcels._datasets.structured.generic import datasets
 from parcels.interpolators import XLinear
 from parcels.kernels import AdvectionRK4
@@ -31,7 +34,7 @@ from tests.common_kernels import DoNothing
 def fieldset() -> FieldSet:  # TODO v4: Move into a `conftest.py` file and remove duplicates
     """Fixture to create a FieldSet object for testing."""
     ds = datasets["ds_2d_left"]
-    grid = XGrid.from_dataset(ds)
+    grid = XGrid.from_dataset(ds, mesh="flat")
     U = Field("U", ds["U_A_grid"], grid, XLinear)
     V = Field("V", ds["V_A_grid"], grid, XLinear)
     UV = VectorField("UV", U, V)
@@ -69,6 +72,21 @@ def test_pfile_array_write_zarr_memorystore(fieldset):
     assert ds.sizes["trajectory"] == npart
 
 
+def test_write_fieldset_without_time(tmp_zarrfile):
+    ds = peninsula_dataset()  # DataSet without time
+    assert "time" not in ds.dims
+    grid = XGrid.from_dataset(ds, mesh="flat")
+    fieldset = FieldSet([Field("U", ds["U"], grid, XLinear)])
+
+    pset = ParticleSet(fieldset, pclass=Particle, lon=0, lat=0)
+
+    ofile = ParticleFile(tmp_zarrfile, outputdt=np.timedelta64(1, "s"))
+    pset.execute(DoNothing, runtime=np.timedelta64(1, "s"), dt=np.timedelta64(1, "s"), output_file=ofile)
+
+    ds = xr.open_zarr(tmp_zarrfile)
+    assert ds.time.values[0, 1] == np.timedelta64(1, "s")
+
+
 def test_pfile_array_remove_particles(fieldset, tmp_zarrfile):
     npart = 10
     pset = ParticleSet(
@@ -79,10 +97,10 @@ def test_pfile_array_remove_particles(fieldset, tmp_zarrfile):
         time=fieldset.time_interval.left,
     )
     pfile = ParticleFile(tmp_zarrfile, outputdt=np.timedelta64(1, "s"))
-    pset._data["time"][:] = fieldset.time_interval.left
+    pset._data["time"][:] = 0
     pfile.write(pset, time=fieldset.time_interval.left)
     pset.remove_indices(3)
-    new_time = fieldset.time_interval.left + np.timedelta64(1, "D")
+    new_time = 86400  # s in a day
     pset._data["time"][:] = new_time
     pfile.write(pset, new_time)
     ds = xr.open_zarr(tmp_zarrfile)
@@ -102,7 +120,7 @@ def test_pfile_array_remove_all_particles(fieldset, chunks_obs, tmp_zarrfile):
     )
     chunks = (npart, chunks_obs) if chunks_obs else None
     pfile = ParticleFile(tmp_zarrfile, chunks=chunks, outputdt=np.timedelta64(1, "s"))
-    pfile.write(pset, time=fieldset.time_interval.left)
+    pfile.write(pset, time=0)
     for _ in range(npart):
         pset.remove_indices(-1)
     pfile.write(pset, fieldset.time_interval.left + np.timedelta64(1, "D"))
@@ -121,12 +139,11 @@ def test_variable_write_double(fieldset, tmp_zarrfile):
     def Update_lon(particles, fieldset):  # pragma: no cover
         particles.dlon += 0.1
 
-    dt = np.timedelta64(1, "us")
+    dt = np.timedelta64(1, "s")
     particle = get_default_particle(np.float64)
     pset = ParticleSet(fieldset, pclass=particle, lon=[0], lat=[0])
-    pset.update_dt_dtype(dt.dtype)
     ofile = ParticleFile(tmp_zarrfile, outputdt=dt)
-    pset.execute(Update_lon, runtime=np.timedelta64(10, "us"), dt=dt, output_file=ofile)
+    pset.execute(Update_lon, runtime=np.timedelta64(10, "s"), dt=dt, output_file=ofile)
 
     ds = xr.open_zarr(tmp_zarrfile)
     lons = ds["lon"][:]
@@ -206,6 +223,30 @@ def test_pset_repeated_release_delayed_adding_deleting(fieldset, tmp_zarrfile, d
         assert np.allclose([p for p in samplevar[:, k] if np.isfinite(p)], k + 1)
     filesize = os.path.getsize(str(tmp_zarrfile))
     assert filesize < 1024 * 65  # test that chunking leads to filesize less than 65KB
+
+
+def test_file_warnings(fieldset, tmp_zarrfile):
+    pset = ParticleSet(fieldset, lon=[0, 0], lat=[0, 0], time=[np.timedelta64(0, "s"), np.timedelta64(1, "s")])
+    pfile = ParticleFile(tmp_zarrfile, outputdt=np.timedelta64(2, "s"))
+    with pytest.warns(ParticleSetWarning, match="Some of the particles have a start time difference.*"):
+        pset.execute(AdvectionRK4, runtime=3, dt=1, output_file=pfile)
+
+
+@pytest.mark.parametrize(
+    "outputdt, expectation",
+    [
+        (np.timedelta64(5, "s"), does_not_raise()),
+        (timedelta(seconds=2), does_not_raise()),
+        (5.0, does_not_raise()),
+        (np.datetime64("2001-01-02T00:00:00"), pytest.raises(ValueError)),
+        (datetime(2000, 1, 2, 0, 0, 0), pytest.raises(ValueError)),
+        (-np.timedelta64(5, "s"), pytest.raises(ValueError)),
+    ],
+)
+def test_outputdt_types(outputdt, expectation, tmp_zarrfile):
+    with expectation:
+        pfile = ParticleFile(tmp_zarrfile, outputdt=outputdt)
+        assert pfile.outputdt == timedelta_to_float(outputdt)
 
 
 def test_write_timebackward(fieldset, tmp_zarrfile):
@@ -288,7 +329,7 @@ def test_time_is_age(fieldset, tmp_zarrfile, outputdt):
     AgeParticle = get_default_particle(np.float64).add_variable(Variable("age", initial=0.0))
 
     def IncreaseAge(particles, fieldset):  # pragma: no cover
-        particles.age += particles.dt / np.timedelta64(1, "s")
+        particles.age += particles.dt
 
     time = fieldset.time_interval.left + np.arange(npart) * np.timedelta64(1, "s")
     pset = ParticleSet(fieldset, pclass=AgeParticle, lon=npart * [0], lat=npart * [0], time=time)
@@ -297,25 +338,24 @@ def test_time_is_age(fieldset, tmp_zarrfile, outputdt):
     pset.execute(IncreaseAge, runtime=np.timedelta64(npart * 2, "s"), dt=np.timedelta64(1, "s"), output_file=ofile)
 
     ds = xr.open_zarr(tmp_zarrfile)
-    age = ds["age"][:].values
+    age = ds["age"][:].values.astype("timedelta64[s]")
     ds_timediff = np.zeros_like(age)
     for i in range(npart):
-        ds_timediff[i, :] = (ds.time.values[i, :] - time[i]) / np.timedelta64(1, "s")
+        ds_timediff[i, :] = ds.time.values[i, :] - time[i]
     np.testing.assert_equal(age, ds_timediff)
 
 
 def test_reset_dt(fieldset, tmp_zarrfile):
     # Assert that p.dt gets reset when a write_time is not a multiple of dt
     # for p.dt=0.02 to reach outputdt=0.05 and endtime=0.1, the steps should be [0.2, 0.2, 0.1, 0.2, 0.2, 0.1], resulting in 6 kernel executions
-    dt = np.timedelta64(20, "ms")
+    dt = np.timedelta64(20, "s")
 
     def Update_lon(particles, fieldset):  # pragma: no cover
         particles.dlon += 0.1
 
     particle = get_default_particle(np.float64)
     pset = ParticleSet(fieldset, pclass=particle, lon=[0], lat=[0])
-    pset.update_dt_dtype(dt.dtype)
-    ofile = ParticleFile(tmp_zarrfile, outputdt=np.timedelta64(50, "ms"))
+    ofile = ParticleFile(tmp_zarrfile, outputdt=np.timedelta64(50, "s"))
     pset.execute(pset.Kernel(Update_lon), runtime=5 * dt, dt=dt, output_file=ofile)
 
     assert np.allclose(pset.lon, 0.6)
@@ -325,7 +365,7 @@ def test_correct_misaligned_outputdt_dt(fieldset, tmp_zarrfile):
     """Testing that outputdt does not need to be a multiple of dt."""
 
     def Update_lon(particles, fieldset):  # pragma: no cover
-        particles.lon += particles.dt / np.timedelta64(1, "s")
+        particles.lon += particles.dt
 
     particle = get_default_particle(np.float64)
     pset = ParticleSet(fieldset, pclass=particle, lon=[0], lat=[0])
@@ -334,7 +374,7 @@ def test_correct_misaligned_outputdt_dt(fieldset, tmp_zarrfile):
 
     ds = xr.open_zarr(tmp_zarrfile)
     assert np.allclose(ds.lon.values, [0, 3, 6, 9])
-    assert np.allclose((ds.time.values - ds.time.values[0, 0]) / np.timedelta64(1, "s"), [0, 3, 6, 9])
+    assert np.allclose(timedelta_to_float(ds.time.values - ds.time.values[0, 0]), [0, 3, 6, 9])
 
 
 def setup_pset_execute(*, fieldset: FieldSet, outputdt: timedelta, execute_kwargs, particle_class=Particle):
@@ -443,22 +483,22 @@ def test_particlefile_write_particle_data(tmp_store):
         ngrids=4,
         time_interval=time_interval,
         initial={
-            "time": np.full(nparticles, fill_value=left),
+            "time": np.full(nparticles, fill_value=0),
             "lon": initial_lon,
             "dt": np.full(nparticles, fill_value=1.0),
             "trajectory": np.arange(nparticles),
         },
     )
-    np.testing.assert_array_equal(data["time"], left)
+    np.testing.assert_array_equal(data["time"], 0)
     pfile._write_particle_data(
         particle_data=data,
         pclass=pclass,
         time_interval=time_interval,
         time=left,
     )
-    ds = xr.open_zarr(tmp_store, decode_cf=False)  # TODO v4: Fix metadata and re-enable decode_cf
-    # assert ds.time.dtype == "datetime64[ns]"
-    # np.testing.assert_equal(ds["time"].isel(obs=0).values, left)
+    ds = xr.open_zarr(tmp_store)
+    assert ds.time.dtype == "datetime64[ns]"
+    np.testing.assert_equal(ds["time"].isel(obs=0).values, left)
     assert ds.sizes["trajectory"] == nparticles
     np.testing.assert_allclose(ds["lon"].isel(obs=0).values, initial_lon)
 

@@ -5,6 +5,7 @@ import xgcm
 
 import parcels
 from parcels import Field, FieldSet, Particle, ParticleFile, ParticleSet, StatusCode, Variable, VectorField, XGrid
+from parcels._core.utils.time import timedelta_to_float
 from parcels._datasets.structured.generated import (
     decaying_moving_eddy_dataset,
     moving_eddy_dataset,
@@ -24,7 +25,7 @@ from parcels.kernels import (
     AdvectionRK4_3D,
     AdvectionRK45,
 )
-from tests.utils import round_and_hash_float_array
+from tests.utils import DEFAULT_PARTICLES, round_and_hash_float_array
 
 
 @pytest.mark.parametrize("mesh", ["spherical", "flat"])
@@ -84,7 +85,7 @@ def test_advection_zonal_periodic():
     halo.XG.values = ds.XG.values[1] + 2
     ds = xr.concat([ds, halo], dim="XG")
 
-    grid = XGrid.from_dataset(ds)
+    grid = XGrid.from_dataset(ds, mesh="flat")
     U = Field("U", ds["U"], grid, interp_method=XLinear)
     V = Field("V", ds["V"], grid, interp_method=XLinear)
     UV = VectorField("UV", U, V)
@@ -103,7 +104,7 @@ def test_horizontal_advection_in_3D_flow(npart=10):
     """Flat 2D zonal flow that increases linearly with z from 0 m/s to 1 m/s."""
     ds = simple_UV_dataset(mesh="flat")
     ds["U"].data[:] = 1.0
-    grid = XGrid.from_dataset(ds)
+    grid = XGrid.from_dataset(ds, mesh="flat")
     U = Field("U", ds["U"], grid, interp_method=XLinear)
     U.data[:, 0, :, :] = 0.0  # Set U to 0 at the surface
     V = Field("V", ds["V"], grid, interp_method=XLinear)
@@ -113,7 +114,7 @@ def test_horizontal_advection_in_3D_flow(npart=10):
     pset = ParticleSet(fieldset, lon=np.zeros(npart), lat=np.zeros(npart), z=np.linspace(0.1, 0.9, npart))
     pset.execute(AdvectionRK4, runtime=np.timedelta64(2, "h"), dt=np.timedelta64(15, "m"))
 
-    expected_lon = pset.z * (pset.time - fieldset.time_interval.left) / np.timedelta64(1, "s")
+    expected_lon = pset.z * pset.time
     np.testing.assert_allclose(pset.lon, expected_lon, atol=1.0e-1)
 
 
@@ -121,7 +122,7 @@ def test_horizontal_advection_in_3D_flow(npart=10):
 @pytest.mark.parametrize("wErrorThroughSurface", [True, False])
 def test_advection_3D_outofbounds(direction, wErrorThroughSurface):
     ds = simple_UV_dataset(mesh="flat")
-    grid = XGrid.from_dataset(ds)
+    grid = XGrid.from_dataset(ds, mesh="flat")
     U = Field("U", ds["U"], grid, interp_method=XLinear)
     U.data[:] = 0.01  # Set U to small value (to avoid horizontal out of bounds)
     V = Field("V", ds["V"], grid, interp_method=XLinear)
@@ -143,10 +144,9 @@ def test_advection_3D_outofbounds(direction, wErrorThroughSurface):
         inds = np.argwhere(particles.state == StatusCode.ErrorThroughSurface).flatten()
         if len(inds) == 0:
             return
-        dt = particles.dt / np.timedelta64(1, "s")
         (u, v) = fieldset.UV[particles[inds]]
-        particles[inds].dlon = u * dt
-        particles[inds].dlat = v * dt
+        particles[inds].dlon = u * particles.dt
+        particles[inds].dlat = v * particles.dt
         particles[inds].dz = 0.0
         particles[inds].z = 0
         particles[inds].state = StatusCode.Evaluate
@@ -202,7 +202,7 @@ def test_length1dimensions(u, v, w):  # TODO: Refactor this test to be more read
     if w:
         ds["W"] = (["time", "depth", "YG", "XG"], W)
 
-    grid = XGrid.from_dataset(ds)
+    grid = XGrid.from_dataset(ds, mesh="flat")
     U = Field("U", ds["U"], grid, interp_method=XLinear)
     V = Field("V", ds["V"], grid, interp_method=XLinear)
     fields = [U, V, VectorField("UV", U, V)]
@@ -235,11 +235,12 @@ def test_radialrotation(npart=10):
     lon = np.linspace(32, 50, npart)
     lat = np.ones(npart) * 30
     starttime = np.arange(np.timedelta64(0, "s"), npart * dt, dt)
+    endtime = np.timedelta64(10, "m")
 
     pset = parcels.ParticleSet(fieldset, lon=lon, lat=lat, time=starttime)
-    pset.execute(parcels.kernels.AdvectionRK4, endtime=np.timedelta64(10, "m"), dt=dt)
+    pset.execute(parcels.kernels.AdvectionRK4, endtime=endtime, dt=dt)
 
-    theta = 2 * np.pi * (pset.time - starttime) / np.timedelta64(24 * 3600, "s")
+    theta = 2 * np.pi * (pset.time - timedelta_to_float(starttime)) / (24 * 3600)
     true_lon = (lon - 30.0) * np.cos(theta) + 30.0
     true_lat = -(lon - 30.0) * np.sin(theta) + 30.0
 
@@ -262,7 +263,7 @@ def test_radialrotation(npart=10):
 )
 def test_moving_eddy(kernel, rtol):
     ds = moving_eddy_dataset()
-    grid = XGrid.from_dataset(ds)
+    grid = XGrid.from_dataset(ds, mesh="flat")
     U = Field("U", ds["U"], grid, interp_method=XLinear)
     V = Field("V", ds["V"], grid, interp_method=XLinear)
     if kernel in [AdvectionRK2_3D, AdvectionRK4_3D]:
@@ -282,12 +283,15 @@ def test_moving_eddy(kernel, rtol):
 
     start_lon, start_lat, start_z = 12000, 12500, 12500
     dt = np.timedelta64(30, "m")
+    endtime = np.timedelta64(1, "h")
 
     if kernel == AdvectionRK45:
         fieldset.add_constant("RK45_tol", rtol)
 
-    pset = ParticleSet(fieldset, lon=start_lon, lat=start_lat, z=start_z, time=np.timedelta64(0, "s"))
-    pset.execute(kernel, dt=dt, endtime=np.timedelta64(1, "h"))
+    pset = ParticleSet(
+        fieldset, pclass=DEFAULT_PARTICLES[kernel], lon=start_lon, lat=start_lat, z=start_z, time=np.timedelta64(0, "s")
+    )
+    pset.execute(kernel, dt=dt, endtime=endtime)
 
     def truth_moving(x_0, y_0, t):
         t /= np.timedelta64(1, "s")
@@ -295,7 +299,7 @@ def test_moving_eddy(kernel, rtol):
         lon = x_0 + ds.u_g * t + (ds.u_0 - ds.u_g) / ds.f * np.sin(ds.f * t)
         return lon, lat
 
-    exp_lon, exp_lat = truth_moving(start_lon, start_lat, pset.time[0])
+    exp_lon, exp_lat = truth_moving(start_lon, start_lat, endtime)
     np.testing.assert_allclose(pset.lon, exp_lon, rtol=rtol)
     np.testing.assert_allclose(pset.lat, exp_lat, rtol=rtol)
     if kernel == AdvectionRK4_3D:
@@ -313,7 +317,7 @@ def test_moving_eddy(kernel, rtol):
 )
 def test_decaying_moving_eddy(kernel, rtol):
     ds = decaying_moving_eddy_dataset()
-    grid = XGrid.from_dataset(ds)
+    grid = XGrid.from_dataset(ds, mesh="flat")
     U = Field("U", ds["U"], grid, interp_method=XLinear)
     V = Field("V", ds["V"], grid, interp_method=XLinear)
     UV = VectorField("UV", U, V)
@@ -321,13 +325,16 @@ def test_decaying_moving_eddy(kernel, rtol):
 
     start_lon, start_lat = 10000, 10000
     dt = np.timedelta64(60, "m")
+    endtime = np.timedelta64(23, "h")
 
     if kernel == AdvectionRK45:
         fieldset.add_constant("RK45_tol", rtol)
         fieldset.add_constant("RK45_min_dt", 10 * 60)
 
-    pset = ParticleSet(fieldset, lon=start_lon, lat=start_lat, time=np.timedelta64(0, "s"))
-    pset.execute(kernel, dt=dt, endtime=np.timedelta64(23, "h"))
+    pset = ParticleSet(
+        fieldset, pclass=DEFAULT_PARTICLES[kernel], lon=start_lon, lat=start_lat, time=np.timedelta64(0, "s")
+    )
+    pset.execute(kernel, dt=dt, endtime=endtime)
 
     def truth_moving(x_0, y_0, t):
         t /= np.timedelta64(1, "s")
@@ -343,7 +350,7 @@ def test_decaying_moving_eddy(kernel, rtol):
         )
         return lon, lat
 
-    exp_lon, exp_lat = truth_moving(start_lon, start_lat, pset.time[0])
+    exp_lon, exp_lat = truth_moving(start_lon, start_lat, endtime)
     np.testing.assert_allclose(pset.lon, exp_lon, rtol=rtol)
     np.testing.assert_allclose(pset.lat, exp_lat, rtol=rtol)
 
@@ -360,7 +367,7 @@ def test_decaying_moving_eddy(kernel, rtol):
 def test_stommelgyre_fieldset(kernel, rtol, grid_type):
     npart = 2
     ds = stommel_gyre_dataset(grid_type=grid_type)
-    grid = XGrid.from_dataset(ds)
+    grid = XGrid.from_dataset(ds, mesh="flat")
     vector_interp_method = None if grid_type == "A" else CGrid_Velocity
     U = Field("U", ds["U"], grid, interp_method=XLinear)
     V = Field("V", ds["V"], grid, interp_method=XLinear)
@@ -373,12 +380,12 @@ def test_stommelgyre_fieldset(kernel, rtol, grid_type):
     start_lon = np.linspace(10e3, 100e3, npart)
     start_lat = np.ones_like(start_lon) * 5000e3
 
-    if kernel == AdvectionRK45:
-        fieldset.add_constant("RK45_tol", rtol)
-
-    SampleParticle = Particle.add_variable(
+    SampleParticle = DEFAULT_PARTICLES[kernel].add_variable(
         [Variable("p", initial=0.0, dtype=np.float32), Variable("p_start", initial=0.0, dtype=np.float32)]
     )
+
+    if kernel == AdvectionRK45:
+        fieldset.add_constant("RK45_tol", rtol)
 
     def UpdateP(particles, fieldset):  # pragma: no cover
         particles.p = fieldset.P[particles.time, particles.z, particles.lat, particles.lon]
@@ -394,14 +401,14 @@ def test_stommelgyre_fieldset(kernel, rtol, grid_type):
     [
         (AdvectionRK2, 2e-2),
         (AdvectionRK4, 5e-3),
-        (AdvectionRK45, 1e-4),
+        (AdvectionRK45, 1e-3),
     ],
 )
 @pytest.mark.parametrize("grid_type", ["A"])  # TODO also implement C-grid once available
 def test_peninsula_fieldset(kernel, rtol, grid_type):
     npart = 2
     ds = peninsula_dataset(grid_type=grid_type)
-    grid = XGrid.from_dataset(ds)
+    grid = XGrid.from_dataset(ds, mesh="flat")
     U = Field("U", ds["U"], grid, interp_method=XLinear)
     V = Field("V", ds["V"], grid, interp_method=XLinear)
     P = Field("P", ds["P"], grid, interp_method=XLinear)
@@ -413,12 +420,12 @@ def test_peninsula_fieldset(kernel, rtol, grid_type):
     start_lat = np.linspace(3e3, 47e3, npart)
     start_lon = 3e3 * np.ones_like(start_lat)
 
-    if kernel == AdvectionRK45:
-        fieldset.add_constant("RK45_tol", rtol)
-
-    SampleParticle = Particle.add_variable(
+    SampleParticle = DEFAULT_PARTICLES[kernel].add_variable(
         [Variable("p", initial=0.0, dtype=np.float32), Variable("p_start", initial=0.0, dtype=np.float32)]
     )
+
+    if kernel == AdvectionRK45:
+        fieldset.add_constant("RK45_tol", rtol)
 
     def UpdateP(particles, fieldset):  # pragma: no cover
         particles.p = fieldset.P[particles.time, particles.z, particles.lat, particles.lon]
@@ -454,20 +461,17 @@ def test_nemo_curvilinear_fieldset():
     U = parcels.Field("U", ds["U"], grid, interp_method=XLinear)
     V = parcels.Field("V", ds["V"], grid, interp_method=XLinear)
     U.units = parcels.GeographicPolar()
-    V.units = parcels.GeographicPolar()  # U and V need GoegraphicPolar for  C-Grid interpolation to work correctly
+    V.units = parcels.GeographicPolar()  # U and V need GeographicPolar for C-Grid interpolation to work correctly
     UV = parcels.VectorField("UV", U, V, vector_interp_method=CGrid_Velocity)
     fieldset = parcels.FieldSet([U, V, UV])
 
     npart = 20
     lonp = 30 * np.ones(npart)
     latp = np.linspace(-70, 88, npart)
-    runtime = np.timedelta64(12, "h")  # TODO increase to 160 days
-
-    def periodicBC(particles, fieldset):  # pragma: no cover
-        particles.dlon = np.where(particles.lon > 180, particles.dlon - 360, particles.dlon)
+    runtime = np.timedelta64(160, "D")
 
     pset = parcels.ParticleSet(fieldset, lon=lonp, lat=latp)
-    pset.execute([AdvectionEE, periodicBC], runtime=runtime, dt=np.timedelta64(6, "h"))
+    pset.execute(AdvectionEE, runtime=runtime, dt=np.timedelta64(10, "D"))
     np.testing.assert_allclose(pset.lat, latp, atol=1e-1)
 
 

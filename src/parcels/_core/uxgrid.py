@@ -18,7 +18,7 @@ class UxGrid(BaseGrid):
     for interpolation on unstructured grids.
     """
 
-    def __init__(self, grid: ux.grid.Grid, z: ux.UxDataArray, mesh="flat") -> UxGrid:
+    def __init__(self, grid: ux.grid.Grid, z: ux.UxDataArray, mesh) -> UxGrid:
         """
         Initializes the UxGrid with a uxarray grid and vertical coordinate array.
 
@@ -30,8 +30,8 @@ class UxGrid(BaseGrid):
             A 1D array of vertical coordinates (depths) associated with the layer interface heights (not the mid-layer depths).
             While uxarray allows nz to be spatially and temporally varying, the parcels.UxGrid class considers the case where
             the vertical coordinate is constant in time and space. This implies flat bottom topography and no moving ALE vertical grid.
-        mesh : str, optional
-            The type of mesh used for the grid. Either "flat" (default) or "spherical".
+        mesh : str
+            The type of mesh used for the grid. Either "flat" or "spherical".
         """
         self.uxgrid = grid
         if not isinstance(z, ux.UxDataArray):
