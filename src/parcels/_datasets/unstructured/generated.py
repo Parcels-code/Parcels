@@ -35,11 +35,12 @@ def simple_small_delaunay(nx=10, ny=10):
     )
     uxgrid.attrs["Conventions"] = "UGRID-1.0"
 
-    # Define arrays U (zonal), V (meridional) and P (sea surface height)
+    # Define arrays U (zonal), V (meridional), W (vertical), and P (sea surface height)
     U = np.zeros((1, nz1, uxgrid.n_face), dtype=np.float64)
     V = np.zeros((1, nz1, uxgrid.n_face), dtype=np.float64)
     W = np.zeros((1, nz, uxgrid.n_node), dtype=np.float64)
     P = np.zeros((1, nz1, uxgrid.n_face), dtype=np.float64)
+    # Define Tface, a ficticious tracer field on the face centroids
     Tface = np.zeros((1, nz1, uxgrid.n_face), dtype=np.float64)
 
     for i, (x, y) in enumerate(zip(uxgrid.face_lon, uxgrid.face_lat, strict=False)):
@@ -48,6 +49,7 @@ def simple_small_delaunay(nx=10, ny=10):
         V[0, :, i] = vmax * ((2.0 - x) * math.exp(-x / delta) - 1) * np.sin(math.pi * y)
         Tface[0, :, i] = np.sin(math.pi * y) * np.cos(math.pi * x)
 
+    # Define Tnode, the same ficticious tracer field as above but on the face corner vertices
     Tnode = np.zeros((1, nz, uxgrid.n_node), dtype=np.float64)
     for i, (x, y) in enumerate(zip(uxgrid.node_lon, uxgrid.node_lat, strict=False)):
         Tnode[0, :, i] = np.sin(math.pi * y) * np.cos(math.pi * x)
