@@ -96,7 +96,7 @@ Are you interested in advanced analysis and diagnostics of Parcels output or Lag
 
 +++
 
-```{button-link} https://github.com/Parcels-code/Lagrangian_diags
+```{button-link} https://lagrangian-diags.readthedocs.io/en/latest/
 :click-parent:
 :color: secondary
 :expand:

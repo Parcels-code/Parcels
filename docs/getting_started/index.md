@@ -6,9 +6,8 @@ Getting started with parcels is easy; here you will find:
 :maxdepth: 1
 Installation guide <installation.md>
 Quickstart tutorial <tutorial_quickstart.md>
-Simple output tutorial <tutorial_output.ipynb>
-Parcels concepts explanation <explanation_concepts.md>
-
+Output tutorial <tutorial_output.ipynb>
+Concepts explanation <explanation_concepts.md>
 ```
 
 ```{note}

@@ -22,65 +22,73 @@ The tutorials written for Parcels v3 are currently being updated for Parcels v4.
 ```{toctree}
 :caption: Set up FieldSets
 :titlesonly:
-how-to-guides/tutorial_nemo_curvilinear.ipynb
-how-to-guides/tutorial_unitconverters.ipynb
-explanations/explanation_grids.md
+examples/tutorial_nemo_curvilinear.ipynb
+examples/tutorial_unitconverters.ipynb
+examples/explanation_grids.md
 ```
 
-<!-- how-to-guides/documentation_indexing.ipynb -->
-<!-- how-to-guides/tutorial_nemo_3D.ipynb -->
-<!-- how-to-guides/tutorial_croco_3D.ipynb -->
-<!-- how-to-guides/tutorial_timevaryingdepthdimensions.ipynb -->
+<!-- examples/documentation_indexing.ipynb -->
+<!-- examples/tutorial_nemo_3D.ipynb -->
+<!-- examples/tutorial_croco_3D.ipynb -->
+<!-- examples/tutorial_timevaryingdepthdimensions.ipynb -->
 
 ```{toctree}
 :caption: Create ParticleSets
 :titlesonly:
-how-to-guides/tutorial_delaystart.ipynb
+examples/tutorial_delaystart.ipynb
 ```
 
 ```{toctree}
 :caption: Write Kernels
 :titlesonly:
 
-explanations/explanation_kernelloop.md
-how-to-guides/tutorial_sampling.ipynb
-how-to-guides/tutorial_statuscodes.ipynb
-how-to-guides/tutorial_gsw_density.ipynb
-how-to-guides/tutorial_Argofloats.ipynb
+examples/explanation_kernelloop.md
+examples/tutorial_sampling.ipynb
+examples/tutorial_statuscodes.ipynb
+examples/tutorial_gsw_density.ipynb
+examples/tutorial_Argofloats.ipynb
 ```
 
 ```{toctree}
 :caption: Set interpolation method
 :titlesonly:
 
-explanations/explanation_interpolation.md
-how-to-guides/tutorial_interpolation.ipynb
+examples/explanation_interpolation.md
+examples/tutorial_interpolation.ipynb
 ```
 
-<!-- how-to-guides/tutorial_diffusion.ipynb -->
-<!-- how-to-guides/tutorial_particle_field_interaction.ipynb -->
-<!-- how-to-guides/tutorial_interaction.ipynb -->
-<!-- how-to-guides/tutorial_analyticaladvection.ipynb -->
-<!-- how-to-guides/tutorial_kernelloop.ipynb -->
+<!-- examples/tutorial_diffusion.ipynb -->
+<!-- examples/tutorial_particle_field_interaction.ipynb -->
+<!-- examples/tutorial_interaction.ipynb -->
+<!-- examples/tutorial_analyticaladvection.ipynb -->
+<!-- examples/tutorial_kernelloop.ipynb -->
 
 ```{toctree}
+:caption: Run a simulation
+:name: tutorial-execute
+
+examples/tutorial_numerical_accuracy.ipynb
+```
+
+<!-- examples/documentation_advanced_zarr.ipynb -->
+
+<!-- ```{toctree}
 :caption: Other tutorials
 :name: tutorial-other
 
-```
+``` -->
 
-<!-- how-to-guides/tutorial_peninsula_AvsCgrid.ipynb -->
-<!-- how-to-guides/documentation_stuck_particles.ipynb -->
-<!-- how-to-guides/documentation_unstuck_Agrid.ipynb -->
-<!-- how-to-guides/documentation_LargeRunsOutput.ipynb -->
-<!-- how-to-guides/documentation_geospatial.ipynb -->
-<!-- how-to-guides/documentation_advanced_zarr.ipynb -->
+<!-- examples/tutorial_peninsula_AvsCgrid.ipynb -->
+<!-- examples/documentation_stuck_particles.ipynb -->
+<!-- examples/documentation_unstuck_Agrid.ipynb -->
+<!-- examples/documentation_LargeRunsOutput.ipynb -->
+<!-- examples/documentation_geospatial.ipynb -->
 
 ```{toctree}
 :caption: Worked examples
 ```
 
-<!-- how-to-guides/documentation_homepage_animation.ipynb -->
+<!-- examples/documentation_homepage_animation.ipynb -->
 
 ```{toctree}
 :hidden:
