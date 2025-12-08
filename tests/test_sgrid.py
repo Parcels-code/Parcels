@@ -46,7 +46,7 @@ def test_load_dump_mappings(input_, expected):
     )
 )
 @given(sgrid_strategies.grid2Dmetadata())
-def test_grid2Dmetadata_roundtrip(grid: sgrid.Grid2DMetadata):
+def test_Grid2DMetadata_roundtrip(grid: sgrid.Grid2DMetadata):
     attrs = grid.to_attrs()
     parsed = sgrid.Grid2DMetadata.from_attrs(attrs)
     assert parsed == grid
@@ -65,7 +65,7 @@ def test_grid2Dmetadata_roundtrip(grid: sgrid.Grid2DMetadata):
     )
 )
 @given(sgrid_strategies.grid3Dmetadata())
-def test_grid3Dmetadata_roundtrip(grid: sgrid.Grid3DMetadata):
+def test_Grid3DMetadata_roundtrip(grid: sgrid.Grid3DMetadata):
     attrs = grid.to_attrs()
     parsed = sgrid.Grid3DMetadata.from_attrs(attrs)
     assert parsed == grid
