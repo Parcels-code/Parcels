@@ -89,6 +89,17 @@ class Grid2DMetadata(SGridMetadataProtocol):
         #! Important optional attribute for 2D grids with vertical layering
         self.vertical_dimensions = vertical_dimensions
 
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, Grid2DMetadata):
+            return NotImplemented
+        return (
+            self.cf_role == other.cf_role
+            and self.topology_dimension == other.topology_dimension
+            and self.node_dimensions == other.node_dimensions
+            and self.face_dimensions == other.face_dimensions
+            and self.vertical_dimensions == other.vertical_dimensions
+        )
+
     @classmethod
     def from_attrs(cls, d: dict[str, Hashable]) -> Self:
         return cls(
@@ -160,6 +171,16 @@ class Grid3DMetadata(SGridMetadataProtocol):
         # edge *i_coordinates*
         # face *i_coordinates*
         # volume_coordinates
+
+    def __eq__(self, other: Any) -> bool:
+        if not isinstance(other, Grid3DMetadata):
+            return NotImplemented
+        return (
+            self.cf_role == other.cf_role
+            and self.topology_dimension == other.topology_dimension
+            and self.node_dimensions == other.node_dimensions
+            and self.volume_dimensions == other.volume_dimensions
+        )
 
     @classmethod
     def from_attrs(cls, d: dict[str, Hashable]) -> Self:

@@ -29,3 +29,43 @@ def test_edge_node_mapping_metadata_roundtrip(edge_node_padding):
 )
 def test_load_dump_mappings(input_, expected):
     assert sgrid.load_mappings(input_) == expected
+
+
+@example(
+    grid=sgrid.Grid2DMetadata(
+        cf_role="grid_topology",
+        topology_dimension=2,
+        node_dimensions=("node_dimension1", "node_dimension2"),
+        face_dimensions=(
+            sgrid.DimDimPadding("face_dimension1", "node_dimension1", sgrid.Padding.LOW),
+            sgrid.DimDimPadding("face_dimension2", "node_dimension2", sgrid.Padding.LOW),
+        ),
+        vertical_dimensions=(
+            sgrid.DimDimPadding("vertical_dimensions_dim1", "vertical_dimensions_dim2", sgrid.Padding.LOW),
+        ),
+    )
+)
+@given(sgrid_strategies.grid2Dmetadata())
+def test_grid2Dmetadata_roundtrip(grid: sgrid.Grid2DMetadata):
+    attrs = grid.to_attrs()
+    parsed = sgrid.Grid2DMetadata.from_attrs(attrs)
+    assert parsed == grid
+
+
+@example(
+    grid=sgrid.Grid3DMetadata(
+        cf_role="grid_topology",
+        topology_dimension=3,
+        node_dimensions=("node_dimension1", "node_dimension2", "node_dimension3"),
+        volume_dimensions=(
+            sgrid.DimDimPadding("face_dimension1", "node_dimension1", sgrid.Padding.LOW),
+            sgrid.DimDimPadding("face_dimension2", "node_dimension2", sgrid.Padding.LOW),
+            sgrid.DimDimPadding("face_dimension3", "node_dimension3", sgrid.Padding.LOW),
+        ),
+    )
+)
+@given(sgrid_strategies.grid3Dmetadata())
+def test_grid3Dmetadata_roundtrip(grid: sgrid.Grid3DMetadata):
+    attrs = grid.to_attrs()
+    parsed = sgrid.Grid3DMetadata.from_attrs(attrs)
+    assert parsed == grid
