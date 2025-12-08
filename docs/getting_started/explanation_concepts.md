@@ -81,7 +81,7 @@ Once the environment has a `parcels.FieldSet` object, you can start defining you
 
 ## 3. Kernels
 
-A **`parcels.Kernel`** object is a little snippet of code, which is applied to the particles in the `ParticleSet`, for every time step during a simulation. Kernels define the computation or numerical integration done by Parcels, and can represent many processes such as advection, ageing, growth, or simply the sampling of a field. 
+A **`parcels.Kernel`** object is a little snippet of code, which is applied to the particles in the `ParticleSet`, for every time step during a simulation. Kernels define the computation or numerical integration done by Parcels, and can represent many processes such as advection, ageing, growth, or simply the sampling of a field.
 
 Advection of a particle by the flow, the change in position $\mathbf{x}(t) = (lon(t), lat(t))$ at time $t$, can be described by the equation:
 
@@ -93,7 +93,7 @@ $$
 
 where $\mathbf{v}(\mathbf{x},t) = (u(\mathbf{x},t), v(\mathbf{x},t))$ describes the ocean velocity field at position $\mathbf{x}$ at time $t$.
 
-In Parcels, we can write a kernel function which integrates this equation at each timestep `particles.dt`. To do so, we need the ocean velocity field `fieldset.UV` at the `particles` location, and compute the change in position, `particles.dlon` and `particles.dlat`. 
+In Parcels, we can write a kernel function which integrates this equation at each timestep `particles.dt`. To do so, we need the ocean velocity field `fieldset.UV` at the `particles` location, and compute the change in position, `particles.dlon` and `particles.dlat`.
 
 ```python
 def AdvectionEE(particles, fieldset):
