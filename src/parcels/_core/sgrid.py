@@ -106,14 +106,17 @@ class Grid2DMetadata(SGridMetadataProtocol):
         )
 
     @classmethod
-    def from_attrs(cls, d: dict[str, Hashable]) -> Self:
-        return cls(
-            cf_role=d.get("cf_role"),  # type: ignore[arg-type]
-            topology_dimension=d.get("topology_dimension"),  # type: ignore[arg-type]
-            node_dimensions=load_mappings(d.get("node_dimensions")),  # type: ignore[arg-type]
-            face_dimensions=load_mappings(d.get("face_dimensions")),  # type: ignore[arg-type]
-            vertical_dimensions=maybe_load_mappings(d.get("vertical_dimensions")),  # type: ignore[arg-type]
-        )  # type: ignore[arg-type]
+    def from_attrs(cls, attrs):
+        try:
+            return cls(
+                cf_role=attrs["cf_role"],
+                topology_dimension=attrs["topology_dimension"],
+                node_dimensions=load_mappings(attrs["node_dimensions"]),
+                face_dimensions=load_mappings(attrs["face_dimensions"]),
+                vertical_dimensions=maybe_load_mappings(attrs.get("vertical_dimensions")),
+            )
+        except Exception as e:
+            raise SGridParsingException(f"Failed to parse Grid2DMetadata from {attrs=!r}") from e
 
     def to_attrs(self) -> dict[str, str | int]:
         d = dict(
@@ -188,13 +191,16 @@ class Grid3DMetadata(SGridMetadataProtocol):
         )
 
     @classmethod
-    def from_attrs(cls, d: dict[str, Hashable]) -> Self:
-        return cls(
-            cf_role=d.get("cf_role"),  # type: ignore[arg-type]
-            topology_dimension=d.get("topology_dimension"),  # type: ignore[arg-type]
-            node_dimensions=load_mappings(d["node_dimensions"]),  # type: ignore[arg-type]
-            volume_dimensions=load_mappings(d["volume_dimensions"]),  # type: ignore[arg-type]
-        )
+    def from_attrs(cls, attrs):
+        try:
+            return cls(
+                cf_role=attrs["cf_role"],
+                topology_dimension=attrs["topology_dimension"],
+                node_dimensions=load_mappings(attrs["node_dimensions"]),
+                volume_dimensions=load_mappings(attrs["volume_dimensions"]),
+            )
+        except Exception as e:
+            raise SGridParsingException(f"Failed to parse Grid3DMetadata from {attrs=!r}") from e
 
     def to_attrs(self) -> dict[str, str | int]:
         return dict(
@@ -210,6 +216,9 @@ class DimDimPadding:
     dim1: str
     dim2: str
     padding: Padding
+
+    def __repr__(self) -> str:
+        return f"DimDimPadding(dim1={self.dim1!r}, dim2={self.dim2!r}, padding={self.padding!r})"
 
     def __str__(self) -> str:
         return f"{self.dim1}:{self.dim2} (padding:{self.padding.value})"
