@@ -313,7 +313,7 @@ class SGridParsingException(Exception):
     pass
 
 
-def parse_grid(attrs: dict[str, Hashable]) -> Grid2DMetadata | Grid3DMetadata:
+def parse_grid_attrs(attrs: dict[str, Hashable]) -> Grid2DMetadata | Grid3DMetadata:
     grid: Grid2DMetadata | Grid3DMetadata
     try:
         grid = Grid2DMetadata.from_attrs(attrs)
@@ -341,7 +341,7 @@ def parse_sgrid(ds: xr.Dataset):
     try:
         grid_topology = get_grid_topology(ds)
         assert grid_topology is not None, "No grid_topology variable found in dataset"
-        grid = parse_grid(grid_topology.attrs)
+        grid = parse_grid_attrs(grid_topology.attrs)
 
     except Exception as e:
         raise SGridParsingException(f"Error parsing {grid_topology=!r}") from e
