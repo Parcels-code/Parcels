@@ -17,9 +17,11 @@ A Parcels simulation is generally built up from four different components:
 
 We discuss each component in more detail below. The subsections titled **"Learn how to"** link to more detailed [how-to guide notebooks](../user_guide/index.md) and more detailed _explanations_ of Parcels functionality are included under **"Read more about"** subsections. The full list of classes and methods is in the [API reference](../reference.md). If you want to learn by doing, check out the [quickstart tutorial](./tutorial_quickstart.md) to start creating your first Parcels simulation.
 
-```{image} ../_static/concepts_diagram.svg
+```{figure} ../_static/concepts_diagram.svg
 :alt: Parcels concepts diagram
 :width: 100%
+
+Parcels concepts diagram with key classes in blue boxes
 ```
 
 ## 1. FieldSet
@@ -74,6 +76,16 @@ Once the environment has a `parcels.FieldSet` object, you can start defining you
 1. The `parcels.FieldSet` object in which the particles will be released.
 2. The type of `parcels.Particle`: A default `Particle` or a custom `Particle`-type with additional `Variable`s (see the [custom kernel example](custom-kernel)).
 3. Initial conditions for each `Variable` defined in the `Particle`, most notably the release coordinates of `time`, `z`, `lat` and `lon`.
+
+```python
+time = np.array([0])
+z = np.array([0])
+lat = np.array([0])
+lon = np.array([0])
+
+# Create a ParticleSet
+pset = parcels.ParticleSet(fieldset, parcels.Particle, time, z, lat, lon)
+```
 
 ### Learn how to create ParticleSets
 
@@ -154,13 +166,21 @@ The execution of the simulation is done using the method **`parcels.ParticleSet.
 3. The timestep `dt` at which to execute the kernels.
 4. (Optional) The `ParticleFile` object to write the output to.
 
+```python
+runtime = np.timedelta64(1, "D")
+dt = np.timedelta64(5, "m")
+
+# Run the simulation
+pset.execute(kernels, runtime, dt)
+```
+
 ### Output
 
 To analyse the particle data generated in the simulation, we need to define a `parcels.ParticleFile` and add it as an argument to `parcels.ParticleSet.execute()`. The output will be written in a [zarr format](https://zarr.readthedocs.io/en/stable/), which can be opened as an `xarray.Dataset`. The dataset will contain the particle data with at least `time`, `z`, `lat` and `lon`, for each particle at timesteps defined by the `outputdt` argument.
 
 There are many ways to analyze particle output, and although we provide [a short tutorial to get started](./tutorial_output.ipynb), we recommend writing your own analysis code and checking out other projects such as [trajan](https://opendrift.github.io/trajan/index.html) and [Lagrangian Diagnostics](https://lagrangian-diags.readthedocs.io/en/latest/).
 
-#### Learn how to
+#### Learn how to run a simulation
 
 - [Choose an appropriate timestep](../user_guide/examples/tutorial_numerical_accuracy.ipynb)
 - [Work with Parcels output](./tutorial_output.ipynb)
