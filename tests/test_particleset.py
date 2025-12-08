@@ -98,7 +98,7 @@ def test_pset_custominit_on_pclass(fieldset, pset_override):
 @pytest.mark.parametrize(
     "time, expectation",
     [
-        (np.timedelta64(0, "s"), does_not_raise()),
+        (np.timedelta64(0, "ns"), does_not_raise()),
         (np.datetime64("2000-01-02T00:00:00"), does_not_raise()),
         (0.0, pytest.raises(TypeError)),
         (timedelta(seconds=0), pytest.raises(TypeError)),
@@ -122,7 +122,7 @@ def test_pset_starttime_not_multiple_dt(fieldset):
     pset = ParticleSet(fieldset, lon=[0] * len(times), lat=[0] * len(times), pclass=Particle, time=datetimes)
 
     def Addlon(particles, fieldset):  # pragma: no cover
-        particles.dlon += particles.dt / np.timedelta64(1, "s")
+        particles.dlon += particles.dt
 
     pset.execute(Addlon, dt=np.timedelta64(2, "s"), runtime=np.timedelta64(8, "s"), verbose_progress=False)
     assert np.allclose([p.lon + p.dlon for p in pset], [10 - t for t in times])

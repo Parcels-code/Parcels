@@ -4,7 +4,19 @@ import numpy as np
 import pytest
 from scipy import stats
 
-from parcels import Field, FieldSet, Particle, ParticleSet, Variable, VectorField, XGrid
+from parcels import (
+    Field,
+    FieldSet,
+    GeographicPolarSquare,
+    GeographicSquare,
+    Particle,
+    ParticleSet,
+    Unity,
+    Variable,
+    VectorField,
+    XGrid,
+)
+from parcels._core.utils.time import timedelta_to_float
 from parcels._datasets.structured.generated import simple_UV_dataset
 from parcels.interpolators import XLinear
 from parcels.kernels import AdvectionDiffusionEM, AdvectionDiffusionM1, DiffusionUniformKh
@@ -28,6 +40,13 @@ def test_fieldKh_Brownian(mesh):
     fieldset.add_constant_field("Kh_zonal", kh_zonal, mesh=mesh)
     fieldset.add_constant_field("Kh_meridional", kh_meridional, mesh=mesh)
 
+    if mesh == "spherical":
+        assert isinstance(fieldset.Kh_zonal.units, GeographicPolarSquare)
+        assert isinstance(fieldset.Kh_meridional.units, GeographicSquare)
+    else:
+        assert isinstance(fieldset.Kh_zonal.units, Unity)
+        assert isinstance(fieldset.Kh_meridional.units, Unity)
+
     npart = 100
     runtime = np.timedelta64(2, "h")
 
@@ -35,8 +54,8 @@ def test_fieldKh_Brownian(mesh):
     pset = ParticleSet(fieldset=fieldset, lon=np.zeros(npart), lat=np.zeros(npart))
     pset.execute(pset.Kernel(DiffusionUniformKh), runtime=runtime, dt=np.timedelta64(1, "h"))
 
-    expected_std_lon = np.sqrt(2 * kh_zonal * mesh_conversion**2 * (runtime / np.timedelta64(1, "s")))
-    expected_std_lat = np.sqrt(2 * kh_meridional * mesh_conversion**2 * (runtime / np.timedelta64(1, "s")))
+    expected_std_lon = np.sqrt(2 * kh_zonal * mesh_conversion**2 * timedelta_to_float(runtime))
+    expected_std_lat = np.sqrt(2 * kh_meridional * mesh_conversion**2 * timedelta_to_float(runtime))
 
     tol = 500 * mesh_conversion  # effectively 500 m errors
     assert np.allclose(np.std(pset.lat), expected_std_lat, atol=tol)

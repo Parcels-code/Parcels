@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from abc import ABC, abstractmethod
 from math import pi
 
 import numpy as np
@@ -11,6 +12,7 @@ __all__ = [
     "GeographicPolarSquare",
     "GeographicSquare",
     "UnitConverter",
+    "Unity",
     "_convert_to_flat_array",
     "_unitconverters_map",
 ]
@@ -27,11 +29,22 @@ def _convert_to_flat_array(var: npt.ArrayLike) -> npt.NDArray:
     return np.array(var).flatten()
 
 
-class UnitConverter:
-    """Interface class for spatial unit conversion during field sampling that performs no conversion."""
-
+class UnitConverter(ABC):
     source_unit: str | None = None
     target_unit: str | None = None
+
+    @abstractmethod
+    def to_target(self, value, z, y, x): ...
+
+    @abstractmethod
+    def to_source(self, value, z, y, x): ...
+
+
+class Unity(UnitConverter):
+    """Interface class for spatial unit conversion during field sampling that performs no conversion."""
+
+    source_unit: None
+    target_unit: None
 
     def to_target(self, value, z, y, x):
         return value

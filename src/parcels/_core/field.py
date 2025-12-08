@@ -10,6 +10,7 @@ import xarray as xr
 
 from parcels._core.converters import (
     UnitConverter,
+    Unity,
     _unitconverters_map,
 )
 from parcels._core.index_search import GRID_SEARCH_ERROR, LEFT_OUT_OF_BOUNDS, RIGHT_OUT_OF_BOUNDS, _search_time_index
@@ -135,7 +136,7 @@ class Field:
         self.igrid = -1  # Default the grid index to -1
 
         if self.grid._mesh == "flat" or (self.name not in _unitconverters_map.keys()):
-            self.units = UnitConverter()
+            self.units = Unity()
         elif self.grid._mesh == "spherical":
             self.units = _unitconverters_map[self.name]
 

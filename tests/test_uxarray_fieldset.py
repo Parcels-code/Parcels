@@ -122,10 +122,10 @@ def test_fesom2_square_delaunay_uniform_z_coordinate_eval():
     P = Field(name="p", data=ds.p, grid=grid, interp_method=UXPiecewiseLinearNode)
     fieldset = FieldSet([UVW, P, UVW.U, UVW.V, UVW.W])
 
-    assert fieldset.U.eval(time=ds.time[0].values, z=[1.0], y=[30.0], x=[30.0], applyConversion=False) == 1.0
-    assert fieldset.V.eval(time=ds.time[0].values, z=[1.0], y=[30.0], x=[30.0], applyConversion=False) == 1.0
-    assert fieldset.W.eval(time=ds.time[0].values, z=[1.0], y=[30.0], x=[30.0], applyConversion=False) == 0.0
-    assert fieldset.p.eval(time=ds.time[0].values, z=[1.0], y=[30.0], x=[30.0], applyConversion=False) == 1.0
+    assert fieldset.U.eval(time=[0], z=[1.0], y=[30.0], x=[30.0], applyConversion=False) == 1.0
+    assert fieldset.V.eval(time=[0], z=[1.0], y=[30.0], x=[30.0], applyConversion=False) == 1.0
+    assert fieldset.W.eval(time=[0], z=[1.0], y=[30.0], x=[30.0], applyConversion=False) == 0.0
+    assert fieldset.p.eval(time=[0], z=[1.0], y=[30.0], x=[30.0], applyConversion=False) == 1.0
 
 
 def test_fesom2_square_delaunay_antimeridian_eval():
@@ -143,11 +143,7 @@ def test_fesom2_square_delaunay_antimeridian_eval():
     )
     fieldset = FieldSet([P])
 
-    assert np.isclose(
-        fieldset.p.eval(time=ds.time[0].values, z=[1.0], y=[30.0], x=[-170.0], applyConversion=False), 1.0
-    )
-    assert np.isclose(
-        fieldset.p.eval(time=ds.time[0].values, z=[1.0], y=[30.0], x=[-180.0], applyConversion=False), 1.0
-    )
-    assert np.isclose(fieldset.p.eval(time=ds.time[0].values, z=[1.0], y=[30.0], x=[180.0], applyConversion=False), 1.0)
-    assert np.isclose(fieldset.p.eval(time=ds.time[0].values, z=[1.0], y=[30.0], x=[170.0], applyConversion=False), 1.0)
+    assert np.isclose(fieldset.p.eval(time=[0], z=[1.0], y=[30.0], x=[-170.0], applyConversion=False), 1.0)
+    assert np.isclose(fieldset.p.eval(time=[0], z=[1.0], y=[30.0], x=[-180.0], applyConversion=False), 1.0)
+    assert np.isclose(fieldset.p.eval(time=[0], z=[1.0], y=[30.0], x=[180.0], applyConversion=False), 1.0)
+    assert np.isclose(fieldset.p.eval(time=[0], z=[1.0], y=[30.0], x=[170.0], applyConversion=False), 1.0)
