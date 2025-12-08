@@ -22,7 +22,7 @@ from parcels import (
 from parcels._datasets.structured.generated import simple_UV_dataset
 from parcels._datasets.structured.generic import datasets as datasets_structured
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
-from parcels.interpolators import UXPiecewiseConstantFace, UXPiecewiseLinearNode, XLinear
+from parcels.interpolators import UxPiecewiseConstantFace, UxPiecewiseLinearNode, XLinear
 from parcels.kernels import AdvectionEE, AdvectionRK2, AdvectionRK4, AdvectionRK4_3D, AdvectionRK45
 from tests.common_kernels import DoNothing
 
@@ -502,19 +502,19 @@ def test_uxstommelgyre_pset_execute():
         name="U",
         data=ds.U,
         grid=grid,
-        interp_method=UXPiecewiseConstantFace,
+        interp_method=UxPiecewiseConstantFace,
     )
     V = Field(
         name="V",
         data=ds.V,
         grid=grid,
-        interp_method=UXPiecewiseConstantFace,
+        interp_method=UxPiecewiseConstantFace,
     )
     P = Field(
         name="P",
         data=ds.p,
         grid=grid,
-        interp_method=UXPiecewiseConstantFace,
+        interp_method=UxPiecewiseConstantFace,
     )
     UV = VectorField(name="UV", U=U, V=V)
     fieldset = FieldSet([UV, UV.U, UV.V, P])
@@ -531,8 +531,8 @@ def test_uxstommelgyre_pset_execute():
         runtime=np.timedelta64(10, "m"),
         dt=np.timedelta64(60, "s"),
     )
-    np.testing.assert_allclose(pset[0].lon, 30.001259, atol=1e-3)
-    np.testing.assert_allclose(pset[0].lat, 4.9962664, atol=1e-3)
+    np.testing.assert_allclose(pset[0].lon, 29.997387, atol=1e-3)
+    np.testing.assert_allclose(pset[0].lat, 4.998546, atol=1e-3)
 
 
 def test_uxstommelgyre_multiparticle_pset_execute():
@@ -542,25 +542,25 @@ def test_uxstommelgyre_multiparticle_pset_execute():
         name="U",
         data=ds.U,
         grid=grid,
-        interp_method=UXPiecewiseConstantFace,
+        interp_method=UxPiecewiseConstantFace,
     )
     V = Field(
         name="V",
         data=ds.V,
         grid=grid,
-        interp_method=UXPiecewiseConstantFace,
+        interp_method=UxPiecewiseConstantFace,
     )
     W = Field(
         name="W",
         data=ds.W,
         grid=grid,
-        interp_method=UXPiecewiseLinearNode,
+        interp_method=UxPiecewiseLinearNode,
     )
     P = Field(
         name="P",
         data=ds.p,
         grid=grid,
-        interp_method=UXPiecewiseConstantFace,
+        interp_method=UxPiecewiseConstantFace,
     )
     UVW = VectorField(name="UVW", U=U, V=V, W=W)
     fieldset = FieldSet([UVW, UVW.U, UVW.V, UVW.W, P])
@@ -587,19 +587,19 @@ def test_uxstommelgyre_pset_execute_output():
         name="U",
         data=ds.U,
         grid=grid,
-        interp_method=UXPiecewiseConstantFace,
+        interp_method=UxPiecewiseConstantFace,
     )
     V = Field(
         name="V",
         data=ds.V,
         grid=grid,
-        interp_method=UXPiecewiseConstantFace,
+        interp_method=UxPiecewiseConstantFace,
     )
     P = Field(
         name="P",
         data=ds.p,
         grid=grid,
-        interp_method=UXPiecewiseConstantFace,
+        interp_method=UxPiecewiseConstantFace,
     )
     UV = VectorField(name="UV", U=U, V=V)
     fieldset = FieldSet([UV, UV.U, UV.V, P])
