@@ -261,7 +261,7 @@ class ParticleSet:
         return active_indices
 
     def _compute_neighbor_tree(self, time, dt):
-        active_mask = self._active_particles_mask(time, dt)
+        active_mask = self._active_particles_mask(time, dt)  # TODO still needed with KernelParticles?
 
         self._values = np.vstack(
             (
