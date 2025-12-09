@@ -6,7 +6,7 @@ kernelspec:
 
 # Parcels concepts
 
-Parcels is a set of Python classes and methods to create customisable particle tracking simulations using gridded output from (ocean) circulation models. 
+Parcels is a set of Python classes and methods to create customisable particle tracking simulations using gridded output from (ocean) circulation models.
 
 Here, we will explain the most important classes and functions. This overview can be useful to start understanding the different components we use in Parcels, and to structure the code in a simulation script.
 
