@@ -129,19 +129,19 @@ def test_fesom2_square_delaunay_uniform_z_coordinate_eval():
         atol=1e-6,
     )
     assert np.isclose(
-        fieldset.V.eval(time=ds.time[0].values, z=[1.0], y=[30.0], x=[30.0], applyConversion=False),
+        fieldset.V.eval(time=[0.], z=[1.0], y=[30.0], x=[30.0], applyConversion=False),
         1.0,
         rtol=1e-3,
         atol=1e-6,
     )
     assert np.isclose(
-        fieldset.W.eval(time=ds.time[0].values, z=[1.0], y=[30.0], x=[30.0], applyConversion=False),
+        fieldset.W.eval(time=[0.], z=[1.0], y=[30.0], x=[30.0], applyConversion=False),
         0.0,
         rtol=1e-3,
         atol=1e-6,
     )
     assert np.isclose(
-        fieldset.p.eval(time=ds.time[0].values, z=[1.0], y=[30.0], x=[30.0], applyConversion=False),
+        fieldset.p.eval(time=[0.], z=[1.0], y=[30.0], x=[30.0], applyConversion=False),
         1.0,
         rtol=1e-3,
         atol=1e-6,
