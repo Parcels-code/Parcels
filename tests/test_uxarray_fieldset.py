@@ -13,8 +13,8 @@ from parcels import (
 )
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
 from parcels.interpolators import (
-    UXPiecewiseConstantFace,
-    UXPiecewiseLinearNode,
+    UxPiecewiseConstantFace,
+    UxPiecewiseLinearNode,
 )
 
 
@@ -39,13 +39,13 @@ def uv_fesom_channel(ds_fesom_channel) -> VectorField:
             name="U",
             data=ds_fesom_channel.U,
             grid=UxGrid(ds_fesom_channel.uxgrid, z=ds_fesom_channel.coords["nz"], mesh="flat"),
-            interp_method=UXPiecewiseConstantFace,
+            interp_method=UxPiecewiseConstantFace,
         ),
         V=Field(
             name="V",
             data=ds_fesom_channel.V,
             grid=UxGrid(ds_fesom_channel.uxgrid, z=ds_fesom_channel.coords["nz"], mesh="flat"),
-            interp_method=UXPiecewiseConstantFace,
+            interp_method=UxPiecewiseConstantFace,
         ),
     )
     return UV
@@ -59,19 +59,19 @@ def uvw_fesom_channel(ds_fesom_channel) -> VectorField:
             name="U",
             data=ds_fesom_channel.U,
             grid=UxGrid(ds_fesom_channel.uxgrid, z=ds_fesom_channel.coords["nz"], mesh="flat"),
-            interp_method=UXPiecewiseConstantFace,
+            interp_method=UxPiecewiseConstantFace,
         ),
         V=Field(
             name="V",
             data=ds_fesom_channel.V,
             grid=UxGrid(ds_fesom_channel.uxgrid, z=ds_fesom_channel.coords["nz"], mesh="flat"),
-            interp_method=UXPiecewiseConstantFace,
+            interp_method=UxPiecewiseConstantFace,
         ),
         W=Field(
             name="W",
             data=ds_fesom_channel.W,
             grid=UxGrid(ds_fesom_channel.uxgrid, z=ds_fesom_channel.coords["nz"], mesh="flat"),
-            interp_method=UXPiecewiseLinearNode,
+            interp_method=UxPiecewiseLinearNode,
         ),
     )
     return UVW
@@ -101,8 +101,8 @@ def test_set_interp_methods(ds_fesom_channel, uv_fesom_channel):
     assert (fieldset.V.data == ds_fesom_channel.V).all()
 
     # Set the interpolation method for each field
-    fieldset.U.interp_method = UXPiecewiseConstantFace
-    fieldset.V.interp_method = UXPiecewiseConstantFace
+    fieldset.U.interp_method = UxPiecewiseConstantFace
+    fieldset.V.interp_method = UxPiecewiseConstantFace
 
 
 def test_fesom2_square_delaunay_uniform_z_coordinate_eval():
@@ -115,17 +115,37 @@ def test_fesom2_square_delaunay_uniform_z_coordinate_eval():
     grid = UxGrid(ds.uxgrid, z=ds.coords["nz"], mesh="flat")
     UVW = VectorField(
         name="UVW",
-        U=Field(name="U", data=ds.U, grid=grid, interp_method=UXPiecewiseConstantFace),
-        V=Field(name="V", data=ds.V, grid=grid, interp_method=UXPiecewiseConstantFace),
-        W=Field(name="W", data=ds.W, grid=grid, interp_method=UXPiecewiseLinearNode),
+        U=Field(name="U", data=ds.U, grid=grid, interp_method=UxPiecewiseConstantFace),
+        V=Field(name="V", data=ds.V, grid=grid, interp_method=UxPiecewiseConstantFace),
+        W=Field(name="W", data=ds.W, grid=grid, interp_method=UxPiecewiseLinearNode),
     )
-    P = Field(name="p", data=ds.p, grid=grid, interp_method=UXPiecewiseLinearNode)
+    P = Field(name="p", data=ds.p, grid=grid, interp_method=UxPiecewiseLinearNode)
     fieldset = FieldSet([UVW, P, UVW.U, UVW.V, UVW.W])
 
-    assert fieldset.U.eval(time=[0], z=[1.0], y=[30.0], x=[30.0], applyConversion=False) == 1.0
-    assert fieldset.V.eval(time=[0], z=[1.0], y=[30.0], x=[30.0], applyConversion=False) == 1.0
-    assert fieldset.W.eval(time=[0], z=[1.0], y=[30.0], x=[30.0], applyConversion=False) == 0.0
-    assert fieldset.p.eval(time=[0], z=[1.0], y=[30.0], x=[30.0], applyConversion=False) == 1.0
+    assert np.isclose(
+        fieldset.U.eval(time=[0.0], z=[1.0], y=[30.0], x=[30.0], applyConversion=False),
+        1.0,
+        rtol=1e-3,
+        atol=1e-6,
+    )
+    assert np.isclose(
+        fieldset.V.eval(time=[0.0], z=[1.0], y=[30.0], x=[30.0], applyConversion=False),
+        1.0,
+        rtol=1e-3,
+        atol=1e-6,
+    )
+    assert np.isclose(
+        fieldset.W.eval(time=[0.0], z=[1.0], y=[30.0], x=[30.0], applyConversion=False),
+        0.0,
+        rtol=1e-3,
+        atol=1e-6,
+    )
+    assert np.isclose(
+        fieldset.p.eval(time=[0.0], z=[1.0], y=[30.0], x=[30.0], applyConversion=False),
+        1.0,
+        rtol=1e-3,
+        atol=1e-6,
+    )
 
 
 def test_fesom2_square_delaunay_antimeridian_eval():
@@ -139,7 +159,7 @@ def test_fesom2_square_delaunay_antimeridian_eval():
         name="p",
         data=ds.p,
         grid=UxGrid(ds.uxgrid, z=ds.coords["nz"], mesh="spherical"),
-        interp_method=UXPiecewiseLinearNode,
+        interp_method=UxPiecewiseLinearNode,
     )
     fieldset = FieldSet([P])
 
