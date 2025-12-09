@@ -116,6 +116,7 @@ language = "en"
 # directories to ignore when looking for source files.
 exclude_patterns = [
     "_build",
+    "_autoapi_templates",
     "jupyter_execute",
     "**.ipynb_checkpoints",
     "user_guide/examples_v3",
@@ -542,5 +543,5 @@ autoapi_options = [
     "imported-members",
 ]
 autoapi_member_order = "bysource"
-# autodoc_typehints = "signature"
-#   'special-members',
+autodoc_typehints = "signature"
+autoapi_template_dir = '_autoapi_templates'
