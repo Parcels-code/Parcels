@@ -55,21 +55,24 @@ fieldset = parcels.FieldSet([Ucurrent, Ustokes])
 
 Each `parcels.Field` is defined on a grid. With Parcels, we can simulate particles in fields on both structured (**`parcels.XGrid`**) and unstructured (**`parcels.UxGrid`**) grids. The grid is defined by the coordinates of grid cell nodes, edges, and faces. `parcels.XGrid` objects are based on [`xgcm.Grid`](https://xgcm.readthedocs.io/en/latest/grids.html), while `parcels.UxGrid` objects are based on [`uxarray.Grid`](https://uxarray.readthedocs.io/en/stable/generated/uxarray.Grid.html#uxarray.Grid) objects.
 
-#### Read more about grids
-
+```{admonition} 📖 Read more about grids
+:class: seealso
 - [Grids explanation](../user_guide/examples/explanation_grids.md)
+```
 
 ### Interpolation
 
 To find the value of a `parcels.Field` at any particle location, Parcels interpolates the gridded field. Depending on the variable, grid, and required accuracy, different interpolation methods may be appropriate. Parcels comes with a number of built-in **`parcels.interpolators`**.
 
-#### Read more about interpolation
-
+```{admonition} 📖 Read more about interpolation
+:class: seealso
 - [Interpolation explanation](../user_guide/examples/explanation_interpolation.md)
+```
 
-#### Learn how to use Parcels interpolators
-
+```{admonition} 🖥️ Learn how to use Parcels interpolators
+:class: seealso
 - [Interpolators guide](../user_guide/examples/tutorial_interpolation.ipynb)
+```
 
 ## 2. ParticleSet
 
@@ -89,9 +92,10 @@ lon = np.array([0])
 pset = parcels.ParticleSet(fieldset=fieldset, pclass=parcels.Particle, time=time, z=z, lat=lat, lon=lon)
 ```
 
-### Learn more about how to create ParticleSets
-
+```{admonition} 🖥️ Learn more about how to create ParticleSets
+:class: seealso
 - [Release particles at different times](../user_guide/examples/tutorial_delaystart.ipynb)
+```
 
 ## 3. Kernels
 
@@ -148,16 +152,18 @@ Every Kernel must be a function with the following (and only those) arguments: `
 We have to be careful with writing kernels for vector fields on Curvilinear grids. While Parcels automatically rotates the "U" and "V" field when necessary, this is not the case for other fields such as Stokes drift. [This guide](../user_guide/examples/tutorial_nemo_curvilinear.ipynb) describes how to use a curvilinear grid in Parcels.
 ```
 
-### Read more about the Kernel loop
-
+```{admonition} 📖 Read more about the Kernel loop
+:class: seealso
 - [The Kernel loop](../user_guide/examples/explanation_kernelloop.md)
+```
 
-### Learn how to write kernels
-
+```{admonition} 🖥️ Learn how to write kernels
+:class: seealso
 - [Sample fields like temperature](../user_guide/examples/tutorial_sampling.ipynb).
 - [Mimic the behaviour of ARGO floats](../user_guide/examples/tutorial_Argofloats.ipynb).
 - [Add diffusion to approximate subgrid-scale processes and unresolved physics](../user_guide/examples/tutorial_diffusion.ipynb).
 - [Convert between units in m/s and degrees](../user_guide/examples/tutorial_unitconverters.ipynb).
+```
 
 ## 4. Execute
 
@@ -182,7 +188,8 @@ To analyse the particle data generated in the simulation, we need to define a `p
 
 There are many ways to analyze particle output, and although we provide [a short tutorial to get started](./tutorial_output.ipynb), we recommend writing your own analysis code and checking out other projects such as [trajan](https://opendrift.github.io/trajan/index.html) and [Lagrangian Diagnostics](https://lagrangian-diags.readthedocs.io/en/latest/).
 
-#### Learn how to run a simulation
-
+```{admonition} 🖥️ Learn how to run a simulation
+:class: seealso
 - [Choose an appropriate timestep and integrator](../user_guide/examples/tutorial_numerical_accuracy.ipynb)
 - [Work with Parcels output](./tutorial_output.ipynb)
+```
