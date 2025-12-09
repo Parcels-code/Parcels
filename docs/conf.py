@@ -1,4 +1,4 @@
-"""Sphinx configuration file for Parcels documentation."""
+"auto""Sphinx configuration file for Parcels documentation."""
 # parcels documentation build configuration file, created by
 # sphinx-quickstart on Tue Oct 20 09:58:20 2015.
 #
@@ -542,5 +542,5 @@ autoapi_options = [
     "imported-members",
 ]
 autoapi_member_order = "bysource"
-autodoc_typehints = "signature"
+# autodoc_typehints = "signature"
 #   'special-members',
