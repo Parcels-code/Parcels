@@ -6,14 +6,16 @@ kernelspec:
 
 # Parcels concepts
 
-Parcels is a set of Python classes and methods to create particle tracking simulations. Here, we will explain the basic concepts defined by the most important classes and functions. This overview can be useful to start understanding the different components we use in Parcels, and to structure the code in a simulation script.
+Parcels is a set of Python classes and methods to create customisable particle tracking simulations using gridded output from (ocean) circulation models. 
+
+Here, we will explain the most important classes and functions. This overview can be useful to start understanding the different components we use in Parcels, and to structure the code in a simulation script.
 
 A Parcels simulation is generally built up from four different components:
 
 1. [**FieldSet**](#1-fieldset). The input dataset of gridded fields (e.g. ocean current velocity, temperature) in which virtual particles are defined.
-2. [**ParticleSet**](#2-particleset). The dataset of virtual particles. These always contain time, z, lat, and lon, for which initial values must be defined, and may contain other variables.
-3. [**Kernels**](#3-kernels). Kernels perform some specific operation on the particles every time step (e.g. interpolate the temperature from the temperature field to the particle location).
-4. [**Execute**](#4-execute). Execute the simulation. The core method which integrates the operations defined in Kernels for a given time and timestep, and writes output to a ParticleFile.
+2. [**ParticleSet**](#2-particleset). The dataset of virtual particles. These always contain time, z, lat, and lon, for which initial values must be defined. The ParticleSet may also contain other, custom variables.
+3. [**Kernels**](#3-kernels). Kernels perform some specific operation on the particles every time step (e.g. advect the particles with the three-dimensional flow; or interpolate the temperature field to the particle location).
+4. [**Execute**](#4-execute). Execute the simulation. The core method which integrates the operations defined in Kernels for a given runtime and timestep, and writes output to a ParticleFile.
 
 We discuss each component in more detail below. The subsections titled **"Learn how to"** link to more detailed [how-to guide notebooks](../user_guide/index.md) and more detailed _explanations_ of Parcels functionality are included under **"Read more about"** subsections. The full list of classes and methods is in the [API reference](../reference.md). If you want to learn by doing, check out the [quickstart tutorial](./tutorial_quickstart.md) to start creating your first Parcels simulation.
 
@@ -28,7 +30,7 @@ Parcels concepts diagram with key classes in blue boxes
 
 Parcels provides a framework to simulate particles **within a set of fields**, such as flow velocities and temperature. To start a parcels simulation we must define this dataset with the **`parcels.FieldSet`** class.
 
-The input dataset from which to create a `parcels.FieldSet` can be an [`xarray.Dataset`](https://docs.xarray.dev/en/stable/user-guide/data-structures.html#dataset) with output from a hydrodynamic model or reanalysis. Such a dataset usually contains a number of gridded variables (e.g. `"U"`), which in Parcels become `parcels.Field` objects. A set of `parcels.Field` objects is stored in a `parcels.FieldSet` in an analoguous way to how `xarray.DataArray` objects combine to make an `xarray.Dataset`.
+The input dataset from which to create a `parcels.FieldSet` can be an [`xarray.Dataset`](https://docs.xarray.dev/en/stable/user-guide/data-structures.html#dataset) with output from a hydrodynamic model or reanalysis. Such a dataset usually contains a number of gridded variables (e.g. `"U"`), which in Parcels become `parcels.Field` objects. A list of `parcels.Field` objects is stored in a `parcels.FieldSet` in an analoguous way to how `xarray.DataArray` objects combine to make an `xarray.Dataset`.
 
 For several common input datasets, such as the Copernicus Marine Service analysis products, Parcels has a specific method to read and parse the data correctly:
 
@@ -37,7 +39,7 @@ dataset = xr.open_mfdataset("insert_copernicus_data_files.nc")
 fieldset = parcels.FieldSet.from_copernicusmarine(dataset)
 ```
 
-In some cases we might want to combine `parcels.Field`s from different sources in the same `parcels.FieldSet`, such as ocean currents from one dataset and Stokes drift from another. This is possible in Parcels by adding each `parcels.Field` separately:
+In some cases, we might want to combine `parcels.Field`s from different sources in the same `parcels.FieldSet`, such as ocean currents from one dataset and Stokes drift from another. This is possible in Parcels by adding each `parcels.Field` separately:
 
 ```python
 dataset1 = xr.dataset("insert_current_data_files.nc")
@@ -51,7 +53,7 @@ fieldset = parcels.FieldSet([Ucurrent, Ustokes])
 
 ### Grid
 
-Each `parcels.Field` is defined on a grid. With Parcels we can simulate particles in fields on both structured (**`parcels.XGrid`**) and unstructured (**`parcels.UxGrid`**) grids. The grid is defined by the coordinates of grid cell nodes, edges, and faces. `parcels.XGrid` objects are based on [`xgcm.Grid`](https://xgcm.readthedocs.io/en/latest/grids.html), while `parcels.UxGrid` objects are based on [`uxarray.Grid`](https://uxarray.readthedocs.io/en/stable/generated/uxarray.Grid.html#uxarray.Grid) objects.
+Each `parcels.Field` is defined on a grid. With Parcels, we can simulate particles in fields on both structured (**`parcels.XGrid`**) and unstructured (**`parcels.UxGrid`**) grids. The grid is defined by the coordinates of grid cell nodes, edges, and faces. `parcels.XGrid` objects are based on [`xgcm.Grid`](https://xgcm.readthedocs.io/en/latest/grids.html), while `parcels.UxGrid` objects are based on [`uxarray.Grid`](https://uxarray.readthedocs.io/en/stable/generated/uxarray.Grid.html#uxarray.Grid) objects.
 
 #### Read more about grids
 
@@ -87,7 +89,7 @@ lon = np.array([0])
 pset = parcels.ParticleSet(fieldset, parcels.Particle, time, z, lat, lon)
 ```
 
-### Learn how to create ParticleSets
+### Learn more about how to create ParticleSets
 
 - [Release particles at different times](../user_guide/examples/tutorial_delaystart.ipynb)
 
@@ -115,14 +117,14 @@ def AdvectionEE(particles, fieldset):
     particles.dlat += v1 * particles.dt
 ```
 
-Basic kernels are included in Parcels to compute advection and diffusion. The standard advection kernel is `parcels.kernels.AdvectionRK4`, a [4-th order Runge-Kutta integrator](https://en.wikipedia.org/wiki/Runge%E2%80%93Kutta_methods#The_Runge%E2%80%93Kutta_method) of the advection function.
+Basic kernels are included in Parcels to compute advection and diffusion. The standard advection kernel is `parcels.kernels.AdvectionRK2`, a [second-order Runge-Kutta integrator](https://en.wikipedia.org/wiki/Runge%E2%80%93Kutta_methods#The_Runge%E2%80%93Kutta_method) of the advection function.
 
 ```{warning}
-It is advised _not_ to update the particle coordinates (`particles.time`, `particles.z`, `particles.lat`, or `particles.lon`) directly, as that can negatively interfere with the way that particle movements by different kernels are vectorially added. Use a change in the coordinates: `particles.dlon`, `particles.dlat`, `particles.dz`, and/or `particles.dt` instead, and be careful with `particles.dt`. Read the [kernel loop tutorial](https://docs.oceanparcels.org/en/latest/examples/tutorial_kernelloop.html) to understand why.
+It is advised _not_ to update the particle coordinates (`particles.time`, `particles.z`, `particles.lat`, or `particles.lon`) directly within a Kernel, as that can negatively interfere with the way that particle movements by different kernels are vectorially added. Use a change in the coordinates: `particles.dlon`, `particles.dlat` and/or `particles.dz`. Read the [kernel loop tutorial](https://docs.oceanparcels.org/en/latest/examples/tutorial_kernelloop.html) to understand why.
 ```
 
 (custom-kernel)=
-We can write custom kernels to add many different types of 'behaviour' to the particles. To do so we write a function with two arguments: `particles` and `fieldset`. We can then write any computation as a function of any variables defined in the `Particle` and any `Field` defined in the `FieldSet`. Kernels can then be combined by creating a `list` of the kernels. The kernels are executed in order:
+We can write custom kernels to add many different types of 'behaviour' to the particles. To do so, we write a function with two arguments: `particles` and `fieldset`. We can then write any computation as a function of any variables defined in the `Particle` and any `Field` defined in the `FieldSet`. Kernels can then be combined by creating a `list` of the kernels. The kernels are executed in order:
 
 ```python
 # Create a custom Particle object with an "age" variable
