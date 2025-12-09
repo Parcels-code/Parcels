@@ -279,7 +279,7 @@ def load_mappings(s: str) -> tuple[DimDimPadding | Dim, ...]:
             part, *s_new = s.split(" ", 1)
             s_new = "".join(s_new)
 
-        assert s != s_new, f"Parsing did not advance, stuck at {s!r}"
+        assert s != s_new, f"SGrid parsing did not advance, stuck at {s!r}"
 
         parsed: DimDimPadding | Dim
         try:
