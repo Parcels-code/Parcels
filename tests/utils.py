@@ -3,13 +3,14 @@
 from __future__ import annotations
 
 import struct
+from collections import defaultdict
 from pathlib import Path
 
 import numpy as np
 import xarray as xr
 
 import parcels
-from parcels import Field, FieldSet, VectorField
+from parcels import Field, FieldSet, Particle, Variable, VectorField
 from parcels._core.xgrid import _FIELD_DATA_ORDERING, XGrid, get_axis_from_dim_name
 from parcels._datasets.structured.generated import simple_UV_dataset
 from parcels.interpolators import XLinear
@@ -17,6 +18,10 @@ from parcels.interpolators import XLinear
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 TEST_ROOT = PROJECT_ROOT / "tests"
 TEST_DATA = TEST_ROOT / "test_data"
+
+# Define default particle classes for different built-in kernels
+DEFAULT_PARTICLES = defaultdict(lambda: Particle)
+DEFAULT_PARTICLES[parcels.kernels.AdvectionRK45] = Particle.add_variable(Variable("next_dt"))
 
 
 def create_fieldset_unit_mesh(xdim=20, ydim=20, mesh="flat") -> FieldSet:

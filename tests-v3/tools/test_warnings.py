@@ -2,16 +2,13 @@ import numpy as np
 import pytest
 
 from parcels import (
-    AdvectionRK4,
     AdvectionRK45,
     FieldSet,
     FieldSetWarning,
     KernelWarning,
     Particle,
     ParticleSet,
-    ParticleSetWarning,
 )
-from parcels.particlefile import ParticleFile
 from tests.utils import TEST_DATA
 
 
@@ -24,16 +21,6 @@ def test_fieldset_warning_pop():
     with pytest.warns(FieldSetWarning, match="General s-levels are not supported in B-grid.*"):
         # b-grid with s-levels and POP output in meters warning
         FieldSet.from_pop(filenames, variables, dimensions, mesh="flat")
-
-
-def test_file_warnings(tmp_zarrfile):
-    fieldset = FieldSet.from_data(
-        data={"U": np.zeros((1, 1)), "V": np.zeros((1, 1))}, dimensions={"lon": [0], "lat": [0]}
-    )
-    pset = ParticleSet(fieldset=fieldset, pclass=Particle, lon=[0, 0], lat=[0, 0], time=[0, 1])
-    pfile = ParticleFile(name=tmp_zarrfile, outputdt=2)
-    with pytest.warns(ParticleSetWarning, match="Some of the particles have a start time difference.*"):
-        pset.execute(AdvectionRK4, runtime=3, dt=1, output_file=pfile)
 
 
 def test_kernel_warnings():

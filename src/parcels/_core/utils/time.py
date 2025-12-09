@@ -45,12 +45,20 @@ class TimeInterval:
         self.left = left
         self.right = right
 
+    @property
+    def time_length_as_flt(self):
+        if isinstance(self.right - self.left, np.timedelta64):
+            return timedelta_to_float(self.right - self.left)
+        if isinstance(self.right - self.left, timedelta):
+            return (self.right - self.left).total_seconds()
+        return self.right - self.left
+
     def __contains__(self, item: T) -> bool:
         return self.left <= item <= self.right
 
-    def is_all_time_in_interval(self, time):
+    def is_all_time_in_interval(self, time: float):
         item = np.atleast_1d(time)
-        return (self.left <= item).all() and (item <= self.right).all()
+        return (0 <= item).all() and (item <= self.time_length_as_flt).all()
 
     def __repr__(self) -> str:
         return f"TimeInterval(left={self.left!r}, right={self.right!r})"
@@ -152,4 +160,14 @@ def timedelta_to_float(dt: float | timedelta | np.timedelta64) -> float:
         return dt.total_seconds()
     if isinstance(dt, np.timedelta64):
         return float(dt / np.timedelta64(1, "s"))
+    if hasattr(dt, "dtype") and np.issubdtype(dt.dtype, np.timedelta64):  # in case of array
+        return (dt / np.timedelta64(1, "s")).astype(float)
     return float(dt)
+
+
+def float_to_datelike(dt: float, time_interval) -> np.datetime64 | np.timedelta64:
+    """Convert a float time (in seconds from the start of the time_interval) to a datetime (if time_interval is a datetime object) or timedelta (otherwise)"""
+    if time_interval:
+        return np.timedelta64(int(dt), "s") + time_interval.left
+    else:
+        return np.timedelta64(int(dt), "s")
