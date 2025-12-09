@@ -9,9 +9,11 @@ The tutorials written for Parcels v3 are currently being updated for Parcels v4.
 
 ## Getting started
 
-- [Quickstart Tutorial](../getting_started/tutorial_quickstart.md)
-- [Output Tutorial](../getting_started/tutorial_output.ipynb)
-- [Concepts Explanation](../getting_started/explanation_concepts.md)
+🎓 [Quickstart Tutorial](../getting_started/tutorial_quickstart.md)
+
+🎓 [Output Tutorial](../getting_started/tutorial_output.ipynb)
+
+📖 [Conceptual workflow](../getting_started/explanation_concepts.md)
 
 ## How to
 
@@ -26,9 +28,9 @@ TODO: Add links to Reference API throughout
 ```{toctree}
 :caption: Set up FieldSets
 :titlesonly:
+examples/explanation_grids.md
 examples/tutorial_nemo_curvilinear.ipynb
 examples/tutorial_unitconverters.ipynb
-examples/explanation_grids.md
 ```
 
 <!-- examples/documentation_indexing.ipynb -->
@@ -75,6 +77,7 @@ examples/tutorial_numerical_accuracy.ipynb
 ```
 
 <!-- examples/documentation_advanced_zarr.ipynb -->
+<!-- examples/documentation_LargeRunsOutput.ipynb -->
 
 <!-- ```{toctree}
 :caption: Other tutorials
@@ -85,7 +88,6 @@ examples/tutorial_numerical_accuracy.ipynb
 <!-- examples/tutorial_peninsula_AvsCgrid.ipynb -->
 <!-- examples/documentation_stuck_particles.ipynb -->
 <!-- examples/documentation_unstuck_Agrid.ipynb -->
-<!-- examples/documentation_LargeRunsOutput.ipynb -->
 <!-- examples/documentation_geospatial.ipynb -->
 
 ```{toctree}

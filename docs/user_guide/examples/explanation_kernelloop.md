@@ -4,7 +4,7 @@ kernelspec:
   name: python3
 ---
 
-# The Parcels Kernel loop
+# 📖 The Parcels Kernel loop
 
 On this page we discuss Parcels' execution loop, and what happens under the hood when you combine multiple Kernels.
 

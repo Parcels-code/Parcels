@@ -4,7 +4,7 @@ kernelspec:
   name: python3
 ---
 
-# Parcels concepts
+# 📖 Parcels conceptual workflow
 
 Parcels is a set of Python classes and methods to create customisable particle tracking simulations using gridded output from (ocean) circulation models.
 
@@ -19,7 +19,7 @@ A Parcels simulation is generally built up from four different components:
 
 We discuss each component in more detail below. The subsections titled **"Learn how to"** link to more detailed [how-to guide notebooks](../user_guide/index.md) and more detailed _explanations_ of Parcels functionality are included under **"Read more about"** subsections. The full list of classes and methods is in the [API reference](../reference.md). If you want to learn by doing, check out the [quickstart tutorial](./tutorial_quickstart.md) to start creating your first Parcels simulation.
 
-```{figure} ../_static/concepts_diagram.svg
+```{figure} ../_static/concepts_diagram.png
 :alt: Parcels concepts diagram
 :width: 100%
 
@@ -63,11 +63,11 @@ Each `parcels.Field` is defined on a grid. With Parcels, we can simulate particl
 
 To find the value of a `parcels.Field` at any particle location, Parcels interpolates the gridded field. Depending on the variable, grid, and required accuracy, different interpolation methods may be appropriate. Parcels comes with a number of built-in **`parcels.interpolators`**.
 
-### Read more about interpolation
+#### Read more about interpolation
 
 - [Interpolation explanation](../user_guide/examples/explanation_interpolation.md)
 
-### Learn how to use Parcels interpolators
+#### Learn how to use Parcels interpolators
 
 - [Interpolators guide](../user_guide/examples/tutorial_interpolation.ipynb)
 
@@ -86,7 +86,7 @@ lat = np.array([0])
 lon = np.array([0])
 
 # Create a ParticleSet
-pset = parcels.ParticleSet(fieldset, parcels.Particle, time, z, lat, lon)
+pset = parcels.ParticleSet(fieldset=fieldset, pclass=parcels.Particle, time=time, z=z, lat=lat, lon=lon)
 ```
 
 ### Learn more about how to create ParticleSets
@@ -129,7 +129,7 @@ We can write custom kernels to add many different types of 'behaviour' to the pa
 ```python
 # Create a custom Particle object with an "age" variable
 CustomParticle =  parcels.Particle.add_variable(
-    parcels.Variable("age", initial=np.nan)
+    parcels.Variable("age", initial=0)
 )
 
 # Create a custom kernel which keeps track of the particle age
@@ -169,11 +169,11 @@ The execution of the simulation is done using the method **`parcels.ParticleSet.
 4. (Optional) The `ParticleFile` object to write the output to.
 
 ```python
-runtime = np.timedelta64(1, "D")
 dt = np.timedelta64(5, "m")
+runtime = np.timedelta64(1, "D")
 
 # Run the simulation
-pset.execute(kernels, runtime, dt)
+pset.execute(pyfunc=kernels, dt=dt, runtime=runtime)
 ```
 
 ### Output
@@ -184,5 +184,5 @@ There are many ways to analyze particle output, and although we provide [a short
 
 #### Learn how to run a simulation
 
-- [Choose an appropriate timestep](../user_guide/examples/tutorial_numerical_accuracy.ipynb)
+- [Choose an appropriate timestep and integrator](../user_guide/examples/tutorial_numerical_accuracy.ipynb)
 - [Work with Parcels output](./tutorial_output.ipynb)

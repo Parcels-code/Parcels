@@ -1,4 +1,4 @@
-# Grids
+# 📖 Grids
 
 Parcels `Field` objects exist on a (structured) `parcels.XGrid` or (unstructured) `parcels.Uxgrid`. Here we describe these grids on a conceptual level.
 

@@ -4,7 +4,7 @@ kernelspec:
   name: python3
 ---
 
-# Working with Status Codes
+# 🖥️ Working with Status Codes
 
 In order to capture errors in the [Kernel loop](explanation_kernelloop.md), Parcels uses a Status Code system. There are several Status Codes, listed below.
 
