@@ -545,3 +545,4 @@ autoapi_options = [
 autoapi_member_order = "bysource"
 autodoc_typehints = "signature"
 autoapi_template_dir = "_autoapi_templates"
+autoapi_own_page_level = "class"

@@ -24,6 +24,7 @@ Classes
                   {% if "class" in own_page_types %}
 .. toctree::
    :hidden:
+   :caption: Classes
 
                      {% for klass in visible_classes %}
    {{ klass.include_path }}
@@ -63,6 +64,23 @@ Exceptions
 
 
             {% endif %}
+            {% set visible_subpackages = obj.subpackages|selectattr("display")|list %}
+            {% set visible_submodules = obj.submodules|selectattr("display")|list %}
+            {% set visible_submodules = (visible_subpackages + visible_submodules)|sort %}
+            {% if visible_submodules %}
+Submodules
+----------
+
+.. toctree::
+   :caption: Submodules
+   :ma: 1
+
+            {% for submodule in visible_submodules %}
+   {{ submodule.include_path }}
+            {% endfor %}
+
+
+         {% endif %}
             {% set visible_attributes = visible_children|selectattr("type", "equalto", "data")|list %}
             {% if visible_attributes %}
                {% if "attribute" in own_page_types or "show-module-summary" in autoapi_options %}
@@ -120,25 +138,6 @@ Functions
 {{ obj_item.render()|indent(0) }}
                {% endfor %}
             {% endif %}
-         {% endif %}
-      {% endblock %}
-      {% block submodules %}
-         {% set visible_subpackages = obj.subpackages|selectattr("display")|list %}
-         {% set visible_submodules = obj.submodules|selectattr("display")|list %}
-         {% set visible_submodules = (visible_subpackages + visible_submodules)|sort %}
-         {% if visible_submodules %}
-Submodules
-----------
-
-.. toctree::
-   :caption: Submodules
-   :maxdepth: 1
-
-            {% for submodule in visible_submodules %}
-   {{ submodule.include_path }}
-            {% endfor %}
-
-
          {% endif %}
       {% endblock %}
    {% else %}

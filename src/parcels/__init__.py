@@ -9,18 +9,18 @@ except Exception:
 
 import warnings as _stdlib_warnings
 
-from parcels._core.basegrid import BaseGrid
 from parcels._core.field import Field, VectorField
 from parcels._core.fieldset import FieldSet
-from parcels._core.particleset import ParticleSet
+from parcels._core.kernel import Kernel
 from parcels._core.particle import (
     KernelParticle,  # ? remove?
     Particle,
     ParticleClass,
     Variable,
 )
-from parcels._core.kernel import Kernel
+from parcels._core.particleset import ParticleSet
 from parcels._core.particlefile import ParticleFile
+from parcels._core.basegrid import BaseGrid
 from parcels._core.xgrid import XGrid
 from parcels._core.uxgrid import UxGrid
 
@@ -52,7 +52,6 @@ from parcels._tutorial import download_example_dataset, list_example_datasets
 
 __all__ = [  # noqa: RUF022
     # Core classes
-    "BaseGrid",
     "Field",
     "VectorField",
     "FieldSet",
@@ -62,6 +61,7 @@ __all__ = [  # noqa: RUF022
     "ParticleFile",
     "ParticleSet",
     "Variable",
+    "BaseGrid",
     "XGrid",
     "UxGrid",
     # Converters
