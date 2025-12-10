@@ -533,16 +533,16 @@ nb_execution_timeout = 75
 
 # -- Options for autoapi --------------------------------------------------
 autoapi_dirs = ["../src/parcels"]
-autoapi_add_toctree_entry = False
+# autoapi_add_toctree_entry = False
 autoapi_root = "reference"
 autoapi_options = [
     "members",
     # "show-inheritance",
-    # "undoc-members",
+    "undoc-members",
     "show-module-summary",
     "imported-members",
 ]
 autoapi_member_order = "bysource"
-autodoc_typehints = "signature"
+autodoc_typehints = "none"
 autoapi_template_dir = "_autoapi_templates"
 autoapi_own_page_level = "class"

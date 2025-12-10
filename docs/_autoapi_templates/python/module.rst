@@ -73,7 +73,7 @@ Submodules
 
 .. toctree::
    :caption: Submodules
-   :ma: 1
+   :maxdepth: 1
 
             {% for submodule in visible_submodules %}
    {{ submodule.include_path }}

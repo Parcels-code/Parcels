@@ -22,6 +22,7 @@ class GridType(IntEnum):
 
 
 class BaseGrid(ABC):
+    """Docstring for Basegrid class"""
     @abstractmethod
     def search(self, z: float, y: float, x: float, ei=None) -> dict[str, tuple[int, float | np.ndarray]]:
         """

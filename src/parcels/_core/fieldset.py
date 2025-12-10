@@ -51,8 +51,8 @@ class FieldSet:
     to and what parent model the field is associated with. Parcels uses this metadata
     during execution for interpolation.  Each `UXDataArray.attributes` field dictionary
     must have:
-      * "location" key set to "face", "node", or "edge" to define which pairing of points a field is associated with.
-      * "mesh" key to define which parent model the fields are associated with (e.g. "fesom_mesh", "icon_mesh")
+    * "location" key set to "face", "node", or "edge" to define which pairing of points a field is associated with.
+    * "mesh" key to define which parent model the fields are associated with (e.g. "fesom_mesh", "icon_mesh")
 
     """
 
