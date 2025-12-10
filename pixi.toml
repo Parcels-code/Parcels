@@ -23,7 +23,7 @@ default = { features = [
   "typing",
   "pre-commit",
 ] }
-test-latest = { features = ["test"] }
+test = { features = ["test"] }
 test-minimum = { features = ["test", "minimum"] }
 test-py311 = { features = ["test", "py311"] }
 test-py313 = { features = ["test", "py313"] }
