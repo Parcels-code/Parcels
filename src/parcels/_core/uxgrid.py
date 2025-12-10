@@ -33,6 +33,8 @@ class UxGrid(BaseGrid):
         mesh : str
             The type of mesh used for the grid. Either "flat" or "spherical".
         """
+        if grid.n_max_face_nodes > 3:
+            raise ValueError("Provided ux.grid.Grid must contain only triangular cells (n_max_face_nodes=3)")
         self.uxgrid = grid
         if not isinstance(z, ux.UxDataArray):
             raise TypeError("z must be an instance of ux.UxDataArray")

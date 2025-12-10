@@ -18,8 +18,8 @@ if TYPE_CHECKING:
 __all__ = [
     "CGrid_Tracer",
     "CGrid_Velocity",
-    "UXPiecewiseConstantFace",
-    "UXPiecewiseLinearNode",
+    "UxPiecewiseConstantFace",
+    "UxPiecewiseLinearNode",
     "XConstantField",
     "XFreeslip",
     "XLinear",
@@ -641,7 +641,7 @@ def XLinearInvdistLandTracer(
     return values.compute() if is_dask_collection(values) else values
 
 
-def UXPiecewiseConstantFace(
+def UxPiecewiseConstantFace(
     particle_positions: dict[str, float | np.ndarray],
     grid_positions: dict[_UXGRID_AXES, dict[str, int | float | np.ndarray]],
     field: Field,
@@ -656,7 +656,7 @@ def UXPiecewiseConstantFace(
     ]
 
 
-def UXPiecewiseLinearNode(
+def UxPiecewiseLinearNode(
     particle_positions: dict[str, float | np.ndarray],
     grid_positions: dict[_UXGRID_AXES, dict[str, int | float | np.ndarray]],
     field: Field,
