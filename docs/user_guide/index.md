@@ -62,7 +62,6 @@ examples/tutorial_interpolation.ipynb
 ```
 
 <!-- examples/tutorial_particle_field_interaction.ipynb -->
-<!-- examples/tutorial_interaction.ipynb -->
 <!-- examples/tutorial_analyticaladvection.ipynb -->
 <!-- examples/tutorial_kernelloop.ipynb -->
 

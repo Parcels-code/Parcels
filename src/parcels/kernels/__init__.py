@@ -13,11 +13,6 @@ from .advectiondiffusion import (
     AdvectionDiffusionM1,
     DiffusionUniformKh,
 )
-from .interaction import (
-    AsymmetricAttraction,
-    MergeWithNearestNeighbor,
-    NearestNeighborWithinRange,
-)
 
 __all__ = [  # noqa: RUF022
     # advection
@@ -33,8 +28,4 @@ __all__ = [  # noqa: RUF022
     "AdvectionDiffusionEM",
     "AdvectionDiffusionM1",
     "DiffusionUniformKh",
-    # interaction
-    "AsymmetricAttraction",
-    "MergeWithNearestNeighbor",
-    "NearestNeighborWithinRange",
 ]

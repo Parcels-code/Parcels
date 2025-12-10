@@ -53,9 +53,6 @@ class ParticleSet:
         Optional list of "trajectory" values (integers) for the particle IDs
     partition_function :
         Function to use for partitioning particles over processors. Default is to use kMeans
-    periodic_domain_zonal :
-        Zonal domain size, used to apply zonally periodic boundaries for particle-particle
-        interaction. If None, no zonally periodic boundaries are applied
 
         Other Variables can be initialised using further arguments (e.g. v=... for a Variable named 'v')
     """
@@ -74,7 +71,6 @@ class ParticleSet:
         self._data = None
         self._repeat_starttime = None
         self._kernel = None
-        self._interaction_kernel = None
 
         self.fieldset = fieldset
         lon = np.empty(shape=0) if lon is None else _convert_to_flat_array(lon)
@@ -228,8 +224,6 @@ class ParticleSet:
         for d in self._data:
             self._data[d] = np.concatenate((self._data[d], particles._data[d]))
 
-        # Adding particles invalidates the neighbor search structure.
-        self._dirty_neighbor = True
         return self
 
     def __iadd__(self, particles):
@@ -255,44 +249,6 @@ class ParticleSet:
         """Method to remove particles from the ParticleSet, based on their `indices`."""
         for d in self._data:
             self._data[d] = np.delete(self._data[d], indices, axis=0)
-
-    def _active_particles_mask(self, time, dt):
-        active_indices = (time - self._data["time"]) / dt >= 0
-        non_err_indices = np.isin(self._data["state"], [StatusCode.Success, StatusCode.Evaluate])
-        active_indices = np.logical_and(active_indices, non_err_indices)
-        self._active_particle_idx = np.where(active_indices)[0]
-        return active_indices
-
-    def _compute_neighbor_tree(self, time, dt):
-        active_mask = self._active_particles_mask(time, dt)  # TODO still needed with KernelParticles?
-
-        self._values = np.vstack(
-            (
-                self._data["z"],
-                self._data["lat"],
-                self._data["lon"],
-            )
-        )
-        if self._dirty_neighbor:
-            self._neighbor_tree.rebuild(self._values, active_mask=active_mask)
-            self._dirty_neighbor = False
-        else:
-            self._neighbor_tree.update_values(self._values, new_active_mask=active_mask)
-
-    def _neighbors_by_index(self, particle_idx):
-        neighbor_idx, distances = self._neighbor_tree.find_neighbors_by_idx(particle_idx)
-        neighbor_idx = self._active_particle_idx[neighbor_idx]
-        mask = neighbor_idx != particle_idx
-        neighbor_idx = neighbor_idx[mask]
-        if "horiz_dist" in self._data._ptype.variables:
-            self._data["vert_dist"][neighbor_idx] = distances[0, mask]
-            self._data["horiz_dist"][neighbor_idx] = distances[1, mask]
-        return True  # TODO fix for v4 ParticleDataIterator(self.particledata, subset=neighbor_idx)
-
-    def _neighbors_by_coor(self, coor):
-        neighbor_idx = self._neighbor_tree.find_neighbors_by_coor(coor)
-        neighbor_ids = self._data["trajectory"][neighbor_idx]
-        return neighbor_ids
 
     def populate_indices(self):
         """Pre-populate guesses of particle ei (element id) indices"""
@@ -358,13 +314,6 @@ class ParticleSet:
             self._ptype,
             pyfuncs=[pyfunc],
         )
-
-    def InteractionKernel(self, pyfunc_inter):
-        from parcels.interaction.interactionkernel import InteractionKernel
-
-        if pyfunc_inter is None:
-            return None
-        return InteractionKernel(self.fieldset, self._ptype, pyfunc=pyfunc_inter)
 
     def data_indices(self, variable_name, compare_values, invert=False):
         """Get the indices of all particles where the value of `variable_name` equals (one of) `compare_values`.
