@@ -537,8 +537,8 @@ autoapi_add_toctree_entry = False
 autoapi_root = "reference"
 autoapi_options = [
     "members",
-    "show-inheritance",
-    "undoc-members",
+    # "show-inheritance",
+    # "undoc-members",
     "show-module-summary",
     "imported-members",
 ]
