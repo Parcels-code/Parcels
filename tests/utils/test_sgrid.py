@@ -4,7 +4,7 @@ import xarray as xr
 import xgcm
 from hypothesis import example, given
 
-from parcels._core import sgrid
+from parcels._core.utils import sgrid
 from tests.strategies import sgrid as sgrid_strategies
 
 

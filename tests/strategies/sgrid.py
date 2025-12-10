@@ -11,7 +11,7 @@ cover SGrid to the extent to which Parcels is concerned.
 import xarray.testing.strategies as xr_st
 from hypothesis import strategies as st
 
-from parcels._core import sgrid
+from parcels._core.utils import sgrid
 
 padding = st.sampled_from(sgrid.Padding)
 dimension_name = xr_st.names().filter(
