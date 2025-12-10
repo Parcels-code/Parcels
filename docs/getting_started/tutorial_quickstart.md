@@ -4,7 +4,7 @@ kernelspec:
   name: python3
 ---
 
-# Quickstart tutorial
+# 🎓 Quickstart tutorial
 
 Welcome to the **Parcels** quickstart tutorial, in which we will go through all the necessary steps to run a simulation.
 The code in this notebook can be used as a starting point to run Parcels in your own environment. Along the way we will
