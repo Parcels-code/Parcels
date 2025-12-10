@@ -213,6 +213,13 @@ class Grid3DMetadata(SGridMetadataProtocol):
 
 @dataclass
 class DimDimPadding:
+    """A data class representing a dimension-dimension-padding triplet for SGrid metadata.
+
+    This triplet can represent different relations depending on context within the standard
+    Fr exampel - for "face_dimensions" this can show the relation between an edge (dim1) and a node
+    (dim2).
+    """
+
     dim1: str
     dim2: str
     padding: Padding
