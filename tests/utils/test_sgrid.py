@@ -2,7 +2,7 @@ import numpy as np
 import pytest
 import xarray as xr
 import xgcm
-from hypothesis import example, given
+from hypothesis import assume, example, given
 
 from parcels._core.utils import sgrid
 from tests.strategies import sgrid as sgrid_strategies
@@ -41,6 +41,9 @@ def dummy_sgrid_ds(grid: sgrid.Grid2DMetadata | sgrid.Grid3DMetadata) -> xr.Data
 def dummy_sgrid_2d_ds(grid: sgrid.Grid2DMetadata) -> xr.Dataset:
     ds = dummy_comodo_3d_ds()
 
+    # Can't rename dimensions that already exist in the dataset
+    assume(get_unique_dim_names(grid) & set(ds.dims) == set())
+
     renamings = {}
     if grid.vertical_dimensions is None:
         ds = ds.isel(ZC=0, ZG=0)
@@ -62,6 +65,9 @@ def dummy_sgrid_2d_ds(grid: sgrid.Grid2DMetadata) -> xr.Dataset:
 
 def dummy_sgrid_3d_ds(grid: sgrid.Grid3DMetadata) -> xr.Dataset:
     ds = dummy_comodo_3d_ds()
+
+    # Can't rename dimensions that already exist in the dataset
+    assume(get_unique_dim_names(grid) & set(ds.dims) == set())
 
     renamings = {}
     for old, new in zip(["XG", "YG", "ZG"], grid.node_dimensions, strict=True):
