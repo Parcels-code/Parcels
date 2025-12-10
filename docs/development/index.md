@@ -92,6 +92,8 @@ pixi install
 
 Now you have a development installation of Parcels, as well as a bunch of developer tooling to run tests, check code quality, and build the documentation! Simple as that.
 
+We primarily use the `default` environment when developing locally (you can 'activate' this using `pixi shell`) - but sometimes you might want to enter and run other environments. For example, if you're trying to debug a failure from CI.
+
 ### Pixi workflows
 
 **Typical development workflow**
