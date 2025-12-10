@@ -18,7 +18,7 @@ from parcels._core.uxgrid import UxGrid
 from parcels._core.xgrid import _DEFAULT_XGCM_KWARGS, XGrid
 from parcels._logger import logger
 from parcels._typing import Mesh
-from parcels.interpolators import UXPiecewiseConstantFace, UXPiecewiseLinearNode, XConstantField, XLinear
+from parcels.interpolators import UxPiecewiseConstantFace, UxPiecewiseLinearNode, XConstantField, XLinear
 
 if TYPE_CHECKING:
     from parcels._core.basegrid import BaseGrid
@@ -459,9 +459,9 @@ def _select_uxinterpolator(da: ux.UxDataArray):
     """Selects the appropriate uxarray interpolator for a given uxarray UxDataArray"""
     supported_uxinterp_mapping = {
         # (nz1,n_face): face-center laterally, layer centers vertically — piecewise constant
-        "nz1,n_face": UXPiecewiseConstantFace,
+        "nz1,n_face": UxPiecewiseConstantFace,
         # (nz,n_node): node/corner laterally, layer interfaces vertically — barycentric lateral & linear vertical
-        "nz,n_node": UXPiecewiseLinearNode,
+        "nz,n_node": UxPiecewiseLinearNode,
     }
     # Extract only spatial dimensions, neglecting time
     da_spatial_dims = tuple(d for d in da.dims if d not in ("time",))
