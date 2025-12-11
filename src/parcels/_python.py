@@ -14,7 +14,7 @@ def isinstance_noimport(obj, class_or_tuple):
     )
 
 
-def _repr_from_dunder_dict(obj: object) -> str:
+def repr_from_dunder_dict(obj: object) -> str:
     """Dataclass-like __repr__ implementation based on __dict__."""
     parts = [f"{k}={v!r}" for k, v in obj.__dict__.items()]
     return f"{obj.__class__.__qualname__}(" + ", ".join(parts) + ")"

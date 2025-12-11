@@ -257,7 +257,7 @@ _COMODO_TO_2D_SGRID = {  # Note "2D SGRID" here is meant in the context of Grid2
     "ZC": "vertical_dimensions_dim2",
 }
 datasets_sgrid = {
-    "ds_2d_left": (
+    "ds_2d_padded_high": (
         datasets["ds_2d_left"]
         .pipe(
             _attach_sgrid_metadata,
@@ -277,7 +277,7 @@ datasets_sgrid = {
             _COMODO_TO_2D_SGRID,
         )
     ),
-    "ds_2d_right": (
+    "ds_2d_padded_low": (
         datasets["ds_2d_right"]
         .pipe(
             _attach_sgrid_metadata,
@@ -286,10 +286,10 @@ datasets_sgrid = {
                 topology_dimension=2,
                 node_dimensions=("YG", "XG"),
                 face_dimensions=(
-                    DimDimPadding("YC", "YG", Padding.HIGH),
-                    DimDimPadding("XC", "XG", Padding.HIGH),
+                    DimDimPadding("YC", "YG", Padding.LOW),
+                    DimDimPadding("XC", "XG", Padding.LOW),
                 ),
-                vertical_dimensions=(DimDimPadding("ZC", "ZG", Padding.HIGH),),
+                vertical_dimensions=(DimDimPadding("ZC", "ZG", Padding.LOW),),
             ),
         )
         .pipe(

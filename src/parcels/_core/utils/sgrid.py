@@ -19,7 +19,7 @@ from typing import Any, Literal, Protocol, Self, overload
 
 import xarray as xr
 
-from parcels._python import _repr_from_dunder_dict
+from parcels._python import repr_from_dunder_dict
 
 RE_DIM_DIM_PADDING = r"(\w+):(\w+)\s*\(padding:\s*(\w+)\)"
 
@@ -31,6 +31,15 @@ class Padding(enum.Enum):
     LOW = "low"
     HIGH = "high"
     BOTH = "both"
+
+
+SGRID_PADDING_TO_XGCM_POSITION = {
+    Padding.LOW: "right",
+    Padding.HIGH: "left",
+    Padding.BOTH: "inner",
+    Padding.NONE: "outer",
+    # "center" position is not used in SGrid, in SGrid this would just be the edges/faces themselves
+}
 
 
 class AttrsSerializable(Protocol):
@@ -97,7 +106,7 @@ class Grid2DMetadata(AttrsSerializable):
         self.vertical_dimensions = vertical_dimensions
 
     def __repr__(self) -> str:
-        return _repr_from_dunder_dict(self)
+        return repr_from_dunder_dict(self)
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, Grid2DMetadata):
@@ -189,7 +198,7 @@ class Grid3DMetadata(AttrsSerializable):
         # volume_coordinates
 
     def __repr__(self) -> str:
-        return _repr_from_dunder_dict(self)
+        return repr_from_dunder_dict(self)
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, Grid3DMetadata):
@@ -332,15 +341,6 @@ def maybe_load_mappings(s):
     return load_mappings(s)
 
 
-SGRID_PADDING_TO_XGCM_POSITION = {
-    Padding.LOW: "right",
-    Padding.HIGH: "left",
-    Padding.BOTH: "inner",
-    Padding.NONE: "outer",
-    # "center" position is not used in SGrid, in SGrid this would just be the edges/faces themselves
-}
-
-
 class SGridParsingException(Exception):
     """Exception raised when parsing SGrid attributes fails."""
 
@@ -401,15 +401,15 @@ def rename_dims(ds: xr.Dataset, dims_dict: dict[str, str]) -> xr.Dataset:
             "No variable found in dataset with 'cf_role' attribute set to 'grid_topology'. Is this an SGrid dataset?"
         )
 
-    grid = parse_grid_attrs(grid_da.attrs)
     ds = ds.rename_dims(dims_dict)
 
     # Update the metadata
+    grid = parse_grid_attrs(grid_da.attrs)
     ds[grid_da.name].attrs = grid.rename_dims(dims_dict).to_attrs()
     return ds
 
 
-def _get_unique_dim_names(grid: Grid2DMetadata | Grid3DMetadata) -> set[str]:
+def get_unique_dim_names(grid: Grid2DMetadata | Grid3DMetadata) -> set[str]:
     dims = set()
     dims.update(set(grid.node_dimensions))
 
@@ -445,9 +445,9 @@ def _metadata_rename_dims(grid, dims_dict):
      of old dimension names to new dimension names.
     """
     dims_dict = dims_dict.copy()
-    assert len(dims_dict) == len(set(dims_dict.values())), "dims_dict contains non-unique target dimension names"
+    assert len(dims_dict) == len(set(dims_dict.values())), "dims_dict contains duplicate target dimension names"
 
-    existing_dims = _get_unique_dim_names(grid)
+    existing_dims = get_unique_dim_names(grid)
     for dim in dims_dict.keys():
         if dim not in existing_dims:
             raise ValueError(f"Dimension {dim!r} not found in SGrid metadata dimensions {existing_dims!r}")

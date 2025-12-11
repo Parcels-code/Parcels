@@ -38,7 +38,7 @@ def dummy_sgrid_2d_ds(grid: sgrid.Grid2DMetadata) -> xr.Dataset:
     ds = dummy_comodo_3d_ds()
 
     # Can't rename dimensions that already exist in the dataset
-    assume(sgrid._get_unique_dim_names(grid) & set(ds.dims) == set())
+    assume(sgrid.get_unique_dim_names(grid) & set(ds.dims) == set())
 
     renamings = {}
     if grid.vertical_dimensions is None:
@@ -63,7 +63,7 @@ def dummy_sgrid_3d_ds(grid: sgrid.Grid3DMetadata) -> xr.Dataset:
     ds = dummy_comodo_3d_ds()
 
     # Can't rename dimensions that already exist in the dataset
-    assume(sgrid._get_unique_dim_names(grid) & set(ds.dims) == set())
+    assume(sgrid.get_unique_dim_names(grid) & set(ds.dims) == set())
 
     renamings = {}
     for old, new in zip(["XG", "YG", "ZG"], grid.node_dimensions, strict=True):
@@ -304,6 +304,7 @@ def test_parse_sgrid_3d(grid_metadata: sgrid.Grid3DMetadata):
 def test_rename_dims(grids_and_dims_dict):
     """Creates two SGrid 2D metadata objects with disjoint dimension names, and a mapping between the dimension names.
     Renames the dimensions of the first grid according to the mapping, and checks that the result
+    is equal to the second grid.
     """
     grid_old, grid_new, dims_dict = grids_and_dims_dict
     assert grid_old.rename_dims(dims_dict).to_attrs() == grid_new.to_attrs()
