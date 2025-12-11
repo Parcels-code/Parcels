@@ -125,16 +125,16 @@ ignore = [
   "F811",
 ]
 
-# [tool.ruff.lint.per-file-ignores]
-# # Ignore docstring rules everywhere except for the stable files (particleset.py, interpolators.py).
-# "!src/parcels/{_core/particleset,interpolators}.py" = [
-#   # Missing docstring in public class
-#   "D101",
-#   # Missing docstring in public method
-#   "D102",
-#   # Missing docstring in public function
-#   "D103",
-# ]
+[tool.ruff.lint.per-file-ignores]
+# Ignore docstring rules everywhere except for the stable files (particleset.py, interpolators.py).
+"!src/parcels/{_core/basegrid,_core/field,_core/fieldset,_core/kernel,_core/particle,_core/particlefile,_core/particleset,_core/uxgrid,_core/xgrid,kernels/advection,kernels/advectiondiffusion,interpolators}.py" = [
+  # Missing docstring in public class
+  "D101",
+  # Missing docstring in public method
+  "D102",
+  # Missing docstring in public function
+  "D103",
+]
 
 [tool.ruff.lint.pydocstyle]
 convention = "numpy"
