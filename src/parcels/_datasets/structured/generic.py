@@ -18,7 +18,8 @@ __all__ = ["T", "X", "Y", "Z", "datasets"]
 TIME = xr.date_range("2000", "2001", T)
 
 
-def _copy_and_attach_sgrid_metadata(ds, grid: Grid2DMetadata | Grid3DMetadata):
+def _attach_sgrid_metadata(ds, grid: Grid2DMetadata | Grid3DMetadata):
+    """Copies the dataset and attaches the SGRID metadata in 'grid' variable. Modifies 'conventions' attribute."""
     ds = ds.copy()
     ds["grid"] = (
         [],
@@ -256,40 +257,44 @@ _COMODO_TO_2D_SGRID = {  # Note "2D SGRID" here is meant in the context of Grid2
     "ZC": "vertical_dimensions_dim2",
 }
 datasets_sgrid = {
-    "ds_2d_left": datasets["ds_2d_left"]
-    .pipe(
-        _copy_and_attach_sgrid_metadata,
-        Grid2DMetadata(
-            cf_role="grid_topology",
-            topology_dimension=2,
-            node_dimensions=("YG", "XG"),
-            face_dimensions=(
-                DimDimPadding("YC", "YG", Padding.HIGH),
-                DimDimPadding("XC", "XG", Padding.HIGH),
+    "ds_2d_left": (
+        datasets["ds_2d_left"]
+        .pipe(
+            _attach_sgrid_metadata,
+            Grid2DMetadata(
+                cf_role="grid_topology",
+                topology_dimension=2,
+                node_dimensions=("YG", "XG"),
+                face_dimensions=(
+                    DimDimPadding("YC", "YG", Padding.HIGH),
+                    DimDimPadding("XC", "XG", Padding.HIGH),
+                ),
+                vertical_dimensions=(DimDimPadding("ZC", "ZG", Padding.HIGH),),
             ),
-            vertical_dimensions=(DimDimPadding("ZC", "ZG", Padding.HIGH),),
-        ),
-    )
-    .pipe(
-        sgrid_rename_dims,
-        _COMODO_TO_2D_SGRID,
+        )
+        .pipe(
+            sgrid_rename_dims,
+            _COMODO_TO_2D_SGRID,
+        )
     ),
-    "ds_2d_right": datasets["ds_2d_right"]
-    .pipe(
-        _copy_and_attach_sgrid_metadata,
-        Grid2DMetadata(
-            cf_role="grid_topology",
-            topology_dimension=2,
-            node_dimensions=("YG", "XG"),
-            face_dimensions=(
-                DimDimPadding("YC", "YG", Padding.HIGH),
-                DimDimPadding("XC", "XG", Padding.HIGH),
+    "ds_2d_right": (
+        datasets["ds_2d_right"]
+        .pipe(
+            _attach_sgrid_metadata,
+            Grid2DMetadata(
+                cf_role="grid_topology",
+                topology_dimension=2,
+                node_dimensions=("YG", "XG"),
+                face_dimensions=(
+                    DimDimPadding("YC", "YG", Padding.HIGH),
+                    DimDimPadding("XC", "XG", Padding.HIGH),
+                ),
+                vertical_dimensions=(DimDimPadding("ZC", "ZG", Padding.HIGH),),
             ),
-            vertical_dimensions=(DimDimPadding("ZC", "ZG", Padding.HIGH),),
-        ),
-    )
-    .pipe(
-        sgrid_rename_dims,
-        _COMODO_TO_2D_SGRID,
+        )
+        .pipe(
+            sgrid_rename_dims,
+            _COMODO_TO_2D_SGRID,
+        )
     ),
 }
