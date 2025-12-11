@@ -1,7 +1,15 @@
 import numpy as np
 import xarray as xr
 
-from parcels._core.utils.sgrid import DimDimPadding, Grid2DMetadata, Grid3DMetadata, Padding
+from parcels._core.utils.sgrid import (
+    DimDimPadding,
+    Grid2DMetadata,
+    Grid3DMetadata,
+    Padding,
+)
+from parcels._core.utils.sgrid import (
+    rename_dims as sgrid_rename_dims,
+)
 
 from . import T, X, Y, Z
 
@@ -239,8 +247,17 @@ datasets = {
     "2d_left_unrolled_cone": _unrolled_cone_curvilinear_grid(),
 }
 
+_COMODO_TO_2D_SGRID = {  # Note "2D SGRID" here is meant in the context of Grid2DMetadata and SGRID convention (i.e., 1D depth)
+    "XG": "node_dimension1",
+    "YG": "node_dimension2",
+    "XC": "face_dimension1",
+    "YC": "face_dimension2",
+    "ZG": "vertical_dimensions_dim1",
+    "ZC": "vertical_dimensions_dim2",
+}
 datasets_sgrid = {
-    "ds_2d_left": datasets["ds_2d_left"].pipe(
+    "ds_2d_left": datasets["ds_2d_left"]
+    .pipe(
         _copy_and_attach_sgrid_metadata,
         Grid2DMetadata(
             cf_role="grid_topology",
@@ -252,8 +269,13 @@ datasets_sgrid = {
             ),
             vertical_dimensions=(DimDimPadding("ZC", "ZG", Padding.HIGH),),
         ),
+    )
+    .pipe(
+        sgrid_rename_dims,
+        _COMODO_TO_2D_SGRID,
     ),
-    "ds_2d_right": datasets["ds_2d_right"].pipe(
+    "ds_2d_right": datasets["ds_2d_right"]
+    .pipe(
         _copy_and_attach_sgrid_metadata,
         Grid2DMetadata(
             cf_role="grid_topology",
@@ -265,5 +287,9 @@ datasets_sgrid = {
             ),
             vertical_dimensions=(DimDimPadding("ZC", "ZG", Padding.HIGH),),
         ),
+    )
+    .pipe(
+        sgrid_rename_dims,
+        _COMODO_TO_2D_SGRID,
     ),
 }
