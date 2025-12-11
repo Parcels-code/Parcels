@@ -19,6 +19,8 @@ from typing import Any, Literal, Protocol, Self, overload
 
 import xarray as xr
 
+from parcels._python import _repr_from_dunder_dict
+
 RE_DIM_DIM_PADDING = r"(\w+):(\w+)\s*\(padding:\s*(\w+)\)"
 
 Dim = str
@@ -93,6 +95,9 @@ class Grid2DMetadata(SGridMetadataProtocol):
 
         #! Important optional attribute for 2D grids with vertical layering
         self.vertical_dimensions = vertical_dimensions
+
+    def __repr__(self) -> str:
+        return _repr_from_dunder_dict(self)
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, Grid2DMetadata):
@@ -179,6 +184,9 @@ class Grid3DMetadata(SGridMetadataProtocol):
         # edge *i_coordinates*
         # face *i_coordinates*
         # volume_coordinates
+
+    def __repr__(self) -> str:
+        return _repr_from_dunder_dict(self)
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, Grid3DMetadata):
