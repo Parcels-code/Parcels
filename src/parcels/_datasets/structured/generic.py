@@ -248,7 +248,7 @@ datasets = {
     "2d_left_unrolled_cone": _unrolled_cone_curvilinear_grid(),
 }
 
-_COMODO_TO_2D_SGRID = {  # Note "2D SGRID" here is meant in the context of Grid2DMetadata and SGRID convention (i.e., 1D depth)
+_COMODO_TO_2D_SGRID = {  # Note "2D SGRID" here is meant in the context of SGRID convention (i.e., 1D depth)
     "XG": "node_dimension1",
     "YG": "node_dimension2",
     "XC": "face_dimension1",
