@@ -1,11 +1,24 @@
 import numpy as np
 import xarray as xr
 
+from parcels._core.utils.sgrid import DimDimPadding, Grid2DMetadata, Grid3DMetadata, Padding
+
 from . import T, X, Y, Z
 
 __all__ = ["T", "X", "Y", "Z", "datasets"]
 
 TIME = xr.date_range("2000", "2001", T)
+
+
+def _copy_and_attach_sgrid_metadata(ds, grid: Grid2DMetadata | Grid3DMetadata):
+    ds = ds.copy()
+    ds["grid"] = (
+        [],
+        0,
+        grid.to_attrs(),
+    )
+    ds.attrs["conventions"] = "SGRID"
+    return ds
 
 
 def _rotated_curvilinear_grid():
@@ -224,4 +237,33 @@ datasets = {
         },
     ),
     "2d_left_unrolled_cone": _unrolled_cone_curvilinear_grid(),
+}
+
+datasets_sgrid = {
+    "ds_2d_left": datasets["ds_2d_left"].pipe(
+        _copy_and_attach_sgrid_metadata,
+        Grid2DMetadata(
+            cf_role="grid_topology",
+            topology_dimension=2,
+            node_dimensions=("YG", "XG"),
+            face_dimensions=(
+                DimDimPadding("YC", "YG", Padding.HIGH),
+                DimDimPadding("XC", "XG", Padding.HIGH),
+            ),
+            vertical_dimensions=(DimDimPadding("ZC", "ZG", Padding.HIGH),),
+        ),
+    ),
+    "ds_2d_right": datasets["ds_2d_right"].pipe(
+        _copy_and_attach_sgrid_metadata,
+        Grid2DMetadata(
+            cf_role="grid_topology",
+            topology_dimension=2,
+            node_dimensions=("YG", "XG"),
+            face_dimensions=(
+                DimDimPadding("YC", "YG", Padding.HIGH),
+                DimDimPadding("XC", "XG", Padding.HIGH),
+            ),
+            vertical_dimensions=(DimDimPadding("ZC", "ZG", Padding.HIGH),),
+        ),
+    ),
 }
