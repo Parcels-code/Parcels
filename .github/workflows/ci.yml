@@ -29,7 +29,7 @@ jobs:
       fail-fast: false
       matrix:
         os: [ubuntu, windows]
-        pixi-environment: [test-latest]
+        pixi-environment: [test]
         include:
           - os: ubuntu
             pixi-environment: "test-py311"
