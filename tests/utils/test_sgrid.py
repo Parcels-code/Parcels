@@ -193,7 +193,7 @@ def test_Grid3DMetadata_roundtrip(grid: sgrid.Grid3DMetadata):
 
 
 @given(sgrid_strategies.grid_metadata)
-def test_parse_grid_attrs(grid: sgrid.SGridMetadataProtocol):
+def test_parse_grid_attrs(grid: sgrid.AttrsSerializable):
     attrs = grid.to_attrs()
     parsed = sgrid.parse_grid_attrs(attrs)
     assert parsed == grid
