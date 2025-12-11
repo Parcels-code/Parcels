@@ -33,12 +33,12 @@ class Padding(enum.Enum):
     BOTH = "both"
 
 
-class SGridMetadataProtocol(Protocol):
+class AttrsSerializable(Protocol):
     def to_attrs(self) -> dict[str, str | int]: ...
     def from_attrs(cls, d: dict[str, Hashable]) -> Self: ...
 
 
-class Grid2DMetadata(SGridMetadataProtocol):
+class Grid2DMetadata(AttrsSerializable):
     def __init__(
         self,
         cf_role: Literal["grid_topology"],
@@ -138,7 +138,7 @@ class Grid2DMetadata(SGridMetadataProtocol):
         return _metadata_rename_dims(self, dims_dict)
 
 
-class Grid3DMetadata(SGridMetadataProtocol):
+class Grid3DMetadata(AttrsSerializable):
     def __init__(
         self,
         cf_role: Literal["grid_topology"],
