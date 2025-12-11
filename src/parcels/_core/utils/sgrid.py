@@ -134,6 +134,9 @@ class Grid2DMetadata(SGridMetadataProtocol):
             d["vertical_dimensions"] = dump_mappings(self.vertical_dimensions)
         return d
 
+    def rename_dims(self, dims_dict: dict[str, str]) -> Self:
+        return _metadata_rename_dims(self, dims_dict)
+
 
 class Grid3DMetadata(SGridMetadataProtocol):
     def __init__(
@@ -217,6 +220,9 @@ class Grid3DMetadata(SGridMetadataProtocol):
             node_dimensions=dump_mappings(self.node_dimensions),
             volume_dimensions=dump_mappings(self.volume_dimensions),
         )
+
+    def rename_dims(self, dims_dict: dict[str, str]) -> Self:
+        return _metadata_rename_dims(self, dims_dict)
 
 
 @dataclass
@@ -386,3 +392,95 @@ def parse_sgrid(ds: xr.Dataset):
         xgcm_coords[axis] = {"center": dim_dim_padding.dim2, xgcm_position: dim_dim_padding.dim1}
 
     return (ds, {"coords": xgcm_coords})
+
+
+def rename_dims(ds: xr.Dataset, dims_dict: dict[str, str]) -> xr.Dataset:
+    grid_da = get_grid_topology(ds)
+    if grid_da is None:
+        raise ValueError(
+            "No variable found in dataset with 'cf_role' attribute set to 'grid_topology'. Is this an SGrid dataset?"
+        )
+
+    grid = parse_grid_attrs(grid_da.attrs)
+    ds = ds.rename_dims(dims_dict)
+
+    # Update the metadata
+    ds[grid_da.name].attrs = grid.rename_dims(dims_dict).to_attrs()
+    return ds
+
+
+def _get_unique_dim_names(grid: Grid2DMetadata | Grid3DMetadata) -> set[str]:
+    dims = set()
+    dims.update(set(grid.node_dimensions))
+
+    for key, value in grid.__dict__.items():
+        if key in ("cf_role", "topology_dimension") or value is None:
+            continue
+        assert isinstance(value, tuple), (
+            f"Expected sgrid metadata attribute to be represented as a tuple, got {value!r}. Is '{key}' a valid SGrid metadata attribute?"
+        )
+        for item in value:
+            if isinstance(item, DimDimPadding):
+                dims.add(item.dim1)
+                dims.add(item.dim2)
+            else:
+                assert isinstance(item, str)
+                dims.add(item)
+    return dims
+
+
+@overload
+def _metadata_rename_dims(grid: Grid2DMetadata, dims_dict: dict[str, str]) -> Grid2DMetadata: ...
+
+
+@overload
+def _metadata_rename_dims(grid: Grid3DMetadata, dims_dict: dict[str, str]) -> Grid3DMetadata: ...
+
+
+def _metadata_rename_dims(grid, dims_dict):
+    """
+    Renames dimensions in SGrid metadata.
+
+    Similar in API to xr.Dataset.rename_dims. Renames dimensions according to dims_dict mapping
+     of old dimension names to new dimension names.
+    """
+    dims_dict = dims_dict.copy()
+    assert len(dims_dict) == len(set(dims_dict.values())), "dims_dict contains non-unique target dimension names"
+
+    existing_dims = _get_unique_dim_names(grid)
+    for dim in dims_dict.keys():
+        if dim not in existing_dims:
+            raise ValueError(f"Dimension {dim!r} not found in SGrid metadata dimensions {existing_dims!r}")
+
+    for dim in existing_dims:
+        if dim not in dims_dict:
+            dims_dict[dim] = dim  # identity mapping for dimensions not being renamed
+
+    kwargs = {}
+    for key, value in grid.__dict__.items():
+        if isinstance(value, tuple):
+            new_value = []
+            for item in value:
+                if isinstance(item, DimDimPadding):
+                    new_item = DimDimPadding(
+                        dim1=dims_dict[item.dim1],
+                        dim2=dims_dict[item.dim2],
+                        padding=item.padding,
+                    )
+                    new_value.append(new_item)
+                else:
+                    assert isinstance(item, str)
+                    new_value.append(dims_dict[item])
+            kwargs[key] = tuple(new_value)
+            continue
+
+        if key in ("cf_role", "topology_dimension") or value is None:
+            kwargs[key] = value
+            continue
+
+        if isinstance(value, str):
+            kwargs[key] = dims_dict[value]
+            continue
+
+        raise ValueError(f"Unexpected attribute {key!r} on {grid!r}")
+    return type(grid)(**kwargs)

@@ -3,30 +3,26 @@ import pytest
 import xarray as xr
 import xgcm
 from hypothesis import assume, example, given
+from hypothesis import strategies as st
 
 from parcels._core.utils import sgrid
 from tests.strategies import sgrid as sgrid_strategies
 
 
-def get_unique_dim_names(grid: sgrid.Grid2DMetadata | sgrid.Grid3DMetadata) -> set[str]:
-    dims = set()
-    dims.update(set(grid.node_dimensions))
-
-    for value in [
-        grid.node_dimensions,
-        grid.face_dimensions if isinstance(grid, sgrid.Grid2DMetadata) else grid.volume_dimensions,
-        grid.vertical_dimensions if isinstance(grid, sgrid.Grid2DMetadata) else None,
-    ]:
-        if value is None:
-            continue
-        for item in value:
-            if isinstance(item, sgrid.DimDimPadding):
-                dims.add(item.dim1)
-                dims.add(item.dim2)
-            else:
-                assert isinstance(item, str)
-                dims.add(item)
-    return dims
+@pytest.fixture
+def grid2dmetadata():
+    return sgrid.Grid2DMetadata(
+        cf_role="grid_topology",
+        topology_dimension=2,
+        node_dimensions=("node_dimension1", "node_dimension2"),
+        face_dimensions=(
+            sgrid.DimDimPadding("face_dimension1", "node_dimension1", sgrid.Padding.LOW),
+            sgrid.DimDimPadding("face_dimension2", "node_dimension2", sgrid.Padding.LOW),
+        ),
+        vertical_dimensions=(
+            sgrid.DimDimPadding("vertical_dimensions_dim1", "vertical_dimensions_dim2", sgrid.Padding.LOW),
+        ),
+    )
 
 
 def dummy_sgrid_ds(grid: sgrid.Grid2DMetadata | sgrid.Grid3DMetadata) -> xr.Dataset:
@@ -42,7 +38,7 @@ def dummy_sgrid_2d_ds(grid: sgrid.Grid2DMetadata) -> xr.Dataset:
     ds = dummy_comodo_3d_ds()
 
     # Can't rename dimensions that already exist in the dataset
-    assume(get_unique_dim_names(grid) & set(ds.dims) == set())
+    assume(sgrid._get_unique_dim_names(grid) & set(ds.dims) == set())
 
     renamings = {}
     if grid.vertical_dimensions is None:
@@ -67,7 +63,7 @@ def dummy_sgrid_3d_ds(grid: sgrid.Grid3DMetadata) -> xr.Dataset:
     ds = dummy_comodo_3d_ds()
 
     # Can't rename dimensions that already exist in the dataset
-    assume(get_unique_dim_names(grid) & set(ds.dims) == set())
+    assume(sgrid._get_unique_dim_names(grid) & set(ds.dims) == set())
 
     renamings = {}
     for old, new in zip(["XG", "YG", "ZG"], grid.node_dimensions, strict=True):
@@ -240,3 +236,92 @@ def test_parse_sgrid_3d(grid_metadata: sgrid.Grid3DMetadata):
         coords = grid.axes[axis].coords
         assert coords["center"] == dim_edge
         assert coords[sgrid.SGRID_PADDING_TO_XGCM_POSITION[padding]] == dim_node
+
+
+@example(
+    grids_and_dims_dict=(
+        sgrid.Grid2DMetadata(
+            cf_role="grid_topology",
+            topology_dimension=2,
+            node_dimensions=("node_dimension1", "node_dimension2"),
+            face_dimensions=(
+                sgrid.DimDimPadding("face_dimension1", "node_dimension1", sgrid.Padding.LOW),
+                sgrid.DimDimPadding("face_dimension2", "node_dimension2", sgrid.Padding.LOW),
+            ),
+            vertical_dimensions=(
+                sgrid.DimDimPadding("vertical_dimensions_dim1", "vertical_dimensions_dim2", sgrid.Padding.LOW),
+            ),
+        ),
+        sgrid.Grid2DMetadata(
+            cf_role="grid_topology",
+            topology_dimension=2,
+            node_dimensions=("new_node_dimension1", "new_node_dimension2"),
+            face_dimensions=(
+                sgrid.DimDimPadding("new_face_dimension1", "new_node_dimension1", sgrid.Padding.LOW),
+                sgrid.DimDimPadding("new_face_dimension2", "new_node_dimension2", sgrid.Padding.LOW),
+            ),
+            vertical_dimensions=(
+                sgrid.DimDimPadding("new_vertical_dimensions_dim1", "new_vertical_dimensions_dim2", sgrid.Padding.LOW),
+            ),
+        ),
+        {
+            "node_dimension1": "new_node_dimension1",
+            "node_dimension2": "new_node_dimension2",
+            "face_dimension1": "new_face_dimension1",
+            "face_dimension2": "new_face_dimension2",
+            "vertical_dimensions_dim1": "new_vertical_dimensions_dim1",
+            "vertical_dimensions_dim2": "new_vertical_dimensions_dim2",
+        },
+    )
+)
+@given(
+    grids_and_dims_dict=st.lists(sgrid_strategies.dimension_name, min_size=12, max_size=12, unique=True).map(
+        lambda dims: (
+            sgrid.Grid2DMetadata(
+                cf_role="grid_topology",
+                topology_dimension=2,
+                node_dimensions=(dims[0], dims[1]),
+                face_dimensions=(
+                    sgrid.DimDimPadding(dims[2], dims[0], sgrid.Padding.LOW),
+                    sgrid.DimDimPadding(dims[3], dims[1], sgrid.Padding.LOW),
+                ),
+                vertical_dimensions=(sgrid.DimDimPadding(dims[4], dims[5], sgrid.Padding.LOW),),
+            ),
+            sgrid.Grid2DMetadata(
+                cf_role="grid_topology",
+                topology_dimension=2,
+                node_dimensions=(dims[6 + 0], dims[6 + 1]),
+                face_dimensions=(
+                    sgrid.DimDimPadding(dims[6 + 2], dims[6 + 0], sgrid.Padding.LOW),
+                    sgrid.DimDimPadding(dims[6 + 3], dims[6 + 1], sgrid.Padding.LOW),
+                ),
+                vertical_dimensions=(sgrid.DimDimPadding(dims[6 + 4], dims[6 + 5], sgrid.Padding.LOW),),
+            ),
+            {k: v for k, v in zip(dims[:6], dims[6:], strict=True)},
+        )
+    )
+)
+def test_rename_dims(grids_and_dims_dict):
+    """Creates two SGrid 2D metadata objects with disjoint dimension names, and a mapping between the dimension names.
+    Renames the dimensions of the first grid according to the mapping, and checks that the result
+    """
+    grid_old, grid_new, dims_dict = grids_and_dims_dict
+    assert grid_old.rename_dims(dims_dict).to_attrs() == grid_new.to_attrs()
+
+
+def test_rename_dims_errors(grid2dmetadata):
+    # Test various error modes of rename_dims
+    grid = grid2dmetadata
+    # Non-unique target dimension names
+    dims_dict = {
+        "node_dimension1": "new_node_dimension",
+        "node_dimension2": "new_node_dimension",
+    }
+    with pytest.raises(AssertionError, match="dims_dict contains non-unique target dimension names"):
+        grid.rename_dims(dims_dict)
+    # Unexpected attribute in dims_dict
+    dims_dict = {
+        "unexpected_dimension": "new_unexpected_dimension",
+    }
+    with pytest.raises(ValueError, match="Dimension 'unexpected_dimension' not found in SGrid metadata dimensions"):
+        grid.rename_dims(dims_dict)
