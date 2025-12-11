@@ -74,6 +74,7 @@ examples/tutorial_interpolation.ipynb
 :name: tutorial-execute
 
 examples/tutorial_numerical_accuracy.ipynb
+examples/tutorial_peninsula_AvsCgrid.ipynb
 ```
 
 <!-- examples/documentation_advanced_zarr.ipynb -->
@@ -85,7 +86,6 @@ examples/tutorial_numerical_accuracy.ipynb
 
 ``` -->
 
-<!-- examples/tutorial_peninsula_AvsCgrid.ipynb -->
 <!-- examples/documentation_stuck_particles.ipynb -->
 <!-- examples/documentation_unstuck_Agrid.ipynb -->
 <!-- examples/documentation_geospatial.ipynb -->
