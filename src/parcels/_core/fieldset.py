@@ -216,6 +216,10 @@ class FieldSet:
             )
 
         ds = _rename_coords_copernicusmarine(ds)
+        if "W" in ds.data_vars:
+            ds["W"] -= ds[
+                "W"
+            ]  # Negate W to convert from up positive to down positive (as that's the direction of positive z)
         grid = XGrid(
             xgcm.Grid(
                 ds,
@@ -245,10 +249,9 @@ class FieldSet:
             fields["V"] = Field("V", ds["V"], grid, XLinear)
 
             if "W" in ds.data_vars:
-                ds["W"] -= ds[
-                    "W"
-                ]  # Negate W to convert from up positive to down positive (as that's the direction of positive z)
-                fields["W"] = Field("W", ds["W"], grid, XLinear)
+                fields["W"] = Field(
+                    "W", ds["W"], grid, XLinear
+                )  # TODO: Choose interpolator based on `location` SGRID attribute
                 fields["UVW"] = VectorField("UVW", fields["U"], fields["V"], fields["W"])
             else:
                 fields["UV"] = VectorField("UV", fields["U"], fields["V"])
