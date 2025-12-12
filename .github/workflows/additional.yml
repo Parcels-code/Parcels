@@ -8,30 +8,19 @@ jobs:
   min-version-policy:
     name: Minimum Version Policy
     runs-on: "ubuntu-latest"
-    env:
-      POLICY_FILE: .github/ci/policy.yaml
-      ENVIRONMENTS: "pixi:test-minimum"
-      MANIFEST_PATH: ./pixi.toml
-    defaults:
-      run:
-        shell: bash -l {0}
-
     steps:
       - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@v7
       - run: >
           uv run --with 'minimum-dependency-versions @ git+https://github.com/xarray-contrib/minimum-dependency-versions@v1.0.0'\
           python -m minimum_versions validate\
-          --policy=${{ env.POLICY_FILE }}\
-          --manifest-path=${{ env.MANIFEST_PATH }}\
-          ${{env.ENVIRONMENTS}}
+          --policy=.github/ci/policy.yaml\
+          --manifest-path=./pixi.toml\
+          pixi:test-minimum
 
   linkcheck:
     name: pixi run docs-linkcheck
     runs-on: "ubuntu-latest"
-    defaults:
-      run:
-        shell: bash -l {0}
 
     steps:
       - uses: actions/checkout@v5
