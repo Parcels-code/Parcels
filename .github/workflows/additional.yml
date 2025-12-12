@@ -11,7 +11,7 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@v7
-      - run: >
+      - run: |
           uv run --with 'minimum-dependency-versions @ git+https://github.com/xarray-contrib/minimum-dependency-versions@v1.0.0' \
           python -m minimum_versions validate \
           --policy=.github/ci/policy.yaml \
