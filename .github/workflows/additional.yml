@@ -14,19 +14,13 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
-      - name: Setup micromamba
-        uses: mamba-org/setup-micromamba@v2
+      - uses: prefix-dev/setup-pixi@v0.9.0
+      - uses: xarray-contrib/minimum-dependency-versions@v1.0.0
         with:
-          environment-name: min-deps
-          create-args: >-
-            python=3.12
-            pyyaml
-            conda
-            python-dateutil
-
-      - name: Core deps minimum versions policy
-        run: |
-          python .github/ci/min_deps_check.py .github/ci/min-core-deps.yml
+          policy: .github/ci/policy.yaml
+          environments: |
+            pixi:test-minimum
+          manifest-path: ./pixi.toml # or pyproject.toml
 
   linkcheck:
     name: pixi run docs-linkcheck
