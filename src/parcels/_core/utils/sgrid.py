@@ -398,7 +398,7 @@ def rename_dims(ds: xr.Dataset, dims_dict: dict[str, str]) -> xr.Dataset:
     grid_da = get_grid_topology(ds)
     if grid_da is None:
         raise ValueError(
-            "No variable found in dataset with 'cf_role' attribute set to 'grid_topology'. Is this an SGrid dataset?"
+            "No variable found in dataset with 'cf_role' attribute set to 'grid_topology'. This doesn't look to be an SGrid dataset - please make your dataset conforms to SGrid conventions."
         )
 
     ds = ds.rename_dims(dims_dict)
@@ -417,7 +417,7 @@ def get_unique_dim_names(grid: Grid2DMetadata | Grid3DMetadata) -> set[str]:
         if key in ("cf_role", "topology_dimension") or value is None:
             continue
         assert isinstance(value, tuple), (
-            f"Expected sgrid metadata attribute to be represented as a tuple, got {value!r}. Is '{key}' a valid SGrid metadata attribute?"
+            f"Expected sgrid metadata attribute to be represented as a tuple, got {value!r}. This is an internal error to Parcels - please post an issue if you encounter this."
         )
         for item in value:
             if isinstance(item, DimDimPadding):

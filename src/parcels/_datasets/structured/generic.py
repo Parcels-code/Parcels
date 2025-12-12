@@ -26,7 +26,7 @@ def _attach_sgrid_metadata(ds, grid: Grid2DMetadata | Grid3DMetadata):
         0,
         grid.to_attrs(),
     )
-    ds.attrs["conventions"] = "SGRID"
+    ds.attrs["Conventions"] = "SGRID"
     return ds
 
 
