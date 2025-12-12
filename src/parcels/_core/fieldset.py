@@ -332,7 +332,7 @@ class FieldSet:
         if "time" in ds.dims and "time" in ds.coords:
             if "axis" not in ds["time"].attrs:
                 logger.debug(
-                    "Dataset contains 'time' dimension but no 'axis' attribute. Setting 'axis' attribute is set to 'T'."
+                    "Dataset contains 'time' dimension but no 'axis' attribute. Setting 'axis' attribute to 'T'."
                 )
                 ds["time"].attrs["axis"] = "T"
 
