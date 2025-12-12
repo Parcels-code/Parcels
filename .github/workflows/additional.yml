@@ -8,6 +8,9 @@ jobs:
   min-version-policy:
     name: Minimum Version Policy
     runs-on: "ubuntu-latest"
+    defaults:
+      run:
+        shell: bash -l {0}
     steps:
       - uses: actions/checkout@v5
       - uses: astral-sh/setup-uv@v7
@@ -21,7 +24,9 @@ jobs:
   linkcheck:
     name: pixi run docs-linkcheck
     runs-on: "ubuntu-latest"
-
+    defaults:
+      run:
+        shell: bash -l {0}
     steps:
       - uses: actions/checkout@v5
       - uses: actions/checkout@v5
