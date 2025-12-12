@@ -188,7 +188,7 @@ def test_parse_sgrid_2d(grid_metadata: sgrid.Grid2DMetadata):
     """Test the ingestion of datasets in XGCM to ensure that it matches the SGRID metadata provided"""
     ds = dummy_sgrid_2d_ds(grid_metadata)
 
-    ds, xgcm_kwargs = sgrid.parse_sgrid(ds)
+    _, xgcm_kwargs = sgrid.parse_sgrid(ds)
     grid = xgcm.Grid(ds, autoparse_metadata=False, **xgcm_kwargs)
 
     for ddp, axis in zip(grid_metadata.face_dimensions, ["X", "Y"], strict=True):

@@ -220,46 +220,25 @@ class FieldSet:
             ds["W"] -= ds[
                 "W"
             ]  # Negate W to convert from up positive to down positive (as that's the direction of positive z)
-        grid = XGrid(
-            xgcm.Grid(
-                ds,
-                coords={
-                    "X": {
-                        "left": "lon",
-                    },
-                    "Y": {
-                        "left": "lat",
-                    },
-                    "Z": {
-                        "left": "depth",
-                    },
-                    "T": {
-                        "center": "time",
-                    },
-                },
-                autoparse_metadata=False,
-                **_DEFAULT_XGCM_KWARGS,
-            ),
-            mesh="spherical",
+
+        if "grid" in ds.cf.cf_roles:
+            raise ValueError(
+                "Dataset already has a 'grid' variable (according to cf_roles). Didn't expect there to be grid metadata on copernicusmarine datasets - please open an issue with more information about your dataset."
+            )
+        ds["grid"] = xr.DataArray(
+            0,
+            attrs=sgrid.Grid2DMetadata(  # use dummy *_center dimensions - this is A grid data (all defined on nodes)
+                cf_role="grid_topology",
+                topology_dimension=2,
+                node_dimensions=("lon", "lat"),
+                face_dimensions=(
+                    sgrid.DimDimPadding("x_center", "lon", sgrid.Padding.LOW),
+                    sgrid.DimDimPadding("y_center", "lat", sgrid.Padding.LOW),
+                ),
+                vertical_dimensions=(sgrid.DimDimPadding("z_center", "depth", sgrid.Padding.LOW),),
+            ).to_attrs(),
         )
-
-        fields = {}
-        if "U" in ds.data_vars and "V" in ds.data_vars:
-            fields["U"] = Field("U", ds["U"], grid, XLinear)
-            fields["V"] = Field("V", ds["V"], grid, XLinear)
-
-            if "W" in ds.data_vars:
-                fields["W"] = Field(
-                    "W", ds["W"], grid, XLinear
-                )  # TODO: Choose interpolator based on `location` SGRID attribute
-                fields["UVW"] = VectorField("UVW", fields["U"], fields["V"], fields["W"])
-            else:
-                fields["UV"] = VectorField("UV", fields["U"], fields["V"])
-
-        for varname in set(ds.data_vars) - set(fields.keys()):
-            fields[varname] = Field(varname, ds[varname], grid, XLinear)
-
-        return FieldSet(list(fields.values()))
+        return FieldSet.from_sgrid_conventions(ds, mesh="spherical")
 
     def from_fesom2(ds: ux.UxDataset):
         """Create a FieldSet from a FESOM2 uxarray.UxDataset.

@@ -378,7 +378,13 @@ def parse_sgrid(ds: xr.Dataset):
     xgcm_coords = {}
     for dim_dim_padding, axis in zip(dimensions, "XYZ", strict=False):
         xgcm_position = SGRID_PADDING_TO_XGCM_POSITION[dim_dim_padding.padding]
-        xgcm_coords[axis] = {"center": dim_dim_padding.dim1, xgcm_position: dim_dim_padding.dim2}
+
+        coords = {}
+        for pos, dim in [("center", dim_dim_padding.dim1), (xgcm_position, dim_dim_padding.dim2)]:
+            # only include dimensions in dataset (ignore dimensions in metadata that may not exist - e.g., due to `.isel`)
+            if dim in ds.dims:
+                coords[pos] = dim
+        xgcm_coords[axis] = coords
 
     return (ds, {"coords": xgcm_coords})
 
