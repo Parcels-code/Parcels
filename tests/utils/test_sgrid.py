@@ -182,6 +182,7 @@ def test_parse_grid_attrs(grid: sgrid.AttrsSerializable):
     assert parsed == grid
 
 
+@example(grid2dmetadata)
 @given(sgrid_strategies.grid2Dmetadata())
 def test_parse_sgrid_2d(grid_metadata: sgrid.Grid2DMetadata):
     """Test the ingestion of datasets in XGCM to ensure that it matches the SGRID metadata provided"""
@@ -191,7 +192,7 @@ def test_parse_sgrid_2d(grid_metadata: sgrid.Grid2DMetadata):
     grid = xgcm.Grid(ds, autoparse_metadata=False, **xgcm_kwargs)
 
     for ddp, axis in zip(grid_metadata.face_dimensions, ["X", "Y"], strict=True):
-        dim_node, dim_edge, padding = ddp.dim1, ddp.dim2, ddp.padding
+        dim_edge, dim_node, padding = ddp.dim1, ddp.dim2, ddp.padding
         coords = grid.axes[axis].coords
         assert coords["center"] == dim_edge
         assert coords[sgrid.SGRID_PADDING_TO_XGCM_POSITION[padding]] == dim_node
@@ -200,7 +201,7 @@ def test_parse_sgrid_2d(grid_metadata: sgrid.Grid2DMetadata):
         assert "Z" not in grid.axes
     else:
         ddp = grid_metadata.vertical_dimensions[0]
-        dim_node, dim_edge, padding = ddp.dim1, ddp.dim2, ddp.padding
+        dim_edge, dim_node, padding = ddp.dim1, ddp.dim2, ddp.padding
         coords = grid.axes["Z"].coords
         assert coords["center"] == dim_edge
         assert coords[sgrid.SGRID_PADDING_TO_XGCM_POSITION[padding]] == dim_node
@@ -215,7 +216,7 @@ def test_parse_sgrid_3d(grid_metadata: sgrid.Grid3DMetadata):
     grid = xgcm.Grid(ds, autoparse_metadata=False, **xgcm_kwargs)
 
     for ddp, axis in zip(grid_metadata.volume_dimensions, ["X", "Y", "Z"], strict=True):
-        dim_node, dim_edge, padding = ddp.dim1, ddp.dim2, ddp.padding
+        dim_edge, dim_node, padding = ddp.dim1, ddp.dim2, ddp.padding
         coords = grid.axes[axis].coords
         assert coords["center"] == dim_edge
         assert coords[sgrid.SGRID_PADDING_TO_XGCM_POSITION[padding]] == dim_node
