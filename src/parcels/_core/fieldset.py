@@ -295,7 +295,9 @@ class FieldSet:
 
         return FieldSet(list(fields.values()))
 
-    def from_conventions(ds: xr.Dataset, mesh: Mesh):  # TODO: Update mesh to be discovered from the dataset metadata
+    def from_sgrid_conventions(
+        ds: xr.Dataset, mesh: Mesh
+    ):  # TODO: Update mesh to be discovered from the dataset metadata
         """Create a FieldSet from a dataset using SGRID convention metadata.
 
         This is the primary ingestion method in Parcels for structured grid datasets.

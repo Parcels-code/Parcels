@@ -346,8 +346,8 @@ def test_fieldset_from_fesom2_missingUV():
 
 
 @pytest.mark.parametrize("ds_name", list(datasets_sgrid.keys()))
-def test_fieldset_from_conventions(ds_name):
+def test_fieldset_from_sgrid_conventions(ds_name):
     ds = datasets_sgrid[ds_name]
-    fieldset = FieldSet.from_conventions(ds, mesh="flat")
+    fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
     assert isinstance(fieldset, FieldSet)
     assert len(fieldset.fields) > 0
