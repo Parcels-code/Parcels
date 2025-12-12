@@ -19,7 +19,7 @@ setuptools_scm = "*"
 
 [package.run-dependencies] # keep section in sync with pyproject.toml dependencies
 python = ">=3.11"
-netcdf4 = ">=1.7.2"
+netcdf4 = ">=1.6.0"
 numpy = ">=2.1.0"
 tqdm = ">=4.50.0"
 xarray = ">=2024.5.0"
@@ -36,7 +36,7 @@ parcels = { path = "." }
 
 [feature.minimum.dependencies]
 python = "3.11.*"
-netcdf4 = "1.7.*"
+netcdf4 = "1.6.*"
 numpy = "2.1.*"
 tqdm = "4.50.*"
 xarray = "2024.5.*"

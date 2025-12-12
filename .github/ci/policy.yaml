@@ -18,6 +18,9 @@ policy:
     - pytest-html
     - pytest-cov
     - nbval
+    - uxarray # undergoes active development
+    - xgcm # undergoes active development
+    - numpy # using numpy 2 (TODO: remove ignore after 2024-06-17 )
 
   # these packages don't fail the CI, but will be printed in the report
   ignored_violations: []
