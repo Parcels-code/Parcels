@@ -111,13 +111,7 @@ class Grid2DMetadata(AttrsSerializable):
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, Grid2DMetadata):
             return NotImplemented
-        return (
-            self.cf_role == other.cf_role
-            and self.topology_dimension == other.topology_dimension
-            and self.node_dimensions == other.node_dimensions
-            and self.face_dimensions == other.face_dimensions
-            and self.vertical_dimensions == other.vertical_dimensions
-        )
+        return self.to_attrs() == other.to_attrs()
 
     @classmethod
     def from_attrs(cls, attrs):
@@ -203,12 +197,7 @@ class Grid3DMetadata(AttrsSerializable):
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, Grid3DMetadata):
             return NotImplemented
-        return (
-            self.cf_role == other.cf_role
-            and self.topology_dimension == other.topology_dimension
-            and self.node_dimensions == other.node_dimensions
-            and self.volume_dimensions == other.volume_dimensions
-        )
+        return self.to_attrs() == other.to_attrs()
 
     @classmethod
     def from_attrs(cls, attrs):
