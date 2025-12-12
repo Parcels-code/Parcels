@@ -12,6 +12,12 @@ policy:
   # overrides for the policy
   overrides: {}
   # these packages are completely ignored
-  exclude: []
+  exclude:
+    - pytest
+    - hypothesis
+    - pytest-html
+    - pytest-cov
+    - nbval
+
   # these packages don't fail the CI, but will be printed in the report
   ignored_violations: []
