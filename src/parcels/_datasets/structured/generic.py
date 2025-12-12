@@ -264,10 +264,10 @@ datasets_sgrid = {
             Grid2DMetadata(
                 cf_role="grid_topology",
                 topology_dimension=2,
-                node_dimensions=("YG", "XG"),
+                node_dimensions=("XG", "YG"),
                 face_dimensions=(
-                    DimDimPadding("YC", "YG", Padding.HIGH),
                     DimDimPadding("XC", "XG", Padding.HIGH),
+                    DimDimPadding("YC", "YG", Padding.HIGH),
                 ),
                 vertical_dimensions=(DimDimPadding("ZC", "ZG", Padding.HIGH),),
             ),
@@ -284,10 +284,10 @@ datasets_sgrid = {
             Grid2DMetadata(
                 cf_role="grid_topology",
                 topology_dimension=2,
-                node_dimensions=("YG", "XG"),
+                node_dimensions=("XG", "YG"),
                 face_dimensions=(
-                    DimDimPadding("YC", "YG", Padding.LOW),
                     DimDimPadding("XC", "XG", Padding.LOW),
+                    DimDimPadding("YC", "YG", Padding.LOW),
                 ),
                 vertical_dimensions=(DimDimPadding("ZC", "ZG", Padding.LOW),),
             ),
