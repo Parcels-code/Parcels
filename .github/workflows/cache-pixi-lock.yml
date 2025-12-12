@@ -17,7 +17,7 @@ jobs:
     outputs:
       cache-id: ${{ steps.restore.outputs.cache-primary-key }}
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@v6
         with:
           fetch-depth: 0
           submodules: recursive
