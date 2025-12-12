@@ -18,13 +18,13 @@ jobs:
 
     steps:
       - uses: actions/checkout@v5
-      - uses: prefix-dev/setup-pixi@v0.9.0
-      - uses: xarray-contrib/minimum-dependency-versions@v1.0.0
-        with:
-          policy: $${{ env.POLICY_FILE }}
-          environments: |
-            $${{ env.ENVIRONMENTS }}
-          manifest-path: $${{ env.MANIFEST_PATH }}
+      - uses: astral-sh/setup-uv@v7
+      - run: >
+          uv run --with 'minimum-dependency-versions @ git+https://github.com/xarray-contrib/minimum-dependency-versions@v1.0.0'\
+          python -m minimum_versions validate\
+          --policy=${{ env.POLICY_FILE }}\
+          --manifest-path=${{ env.MANIFEST_PATH }}\
+          ${{env.ENVIRONMENTS}}
 
   linkcheck:
     name: pixi run docs-linkcheck
