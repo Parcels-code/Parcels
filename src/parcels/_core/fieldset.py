@@ -11,6 +11,7 @@ import xarray as xr
 import xgcm
 
 from parcels._core.field import Field, VectorField
+from parcels._core.utils import sgrid
 from parcels._core.utils.string import _assert_str_and_python_varname
 from parcels._core.utils.time import get_datetime_type_calendar
 from parcels._core.utils.time import is_compatible as datetime_is_compatible
@@ -301,6 +302,8 @@ class FieldSet:
         """Create a FieldSet from a dataset using SGRID convention metadata.
 
         This is the primary ingestion method in Parcels for structured grid datasets.
+
+        Assumes that U, V, (and optionally W) variables are named 'U', 'V', and 'W' in the dataset.
 
         Parameters
         ----------
