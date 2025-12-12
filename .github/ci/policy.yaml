@@ -1,0 +1,25 @@
+channels:
+  - conda-forge
+platforms:
+  - noarch
+  - linux-64
+policy:
+  # all packages in months
+  packages:
+    python: 30
+    numpy: 18
+  default: 12
+  # overrides for the policy
+  overrides: {}
+  # these packages are completely ignored
+  exclude:
+    - pytest
+    - hypothesis
+    - pytest-html
+    - pytest-cov
+    - nbval
+    - uxarray # undergoes active development
+    - xgcm # undergoes active development
+
+  # these packages don't fail the CI, but will be printed in the report
+  ignored_violations: []
