@@ -51,9 +51,27 @@ jobs:
         with:
           cache: true
           cache-write: ${{ github.event_name == 'push' && github.ref_name == 'v4-dev' }} # TODO: Update v4-dev to main when v4 is released
+      # https://github.com/actions/cache/blob/main/tips-and-workarounds.md#update-a-cache
+      - name: Restore cached hypothesis directory
+        id: restore-hypothesis-cache
+        uses: actions/cache/restore@v4
+        with:
+          path: .hypothesis/
+          key: cache-hypothesis-${{ runner.os }}-${{ github.run_id }}
+          restore-keys: |
+            cache-hypothesis-${{ runner.os }}-
       - name: Unit test
+        id: unit-test
         run: |
           pixi run -e ${{ matrix.pixi-environment }} tests -v -s --cov=parcels --cov-report=xml --html="${{ env.COVERAGE_REPORT }}" --self-contained-html
+      # explicitly save the cache so it gets updated, also do this even if it fails.
+      - name: Save cached hypothesis directory
+        id: save-hypothesis-cache
+        if: always() && steps.unit-test.outcome != 'skipped'
+        uses: actions/cache/save@v4
+        with:
+          path: .hypothesis/
+          key: cache-hypothesis-${{ runner.os }}-${{ github.run_id }}
       - name: Codecov
         uses: codecov/codecov-action@v5.5.1
         env:
