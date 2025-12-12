@@ -11,6 +11,7 @@ import xarray as xr
 import xgcm
 
 from parcels._core.field import Field, VectorField
+from parcels._core.utils import sgrid
 from parcels._core.utils.string import _assert_str_and_python_varname
 from parcels._core.utils.time import get_datetime_type_calendar
 from parcels._core.utils.time import is_compatible as datetime_is_compatible
@@ -292,6 +293,92 @@ class FieldSet:
 
         for varname in set(ds.data_vars) - set(fields.keys()):
             fields[varname] = Field(varname, ds[varname], grid, _select_uxinterpolator(ds[varname]))
+
+        return FieldSet(list(fields.values()))
+
+    def from_sgrid_conventions(
+        ds: xr.Dataset, mesh: Mesh
+    ):  # TODO: Update mesh to be discovered from the dataset metadata
+        """Create a FieldSet from a dataset using SGRID convention metadata.
+
+        This is the primary ingestion method in Parcels for structured grid datasets.
+
+        Assumes that U, V, (and optionally W) variables are named 'U', 'V', and 'W' in the dataset.
+
+        Parameters
+        ----------
+        ds : xarray.Dataset
+            xarray.Dataset with SGRID convention metadata.
+        mesh : str
+            String indicating the type of mesh coordinates and units used during
+            velocity interpolation. Options are "spherical" or "flat".
+
+        Returns
+        -------
+        FieldSet
+            FieldSet object containing the fields from the dataset that can be used for a Parcels simulation.
+
+        Notes
+        -----
+        This method uses the SGRID convention metadata to parse the grid structure
+        and create appropriate Fields for a Parcels simulation. The dataset should
+        contain a variable with 'cf_role' attribute set to 'grid_topology'.
+
+        See https://sgrid.github.io/ for more information on the SGRID conventions.
+        """
+        ds = ds.copy()
+
+        # Ensure time dimension has axis attribute if present
+        if "time" in ds.dims and "time" in ds.coords:
+            if "axis" not in ds["time"].attrs:
+                logger.debug(
+                    "Dataset contains 'time' dimension but no 'axis' attribute. Setting 'axis' attribute to 'T'."
+                )
+                ds["time"].attrs["axis"] = "T"
+
+        # Find time dimension based on axis attribute and rename to `time`
+        if (time_dims := ds.cf.axes.get("T")) is not None:
+            if len(time_dims) > 1:
+                raise ValueError("Multiple time coordinates found in dataset. This is not supported by Parcels.")
+            (time_dim,) = time_dims
+            if time_dim != "time":
+                logger.debug(f"Renaming time axis coordinate from {time_dim} to 'time'.")
+                ds = ds.rename({time_dim: "time"})
+
+        # Parse SGRID metadata and get xgcm kwargs
+        _, xgcm_kwargs = sgrid.parse_sgrid(ds)
+
+        # Add time axis to xgcm_kwargs if present
+        if "time" in ds.dims:
+            if "T" not in xgcm_kwargs["coords"]:
+                xgcm_kwargs["coords"]["T"] = {"center": "time"}
+
+        # Create xgcm Grid object
+        xgcm_grid = xgcm.Grid(ds, autoparse_metadata=False, **xgcm_kwargs, **_DEFAULT_XGCM_KWARGS)
+
+        # Wrap in XGrid
+        grid = XGrid(xgcm_grid, mesh=mesh)
+
+        # Create fields from data variables, skipping grid metadata variables
+        # Skip variables that are SGRID metadata (have cf_role='grid_topology')
+        skip_vars = set()
+        for var in ds.data_vars:
+            if ds[var].attrs.get("cf_role") == "grid_topology":
+                skip_vars.add(var)
+
+        fields = {}
+        if "U" in ds.data_vars and "V" in ds.data_vars:
+            fields["U"] = Field("U", ds["U"], grid, XLinear)
+            fields["V"] = Field("V", ds["V"], grid, XLinear)
+
+            if "W" in ds.data_vars:
+                fields["W"] = Field("W", ds["W"], grid, XLinear)
+                fields["UVW"] = VectorField("UVW", fields["U"], fields["V"], fields["W"])
+            else:
+                fields["UV"] = VectorField("UV", fields["U"], fields["V"])
+
+        for varname in set(ds.data_vars) - set(fields.keys()) - skip_vars:
+            fields[varname] = Field(varname, ds[varname], grid, XLinear)
 
         return FieldSet(list(fields.values()))
 
