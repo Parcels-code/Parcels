@@ -217,9 +217,8 @@ class FieldSet:
 
         ds = _rename_coords_copernicusmarine(ds)
         if "W" in ds.data_vars:
-            ds["W"] -= ds[
-                "W"
-            ]  # Negate W to convert from up positive to down positive (as that's the direction of positive z)
+            # Negate W to convert from up positive to down positive (as that's the direction of positive z)
+            ds["W"] -= ds["W"]
 
         if "grid" in ds.cf.cf_roles:
             raise ValueError(
