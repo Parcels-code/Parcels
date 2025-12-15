@@ -7,26 +7,29 @@ from hypothesis import assume, example, given
 from parcels._core.utils import sgrid
 from tests.strategies import sgrid as sgrid_strategies
 
+grid2dmetadata = sgrid.Grid2DMetadata(
+    cf_role="grid_topology",
+    topology_dimension=2,
+    node_dimensions=("node_dimension1", "node_dimension2"),
+    face_dimensions=(
+        sgrid.DimDimPadding("face_dimension1", "node_dimension1", sgrid.Padding.LOW),
+        sgrid.DimDimPadding("face_dimension2", "node_dimension2", sgrid.Padding.LOW),
+    ),
+    vertical_dimensions=(
+        sgrid.DimDimPadding("vertical_dimensions_dim1", "vertical_dimensions_dim2", sgrid.Padding.LOW),
+    ),
+)
 
-def get_unique_dim_names(grid: sgrid.Grid2DMetadata | sgrid.Grid3DMetadata) -> set[str]:
-    dims = set()
-    dims.update(set(grid.node_dimensions))
-
-    for value in [
-        grid.node_dimensions,
-        grid.face_dimensions if isinstance(grid, sgrid.Grid2DMetadata) else grid.volume_dimensions,
-        grid.vertical_dimensions if isinstance(grid, sgrid.Grid2DMetadata) else None,
-    ]:
-        if value is None:
-            continue
-        for item in value:
-            if isinstance(item, sgrid.DimDimPadding):
-                dims.add(item.dim1)
-                dims.add(item.dim2)
-            else:
-                assert isinstance(item, str)
-                dims.add(item)
-    return dims
+grid3dmetadata = sgrid.Grid3DMetadata(
+    cf_role="grid_topology",
+    topology_dimension=3,
+    node_dimensions=("node_dimension1", "node_dimension2", "node_dimension3"),
+    volume_dimensions=(
+        sgrid.DimDimPadding("face_dimension1", "node_dimension1", sgrid.Padding.LOW),
+        sgrid.DimDimPadding("face_dimension2", "node_dimension2", sgrid.Padding.LOW),
+        sgrid.DimDimPadding("face_dimension3", "node_dimension3", sgrid.Padding.LOW),
+    ),
+)
 
 
 def dummy_sgrid_ds(grid: sgrid.Grid2DMetadata | sgrid.Grid3DMetadata) -> xr.Dataset:
@@ -42,7 +45,7 @@ def dummy_sgrid_2d_ds(grid: sgrid.Grid2DMetadata) -> xr.Dataset:
     ds = dummy_comodo_3d_ds()
 
     # Can't rename dimensions that already exist in the dataset
-    assume(get_unique_dim_names(grid) & set(ds.dims) == set())
+    assume(sgrid.get_unique_dim_names(grid) & set(ds.dims) == set())
 
     renamings = {}
     if grid.vertical_dimensions is None:
@@ -67,7 +70,7 @@ def dummy_sgrid_3d_ds(grid: sgrid.Grid3DMetadata) -> xr.Dataset:
     ds = dummy_comodo_3d_ds()
 
     # Can't rename dimensions that already exist in the dataset
-    assume(get_unique_dim_names(grid) & set(ds.dims) == set())
+    assume(sgrid.get_unique_dim_names(grid) & set(ds.dims) == set())
 
     renamings = {}
     for old, new in zip(["XG", "YG", "ZG"], grid.node_dimensions, strict=True):
@@ -156,20 +159,7 @@ def test_load_dump_mappings(input_, expected):
     assert sgrid.load_mappings(input_) == expected
 
 
-@example(
-    grid=sgrid.Grid2DMetadata(
-        cf_role="grid_topology",
-        topology_dimension=2,
-        node_dimensions=("node_dimension1", "node_dimension2"),
-        face_dimensions=(
-            sgrid.DimDimPadding("face_dimension1", "node_dimension1", sgrid.Padding.LOW),
-            sgrid.DimDimPadding("face_dimension2", "node_dimension2", sgrid.Padding.LOW),
-        ),
-        vertical_dimensions=(
-            sgrid.DimDimPadding("vertical_dimensions_dim1", "vertical_dimensions_dim2", sgrid.Padding.LOW),
-        ),
-    )
-)
+@example(grid2dmetadata)
 @given(sgrid_strategies.grid2Dmetadata())
 def test_Grid2DMetadata_roundtrip(grid: sgrid.Grid2DMetadata):
     attrs = grid.to_attrs()
@@ -177,18 +167,7 @@ def test_Grid2DMetadata_roundtrip(grid: sgrid.Grid2DMetadata):
     assert parsed == grid
 
 
-@example(
-    grid=sgrid.Grid3DMetadata(
-        cf_role="grid_topology",
-        topology_dimension=3,
-        node_dimensions=("node_dimension1", "node_dimension2", "node_dimension3"),
-        volume_dimensions=(
-            sgrid.DimDimPadding("face_dimension1", "node_dimension1", sgrid.Padding.LOW),
-            sgrid.DimDimPadding("face_dimension2", "node_dimension2", sgrid.Padding.LOW),
-            sgrid.DimDimPadding("face_dimension3", "node_dimension3", sgrid.Padding.LOW),
-        ),
-    )
-)
+@example(grid3dmetadata)
 @given(sgrid_strategies.grid3Dmetadata())
 def test_Grid3DMetadata_roundtrip(grid: sgrid.Grid3DMetadata):
     attrs = grid.to_attrs()
@@ -197,22 +176,23 @@ def test_Grid3DMetadata_roundtrip(grid: sgrid.Grid3DMetadata):
 
 
 @given(sgrid_strategies.grid_metadata)
-def test_parse_grid_attrs(grid: sgrid.SGridMetadataProtocol):
+def test_parse_grid_attrs(grid: sgrid.AttrsSerializable):
     attrs = grid.to_attrs()
     parsed = sgrid.parse_grid_attrs(attrs)
     assert parsed == grid
 
 
+@example(grid2dmetadata)
 @given(sgrid_strategies.grid2Dmetadata())
 def test_parse_sgrid_2d(grid_metadata: sgrid.Grid2DMetadata):
     """Test the ingestion of datasets in XGCM to ensure that it matches the SGRID metadata provided"""
     ds = dummy_sgrid_2d_ds(grid_metadata)
 
-    ds, xgcm_kwargs = sgrid.parse_sgrid(ds)
+    _, xgcm_kwargs = sgrid.parse_sgrid(ds)
     grid = xgcm.Grid(ds, autoparse_metadata=False, **xgcm_kwargs)
 
     for ddp, axis in zip(grid_metadata.face_dimensions, ["X", "Y"], strict=True):
-        dim_node, dim_edge, padding = ddp.dim1, ddp.dim2, ddp.padding
+        dim_edge, dim_node, padding = ddp.dim1, ddp.dim2, ddp.padding
         coords = grid.axes[axis].coords
         assert coords["center"] == dim_edge
         assert coords[sgrid.SGRID_PADDING_TO_XGCM_POSITION[padding]] == dim_node
@@ -221,7 +201,7 @@ def test_parse_sgrid_2d(grid_metadata: sgrid.Grid2DMetadata):
         assert "Z" not in grid.axes
     else:
         ddp = grid_metadata.vertical_dimensions[0]
-        dim_node, dim_edge, padding = ddp.dim1, ddp.dim2, ddp.padding
+        dim_edge, dim_node, padding = ddp.dim1, ddp.dim2, ddp.padding
         coords = grid.axes["Z"].coords
         assert coords["center"] == dim_edge
         assert coords[sgrid.SGRID_PADDING_TO_XGCM_POSITION[padding]] == dim_node
@@ -236,7 +216,79 @@ def test_parse_sgrid_3d(grid_metadata: sgrid.Grid3DMetadata):
     grid = xgcm.Grid(ds, autoparse_metadata=False, **xgcm_kwargs)
 
     for ddp, axis in zip(grid_metadata.volume_dimensions, ["X", "Y", "Z"], strict=True):
-        dim_node, dim_edge, padding = ddp.dim1, ddp.dim2, ddp.padding
+        dim_edge, dim_node, padding = ddp.dim1, ddp.dim2, ddp.padding
         coords = grid.axes[axis].coords
         assert coords["center"] == dim_edge
         assert coords[sgrid.SGRID_PADDING_TO_XGCM_POSITION[padding]] == dim_node
+
+
+@pytest.mark.parametrize(
+    "grid",
+    [
+        (
+            sgrid.Grid2DMetadata(
+                cf_role="grid_topology",
+                topology_dimension=2,
+                node_dimensions=("node_dimension1", "node_dimension2"),
+                face_dimensions=(
+                    sgrid.DimDimPadding("face_dimension1", "node_dimension1", sgrid.Padding.LOW),
+                    sgrid.DimDimPadding("face_dimension2", "node_dimension2", sgrid.Padding.LOW),
+                ),
+                vertical_dimensions=(
+                    sgrid.DimDimPadding("vertical_dimensions_dim1", "vertical_dimensions_dim2", sgrid.Padding.LOW),
+                ),
+            )
+        ),
+        (
+            sgrid.Grid2DMetadata(
+                cf_role="grid_topology",
+                topology_dimension=2,
+                node_dimensions=("node_dimension1", "node_dimension2"),
+                face_dimensions=(
+                    sgrid.DimDimPadding("face_dimension1", "node_dimension1", sgrid.Padding.LOW),
+                    sgrid.DimDimPadding("face_dimension2", "node_dimension2", sgrid.Padding.LOW),
+                ),
+                vertical_dimensions=None,
+            )
+        ),
+        (
+            sgrid.Grid3DMetadata(
+                cf_role="grid_topology",
+                topology_dimension=3,
+                node_dimensions=("node_dimension1", "node_dimension2", "node_dimension3"),
+                volume_dimensions=(
+                    sgrid.DimDimPadding("face_dimension1", "node_dimension1", sgrid.Padding.LOW),
+                    sgrid.DimDimPadding("face_dimension2", "node_dimension2", sgrid.Padding.LOW),
+                    sgrid.DimDimPadding("face_dimension3", "node_dimension3", sgrid.Padding.LOW),
+                ),
+            )
+        ),
+    ],
+)
+def test_rename_dims(grid):
+    dims = sgrid.get_unique_dim_names(grid)
+    dims_dict = {dim: f"new_{dim}" for dim in dims}
+    dims_dict_inv = {v: k for k, v in dims_dict.items()}
+
+    grid_new = grid.rename_dims(dims_dict)
+    assert dims & set(sgrid.get_unique_dim_names(grid_new)) == set()
+
+    assert grid == grid_new.rename_dims(dims_dict_inv)
+
+
+def test_rename_dims_errors():
+    # Test various error modes of rename_dims
+    grid = grid2dmetadata
+    # Non-unique target dimension names
+    dims_dict = {
+        "node_dimension1": "new_node_dimension",
+        "node_dimension2": "new_node_dimension",
+    }
+    with pytest.raises(AssertionError, match="dims_dict contains duplicate target dimension names"):
+        grid.rename_dims(dims_dict)
+    # Unexpected attribute in dims_dict
+    dims_dict = {
+        "unexpected_dimension": "new_unexpected_dimension",
+    }
+    with pytest.raises(ValueError, match="Dimension 'unexpected_dimension' not found in SGrid metadata dimensions"):
+        grid.rename_dims(dims_dict)

@@ -92,6 +92,8 @@ pixi install
 
 Now you have a development installation of Parcels, as well as a bunch of developer tooling to run tests, check code quality, and build the documentation! Simple as that.
 
+We primarily use the `default` environment when developing locally (you can 'activate' this using `pixi shell`) - but sometimes you might want to enter and run other environments. For example, if you're trying to debug a failure from CI.
+
 ### Pixi workflows
 
 **Typical development workflow**
@@ -134,7 +136,7 @@ Parcels supports testing against different environments (e.g., different Python 
 The name of the workflow on GitHub contains the command you have to run locally to recreate the workflow - making it super easy to reproduce CI failures locally.
 
 ```{tip}
-For those familiar with Conda, you are used to activating an environment. With Pixi, you can do the same by doing `pixi shell <env-name>`. For example, `pixi shell test-latest` will drop you into a shell where you can run commands such as `pytest` like normal. You can exit the shell with `exit` or `Ctrl+D`.
+For those familiar with Conda, you are used to activating an environment. With Pixi, you can do the same by doing `pixi shell -e <env-name>`. For example, `pixi shell -e test` will drop you into an environment used in CI for testing (where you can run commands such as `pytest` like normal). Doing `pixi shell` will drop you into our default development environment. You can exit the shell with `exit` or `Ctrl+D`.
 ```
 
 ### Changing code

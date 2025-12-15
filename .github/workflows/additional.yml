@@ -8,32 +8,21 @@ jobs:
   min-version-policy:
     name: Minimum Version Policy
     runs-on: "ubuntu-latest"
-    defaults:
-      run:
-        shell: bash -l {0}
-
+    env:
+      COLUMNS: 120
     steps:
       - uses: actions/checkout@v5
-      - name: Setup micromamba
-        uses: mamba-org/setup-micromamba@v2
-        with:
-          environment-name: min-deps
-          create-args: >-
-            python=3.12
-            pyyaml
-            conda
-            python-dateutil
-
-      - name: Core deps minimum versions policy
-        run: |
-          python .github/ci/min_deps_check.py .github/ci/min-core-deps.yml
+      - uses: astral-sh/setup-uv@v7
+      - run: |
+          uv run --with 'minimum-dependency-versions @ git+https://github.com/xarray-contrib/minimum-dependency-versions@v1.0.0' \
+          python -m minimum_versions validate \
+          --policy=.github/ci/policy.yaml \
+          --manifest-path=./pixi.toml \
+          pixi:test-minimum
 
   linkcheck:
     name: pixi run docs-linkcheck
     runs-on: "ubuntu-latest"
-    defaults:
-      run:
-        shell: bash -l {0}
 
     steps:
       - uses: actions/checkout@v5

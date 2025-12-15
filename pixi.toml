@@ -16,19 +16,10 @@ backend = { name = "pixi-build-python", version = "==0.4.0" }
 setuptools = "*"
 setuptools_scm = "*"
 
-[environments]
-test-latest = { features = ["test"], solve-group = "test" }
-test-minimum = { features = ["test", "minimum"], solve-group = "test" }
-test-py311 = { features = ["test", "py311"] }
-test-py313 = { features = ["test", "py313"] }
-test-notebooks = { features = ["test", "notebooks"], solve-group = "test" }
-docs = { features = ["docs", "notebooks"], solve-group = "docs" }
-typing = { features = ["typing"], solve-group = "typing" }
-pre-commit = { features = ["pre-commit"], no-default-feature = true }
 
 [package.run-dependencies] # keep section in sync with pyproject.toml dependencies
 python = ">=3.11"
-netcdf4 = ">=1.7.2"
+netcdf4 = ">=1.6.0"
 numpy = ">=2.1.0"
 tqdm = ">=4.50.0"
 xarray = ">=2024.5.0"
@@ -45,18 +36,18 @@ py-triangle = ">=20250106,<20250107"
 parcels = { path = "." }
 
 [feature.minimum.dependencies]
-python = "==3.11"
-netcdf4 = "==1.7.2"
-numpy = "==2.1.0"
-tqdm = "==4.50.0"
-xarray = "==2024.5.0"
-uxarray = "==2025.3.0"
-dask = "==2024.5.1"
-zarr = "==2.15.0"
-xgcm = "==0.9.0"
-cf_xarray = "==0.8.6"
-cftime = "==1.6.3"
-pooch = "==1.8.0"
+python = "3.11.*"
+netcdf4 = "1.6.*"
+numpy = "2.1.*"
+tqdm = "4.50.*"
+xarray = "2024.5.*"
+uxarray = "2025.3.*"
+dask = "2024.5.*"
+zarr = "2.15.*"
+xgcm = "0.9.*"
+cf_xarray = "0.8.*"
+cftime = "1.6.*"
+pooch = "1.8.*"
 
 [feature.py311.dependencies]
 python = "3.11.*"
@@ -111,3 +102,19 @@ types-tqdm = "*"
 
 [feature.typing.tasks]
 typing = "mypy src/parcels --install-types"
+
+
+[environments]
+default = { features = [
+  "test",
+  "notebooks",
+  "typing",
+  "pre-commit",
+], solve-group = "main" }
+test = { features = ["test"], solve-group = "main" }
+test-minimum = { features = ["test", "minimum"] }
+test-py311 = { features = ["test", "py311"] }
+test-py313 = { features = ["test", "py313"] }
+test-notebooks = { features = ["test", "notebooks"], solve-group = "main" }
+docs = { features = ["docs", "notebooks"], solve-group = "docs" }
+typing = { features = ["typing"], solve-group = "main" }
