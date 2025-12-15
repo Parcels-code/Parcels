@@ -1,3 +1,4 @@
+{# Adapted from sphinx-autoapi https://github.com/readthedocs/sphinx-autoapi #}
 {% if obj.display %}
    {% if is_own_page %}
 {{ obj.id }}

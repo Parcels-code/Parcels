@@ -22,7 +22,7 @@ class GridType(IntEnum):
 
 
 class BaseGrid(ABC):
-    """Docstring for Basegrid class"""
+    """Define a base class for parcels X and Ux grids with common methods and properties"""
 
     @abstractmethod
     def search(self, z: float, y: float, x: float, ei=None) -> dict[str, tuple[int, float | np.ndarray]]:
