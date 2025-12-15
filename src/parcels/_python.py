@@ -1,6 +1,6 @@
 # Generic Python helpers
 import inspect
-from collections.abc import Callable
+from types import FunctionType
 
 
 def isinstance_noimport(obj, class_or_tuple):
@@ -14,7 +14,13 @@ def isinstance_noimport(obj, class_or_tuple):
     )
 
 
-def assert_same_function_signature(f: Callable, *, ref: Callable, context: str) -> None:
+def repr_from_dunder_dict(obj: object) -> str:
+    """Dataclass-like __repr__ implementation based on __dict__."""
+    parts = [f"{k}={v!r}" for k, v in obj.__dict__.items()]
+    return f"{obj.__class__.__qualname__}(" + ", ".join(parts) + ")"
+
+
+def assert_same_function_signature(f: FunctionType, *, ref: FunctionType, context: str) -> None:
     """Ensures a function `f` has the same signature as the reference function `ref`."""
     sig_ref = inspect.signature(ref)
     sig = inspect.signature(f)

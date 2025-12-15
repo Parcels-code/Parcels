@@ -11,6 +11,7 @@ from parcels._core.fieldset import CalendarError, FieldSet, _datetime_to_msg
 from parcels._datasets.structured.circulation_models import datasets as datasets_circulation_models
 from parcels._datasets.structured.generic import T as T_structured
 from parcels._datasets.structured.generic import datasets as datasets_structured
+from parcels._datasets.structured.generic import datasets_sgrid
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
 from parcels.interpolators import XLinear
 from tests import utils
@@ -342,3 +343,11 @@ def test_fieldset_from_fesom2_missingUV():
     with pytest.raises(ValueError) as info:
         _ = FieldSet.from_fesom2(localds)
     assert "Dataset has only one of the two variables 'U' and 'V'" in str(info)
+
+
+@pytest.mark.parametrize("ds_name", list(datasets_sgrid.keys()))
+def test_fieldset_from_sgrid_conventions(ds_name):
+    ds = datasets_sgrid[ds_name]
+    fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
+    assert isinstance(fieldset, FieldSet)
+    assert len(fieldset.fields) > 0
