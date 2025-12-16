@@ -63,19 +63,14 @@ Let's add the `KeepInOcean` Kernel to an particle simulation where particles mov
 import numpy as np
 from parcels._datasets.structured.generated import simple_UV_dataset
 
-ds = simple_UV_dataset(dims=(1, 2, 5, 4), mesh="flat").isel(time=0)
+ds = simple_UV_dataset(dims=(1, 2, 5, 4), mesh="flat")
 
 dx, dy = 1.0 / len(ds.XG), 1.0 / len(ds.YG)
 
 # Add W velocity that pushes through surface
 ds["W"] = ds["U"] - 0.1 # 0.1 m/s towards the surface
 
-grid = parcels.XGrid.from_dataset(ds, mesh="flat")
-U = parcels.Field("U", ds["U"], grid, interp_method=parcels.interpolators.XLinear)
-V = parcels.Field("V", ds["V"], grid, interp_method=parcels.interpolators.XLinear)
-W = parcels.Field("W", ds["W"], grid, interp_method=parcels.interpolators.XLinear)
-UVW = parcels.VectorField("UVW", U, V, W)
-fieldset = parcels.FieldSet([U, V, W, UVW])
+fieldset = parcels.FieldSet.from_sgrid_conventions(ds, mesh="flat")
 ```
 
 If we advect particles with the `AdvectionRK2_3D` kernel, Parcels will raise a `FieldOutOfBoundSurfaceError`:
