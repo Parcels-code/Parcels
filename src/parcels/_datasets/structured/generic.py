@@ -4,8 +4,8 @@ import xarray as xr
 from parcels._core.utils.sgrid import (
     DimDimPadding,
     Grid2DMetadata,
-    Grid3DMetadata,
     Padding,
+    _attach_sgrid_metadata,
 )
 from parcels._core.utils.sgrid import (
     rename_dims as sgrid_rename_dims,
@@ -16,18 +16,6 @@ from . import T, X, Y, Z
 __all__ = ["T", "X", "Y", "Z", "datasets"]
 
 TIME = xr.date_range("2000", "2001", T)
-
-
-def _attach_sgrid_metadata(ds, grid: Grid2DMetadata | Grid3DMetadata):
-    """Copies the dataset and attaches the SGRID metadata in 'grid' variable. Modifies 'conventions' attribute."""
-    ds = ds.copy()
-    ds["grid"] = (
-        [],
-        0,
-        grid.to_attrs(),
-    )
-    ds.attrs["Conventions"] = "SGRID"
-    return ds
 
 
 def _rotated_curvilinear_grid():
