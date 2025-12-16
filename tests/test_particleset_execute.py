@@ -55,11 +55,7 @@ def fieldset_no_time_interval() -> FieldSet:
 def zonal_flow_fieldset() -> FieldSet:
     ds = simple_UV_dataset(mesh="flat")
     ds["U"].data[:] = 1.0
-    grid = XGrid.from_dataset(ds, mesh="flat")
-    U = Field("U", ds["U"], grid, interp_method=XLinear)
-    V = Field("V", ds["V"], grid, interp_method=XLinear)
-    UV = VectorField("UV", U, V)
-    return FieldSet([U, V, UV])
+    return FieldSet.from_sgrid_conventions(ds, mesh="flat")
 
 
 def test_pset_execute_invalid_arguments(fieldset, fieldset_no_time_interval):

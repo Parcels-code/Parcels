@@ -13,8 +13,6 @@ from parcels import (
     ParticleSet,
     Unity,
     Variable,
-    VectorField,
-    XGrid,
 )
 from parcels._core.utils.time import timedelta_to_float
 from parcels._datasets.structured.generated import simple_UV_dataset
@@ -32,11 +30,7 @@ def test_fieldKh_Brownian(mesh):
     ds = simple_UV_dataset(dims=(2, 1, 2, 2), mesh=mesh)
     ds["lon"].data = np.array([-1e6, 1e6])
     ds["lat"].data = np.array([-1e6, 1e6])
-    grid = XGrid.from_dataset(ds, mesh=mesh)
-    U = Field("U", ds["U"], grid, interp_method=XLinear)
-    V = Field("V", ds["V"], grid, interp_method=XLinear)
-    UV = VectorField("UV", U, V)
-    fieldset = FieldSet([U, V, UV])
+    fieldset = FieldSet.from_sgrid_conventions(ds, mesh=mesh)
     fieldset.add_constant_field("Kh_zonal", kh_zonal, mesh=mesh)
     fieldset.add_constant_field("Kh_meridional", kh_meridional, mesh=mesh)
 
@@ -74,9 +68,7 @@ def test_fieldKh_SpatiallyVaryingDiffusion(mesh, kernel):
     ds = simple_UV_dataset(dims=(2, 1, ydim, xdim), mesh=mesh)
     ds["lon"].data = np.linspace(-1e6, 1e6, xdim)
     ds["lat"].data = np.linspace(-1e6, 1e6, ydim)
-    grid = XGrid.from_dataset(ds, mesh=mesh)
-    U = Field("U", ds["U"], grid, interp_method=XLinear)
-    V = Field("V", ds["V"], grid, interp_method=XLinear)
+    fieldset = FieldSet.from_sgrid_conventions(ds, mesh=mesh)
 
     Kh = np.zeros((ydim, xdim), dtype=np.float32)
     for x in range(xdim):
@@ -84,10 +76,10 @@ def test_fieldKh_SpatiallyVaryingDiffusion(mesh, kernel):
 
     ds["Kh_zonal"] = (["time", "depth", "YG", "XG"], np.full((2, 1, ydim, xdim), Kh))
     ds["Kh_meridional"] = (["time", "depth", "YG", "XG"], np.full((2, 1, ydim, xdim), Kh))
-    Kh_zonal = Field("Kh_zonal", ds["Kh_zonal"], grid=grid, interp_method=XLinear)
-    Kh_meridional = Field("Kh_meridional", ds["Kh_meridional"], grid=grid, interp_method=XLinear)
-    UV = VectorField("UV", U, V)
-    fieldset = FieldSet([U, V, UV, Kh_zonal, Kh_meridional])
+    Kh_zonal = Field("Kh_zonal", ds["Kh_zonal"], grid=fieldset.U.grid, interp_method=XLinear)
+    Kh_meridional = Field("Kh_meridional", ds["Kh_meridional"], grid=fieldset.V.grid, interp_method=XLinear)
+    fieldset.add_field(Kh_zonal)
+    fieldset.add_field(Kh_meridional)
     fieldset.add_constant("dres", float(ds["lon"][1] - ds["lon"][0]))
 
     npart = 10000

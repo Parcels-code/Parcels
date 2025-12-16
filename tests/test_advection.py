@@ -33,11 +33,7 @@ def test_advection_zonal(mesh, npart=10):
     """Particles at high latitude move geographically faster due to the pole correction in `GeographicPolar`."""
     ds = simple_UV_dataset(mesh=mesh)
     ds["U"].data[:] = 1.0
-    grid = XGrid.from_dataset(ds, mesh=mesh)
-    U = Field("U", ds["U"], grid, interp_method=XLinear)
-    V = Field("V", ds["V"], grid, interp_method=XLinear)
-    UV = VectorField("UV", U, V)
-    fieldset = FieldSet([U, V, UV])
+    fieldset = FieldSet.from_sgrid_conventions(ds, mesh=mesh)
 
     pset = ParticleSet(fieldset, lon=np.zeros(npart) + 20.0, lat=np.linspace(0, 80, npart))
     pset.execute(AdvectionRK4, runtime=np.timedelta64(2, "h"), dt=np.timedelta64(15, "m"))
@@ -53,11 +49,7 @@ def test_advection_zonal_with_particlefile(tmp_store):
     npart = 10
     ds = simple_UV_dataset(mesh="flat")
     ds["U"].data[:] = 1.0
-    grid = XGrid.from_dataset(ds, mesh="flat")
-    U = Field("U", ds["U"], grid, interp_method=XLinear)
-    V = Field("V", ds["V"], grid, interp_method=XLinear)
-    UV = VectorField("UV", U, V)
-    fieldset = FieldSet([U, V, UV])
+    fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
 
     pset = ParticleSet(fieldset, lon=np.zeros(npart) + 20.0, lat=np.linspace(0, 80, npart))
     pfile = ParticleFile(tmp_store, outputdt=np.timedelta64(30, "m"))
@@ -85,11 +77,7 @@ def test_advection_zonal_periodic():
     halo.XG.values = ds.XG.values[1] + 2
     ds = xr.concat([ds, halo], dim="XG")
 
-    grid = XGrid.from_dataset(ds, mesh="flat")
-    U = Field("U", ds["U"], grid, interp_method=XLinear)
-    V = Field("V", ds["V"], grid, interp_method=XLinear)
-    UV = VectorField("UV", U, V)
-    fieldset = FieldSet([U, V, UV])
+    fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
 
     PeriodicParticle = Particle.add_variable(Variable("total_dlon", initial=0))
     startlon = np.array([0.5, 0.4])
@@ -104,12 +92,8 @@ def test_horizontal_advection_in_3D_flow(npart=10):
     """Flat 2D zonal flow that increases linearly with z from 0 m/s to 1 m/s."""
     ds = simple_UV_dataset(mesh="flat")
     ds["U"].data[:] = 1.0
-    grid = XGrid.from_dataset(ds, mesh="flat")
-    U = Field("U", ds["U"], grid, interp_method=XLinear)
-    U.data[:, 0, :, :] = 0.0  # Set U to 0 at the surface
-    V = Field("V", ds["V"], grid, interp_method=XLinear)
-    UV = VectorField("UV", U, V)
-    fieldset = FieldSet([U, V, UV])
+    fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
+    fieldset.U.data[:, 0, :, :] = 0.0  # Set U to 0 at the surface
 
     pset = ParticleSet(fieldset, lon=np.zeros(npart), lat=np.zeros(npart), z=np.linspace(0.1, 0.9, npart))
     pset.execute(AdvectionRK4, runtime=np.timedelta64(2, "h"), dt=np.timedelta64(15, "m"))
@@ -122,15 +106,12 @@ def test_horizontal_advection_in_3D_flow(npart=10):
 @pytest.mark.parametrize("wErrorThroughSurface", [True, False])
 def test_advection_3D_outofbounds(direction, wErrorThroughSurface):
     ds = simple_UV_dataset(mesh="flat")
-    grid = XGrid.from_dataset(ds, mesh="flat")
-    U = Field("U", ds["U"], grid, interp_method=XLinear)
-    U.data[:] = 0.01  # Set U to small value (to avoid horizontal out of bounds)
-    V = Field("V", ds["V"], grid, interp_method=XLinear)
-    W = Field("W", ds["V"], grid, interp_method=XLinear)  # Use V as W for testing
+    fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
+    fieldset.U.data[:] = 0.01  # Set U to small value (to avoid horizontal out of bounds)
+    W = Field("W", ds["V"], fieldset.V.grid, interp_method=XLinear)  # Use V as W for testing
     W.data[:] = -1.0 if direction == "up" else 1.0
-    UVW = VectorField("UVW", U, V, W)
-    UV = VectorField("UV", U, V)
-    fieldset = FieldSet([U, V, W, UVW, UV])
+    UVW = VectorField("UVW", fieldset.U, fieldset.V, W)
+    fieldset = FieldSet([fieldset.U, fieldset.V, W, UVW, fieldset.UV])
 
     def DeleteParticle(particles, fieldset):  # pragma: no cover
         particles.state = np.where(particles.state == StatusCode.ErrorOutOfBounds, StatusCode.Delete, particles.state)
