@@ -1,3 +1,5 @@
+"""Module defining the BaseGrid class for XGrid and UXGrid"""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
@@ -20,6 +22,8 @@ class GridType(IntEnum):
 
 
 class BaseGrid(ABC):
+    """Base class for parcels.XGrid and parcels.UxGrid defining common methods and properties"""
+
     @abstractmethod
     def search(self, z: float, y: float, x: float, ei=None) -> dict[str, tuple[int, float | np.ndarray]]:
         """
