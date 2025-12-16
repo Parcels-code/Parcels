@@ -1,4 +1,4 @@
-"""Sphinx configuration file for Parcels documentation."""
+"""autoSphinx configuration file for Parcels documentation."""
 # parcels documentation build configuration file, created by
 # sphinx-quickstart on Tue Oct 20 09:58:20 2015.
 #
@@ -40,6 +40,7 @@ extensions = [
     "numpydoc",
     "sphinxcontrib.mermaid",
     "sphinx_design",
+    "autoapi.extension",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -115,6 +116,7 @@ language = "en"
 # directories to ignore when looking for source files.
 exclude_patterns = [
     "_build",
+    "_autoapi_templates",
     "jupyter_execute",
     "**.ipynb_checkpoints",
     "user_guide/examples_v3",
@@ -528,3 +530,19 @@ nb_execution_mode = "cache"
 nb_execution_excludepatterns = ["jupyter_execute", ".jupyter_cache"]
 nb_execution_raise_on_error = True
 nb_execution_timeout = 75
+
+# -- Options for autoapi --------------------------------------------------
+autoapi_dirs = ["../src/parcels"]
+# autoapi_add_toctree_entry = False
+autoapi_root = "reference"
+autoapi_options = [
+    "members",
+    # "show-inheritance",
+    "undoc-members",
+    "show-module-summary",
+    "imported-members",
+]
+autoapi_member_order = "bysource"
+autodoc_typehints = "none"
+autoapi_template_dir = "_autoapi_templates"
+autoapi_own_page_level = "class"

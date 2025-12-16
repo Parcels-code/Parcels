@@ -193,6 +193,7 @@ def get_default_particle(spatial_dtype: np.float32 | np.float64) -> ParticleClas
 
 
 Particle = get_default_particle(np.float32)
+"""The default Particle used in Parcels simulations."""
 
 
 def create_particle_data(
