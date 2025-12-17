@@ -31,6 +31,7 @@ TODO: Add links to Reference API throughout
 examples/explanation_grids.md
 examples/tutorial_nemo_curvilinear.ipynb
 examples/tutorial_unitconverters.ipynb
+examples/tutorial_nestedgrids.ipynb
 ```
 
 <!-- examples/documentation_indexing.ipynb -->
