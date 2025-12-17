@@ -46,10 +46,10 @@ class Unity(UnitConverter):
     source_unit: None
     target_unit: None
 
-    def to_target(self, value, z, y, x):
+    def to_target(self, value, z=None, y=None, x=None):
         return value
 
-    def to_source(self, value, z, y, x):
+    def to_source(self, value, z=None, y=None, x=None):
         return value
 
 
@@ -59,10 +59,10 @@ class Geographic(UnitConverter):
     source_unit = "m"
     target_unit = "degree"
 
-    def to_target(self, value, z, y, x):
+    def to_target(self, value, z=None, y=None, x=None):
         return value / 1000.0 / 1.852 / 60.0
 
-    def to_source(self, value, z, y, x):
+    def to_source(self, value, z=None, y=None, x=None):
         return value * 1000.0 * 1.852 * 60.0
 
 
@@ -87,10 +87,10 @@ class GeographicSquare(UnitConverter):
     source_unit = "m2"
     target_unit = "degree2"
 
-    def to_target(self, value, z, y, x):
+    def to_target(self, value, z=None, y=None, x=None):
         return value / pow(1000.0 * 1.852 * 60.0, 2)
 
-    def to_source(self, value, z, y, x):
+    def to_source(self, value, z=None, y=None, x=None):
         return value * pow(1000.0 * 1.852 * 60.0, 2)
 
 
