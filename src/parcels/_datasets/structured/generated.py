@@ -5,7 +5,7 @@ import xarray as xr
 
 from parcels._core.utils.sgrid import (
     DimDimPadding,
-    Grid3DMetadata,
+    Grid2DMetadata,
     Padding,
     _attach_sgrid_metadata,
 )
@@ -29,15 +29,15 @@ def simple_UV_dataset(dims=(360, 2, 30, 4), maxdepth=1, mesh="spherical"):
         },
     ).pipe(
         _attach_sgrid_metadata,
-        Grid3DMetadata(
+        Grid2DMetadata(
             cf_role="grid_topology",
-            topology_dimension=3,
-            node_dimensions=("XG", "YG", "depth"),
-            volume_dimensions=(
+            topology_dimension=2,
+            node_dimensions=("XG", "YG"),
+            face_dimensions=(
                 DimDimPadding("XC", "XG", Padding.HIGH),
                 DimDimPadding("YC", "YG", Padding.HIGH),
-                DimDimPadding("depth", "depth", Padding.HIGH),
             ),
+            vertical_dimensions=(DimDimPadding("depth", "depth", Padding.NONE),),
         ),
     )
 
