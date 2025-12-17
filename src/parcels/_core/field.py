@@ -54,7 +54,7 @@ class Field:
     """The Field class that holds scalar field data.
     The `Field` object is a wrapper around a xarray.DataArray or uxarray.UxDataArray object.
     Additionally, it holds a dynamic Callable procedure that is used to interpolate the field data.
-    During initialization, the user is required to supply a custom interpolation method that is used 
+    During initialization, the user is required to supply a custom interpolation method that is used
     to interpolate the field data, so long as the interpolation method has the correct signature.
 
     Notes
@@ -65,7 +65,7 @@ class Field:
     * attrs: (location, mesh, mesh)
 
     When using a xarray.DataArray object:
-        
+
     * The xarray.DataArray object must have the "location" and "mesh" attributes set.
     * The "location" attribute must be set to one of the following to define which pairing of points a field is associated with:
         * "node"
@@ -73,7 +73,7 @@ class Field:
         * "x_edge"
         * "y_edge"
 
-    * For an A-Grid, the "location" attribute must be set to / is assumed to be "node" (node_lat,node_lon). 
+    * For an A-Grid, the "location" attribute must be set to / is assumed to be "node" (node_lat,node_lon).
     * For a C-Grid, the "location" setting for a field has the following interpretation:
         * "node" ~> the field is associated with the vorticity points (node_lat, node_lon)
         * "face" ~> the field is associated with the tracer points (face_lat, face_lon)
