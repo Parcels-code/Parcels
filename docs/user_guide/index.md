@@ -72,11 +72,12 @@ examples/tutorial_interpolation.ipynb
 ```{toctree}
 :caption: Run a simulation
 :name: tutorial-execute
+:titlesonly:
 
-examples/tutorial_numerical_accuracy.ipynb
-examples/tutorial_peninsula_AvsCgrid.ipynb
+examples/tutorial_dt_integrators.ipynb
 ```
 
+<!-- examples/tutorial_peninsula_AvsCgrid.ipynb -->
 <!-- examples/documentation_advanced_zarr.ipynb -->
 <!-- examples/documentation_LargeRunsOutput.ipynb -->
 
