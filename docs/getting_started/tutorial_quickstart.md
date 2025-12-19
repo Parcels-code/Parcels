@@ -41,8 +41,8 @@ ds_fields
 As we can see, the reanalysis dataset contains eastward velocity `uo`, northward velocity `vo`, potential temperature
 (`thetao`) and salinity (`so`) fields.
 
-These hydrodynamic fields need to be stored in a `parcels.FieldSet` object. Parcels provides tooling to parse many types
-of models or observations into such a `parcels.FieldSet` object. Here, we use `FieldSet.from_copernicusmarine()`, which
+These hydrodynamic fields need to be stored in a {py:obj}`parcels.FieldSet` object. Parcels provides tooling to parse many types
+of models or observations into such a `parcels.FieldSet` object. Here, we use {py:obj}`FieldSet.from_copernicusmarine()`, which
 recognizes the standard names of a velocity field:
 
 ```{code-cell}
@@ -61,10 +61,10 @@ velocity = ds_fields.isel(time=0, depth=0).plot.quiver(x="longitude", y="latitud
 Now that we have created a `parcels.FieldSet` object from the hydrodynamic data, we need to provide our second input:
 the virtual particles for which we will calculate the trajectories.
 
-We need to create a `parcels.ParticleSet` object with the particles' initial time and position. The `parcels.ParticleSet`
+We need to create a {py:obj}`parcels.ParticleSet` object with the particles' initial time and position. The `parcels.ParticleSet`
 object also needs to know about the `FieldSet` in which the particles "live". Finally, we need to specify the type of
-`parcels.Particle` we want to use. The default particles have `time`, `z`, `lat`, and `lon`, but you can easily add
-other `Variables` such as size, temperature, or age to create your own particles to mimic plastic or an [ARGO float](../user_guide/examples/tutorial_Argofloats.ipynb).
+{py:obj}`parcels.ParticleClass` we want to use. The default particles have `time`, `z`, `lat`, and `lon`, but you can easily add
+other {py:obj}`parcels.Variable`s such as size, temperature, or age to create your own particles to mimic plastic or an [ARGO float](../user_guide/examples/tutorial_Argofloats.ipynb).
 
 ```{code-cell}
 # Particle locations and initial time
@@ -90,7 +90,7 @@ ax.scatter(lon,lat,s=40,c='w',edgecolors='r');
 ## Compute: `Kernel`
 
 After setting up the input data and particle start locations and times, we need to specify what calculations to do with
-the particles. These calculations, or numerical integrations, will be performed by what we call a `Kernel`, operating on
+the particles. These calculations, or numerical integrations, will be performed by what we call a {py:obj}`parcels.Kernel`, operating on
 all particles in the `ParticleSet`. The most common calculation is the advection of particles through the velocity field.
 Parcels comes with a number of standard kernels, from which we will use the Runge-Kutta advection kernel `AdvectionRK2`:
 
@@ -105,7 +105,7 @@ kernels = [parcels.kernels.AdvectionRK2]
 ## Prepare output: `ParticleFile`
 
 Before starting the simulation, we must define where and how frequent we want to write the output of our simulation.
-We can define this in a `ParticleFile` object:
+We can define this in a {py:obj}`parcels.ParticleFile` object:
 
 ```{code-cell}
 output_file = parcels.ParticleFile("output-quickstart.zarr", outputdt=np.timedelta64(1, "h"))
@@ -117,17 +117,13 @@ the `outputdt` argument so that it captures the smallest timescales of our inter
 
 ## Run Simulation: `ParticleSet.execute()`
 
-Finally, we can run the simulation by _executing_ the `ParticleSet` using the specified list of `kernels`.
+Finally, we can run the simulation by _executing_ the `ParticleSet` using the specified list of `kernels`. This is done using the {py:meth}`parcels.ParticleSet.execute()` method.
 Additionally, we need to specify:
 
 - the `runtime`: for how long we want to simulate particles.
 - the `dt`: the timestep with which to perform the numerical integration in the `kernels`. Depending on the numerical
   integration scheme, the accuracy of our simulation will depend on `dt`. Read [this notebook](https://github.com/Parcels-code/10year-anniversary-session2/blob/8931ef69577dbf00273a5ab4b7cf522667e146c5/advection_and_windage.ipynb)
   to learn more about numerical accuracy.
-
-```{note}
-TODO: add Michaels 10-years Parcels notebook to the user guide
-```
 
 ```{code-cell}
 :tags: [hide-output]
