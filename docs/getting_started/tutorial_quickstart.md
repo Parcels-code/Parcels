@@ -92,11 +92,7 @@ ax.scatter(lon,lat,s=40,c='w',edgecolors='r');
 After setting up the input data and particle start locations and times, we need to specify what calculations to do with
 the particles. These calculations, or numerical integrations, will be performed by what we call a {py:obj}`parcels.Kernel`, operating on
 all particles in the `ParticleSet`. The most common calculation is the advection of particles through the velocity field.
-Parcels comes with a number of standard kernels, from which we will use the Runge-Kutta advection kernel `AdvectionRK2`:
-
-```{note}
-TODO: link to a list of included kernels
-```
+Parcels comes with a number of common {py:obj}`parcels.kernels`, from which we will use the Runge-Kutta advection kernel `AdvectionRK2`:
 
 ```{code-cell}
 kernels = [parcels.kernels.AdvectionRK2]
