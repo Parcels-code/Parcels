@@ -17,7 +17,7 @@ A Parcels simulation is generally built up from four different components:
 3. [**Kernels**](#3-kernels). Kernels perform some specific operation on the particles every time step (e.g. advect the particles with the three-dimensional flow; or interpolate the temperature field to the particle location).
 4. [**Execute**](#4-execute). Execute the simulation. The core method which integrates the operations defined in Kernels for a given runtime and timestep, and writes output to a ParticleFile.
 
-We discuss each component in more detail below. The subsections titled **"Learn how to"** link to more detailed [how-to guide notebooks](../user_guide/index.md) and more detailed _explanations_ of Parcels functionality are included under **"Read more about"** subsections. The full list of classes and methods is in the [API reference](../reference/parcels/index.rst). If you want to learn by doing, check out the [quickstart tutorial](./tutorial_quickstart.md) to start creating your first Parcels simulation.
+We discuss each component in more detail below. The subsections titled **"Learn how to"** link to more detailed [how-to guide notebooks](../user_guide/index.md) and more detailed _explanations_ of Parcels functionality are included under **"Read more about"** subsections. The full list of classes and methods is in the [API reference](../reference.md). If you want to learn by doing, check out the [quickstart tutorial](./tutorial_quickstart.md) to start creating your first Parcels simulation.
 
 ```{figure} ../_static/concepts_diagram.png
 :alt: Parcels concepts diagram
@@ -190,6 +190,6 @@ There are many ways to analyze particle output, and although we provide [a short
 
 ```{admonition} 🖥️ Learn how to run a simulation
 :class: seealso
-- [Choose an appropriate timestep and integrator](../user_guide/examples/tutorial_dt_integrators.ipynb)
+- [Choose an appropriate timestep and integrator](../user_guide/examples/tutorial_numerical_accuracy.ipynb)
 - [Work with Parcels output](./tutorial_output.ipynb)
 ```

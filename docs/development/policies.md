@@ -10,7 +10,7 @@ We accept that Parcels developers have their own motivation for using (or not us
 
 Remember that reviews are done by human maintainers - asking us to review code that an AI wrote but you don't understand isn't kind to these maintainers.
 
-The [CLAUDE.md](https://github.com/Parcels-code/Parcels/blob/HEAD/CLAUDE.md) file in the repository has additional instructions for AI agents to follow when contributing to Parcels.
+The [CLAUDE.md](/CLAUDE.md) file in the repository has additional instructions for AI agents to follow when contributing to Parcels.
 
 ## Versioning
 

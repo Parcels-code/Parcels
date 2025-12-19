@@ -1,6 +1,6 @@
 # User guide
 
-The core of our user guide is a series of Jupyter notebooks which document how to implement specific Lagrangian simulations with the flexibility of **Parcels**. Before diving into these advanced _how-to_ guides (🖥️), we suggest users get started by reading the explanation (📖) of the core concepts and trying the tutorials (🎓). For a description of the specific classes and functions, check out the [API reference](../reference/parcels/index.md). To discover other community resources, check out our [Community](../community/index.md) page.
+The core of our user guide is a series of Jupyter notebooks which document how to implement specific Lagrangian simulations with the flexibility of **Parcels**. Before diving into these advanced _how-to_ guides (🖥️), we suggest users get started by reading the explanation (📖) of the core concepts and trying the tutorials (🎓). For a description of the specific classes and functions, check out the [API reference](../reference.md). To discover other community resources, check out our [Community](../community/index.md) page.
 
 ```{note}
 The tutorials written for Parcels v3 are currently being updated for Parcels v4. Shown below are only the notebooks which have been updated.
@@ -72,12 +72,10 @@ examples/tutorial_interpolation.ipynb
 ```{toctree}
 :caption: Run a simulation
 :name: tutorial-execute
-:titlesonly:
 
-examples/tutorial_dt_integrators.ipynb
+examples/tutorial_numerical_accuracy.ipynb
 ```
 
-<!-- examples/tutorial_peninsula_AvsCgrid.ipynb -->
 <!-- examples/documentation_advanced_zarr.ipynb -->
 <!-- examples/documentation_LargeRunsOutput.ipynb -->
 
@@ -87,6 +85,7 @@ examples/tutorial_dt_integrators.ipynb
 
 ``` -->
 
+<!-- examples/tutorial_peninsula_AvsCgrid.ipynb -->
 <!-- examples/documentation_stuck_particles.ipynb -->
 <!-- examples/documentation_unstuck_Agrid.ipynb -->
 <!-- examples/documentation_geospatial.ipynb -->
