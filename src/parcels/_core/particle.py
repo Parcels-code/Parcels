@@ -117,7 +117,7 @@ class ParticleClass:
 
 
 class ParticleSetView:
-    """Class to be used in a kernel that links a particle (on the kernel level) to a particle dataset."""
+    """Class to be used in a kernel that links a View of the ParticleSet (on the kernel level) to a ParticleSet."""
 
     def __init__(self, data, index):
         self._data = data
@@ -134,7 +134,6 @@ class ParticleSetView:
             # user-facing semantics (e.g., `pset[0].time` should be a number).
             if isinstance(self._index, (int, np.integer)):
                 return self._data[name][self._index]
-            # For 0-d numpy integer scalars
             if isinstance(self._index, np.ndarray) and self._index.ndim == 0:
                 return self._data[name][int(self._index)]
             return ParticleSetViewArray(self._data, self._index, name)
@@ -168,36 +167,19 @@ class ParticleSetView:
                 )
             return ParticleSetView(self._data, new_index)
 
-        # Integer array / list of indices relative to local view
-        if isinstance(index, (np.ndarray, list)):
-            idx_arr = np.asarray(index)
-            if idx_arr.dtype == bool:
-                # handled above, but keep for safety
-                if idx_arr.size == base.size:
-                    new_index = idx_arr
-                else:
-                    new_index[base] = idx_arr
-            else:
-                if base.dtype == bool:
-                    particle_idxs = np.flatnonzero(base)
-                    sel = particle_idxs[idx_arr]
-                    new_index[sel] = True
-                else:
-                    base_arr = np.asarray(base)
-                    sel = base_arr[idx_arr]
-                    new_index[sel] = True
-            return ParticleSetView(self._data, new_index)
-
-        # Slice or single integer index relative to local view
-        if isinstance(index, slice) or isinstance(index, int):
+        # Integer array/list, slice or single integer relative to the local view
+        # (boolean masks were handled above). Normalize and map to global
+        # particle indices for both boolean-base and integer-base `self._index`.
+        if isinstance(index, (np.ndarray, list, slice, int)):
+            # convert list/ndarray to ndarray, keep slice/int as-is
+            idx = np.asarray(index) if isinstance(index, (np.ndarray, list)) else index
             if base.dtype == bool:
                 particle_idxs = np.flatnonzero(base)
-                sel = particle_idxs[index]
-                new_index[sel] = True
+                sel = particle_idxs[idx]
             else:
                 base_arr = np.asarray(base)
-                sel = base_arr[index]
-                new_index[sel] = True
+                sel = base_arr[idx]
+            new_index[sel] = True
             return ParticleSetView(self._data, new_index)
 
         # Fallback: try to assign directly (preserves previous behaviour for other index types)
@@ -206,46 +188,6 @@ class ParticleSetView:
             return ParticleSetView(self._data, new_index)
         except Exception as e:
             raise TypeError(f"Unsupported index type for ParticleSetView.__getitem__: {type(index)!r}") from e
-
-    # def __setitem__(self, index, value):
-    #     """Assign to a subset of particles represented by `index` relative to
-    #     this ParticleSetView's current selection.
-
-    #     The incoming `index` is interpreted in the same way as for
-    #     `__getitem__`: it indexes into the subset defined by `self._index`.
-
-    #     `value` may be another ParticleSetView (in which case common variables
-    #     are copied), or a dict mapping variable names to arrays/scalars which
-    #     will be written into the parent arrays at the computed positions.
-    #     """
-    #     # Map the provided index (which indexes into the current subset)
-    #     # back to the full parent-array index.
-    #     new_index = np.zeros_like(self._index, dtype=bool)
-    #     new_index[self._index] = index
-
-    #     # Helper to perform assignment for a given variable name
-    #     def _assign(varname, src):
-    #         # write into parent array at positions new_index
-    #         self._data[varname][new_index] = src
-
-    #     # Case: assign from another ParticleSetView-like object
-    #     if isinstance(value, ParticleSetView):
-    #         # copy across common fields
-    #         for k in set(self._data.keys()).intersection(value._data.keys()):
-    #             _assign(k, value._data[k][value._index])
-    #         return
-
-    #     # Case: assign from a dict-like mapping variable names -> values
-    #     if isinstance(value, dict):
-    #         for k, v in value.items():
-    #             if k not in self._data:
-    #                 raise KeyError(f"Unknown particle variable: {k}")
-    #             _assign(k, v)
-    #         return
-
-    #     # Otherwise, if a scalar/array is provided, assign it to all variables
-    #     # is ambiguous: raise TypeError to avoid surprising behaviour.
-    #     raise TypeError("Unsupported value for ParticleSetView.__setitem__; provide a ParticleSetView or dict of variable values")
 
     def __len__(self):
         return len(self._index)
