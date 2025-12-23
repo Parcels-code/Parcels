@@ -343,10 +343,17 @@ class ParticleSetViewArray:
             if isinstance(subindex, (slice, int)):
                 rel = np.flatnonzero(base)[subindex]
                 return rel
-            # otherwise assume subindex is an integer/array selection relative
-            # to the local view and map to global indices
+            # If subindex is an integer/array selection (relative to the
+            # local view) map those to global integer indices.
+            arr = np.asarray(subindex)
+            if arr.dtype != bool:
+                particle_idxs = np.flatnonzero(base)
+                sel = particle_idxs[arr]
+                return sel
+            # Otherwise treat subindex as a boolean mask relative to the
+            # local view and expand to a global boolean mask.
             global_mask = np.zeros_like(base, dtype=bool)
-            global_mask[base] = subindex
+            global_mask[base] = arr
             return global_mask
 
         # If base is an array of integer indices
