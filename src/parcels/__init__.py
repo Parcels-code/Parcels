@@ -17,7 +17,7 @@ from parcels._core.particle import (
     Variable,
     Particle,
     ParticleClass,
-    ParticleSetView,  # ? remove?
+    ParticleSetView,
 )
 from parcels._core.field import Field, VectorField
 from parcels._core.basegrid import BaseGrid
@@ -87,7 +87,7 @@ __all__ = [  # noqa: RUF022
     "logger",
     "download_example_dataset",
     "list_example_datasets",
-    # (marked for potential removal)
+    # Helpers for particle handling
     "ParticleSetView",
 ]
 
