@@ -11,7 +11,7 @@ from parcels._core.utils.string import _assert_str_and_python_varname
 from parcels._core.utils.time import TimeInterval
 from parcels._reprs import _format_list_items_multiline
 
-__all__ = ["KernelParticle", "Particle", "ParticleClass", "Variable"]
+__all__ = ["Particle", "ParticleClass", "ParticleSetView", "Variable"]
 _TO_WRITE_OPTIONS = [True, False, "once"]
 
 
@@ -116,7 +116,7 @@ class ParticleClass:
         return ParticleClass(variables=self.variables + variable)
 
 
-class KernelParticle:
+class ParticleSetView:
     """Class to be used in a kernel that links a particle (on the kernel level) to a particle dataset."""
 
     def __init__(self, data, index):
@@ -129,7 +129,7 @@ class KernelParticle:
         # enables constructs like `particles.dlon[mask] += vals` to update
         # the parent arrays rather than temporary copies.
         if name in self._data:
-            # If this KernelParticle represents a single particle (integer
+            # If this ParticleSetView represents a single particle (integer
             # index), return the underlying scalar directly to preserve
             # user-facing semantics (e.g., `pset[0].time` should be a number).
             if isinstance(self._index, (int, np.integer)):
@@ -137,7 +137,7 @@ class KernelParticle:
             # For 0-d numpy integer scalars
             if isinstance(self._index, np.ndarray) and self._index.ndim == 0:
                 return self._data[name][int(self._index)]
-            return KernelParticleArray(self._data, self._index, name)
+            return ParticleSetViewArray(self._data, self._index, name)
         return self._data[name][self._index]
 
     def __setattr__(self, name, value):
@@ -166,7 +166,7 @@ class KernelParticle:
                 raise ValueError(
                     f"Boolean index has incompatible length {arr.size} for selection of size {int(np.sum(base))}"
                 )
-            return KernelParticle(self._data, new_index)
+            return ParticleSetView(self._data, new_index)
 
         # Integer array / list of indices relative to local view
         if isinstance(index, (np.ndarray, list)):
@@ -186,7 +186,7 @@ class KernelParticle:
                     base_arr = np.asarray(base)
                     sel = base_arr[idx_arr]
                     new_index[sel] = True
-            return KernelParticle(self._data, new_index)
+            return ParticleSetView(self._data, new_index)
 
         # Slice or single integer index relative to local view
         if isinstance(index, slice) or isinstance(index, int):
@@ -198,23 +198,23 @@ class KernelParticle:
                 base_arr = np.asarray(base)
                 sel = base_arr[index]
                 new_index[sel] = True
-            return KernelParticle(self._data, new_index)
+            return ParticleSetView(self._data, new_index)
 
         # Fallback: try to assign directly (preserves previous behaviour for other index types)
         try:
             new_index[base] = index
-            return KernelParticle(self._data, new_index)
+            return ParticleSetView(self._data, new_index)
         except Exception as e:
-            raise TypeError(f"Unsupported index type for KernelParticle.__getitem__: {type(index)!r}") from e
+            raise TypeError(f"Unsupported index type for ParticleSetView.__getitem__: {type(index)!r}") from e
 
     # def __setitem__(self, index, value):
     #     """Assign to a subset of particles represented by `index` relative to
-    #     this KernelParticle's current selection.
+    #     this ParticleSetView's current selection.
 
     #     The incoming `index` is interpreted in the same way as for
     #     `__getitem__`: it indexes into the subset defined by `self._index`.
 
-    #     `value` may be another KernelParticle (in which case common variables
+    #     `value` may be another ParticleSetView (in which case common variables
     #     are copied), or a dict mapping variable names to arrays/scalars which
     #     will be written into the parent arrays at the computed positions.
     #     """
@@ -228,8 +228,8 @@ class KernelParticle:
     #         # write into parent array at positions new_index
     #         self._data[varname][new_index] = src
 
-    #     # Case: assign from another KernelParticle-like object
-    #     if isinstance(value, KernelParticle):
+    #     # Case: assign from another ParticleSetView-like object
+    #     if isinstance(value, ParticleSetView):
     #         # copy across common fields
     #         for k in set(self._data.keys()).intersection(value._data.keys()):
     #             _assign(k, value._data[k][value._index])
@@ -245,13 +245,13 @@ class KernelParticle:
 
     #     # Otherwise, if a scalar/array is provided, assign it to all variables
     #     # is ambiguous: raise TypeError to avoid surprising behaviour.
-    #     raise TypeError("Unsupported value for KernelParticle.__setitem__; provide a KernelParticle or dict of variable values")
+    #     raise TypeError("Unsupported value for ParticleSetView.__setitem__; provide a ParticleSetView or dict of variable values")
 
     def __len__(self):
         return len(self._index)
 
 
-class KernelParticleArray:
+class ParticleSetViewArray:
     """Array-like proxy for a particle variable that writes through to the
     parent arrays when mutated.
 
@@ -366,7 +366,7 @@ class KernelParticleArray:
             return local[subindex]
 
         new_index = self._to_global_index(subindex)
-        return KernelParticleArray(self._data, new_index, self._name)
+        return ParticleSetViewArray(self._data, new_index, self._name)
 
     def __setitem__(self, subindex, value):
         tgt = self._to_global_index(subindex)
@@ -375,43 +375,43 @@ class KernelParticleArray:
     # in-place ops must write back into the parent array
     def __iadd__(self, other):
         vals = self._data[self._name][self._index] + (
-            other.__array__() if isinstance(other, KernelParticleArray) else other
+            other.__array__() if isinstance(other, ParticleSetViewArray) else other
         )
         self._data[self._name][self._index] = vals
         return self
 
     def __isub__(self, other):
         vals = self._data[self._name][self._index] - (
-            other.__array__() if isinstance(other, KernelParticleArray) else other
+            other.__array__() if isinstance(other, ParticleSetViewArray) else other
         )
         self._data[self._name][self._index] = vals
         return self
 
     def __imul__(self, other):
         vals = self._data[self._name][self._index] * (
-            other.__array__() if isinstance(other, KernelParticleArray) else other
+            other.__array__() if isinstance(other, ParticleSetViewArray) else other
         )
         self._data[self._name][self._index] = vals
         return self
 
     # Provide simple numpy-like evaluation for binary ops by delegating to ndarray
     def __add__(self, other):
-        return self.__array__() + (other.__array__() if isinstance(other, KernelParticleArray) else other)
+        return self.__array__() + (other.__array__() if isinstance(other, ParticleSetViewArray) else other)
 
     def __sub__(self, other):
-        return self.__array__() - (other.__array__() if isinstance(other, KernelParticleArray) else other)
+        return self.__array__() - (other.__array__() if isinstance(other, ParticleSetViewArray) else other)
 
     def __mul__(self, other):
-        return self.__array__() * (other.__array__() if isinstance(other, KernelParticleArray) else other)
+        return self.__array__() * (other.__array__() if isinstance(other, ParticleSetViewArray) else other)
 
     def __truediv__(self, other):
-        return self.__array__() / (other.__array__() if isinstance(other, KernelParticleArray) else other)
+        return self.__array__() / (other.__array__() if isinstance(other, ParticleSetViewArray) else other)
 
     def __floordiv__(self, other):
-        return self.__array__() // (other.__array__() if isinstance(other, KernelParticleArray) else other)
+        return self.__array__() // (other.__array__() if isinstance(other, ParticleSetViewArray) else other)
 
     def __pow__(self, other):
-        return self.__array__() ** (other.__array__() if isinstance(other, KernelParticleArray) else other)
+        return self.__array__() ** (other.__array__() if isinstance(other, ParticleSetViewArray) else other)
 
     def __neg__(self):
         return -self.__array__()
@@ -422,31 +422,31 @@ class KernelParticleArray:
     def __abs__(self):
         return abs(self.__array__())
 
-    # Right-hand operations to handle cases like `scalar - KernelParticleArray`
+    # Right-hand operations to handle cases like `scalar - ParticleSetViewArray`
     def __radd__(self, other):
-        return (other.__array__() if isinstance(other, KernelParticleArray) else other) + self.__array__()
+        return (other.__array__() if isinstance(other, ParticleSetViewArray) else other) + self.__array__()
 
     def __rsub__(self, other):
-        return (other.__array__() if isinstance(other, KernelParticleArray) else other) - self.__array__()
+        return (other.__array__() if isinstance(other, ParticleSetViewArray) else other) - self.__array__()
 
     def __rmul__(self, other):
-        return (other.__array__() if isinstance(other, KernelParticleArray) else other) * self.__array__()
+        return (other.__array__() if isinstance(other, ParticleSetViewArray) else other) * self.__array__()
 
     def __rtruediv__(self, other):
-        return (other.__array__() if isinstance(other, KernelParticleArray) else other) / self.__array__()
+        return (other.__array__() if isinstance(other, ParticleSetViewArray) else other) / self.__array__()
 
     def __rfloordiv__(self, other):
-        return (other.__array__() if isinstance(other, KernelParticleArray) else other) // self.__array__()
+        return (other.__array__() if isinstance(other, ParticleSetViewArray) else other) // self.__array__()
 
     def __rpow__(self, other):
-        return (other.__array__() if isinstance(other, KernelParticleArray) else other) ** self.__array__()
+        return (other.__array__() if isinstance(other, ParticleSetViewArray) else other) ** self.__array__()
 
     # Comparison operators should return plain numpy boolean arrays so that
     # expressions like `mask = particles.gridID == gid` produce an ndarray
-    # usable for indexing (rather than another KernelParticleArray).
+    # usable for indexing (rather than another ParticleSetViewArray).
     def __eq__(self, other):
         left = np.asarray(self.__array__())
-        if isinstance(other, KernelParticleArray):
+        if isinstance(other, ParticleSetViewArray):
             right = np.asarray(other.__array__())
         else:
             right = other
@@ -454,7 +454,7 @@ class KernelParticleArray:
 
     def __ne__(self, other):
         left = np.asarray(self.__array__())
-        if isinstance(other, KernelParticleArray):
+        if isinstance(other, ParticleSetViewArray):
             right = np.asarray(other.__array__())
         else:
             right = other
@@ -462,7 +462,7 @@ class KernelParticleArray:
 
     def __lt__(self, other):
         left = np.asarray(self.__array__())
-        if isinstance(other, KernelParticleArray):
+        if isinstance(other, ParticleSetViewArray):
             right = np.asarray(other.__array__())
         else:
             right = other
@@ -470,7 +470,7 @@ class KernelParticleArray:
 
     def __le__(self, other):
         left = np.asarray(self.__array__())
-        if isinstance(other, KernelParticleArray):
+        if isinstance(other, ParticleSetViewArray):
             right = np.asarray(other.__array__())
         else:
             right = other
@@ -478,7 +478,7 @@ class KernelParticleArray:
 
     def __gt__(self, other):
         left = np.asarray(self.__array__())
-        if isinstance(other, KernelParticleArray):
+        if isinstance(other, ParticleSetViewArray):
             right = np.asarray(other.__array__())
         else:
             right = other
@@ -486,7 +486,7 @@ class KernelParticleArray:
 
     def __ge__(self, other):
         left = np.asarray(self.__array__())
-        if isinstance(other, KernelParticleArray):
+        if isinstance(other, ParticleSetViewArray):
             right = np.asarray(other.__array__())
         else:
             right = other

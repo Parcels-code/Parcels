@@ -11,7 +11,7 @@ from zarr.storage import DirectoryStore
 
 from parcels._core.converters import _convert_to_flat_array
 from parcels._core.kernel import Kernel
-from parcels._core.particle import KernelParticle, Particle, create_particle_data
+from parcels._core.particle import Particle, ParticleSetView, create_particle_data
 from parcels._core.statuscodes import StatusCode
 from parcels._core.utils.time import (
     TimeInterval,
@@ -166,7 +166,7 @@ class ParticleSet:
 
     def __getitem__(self, index):
         """Get a single particle by index."""
-        return KernelParticle(self._data, index=index)
+        return ParticleSetView(self._data, index=index)
 
     def __setattr__(self, name, value):
         if name in ["_data"]:
