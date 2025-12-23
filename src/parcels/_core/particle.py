@@ -193,19 +193,18 @@ class ParticleSetView:
         return len(self._index)
 
 
-class ParticleSetViewArray:
-    """Array-like proxy for a particle variable that writes through to the
-    parent arrays when mutated.
+def _unwrap(other):
+    """Return ndarray for ParticleSetViewArray or the value unchanged."""
+    return other.__array__() if isinstance(other, ParticleSetViewArray) else other
 
-    Parameters
-    ----------
-    data : dict-like
-        Parent particle storage (mapping varname -> ndarray)
-    index : array-like
-        Index representing the subset in the parent arrays (boolean mask or integer indices)
-    name : str
-        Variable name in `data` to proxy
-    """
+
+def _asarray(other):
+    """Return numpy array for ParticleSetViewArray, otherwise return argument."""
+    return np.asarray(other.__array__()) if isinstance(other, ParticleSetViewArray) else other
+
+
+class ParticleSetViewArray:
+    """Array-like proxy for a ParticleSetView that writes through to the parent arrays when mutated."""
 
     def __init__(self, data, index, name):
         self._data = data
@@ -253,24 +252,11 @@ class ParticleSetViewArray:
             # map the first index (local selection) to global particle indices
             if base.dtype == bool:
                 particle_idxs = np.flatnonzero(base)
-                if isinstance(first, slice):
-                    sel = particle_idxs[first]
-                elif isinstance(first, (np.ndarray, list)):
-                    first_arr = np.asarray(first)
-                    if first_arr.dtype == bool:
-                        sel = particle_idxs[first_arr]
-                    else:
-                        sel = particle_idxs[first_arr]
-                elif isinstance(first, int):
-                    sel = particle_idxs[first]
-                else:
-                    sel = particle_idxs[first]
+                first_arr = np.asarray(first) if isinstance(first, (np.ndarray, list)) else first
+                sel = particle_idxs[first_arr]
             else:
                 base_arr = np.asarray(base)
-                if isinstance(first, slice):
-                    sel = base_arr[first]
-                else:
-                    sel = base_arr[first]
+                sel = base_arr[first]
 
             # if rest contains a single int (e.g., column), return tuple index
             if len(rest) == 1:
@@ -323,44 +309,38 @@ class ParticleSetViewArray:
 
     # in-place ops must write back into the parent array
     def __iadd__(self, other):
-        vals = self._data[self._name][self._index] + (
-            other.__array__() if isinstance(other, ParticleSetViewArray) else other
-        )
+        vals = self._data[self._name][self._index] + _unwrap(other)
         self._data[self._name][self._index] = vals
         return self
 
     def __isub__(self, other):
-        vals = self._data[self._name][self._index] - (
-            other.__array__() if isinstance(other, ParticleSetViewArray) else other
-        )
+        vals = self._data[self._name][self._index] - _unwrap(other)
         self._data[self._name][self._index] = vals
         return self
 
     def __imul__(self, other):
-        vals = self._data[self._name][self._index] * (
-            other.__array__() if isinstance(other, ParticleSetViewArray) else other
-        )
+        vals = self._data[self._name][self._index] * _unwrap(other)
         self._data[self._name][self._index] = vals
         return self
 
     # Provide simple numpy-like evaluation for binary ops by delegating to ndarray
     def __add__(self, other):
-        return self.__array__() + (other.__array__() if isinstance(other, ParticleSetViewArray) else other)
+        return self.__array__() + _unwrap(other)
 
     def __sub__(self, other):
-        return self.__array__() - (other.__array__() if isinstance(other, ParticleSetViewArray) else other)
+        return self.__array__() - _unwrap(other)
 
     def __mul__(self, other):
-        return self.__array__() * (other.__array__() if isinstance(other, ParticleSetViewArray) else other)
+        return self.__array__() * _unwrap(other)
 
     def __truediv__(self, other):
-        return self.__array__() / (other.__array__() if isinstance(other, ParticleSetViewArray) else other)
+        return self.__array__() / _unwrap(other)
 
     def __floordiv__(self, other):
-        return self.__array__() // (other.__array__() if isinstance(other, ParticleSetViewArray) else other)
+        return self.__array__() // _unwrap(other)
 
     def __pow__(self, other):
-        return self.__array__() ** (other.__array__() if isinstance(other, ParticleSetViewArray) else other)
+        return self.__array__() ** _unwrap(other)
 
     def __neg__(self):
         return -self.__array__()
@@ -373,72 +353,54 @@ class ParticleSetViewArray:
 
     # Right-hand operations to handle cases like `scalar - ParticleSetViewArray`
     def __radd__(self, other):
-        return (other.__array__() if isinstance(other, ParticleSetViewArray) else other) + self.__array__()
+        return _unwrap(other) + self.__array__()
 
     def __rsub__(self, other):
-        return (other.__array__() if isinstance(other, ParticleSetViewArray) else other) - self.__array__()
+        return _unwrap(other) - self.__array__()
 
     def __rmul__(self, other):
-        return (other.__array__() if isinstance(other, ParticleSetViewArray) else other) * self.__array__()
+        return _unwrap(other) * self.__array__()
 
     def __rtruediv__(self, other):
-        return (other.__array__() if isinstance(other, ParticleSetViewArray) else other) / self.__array__()
+        return _unwrap(other) / self.__array__()
 
     def __rfloordiv__(self, other):
-        return (other.__array__() if isinstance(other, ParticleSetViewArray) else other) // self.__array__()
+        return _unwrap(other) // self.__array__()
 
     def __rpow__(self, other):
-        return (other.__array__() if isinstance(other, ParticleSetViewArray) else other) ** self.__array__()
+        return _unwrap(other) ** self.__array__()
 
     # Comparison operators should return plain numpy boolean arrays so that
     # expressions like `mask = particles.gridID == gid` produce an ndarray
     # usable for indexing (rather than another ParticleSetViewArray).
     def __eq__(self, other):
         left = np.asarray(self.__array__())
-        if isinstance(other, ParticleSetViewArray):
-            right = np.asarray(other.__array__())
-        else:
-            right = other
+        right = _asarray(other)
         return left == right
 
     def __ne__(self, other):
         left = np.asarray(self.__array__())
-        if isinstance(other, ParticleSetViewArray):
-            right = np.asarray(other.__array__())
-        else:
-            right = other
+        right = _asarray(other)
         return left != right
 
     def __lt__(self, other):
         left = np.asarray(self.__array__())
-        if isinstance(other, ParticleSetViewArray):
-            right = np.asarray(other.__array__())
-        else:
-            right = other
+        right = _asarray(other)
         return left < right
 
     def __le__(self, other):
         left = np.asarray(self.__array__())
-        if isinstance(other, ParticleSetViewArray):
-            right = np.asarray(other.__array__())
-        else:
-            right = other
+        right = _asarray(other)
         return left <= right
 
     def __gt__(self, other):
         left = np.asarray(self.__array__())
-        if isinstance(other, ParticleSetViewArray):
-            right = np.asarray(other.__array__())
-        else:
-            right = other
+        right = _asarray(other)
         return left > right
 
     def __ge__(self, other):
         left = np.asarray(self.__array__())
-        if isinstance(other, ParticleSetViewArray):
-            right = np.asarray(other.__array__())
-        else:
-            right = other
+        right = _asarray(other)
         return left >= right
 
     # Allow attribute access like .dtype etc. by forwarding to the ndarray
