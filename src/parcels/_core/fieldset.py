@@ -247,8 +247,10 @@ class FieldSet:
 
     def from_nemo(ds: xr.Dataset):
         ds = ds.copy()
-        ds = _discover_U_and_V(ds, _NEMO_CF_STANDARD_NAME_FALLBACKS)
+        ds = _maybe_create_z_dim(ds)
         ds = _maybe_rename_variables(ds, _NEMO_VARNAMES_MAPPING)
+        ds = _discover_U_and_V(ds, _NEMO_CF_STANDARD_NAME_FALLBACKS)
+        ds = _drop_unused_dimensions_and_coords(ds, _NEMO_DIMENSION_NAMES)
         ds = _maybe_rename_coords(ds, _NEMO_AXIS_VARNAMES)
         ds = _assign_dims_as_coords(ds, _NEMO_DIMENSION_NAMES)
         ds = _set_coords(ds, _NEMO_DIMENSION_NAMES)
@@ -280,7 +282,7 @@ class FieldSet:
                     sgrid.DimDimPadding("x_center", "x", sgrid.Padding.LOW),
                     sgrid.DimDimPadding("y_center", "y", sgrid.Padding.LOW),
                 ),
-                vertical_dimensions=(sgrid.DimDimPadding("depth_center", "depth", sgrid.Padding.LOW),),
+                vertical_dimensions=(sgrid.DimDimPadding("z_center", "z", sgrid.Padding.LOW),),
             ).to_attrs(),
         )
         fieldset = FieldSet.from_sgrid_conventions(ds, mesh="spherical")
@@ -493,7 +495,7 @@ _NEMO_CF_STANDARD_NAME_FALLBACKS = {
     "W": ["upward_sea_water_velocity", "vertical_sea_water_velocity"],
 }
 
-_NEMO_DIMENSION_NAMES = ["x", "y", "depth", "time", "lon", "lat"]
+_NEMO_DIMENSION_NAMES = ["x", "y", "z", "time", "lon", "lat", "depth"]
 
 _NEMO_AXIS_VARNAMES = {
     "X": "lon",
@@ -506,7 +508,22 @@ _NEMO_VARNAMES_MAPPING = {
     "glamf": "lon",
     "gphif": "lat",
     "time_counter": "time",
+    "depthw": "depth",
+    "uo": "U",
+    "vo": "V",
+    "wo": "W",
 }
+
+
+def _maybe_create_z_dim(ds):
+    if "depthw" in ds.dims:
+        lenZ = ds.sizes["depthw"]
+        for var in ds.data_vars:
+            for depthname in ["depthu", "depthv", "depthw"]:
+                if depthname in ds[var].dims:
+                    ds[var] = ds[var].expand_dims(dim={"z": np.arange(lenZ)}, axis=1)
+                    ds[var] = ds[var].isel({depthname: 0}, drop=True)
+    return ds
 
 
 def _maybe_rename_coords(ds, AXIS_VARNAMES):
@@ -529,6 +546,16 @@ def _assign_dims_as_coords(ds, DIMENSION_NAMES):
     for axis in DIMENSION_NAMES:
         if axis in ds.dims and axis not in ds.coords:
             ds = ds.assign_coords({axis: np.arange(ds.sizes[axis])})
+    return ds
+
+
+def _drop_unused_dimensions_and_coords(ds, DIMENSION_NAMES):
+    for dim in ds.dims:
+        if dim not in DIMENSION_NAMES:
+            ds = ds.drop_dims(dim, errors="ignore")
+    for coord in ds.coords:
+        if coord not in DIMENSION_NAMES:
+            ds = ds.drop_vars(coord, errors="ignore")
     return ds
 
 
