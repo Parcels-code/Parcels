@@ -224,7 +224,7 @@ class FieldSet:
         ds = _maybe_rename_coords(ds, _COPERNICUS_MARINE_AXIS_VARNAMES)
         if "W" in ds.data_vars:
             # Negate W to convert from up positive to down positive (as that's the direction of positive z)
-            ds["W"] -= ds["W"]
+            ds["W"].data *= -1
 
         if "grid" in ds.cf.cf_roles:
             raise ValueError(
@@ -267,7 +267,7 @@ class FieldSet:
 
         if "W" in ds.data_vars:
             # Negate W to convert from up positive to down positive (as that's the direction of positive z)
-            ds["W"] -= ds["W"]
+            ds["W"].data *= -1
         if "grid" in ds.cf.cf_roles:
             raise ValueError(
                 "Dataset already has a 'grid' variable (according to cf_roles). Didn't expect there to be grid metadata on copernicusmarine datasets - please open an issue with more information about your dataset."
