@@ -267,13 +267,14 @@ class FieldSet:
 
         """
         ds = ds.copy()
-        ds = _maybe_create_z_dim(ds)
+        ds = _create_z_dim(ds)
         ds = _maybe_rename_variables(ds, _NEMO_VARNAMES_MAPPING)
         ds = _discover_U_and_V(ds, _NEMO_CF_STANDARD_NAME_FALLBACKS)
         ds = _drop_unused_dimensions_and_coords(ds, _NEMO_DIMENSION_NAMES)
         ds = _maybe_rename_coords(ds, _NEMO_AXIS_VARNAMES)
         ds = _assign_dims_as_coords(ds, _NEMO_DIMENSION_NAMES)
         ds = _set_coords(ds, _NEMO_DIMENSION_NAMES)
+        ds = _maybe_remove_z_from_lonlat(ds)
         ds = _set_axis_attrs(ds, _NEMO_AXIS_VARNAMES)
 
         expected_axes = set("XYZT")  # TODO: Update after we have support for 2D spatial fields
@@ -535,7 +536,7 @@ _NEMO_VARNAMES_MAPPING = {
 }
 
 
-def _maybe_create_z_dim(ds):
+def _create_z_dim(ds):
     if "depthw" in ds.dims:
         lenZ = ds.sizes["depthw"]
         for var in ds.data_vars:
@@ -543,6 +544,10 @@ def _maybe_create_z_dim(ds):
                 if depthname in ds[var].dims:
                     ds[var] = ds[var].expand_dims(dim={"z": np.arange(lenZ)}, axis=1)
                     ds[var] = ds[var].isel({depthname: 0}, drop=True)
+    else:
+        if "z" not in ds.dims:
+            ds = ds.expand_dims({"z": [0]})
+            ds["depth"] = xr.DataArray([0], dims=["z"])
     return ds
 
 
@@ -583,6 +588,13 @@ def _set_coords(ds, DIMENSION_NAMES):
     for varname in DIMENSION_NAMES:
         if varname in ds and varname not in ds.coords:
             ds = ds.set_coords([varname])
+    return ds
+
+
+def _maybe_remove_z_from_lonlat(ds):
+    for coord in ["lon", "lat"]:
+        if coord in ds.coords and "z" in ds[coord].dims:
+            ds[coord] = ds[coord].squeeze("z", drop=True)
     return ds
 
 
