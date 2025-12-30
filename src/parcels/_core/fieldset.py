@@ -284,7 +284,10 @@ class FieldSet:
             ).to_attrs(),
         )
         fieldset = FieldSet.from_sgrid_conventions(ds, mesh="spherical")
-        fieldset.UV.vector_interp_method = CGrid_Velocity
+        if "UV" in fieldset.fields:
+            fieldset.UV.vector_interp_method = CGrid_Velocity
+        if "UVW" in fieldset.fields:
+            fieldset.UVW.vector_interp_method = CGrid_Velocity
         return fieldset
 
     def from_fesom2(ds: ux.UxDataset):
@@ -510,7 +513,7 @@ def _maybe_rename_coords(ds, AXIS_VARNAMES):
         for axis, [coord] in ds.cf.axes.items():
             ds = ds.rename({coord: AXIS_VARNAMES[axis]})
     except ValueError as e:
-        raise ValueError(f"Multiple coordinates found for Copernicus dataset on axis '{axis}'. Check your data.") from e
+        raise ValueError(f"Multiple coordinates found on axis '{axis}'. Check your DataSet.") from e
     return ds
 
 
