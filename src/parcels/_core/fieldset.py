@@ -19,7 +19,13 @@ from parcels._core.uxgrid import UxGrid
 from parcels._core.xgrid import _DEFAULT_XGCM_KWARGS, XGrid
 from parcels._logger import logger
 from parcels._typing import Mesh
-from parcels.interpolators import UxPiecewiseConstantFace, UxPiecewiseLinearNode, XConstantField, XLinear
+from parcels.interpolators import (
+    CGrid_Velocity,
+    UxPiecewiseConstantFace,
+    UxPiecewiseLinearNode,
+    XConstantField,
+    XLinear,
+)
 
 if TYPE_CHECKING:
     from parcels._core.basegrid import BaseGrid
@@ -205,7 +211,7 @@ class FieldSet:
 
         """
         ds = ds.copy()
-        ds = _discover_copernicusmarine_U_and_V(ds)
+        ds = _discover_U_and_V(ds, _COPERNICUS_MARINE_CF_STANDARD_NAME_FALLBACKS)
         expected_axes = set("XYZT")  # TODO: Update after we have support for 2D spatial fields
         if missing_axes := (expected_axes - set(ds.cf.axes)):
             raise ValueError(
@@ -215,7 +221,7 @@ class FieldSet:
                 "HINT: Add xarray metadata attribute 'axis' to dimension - e.g., ds['lat'].attrs['axis'] = 'Y'"
             )
 
-        ds = _rename_coords_copernicusmarine(ds)
+        ds = _maybe_rename_coords(ds, _COPERNICUS_MARINE_AXIS_VARNAMES)
         if "W" in ds.data_vars:
             # Negate W to convert from up positive to down positive (as that's the direction of positive z)
             ds["W"] -= ds["W"]
@@ -238,6 +244,48 @@ class FieldSet:
             ).to_attrs(),
         )
         return FieldSet.from_sgrid_conventions(ds, mesh="spherical")
+
+    def from_nemo(ds: xr.Dataset):
+        ds = ds.copy()
+        ds = _discover_U_and_V(ds, _NEMO_CF_STANDARD_NAME_FALLBACKS)
+        ds = _maybe_rename_variables(ds, _NEMO_VARNAMES_MAPPING)
+        ds = _maybe_rename_coords(ds, _NEMO_AXIS_VARNAMES)
+        ds = _assign_dims_as_coords(ds, _NEMO_DIMENSION_NAMES)
+        ds = _set_coords(ds, _NEMO_DIMENSION_NAMES)
+        ds = _set_axis_attrs(ds, _NEMO_AXIS_VARNAMES)
+
+        expected_axes = set("XYZT")  # TODO: Update after we have support for 2D spatial fields
+        if missing_axes := (expected_axes - set(ds.cf.axes)):
+            raise ValueError(
+                f"Dataset missing CF compliant metadata for axes "
+                f"{missing_axes}. Expected 'axis' attribute to be set "
+                f"on all dimension axes {expected_axes}. "
+                "HINT: Add xarray metadata attribute 'axis' to dimension - e.g., ds['lat'].attrs['axis'] = 'Y'"
+            )
+
+        if "W" in ds.data_vars:
+            # Negate W to convert from up positive to down positive (as that's the direction of positive z)
+            ds["W"] -= ds["W"]
+        if "grid" in ds.cf.cf_roles:
+            raise ValueError(
+                "Dataset already has a 'grid' variable (according to cf_roles). Didn't expect there to be grid metadata on copernicusmarine datasets - please open an issue with more information about your dataset."
+            )
+        ds["grid"] = xr.DataArray(
+            0,
+            attrs=sgrid.Grid2DMetadata(
+                cf_role="grid_topology",
+                topology_dimension=2,
+                node_dimensions=("lon", "lat"),
+                face_dimensions=(
+                    sgrid.DimDimPadding("x_center", "x", sgrid.Padding.LOW),
+                    sgrid.DimDimPadding("y_center", "y", sgrid.Padding.LOW),
+                ),
+                vertical_dimensions=(sgrid.DimDimPadding("depth_center", "depth", sgrid.Padding.LOW),),
+            ).to_attrs(),
+        )
+        fieldset = FieldSet.from_sgrid_conventions(ds, mesh="spherical")
+        fieldset.UV.vector_interp_method = CGrid_Velocity
+        return fieldset
 
     def from_fesom2(ds: ux.UxDataset):
         """Create a FieldSet from a FESOM2 uxarray.UxDataset.
@@ -404,19 +452,8 @@ _COPERNICUS_MARINE_AXIS_VARNAMES = {
 }
 
 
-def _rename_coords_copernicusmarine(ds):
-    try:
-        for axis, [coord] in ds.cf.axes.items():
-            ds = ds.rename({coord: _COPERNICUS_MARINE_AXIS_VARNAMES[axis]})
-    except ValueError as e:
-        raise ValueError(f"Multiple coordinates found for Copernicus dataset on axis '{axis}'. Check your data.") from e
-    return ds
-
-
-def _discover_copernicusmarine_U_and_V(ds: xr.Dataset) -> xr.Dataset:
-    # Assumes that the dataset has U and V data
-
-    cf_UV_standard_name_fallbacks = [
+_COPERNICUS_MARINE_CF_STANDARD_NAME_FALLBACKS = {
+    "UV": [
         (
             "eastward_sea_water_velocity",
             "northward_sea_water_velocity",
@@ -438,11 +475,78 @@ def _discover_copernicusmarine_U_and_V(ds: xr.Dataset) -> xr.Dataset:
             "eastward_sea_water_velocity_vertical_mean_over_pelagic_layer",
             "northward_sea_water_velocity_vertical_mean_over_pelagic_layer",
         ),  # GLOBAL_MULTIYEAR_BGC_001_033
-    ]
-    cf_W_standard_name_fallbacks = ["upward_sea_water_velocity", "vertical_sea_water_velocity"]
+    ],
+    "W": ["upward_sea_water_velocity", "vertical_sea_water_velocity"],
+}
+
+_NEMO_CF_STANDARD_NAME_FALLBACKS = {
+    "UV": [
+        (
+            "sea_water_x_velocity",
+            "sea_water_y_velocity",
+        ),
+    ],
+    "W": ["upward_sea_water_velocity", "vertical_sea_water_velocity"],
+}
+
+_NEMO_DIMENSION_NAMES = ["x", "y", "depth", "time", "lon", "lat"]
+
+_NEMO_AXIS_VARNAMES = {
+    "X": "lon",
+    "Y": "lat",
+    "Z": "depth",
+    "T": "time",
+}
+
+_NEMO_VARNAMES_MAPPING = {
+    "glamf": "lon",
+    "gphif": "lat",
+    "time_counter": "time",
+}
+
+
+def _maybe_rename_coords(ds, AXIS_VARNAMES):
+    try:
+        for axis, [coord] in ds.cf.axes.items():
+            ds = ds.rename({coord: AXIS_VARNAMES[axis]})
+    except ValueError as e:
+        raise ValueError(f"Multiple coordinates found for Copernicus dataset on axis '{axis}'. Check your data.") from e
+    return ds
+
+
+def _maybe_rename_variables(ds, VARNAMES_MAPPING):
+    rename_dict = {old: new for old, new in VARNAMES_MAPPING.items() if (old in ds.data_vars) or (old in ds.coords)}
+    if rename_dict:
+        ds = ds.rename(rename_dict)
+    return ds
+
+
+def _assign_dims_as_coords(ds, DIMENSION_NAMES):
+    for axis in DIMENSION_NAMES:
+        if axis in ds.dims and axis not in ds.coords:
+            ds = ds.assign_coords({axis: np.arange(ds.sizes[axis])})
+    return ds
+
+
+def _set_coords(ds, DIMENSION_NAMES):
+    for varname in DIMENSION_NAMES:
+        if varname in ds and varname not in ds.coords:
+            ds = ds.set_coords([varname])
+    return ds
+
+
+def _set_axis_attrs(ds, AXIS_VARNAMES):
+    for axis, varname in AXIS_VARNAMES.items():
+        if varname in ds.coords:
+            ds[varname].attrs["axis"] = axis
+    return ds
+
+
+def _discover_U_and_V(ds: xr.Dataset, cf_standard_names_fallbacks) -> xr.Dataset:
+    # Assumes that the dataset has U and V data
 
     if "W" not in ds:
-        for cf_standard_name_W in cf_W_standard_name_fallbacks:
+        for cf_standard_name_W in cf_standard_names_fallbacks["W"]:
             if cf_standard_name_W in ds.cf.standard_names:
                 ds = _ds_rename_using_standard_names(ds, {cf_standard_name_W: "W"})
                 break
@@ -454,7 +558,7 @@ def _discover_copernicusmarine_U_and_V(ds: xr.Dataset) -> xr.Dataset:
             "Dataset has only one of the two variables 'U' and 'V'. Please rename the appropriate variable in your dataset to have both 'U' and 'V' for Parcels simulation."
         )
 
-    for cf_standard_name_U, cf_standard_name_V in cf_UV_standard_name_fallbacks:
+    for cf_standard_name_U, cf_standard_name_V in cf_standard_names_fallbacks["UV"]:
         if cf_standard_name_U in ds.cf.standard_names:
             if cf_standard_name_V not in ds.cf.standard_names:
                 raise ValueError(
