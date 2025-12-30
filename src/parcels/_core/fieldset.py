@@ -246,6 +246,26 @@ class FieldSet:
         return FieldSet.from_sgrid_conventions(ds, mesh="spherical")
 
     def from_nemo(ds: xr.Dataset):
+        """Create a FieldSet from a xarray.Dataset from NEMO netcdf files.
+
+        Parameters
+        ----------
+        ds : xarray.Dataset
+            xarray.Dataset as obtained from a set of NEMO netcdf files.
+
+        Returns
+        -------
+        FieldSet
+            FieldSet object containing the fields from the dataset that can be used for a Parcels simulation.
+
+        Notes
+        -----
+        The NEMO model (https://www.nemo-ocean.eu/) is used by a variety of oceanographic institutions around the world.
+        Output from these models may differ subtly in terms of variable names and metadata conventions.
+        This function attempts to standardize these differences to create a Parcels FieldSet.
+        If you encounter issues with your specific NEMO dataset, please open an issue on the Parcels GitHub repository with details about your dataset.
+
+        """
         ds = ds.copy()
         ds = _maybe_create_z_dim(ds)
         ds = _maybe_rename_variables(ds, _NEMO_VARNAMES_MAPPING)
