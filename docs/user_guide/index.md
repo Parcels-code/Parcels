@@ -30,12 +30,12 @@ TODO: Add links to Reference API throughout
 :titlesonly:
 examples/explanation_grids.md
 examples/tutorial_nemo_curvilinear.ipynb
+examples/tutorial_nemo_3D.ipynb
 examples/tutorial_unitconverters.ipynb
 examples/tutorial_nestedgrids.ipynb
 ```
 
 <!-- examples/documentation_indexing.ipynb -->
-<!-- examples/tutorial_nemo_3D.ipynb -->
 <!-- examples/tutorial_croco_3D.ipynb -->
 <!-- examples/tutorial_timevaryingdepthdimensions.ipynb -->
 
