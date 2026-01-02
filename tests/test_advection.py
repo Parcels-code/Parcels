@@ -1,7 +1,6 @@
 import numpy as np
 import pytest
 import xarray as xr
-import xgcm
 
 import parcels
 from parcels import Field, FieldSet, Particle, ParticleFile, ParticleSet, StatusCode, Variable, VectorField, XGrid
@@ -438,32 +437,14 @@ def test_peninsula_fieldset(kernel, rtol, grid_type):
 
 def test_nemo_curvilinear_fieldset():
     data_folder = parcels.download_example_dataset("NemoCurvilinear_data")
-    files = data_folder.glob("*.nc4")
-    ds = xr.open_mfdataset(files, combine="nested", data_vars="minimal", coords="minimal", compat="override")
-    ds = (
-        ds.isel(time_counter=0, drop=True)
-        .isel(time=0, drop=True)
-        .isel(z_a=0, drop=True)
-        .rename({"glamf": "lon", "gphif": "lat", "z": "depth"})
+    ds_fields = xr.open_mfdataset(
+        data_folder.glob("*.nc4"),
+        data_vars="minimal",
+        coords="minimal",
+        compat="override",
     )
-
-    xgcm_grid = xgcm.Grid(
-        ds,
-        coords={
-            "X": {"left": "x"},
-            "Y": {"left": "y"},
-        },
-        periodic=False,
-        autoparse_metadata=False,
-    )
-    grid = XGrid(xgcm_grid, mesh="spherical")
-
-    U = parcels.Field("U", ds["U"], grid, interp_method=XLinear)
-    V = parcels.Field("V", ds["V"], grid, interp_method=XLinear)
-    U.units = parcels.GeographicPolar()
-    V.units = parcels.GeographicPolar()  # U and V need GeographicPolar for C-Grid interpolation to work correctly
-    UV = parcels.VectorField("UV", U, V, vector_interp_method=CGrid_Velocity)
-    fieldset = parcels.FieldSet([U, V, UV])
+    ds_fields = ds_fields.isel(time=0, z_a=0, z=0, drop=True)
+    fieldset = parcels.FieldSet.from_nemo(ds_fields)
 
     npart = 20
     lonp = 30 * np.ones(npart)
@@ -477,77 +458,17 @@ def test_nemo_curvilinear_fieldset():
 
 @pytest.mark.parametrize("kernel", [AdvectionRK4, AdvectionRK4_3D])
 def test_nemo_3D_curvilinear_fieldset(kernel):
-    download_dir = parcels.download_example_dataset("NemoNorthSeaORCA025-N006_data")
-    ufiles = download_dir.glob("*U.nc")
-    dsu = xr.open_mfdataset(ufiles, decode_times=False, drop_variables=["nav_lat", "nav_lon"])
-    dsu = dsu.rename({"time_counter": "time", "uo": "U"})
-
-    vfiles = download_dir.glob("*V.nc")
-    dsv = xr.open_mfdataset(vfiles, decode_times=False, drop_variables=["nav_lat", "nav_lon"])
-    dsv = dsv.rename({"time_counter": "time", "vo": "V"})
-
-    wfiles = download_dir.glob("*W.nc")
-    dsw = xr.open_mfdataset(wfiles, decode_times=False, drop_variables=["nav_lat", "nav_lon"])
-    dsw = dsw.rename({"time_counter": "time", "depthw": "depth", "wo": "W"})
-
-    dsu = dsu.assign_coords(depthu=dsw.depth.values)
-    dsu = dsu.rename({"depthu": "depth"})
-
-    dsv = dsv.assign_coords(depthv=dsw.depth.values)
-    dsv = dsv.rename({"depthv": "depth"})
-
-    coord_file = f"{download_dir}/coordinates.nc"
-    dscoord = xr.open_dataset(coord_file, decode_times=False).rename({"glamf": "lon", "gphif": "lat"})
-    dscoord = dscoord.isel(time=0, drop=True)
-
-    ds = xr.merge([dsu, dsv, dsw, dscoord])
-    ds = ds.drop_vars(
-        [
-            "uos",
-            "vos",
-            "nav_lev",
-            "nav_lon",
-            "nav_lat",
-            "tauvo",
-            "tauuo",
-            "time_steps",
-            "gphiu",
-            "gphiv",
-            "gphit",
-            "glamu",
-            "glamv",
-            "glamt",
-            "time_centered_bounds",
-            "time_counter_bounds",
-            "time_centered",
-        ]
+    data_folder = parcels.download_example_dataset("NemoNorthSeaORCA025-N006_data")
+    ds_fields = xr.open_mfdataset(
+        data_folder.glob("ORCA*.nc"),
+        data_vars="minimal",
+        coords="minimal",
+        compat="override",
     )
-    ds = ds.drop_vars(["e1f", "e1t", "e1u", "e1v", "e2f", "e2t", "e2u", "e2v"])
-    ds["time"] = [np.timedelta64(int(t), "s") + np.datetime64("1900-01-01") for t in ds["time"]]
-
-    ds["W"] *= -1  # Invert W velocity
-
-    xgcm_grid = xgcm.Grid(
-        ds,
-        coords={
-            "X": {"left": "x"},
-            "Y": {"left": "y"},
-            "Z": {"left": "depth"},
-            "T": {"center": "time"},
-        },
-        periodic=False,
-        autoparse_metadata=False,
-    )
-    grid = XGrid(xgcm_grid, mesh="spherical")
-
-    U = parcels.Field("U", ds["U"], grid, interp_method=XLinear)
-    V = parcels.Field("V", ds["V"], grid, interp_method=XLinear)
-    W = parcels.Field("W", ds["W"], grid, interp_method=XLinear)
-    U.units = parcels.GeographicPolar()
-    V.units = parcels.GeographicPolar()  # U and V need GoegraphicPolar for C-Grid interpolation to work correctly
-    UV = parcels.VectorField("UV", U, V, vector_interp_method=CGrid_Velocity)
-    UVW = parcels.VectorField("UVW", U, V, W, vector_interp_method=CGrid_Velocity)
-    fieldset = parcels.FieldSet([U, V, W, UV, UVW])
+    ds_coords = xr.open_dataset(data_folder / "coordinates.nc", decode_times=False)
+    ds_coords = ds_coords.isel(time=0, drop=True)
+    ds = xr.merge([ds_fields, ds_coords[["glamf", "gphif"]]])
+    fieldset = parcels.FieldSet.from_nemo(ds)
 
     npart = 10
     lons = np.linspace(1.9, 3.4, npart)
