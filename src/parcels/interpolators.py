@@ -237,33 +237,20 @@ def CGrid_Velocity(
             corner_data = corner_data[0, :, :] * (1 - tau_full) + corner_data[1, :, :] * tau_full
         else:
             corner_data = corner_data[0, :, :]
-        # # See code below for v3 version
-        # # if self.gridindexingtype == "nemo":
-        # #     U0 = self.U.data[ti, zi, yi + 1, xi] * c4
-        # #     U1 = self.U.data[ti, zi, yi + 1, xi + 1] * c2
-        # #     V0 = self.V.data[ti, zi, yi, xi + 1] * c1
-        # #     V1 = self.V.data[ti, zi, yi + 1, xi + 1] * c3
-        # # elif self.gridindexingtype in ["mitgcm", "croco"]:
-        # #     U0 = self.U.data[ti, zi, yi, xi] * c4
-        # #     U1 = self.U.data[ti, zi, yi, xi + 1] * c2
-        # #     V0 = self.V.data[ti, zi, yi, xi] * c1
-        # #     V1 = self.V.data[ti, zi, yi + 1, xi] * c3
-        # # TODO Nick can you help use xgcm to fix this implementation?
 
-        # # CROCO and MITgcm grid indexing,
-        # if data is U:
-        #     U0 = corner_data[:, 0] * c4
-        #     U1 = corner_data[:, 1] * c2
-        # elif data is V:
-        #     V0 = corner_data[:, 0] * c1
-        #     V1 = corner_data[:, 2] * c3
-        # # NEMO grid indexing
+        X_axis_coord = vectorfield.U.grid.xgcm_grid.axes["X"].coords.keys()
+        Y_axis_coord = vectorfield.V.grid.xgcm_grid.axes["Y"].coords.keys()
+
         if data is U:
-            U0 = corner_data[:, 2] * c4
-            U1 = corner_data[:, 3] * c2
+            val0 = 2 if "right" in X_axis_coord else 0
+            val1 = 3 if "right" in X_axis_coord else 1
+            U0 = corner_data[:, val0] * c4
+            U1 = corner_data[:, val1] * c2
         elif data is V:
-            V0 = corner_data[:, 1] * c1
-            V1 = corner_data[:, 3] * c3
+            val0 = 1 if "right" in Y_axis_coord else 0
+            val1 = 3 if "right" in Y_axis_coord else 2
+            V0 = corner_data[:, val0] * c1
+            V1 = corner_data[:, val1] * c3
 
     U = (1 - xsi) * U0 + xsi * U1
     V = (1 - eta) * V0 + eta * V1
@@ -304,17 +291,22 @@ def CGrid_Velocity(
             ti_1 = np.clip(ti + 1, 0, tdim - 1)
             ti_full = np.concatenate([np.repeat(ti, 2), np.repeat(ti_1, 2)])
 
-        # Z coordinates: 1 points at zi, repeated for both time levels
-        zi_1 = np.clip(zi + 1, 0, zdim - 1)
-        zi_full = np.tile(np.array([zi, zi_1]).flatten(), lenT)
+        # Z coordinates: 1 points at zi + offset, repeated for both time levels
+        Z_axis_coord = vectorfield.W.grid.xgcm_grid.axes["Z"].coords.keys()
+        offset = 1 if "right" in Z_axis_coord else 0
+        zi_0 = np.clip(zi + offset, 0, zdim - 1)
+        zi_1 = np.clip(zi + 1 + offset, 0, zdim - 1)
+        zi_full = np.tile(np.array([zi_0, zi_1]).flatten(), lenT)
 
-        # Y coordinates: yi+1 for each spatial point, repeated for time/z
-        yi_1 = np.clip(yi + 1, 0, ydim - 1)
-        yi_full = np.tile(yi_1, (lenT) * 2)
+        # Y coordinates: yi+offset for each spatial point, repeated for time/z
+        offset = 1 if "right" in Y_axis_coord else 0
+        yi_0 = np.clip(yi + offset, 0, ydim - 1)
+        yi_full = np.tile(yi_0, (lenT) * 2)
 
-        # X coordinates: xi+1 for each spatial point, repeated for time/z
-        xi_1 = np.clip(xi + 1, 0, xdim - 1)
-        xi_full = np.tile(xi_1, (lenT) * 2)
+        # X coordinates: xi+offset for each spatial point, repeated for time/z
+        offset = 1 if "right" in X_axis_coord else 0
+        xi_o = np.clip(xi + offset, 0, xdim - 1)
+        xi_full = np.tile(xi_o, (lenT) * 2)
 
         axis_dim = grid.get_axis_dim_mapping(data.dims)
 
