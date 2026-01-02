@@ -56,6 +56,7 @@ def test_advection_3DCROCO():
     data_folder = parcels.download_example_dataset("CROCOidealized_data")
     ds_fields = xr.open_dataset(data_folder / "CROCO_idealized.nc")
     ds_fields = ds_fields[["u", "v", "w", "h", "zeta", "Cs_w", "omega"]]
+    ds_fields.load()
 
     fieldset = parcels.FieldSet.from_croco(ds_fields, mesh="flat")
     fieldset.add_constant("hc", ds_fields.hc)
