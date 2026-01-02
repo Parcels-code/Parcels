@@ -41,6 +41,7 @@ def SampleOmegaCroco(particles, fieldset):
     particles.omega = fieldset.omega[particles.time, sigma, particles.lat, particles.lon, particles]
 
 
+# TODO change to RK2 (once RK4 yields same results as v3)
 def AdvectionRK4_3D_CROCO(particles, fieldset):  # pragma: no cover
     """Advection of particles using fourth-order Runge-Kutta integration including vertical velocity.
     This kernel assumes the vertical velocity is the 'w' field from CROCO output and works on sigma-layers.
