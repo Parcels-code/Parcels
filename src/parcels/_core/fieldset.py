@@ -351,12 +351,11 @@ class FieldSet:
         if "U" in ds.data_vars and "V" in ds.data_vars:
             fields["U"] = Field("U", ds["U"], grid, XLinear)
             fields["V"] = Field("V", ds["V"], grid, XLinear)
+            fields["UV"] = VectorField("UV", fields["U"], fields["V"])
 
             if "W" in ds.data_vars:
                 fields["W"] = Field("W", ds["W"], grid, XLinear)
                 fields["UVW"] = VectorField("UVW", fields["U"], fields["V"], fields["W"])
-            else:
-                fields["UV"] = VectorField("UV", fields["U"], fields["V"])
 
         for varname in set(ds.data_vars) - set(fields.keys()) - skip_vars:
             fields[varname] = Field(varname, ds[varname], grid, XLinear)
