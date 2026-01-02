@@ -20,6 +20,7 @@ from parcels._core.xgrid import _DEFAULT_XGCM_KWARGS, XGrid
 from parcels._logger import logger
 from parcels._typing import Mesh
 from parcels.interpolators import (
+    CGrid_Tracer,
     CGrid_Velocity,
     UxPiecewiseConstantFace,
     UxPiecewiseLinearNode,
@@ -313,6 +314,74 @@ class FieldSet:
             fieldset.UVW.vector_interp_method = CGrid_Velocity
         return fieldset
 
+    def from_croco(ds: xr.Dataset, mesh="spherical"):
+        """Create a FieldSet from a xarray.Dataset from CROCO netcdf files.
+
+        Parameters
+        ----------
+        ds : xarray.Dataset
+            xarray.Dataset as obtained from a set of CROCO netcdf files.
+        mesh : str
+            String indicating the type of mesh coordinates and units used during the simulation.
+            Options are "spherical" or "flat". Default is "spherical".
+
+        Returns
+        -------
+        FieldSet
+            FieldSet object containing the fields from the dataset that can be used for a Parcels simulation.
+
+        Notes
+        -----
+        TODO
+
+        """
+        ds = ds.copy()
+        ds = _maybe_rename_variables(ds, _CROCO_VARNAMES_MAPPING)
+        ds = _discover_U_and_V(ds, _CROCO_CF_STANDARD_NAME_FALLBACKS)
+        ds = _assign_dims_as_coords(ds, _CROCO_DIMENSION_NAMES)
+        ds = _set_coords(ds, _CROCO_DIMENSION_NAMES)
+        ds = _set_axis_attrs(ds, _CROCO_AXIS_VARNAMES)
+
+        expected_axes = set("XYZT")  # TODO: Update after we have support for 2D spatial fields
+        if missing_axes := (expected_axes - set(ds.cf.axes)):
+            raise ValueError(
+                f"Dataset missing CF compliant metadata for axes "
+                f"{missing_axes}. Expected 'axis' attribute to be set "
+                f"on all dimension axes {expected_axes}. "
+                "HINT: Add xarray metadata attribute 'axis' to dimension - e.g., ds['lat'].attrs['axis'] = 'Y'"
+            )
+
+        if "grid" in ds.cf.cf_roles:
+            raise ValueError(
+                "Dataset already has a 'grid' variable (according to cf_roles). Didn't expect there to be grid metadata on copernicusmarine datasets - please open an issue with more information about your dataset."
+            )
+        ds["grid"] = xr.DataArray(
+            0,
+            attrs=sgrid.Grid2DMetadata(
+                cf_role="grid_topology",
+                topology_dimension=2,
+                node_dimensions=("lon", "lat"),
+                face_dimensions=(
+                    sgrid.DimDimPadding("xi_u", "xi_rho", sgrid.Padding.BOTH),
+                    sgrid.DimDimPadding("eta_v", "eta_rho", sgrid.Padding.BOTH),
+                ),
+                vertical_dimensions=(sgrid.DimDimPadding("s_rho", "depth", sgrid.Padding.NONE),),
+            ).to_attrs(),
+        )
+        fieldset = FieldSet.from_sgrid_conventions(ds, mesh=mesh)
+        if "UV" in fieldset.fields:
+            fieldset.UV.vector_interp_method = CGrid_Velocity
+        if "UVW" in fieldset.fields:
+            fieldset.UVW.vector_interp_method = CGrid_Velocity
+
+        # Reset interpolation method for fields that use XLinear
+        for field in fieldset.fields.values():
+            if hasattr(field, "interp_method") and field.interp_method == XLinear:
+                if field.name not in ["h", "Zeta"]:
+                    field.interp_method = CGrid_Tracer
+
+        return fieldset
+
     def from_fesom2(ds: ux.UxDataset):
         """Create a FieldSet from a FESOM2 uxarray.UxDataset.
 
@@ -532,6 +601,31 @@ _NEMO_VARNAMES_MAPPING = {
     "uo": "U",
     "vo": "V",
     "wo": "W",
+}
+
+_CROCO_CF_STANDARD_NAME_FALLBACKS = {
+    "UV": [
+        (
+            "sea_water_x_velocity_at_u_location",
+            "sea_water_y_velocity_at_v_location",
+        ),
+    ],
+    "W": ["upward_sea_water_velocity"],
+}
+
+_CROCO_DIMENSION_NAMES = ["xi_rho", "xi_u", "eta_rho", "eta_v", "lon", "lat", "s_w", "s_rho", "time"]
+
+_CROCO_AXIS_VARNAMES = {
+    "X": "xi_rho",
+    "Y": "eta_rho",
+    "Z": "s_w",
+    "T": "time",
+}
+
+_CROCO_VARNAMES_MAPPING = {
+    "x_rho": "lon",
+    "y_rho": "lat",
+    "s_w": "depth",
 }
 
 
