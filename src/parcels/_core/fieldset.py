@@ -10,6 +10,7 @@ import uxarray as ux
 import xarray as xr
 import xgcm
 
+from parcels._core.converters import GeographicPolar
 from parcels._core.field import Field, VectorField
 from parcels._core.utils import sgrid
 from parcels._core.utils.string import _assert_str_and_python_varname
@@ -267,14 +268,15 @@ class FieldSet:
 
         """
         ds = ds.copy()
-        ds = _create_z_dim(ds)
         ds = _maybe_rename_variables(ds, _NEMO_VARNAMES_MAPPING)
         ds = _discover_U_and_V(ds, _NEMO_CF_STANDARD_NAME_FALLBACKS)
+        ds = _maybe_create_depth_dim(ds)
+        ds = _maybe_bring_UV_depths_to_depth(ds)
         ds = _drop_unused_dimensions_and_coords(ds, _NEMO_DIMENSION_NAMES)
         ds = _maybe_rename_coords(ds, _NEMO_AXIS_VARNAMES)
         ds = _assign_dims_as_coords(ds, _NEMO_DIMENSION_NAMES)
         ds = _set_coords(ds, _NEMO_DIMENSION_NAMES)
-        ds = _maybe_remove_z_from_lonlat(ds)
+        ds = _maybe_remove_depth_from_lonlat(ds)
         ds = _set_axis_attrs(ds, _NEMO_AXIS_VARNAMES)
 
         expected_axes = set("XYZT")  # TODO: Update after we have support for 2D spatial fields
@@ -298,15 +300,16 @@ class FieldSet:
             attrs=sgrid.Grid2DMetadata(
                 cf_role="grid_topology",
                 topology_dimension=2,
-                node_dimensions=("lon", "lat"),
+                node_dimensions=("glamf", "gphif"),
                 face_dimensions=(
                     sgrid.DimDimPadding("x_center", "x", sgrid.Padding.LOW),
                     sgrid.DimDimPadding("y_center", "y", sgrid.Padding.LOW),
                 ),
-                vertical_dimensions=(sgrid.DimDimPadding("z_center", "z", sgrid.Padding.LOW),),
+                vertical_dimensions=(sgrid.DimDimPadding("z_center", "depth", sgrid.Padding.HIGH),),
             ).to_attrs(),
         )
         fieldset = FieldSet.from_sgrid_conventions(ds, mesh="spherical")
+        fieldset.V.units = GeographicPolar()
         if "UV" in fieldset.fields:
             fieldset.UV.vector_interp_method = CGrid_Velocity
         if "UVW" in fieldset.fields:
@@ -407,6 +410,11 @@ class FieldSet:
         if "time" in ds.dims:
             if "T" not in xgcm_kwargs["coords"]:
                 xgcm_kwargs["coords"]["T"] = {"center": "time"}
+
+        if "lon" not in ds.coords or "lat" not in ds.coords:
+            node_dimensions = sgrid.load_mappings(ds.grid.node_dimensions)
+            ds["lon"] = ds[node_dimensions[0]]
+            ds["lat"] = ds[node_dimensions[1]]
 
         # Create xgcm Grid object
         xgcm_grid = xgcm.Grid(ds, autoparse_metadata=False, **xgcm_kwargs, **_DEFAULT_XGCM_KWARGS)
@@ -515,18 +523,16 @@ _NEMO_CF_STANDARD_NAME_FALLBACKS = {
     "W": ["upward_sea_water_velocity", "vertical_sea_water_velocity"],
 }
 
-_NEMO_DIMENSION_NAMES = ["x", "y", "z", "time", "lon", "lat", "depth"]
+_NEMO_DIMENSION_NAMES = ["x", "y", "time", "glamf", "gphif", "depth"]
 
 _NEMO_AXIS_VARNAMES = {
-    "X": "lon",
-    "Y": "lat",
+    "X": "glamf",
+    "Y": "gphif",
     "Z": "depth",
     "T": "time",
 }
 
 _NEMO_VARNAMES_MAPPING = {
-    "glamf": "lon",
-    "gphif": "lat",
     "time_counter": "time",
     "depthw": "depth",
     "uo": "U",
@@ -535,18 +541,18 @@ _NEMO_VARNAMES_MAPPING = {
 }
 
 
-def _create_z_dim(ds):
-    if "depthw" in ds.dims:
-        lenZ = ds.sizes["depthw"]
-        for var in ds.data_vars:
-            for depthname in ["depthu", "depthv", "depthw"]:
-                if depthname in ds[var].dims:
-                    ds[var] = ds[var].expand_dims(dim={"z": np.arange(lenZ)}, axis=1)
-                    ds[var] = ds[var].isel({depthname: 0}, drop=True)
-    else:
-        if "z" not in ds.dims:
-            ds = ds.expand_dims({"z": [0]})
-            ds["depth"] = xr.DataArray([0], dims=["z"])
+def _maybe_bring_UV_depths_to_depth(ds):
+    if "U" in ds.variables and "depthu" in ds.U.coords and "depth" in ds.coords:
+        ds["U"] = ds["U"].assign_coords(depthu=ds["depth"].values).rename({"depthu": "depth"})
+    if "V" in ds.variables and "depthv" in ds.V.coords and "depth" in ds.coords:
+        ds["V"] = ds["V"].assign_coords(depthv=ds["depth"].values).rename({"depthv": "depth"})
+    return ds
+
+
+def _maybe_create_depth_dim(ds):
+    if "depth" not in ds.dims:
+        ds = ds.expand_dims({"depth": [0]})
+        ds["depth"] = xr.DataArray([0], dims=["depth"])
     return ds
 
 
@@ -590,10 +596,10 @@ def _set_coords(ds, DIMENSION_NAMES):
     return ds
 
 
-def _maybe_remove_z_from_lonlat(ds):
-    for coord in ["lon", "lat"]:
-        if coord in ds.coords and "z" in ds[coord].dims:
-            ds[coord] = ds[coord].squeeze("z", drop=True)
+def _maybe_remove_depth_from_lonlat(ds):
+    for coord in ["glamf", "gphif"]:
+        if coord in ds.coords and "depth" in ds[coord].dims:
+            ds[coord] = ds[coord].squeeze("depth", drop=True)
     return ds
 
 
