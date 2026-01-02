@@ -13,7 +13,6 @@ __all__ = [
     "AdvectionRK2_3D",
     "AdvectionRK4",
     "AdvectionRK4_3D",
-    "AdvectionRK4_3D_CROCO",
     "AdvectionRK45",
 ]
 
@@ -88,48 +87,6 @@ def AdvectionRK4_3D(particles, fieldset):  # pragma: no cover
     particles.dlon += (u1 + 2 * u2 + 2 * u3 + u4) / 6 * dt
     particles.dlat += (v1 + 2 * v2 + 2 * v3 + v4) / 6 * dt
     particles.dz += (w1 + 2 * w2 + 2 * w3 + w4) / 6 * dt
-
-
-def AdvectionRK4_3D_CROCO(particles, fieldset):  # pragma: no cover
-    """Advection of particles using fourth-order Runge-Kutta integration including vertical velocity.
-    This kernel assumes the vertical velocity is the 'w' field from CROCO output and works on sigma-layers.
-    """
-    dt = _constrain_dt_to_within_time_interval(fieldset.time_interval, particles.time, particles.dt)
-    sig_dep = particles.z / fieldset.H[particles.time, 0, particles.lat, particles.lon]
-
-    (u1, v1, w1) = fieldset.UVW[particles.time, particles.z, particles.lat, particles.lon, particles]
-    w1 *= sig_dep / fieldset.H[particles.time, 0, particles.lat, particles.lon]
-    lon1 = particles.lon + u1 * 0.5 * dt
-    lat1 = particles.lat + v1 * 0.5 * dt
-    sig_dep1 = sig_dep + w1 * 0.5 * dt
-    dep1 = sig_dep1 * fieldset.H[particles.time, 0, lat1, lon1]
-
-    (u2, v2, w2) = fieldset.UVW[particles.time + 0.5 * dt, dep1, lat1, lon1, particles]
-    w2 *= sig_dep1 / fieldset.H[particles.time, 0, lat1, lon1]
-    lon2 = particles.lon + u2 * 0.5 * dt
-    lat2 = particles.lat + v2 * 0.5 * dt
-    sig_dep2 = sig_dep + w2 * 0.5 * dt
-    dep2 = sig_dep2 * fieldset.H[particles.time, 0, lat2, lon2]
-
-    (u3, v3, w3) = fieldset.UVW[particles.time + 0.5 * dt, dep2, lat2, lon2, particles]
-    w3 *= sig_dep2 / fieldset.H[particles.time, 0, lat2, lon2]
-    lon3 = particles.lon + u3 * dt
-    lat3 = particles.lat + v3 * dt
-    sig_dep3 = sig_dep + w3 * dt
-    dep3 = sig_dep3 * fieldset.H[particles.time, 0, lat3, lon3]
-
-    (u4, v4, w4) = fieldset.UVW[particles.time + dt, dep3, lat3, lon3, particles]
-    w4 *= sig_dep3 / fieldset.H[particles.time, 0, lat3, lon3]
-    lon4 = particles.lon + u4 * dt
-    lat4 = particles.lat + v4 * dt
-    sig_dep4 = sig_dep + w4 * dt
-    dep4 = sig_dep4 * fieldset.H[particles.time, 0, lat4, lon4]
-
-    particles.dlon += (u1 + 2 * u2 + 2 * u3 + u4) / 6 * dt
-    particles.dlat += (v1 + 2 * v2 + 2 * v3 + v4) / 6 * dt
-    particles.dz += (
-        (dep1 - particles.z) * 2 + 2 * (dep2 - particles.z) * 2 + 2 * (dep3 - particles.z) + dep4 - particles.z
-    ) / 6
 
 
 def AdvectionEE(particles, fieldset):  # pragma: no cover
