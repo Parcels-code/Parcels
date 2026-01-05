@@ -166,6 +166,12 @@ def CGrid_Velocity(
     V = vectorfield.V.data
     grid = vectorfield.grid
     tdim, zdim, ydim, xdim = U.shape[0], U.shape[1], U.shape[2], U.shape[3]
+    lenT = 2 if np.any(tau > 0) else 1
+
+    offsets = {}
+    for axis in ["X", "Y"]:
+        axis_coords = grid.xgcm_grid.axes[axis].coords.keys()
+        offsets[axis] = 1 if "right" in axis_coords else 0
 
     if grid.lon.ndim == 1:
         px = np.array([grid.lon[xi], grid.lon[xi + 1], grid.lon[xi + 1], grid.lon[xi]])
@@ -191,88 +197,77 @@ def CGrid_Velocity(
         py[3], py[0], px[3], px[0], grid._mesh, np.einsum("ij,ji->i", i_u.phi2D_lin(eta, 0.0), py)
     )
 
-    lenT = 2 if np.any(tau > 0) else 1
+    def _create_selection_dict(dims, zdir=False):
+        """Helper function to create DataArrays for indexing."""
+        axis_dim = grid.get_axis_dim_mapping(dims)
+        selection_dict = {
+            axis_dim["X"]: xr.DataArray(xi_full, dims=("points")),
+            axis_dim["Y"]: xr.DataArray(yi_full, dims=("points")),
+        }
 
-    # Time coordinates: 2 points at ti, then 2 points at ti+1
-    if lenT == 1:
-        ti_full = np.repeat(ti, 2)
-    else:
-        ti_1 = np.clip(ti + 1, 0, tdim - 1)
-        ti_full = np.concatenate([np.repeat(ti, 2), np.repeat(ti_1, 2)])
+        # Time coordinates: 2 points at ti, then 2 points at ti+1
+        if "time" in dims:
+            if lenT == 1:
+                ti_full = np.repeat(ti, 2)
+            else:
+                ti_1 = np.clip(ti + 1, 0, tdim - 1)
+                ti_full = np.concatenate([np.repeat(ti, 2), np.repeat(ti_1, 2)])
+            selection_dict["time"] = xr.DataArray(ti_full, dims=("points"))
 
-    # Z coordinates: 2 points at zi, repeated for both time levels
-    zi_full = np.repeat(zi, lenT * 2)
+        if "Z" in axis_dim:
+            if zdir:
+                # Z coordinates: 1 point at zi and 1 point at zi+1 repeated for lenT time levels
+                zi_0 = np.clip(zi, 0, zdim - 1)
+                zi_1 = np.clip(zi + 1, 0, zdim - 1)
+                zi_full = np.tile(np.array([zi_0, zi_1]).flatten(), lenT)
+            else:
+                # Z coordinates: 2 points at zi, repeated for lenT time levels
+                zi_full = np.repeat(zi, lenT * 2)
+            selection_dict[axis_dim["Z"]] = xr.DataArray(zi_full, dims=("points"))
 
-    # Y coordinates for U: [yi+offset, yi+offset] for each spatial point, repeated for time/z
-    Y_axis_coord = vectorfield.U.grid.xgcm_grid.axes["Y"].coords.keys()
-    offset = 1 if "right" in Y_axis_coord else 0
-    yi_o = np.clip(yi + offset, 0, ydim - 1)
+        return selection_dict
+
+    def _compute_corner_data(data, selection_dict) -> np.ndarray:
+        """Helper function to load and reduce corner data over time dimension if needed."""
+        corner_data = data.isel(selection_dict).data.reshape(lenT, 2, len(xsi))
+
+        if lenT == 2:
+            tau_full = tau[np.newaxis, :]
+            corner_data = corner_data[0, :] * (1 - tau_full) + corner_data[1, :] * tau_full
+        else:
+            corner_data = corner_data[0, :]
+        return corner_data
+
+    # Compute U velocity
+    yi_o = np.clip(yi + offsets["Y"], 0, ydim - 1)
     yi_full = np.tile(np.array([yi_o, yi_o]).flatten(), lenT)
 
-    # X coordinates for U: [xi, xi+1] for each spatial point, repeated for time/z
     xi_1 = np.clip(xi + 1, 0, xdim - 1)
     xi_full = np.tile(np.array([xi, xi_1]).flatten(), lenT)
 
-    axis_dim = grid.get_axis_dim_mapping(U.dims)
-
-    # Create DataArrays for indexing
-    selection_dict = {
-        axis_dim["X"]: xr.DataArray(xi_full, dims=("points")),
-        axis_dim["Y"]: xr.DataArray(yi_full, dims=("points")),
-    }
-    if "Z" in axis_dim:
-        selection_dict[axis_dim["Z"]] = xr.DataArray(zi_full, dims=("points"))
-    if "time" in U.dims:
-        selection_dict["time"] = xr.DataArray(ti_full, dims=("points"))
-
-    corner_data = U.isel(selection_dict).data.reshape(lenT, 2, len(xsi))
-
-    if lenT == 2:
-        tau_full = tau[np.newaxis, :]
-        corner_data = corner_data[0, :] * (1 - tau_full) + corner_data[1, :] * tau_full
-    else:
-        corner_data = corner_data[0, :]
+    selection_dict = _create_selection_dict(U.dims)
+    corner_data = _compute_corner_data(U, selection_dict)
 
     U0 = corner_data[0, :] * c4
     U1 = corner_data[1, :] * c2
     Uvel = (1 - xsi) * U0 + xsi * U1
 
-    # Y coordinates for V: [yi, yi+1] for each spatial point, repeated for time/z
+    # Compute V velocity
     yi_1 = np.clip(yi + 1, 0, ydim - 1)
     yi_full = np.tile(np.array([yi, yi_1]).flatten(), lenT)
 
-    # X coordinates for V: [xi+offset, xi+offset] for each spatial point, repeated for time/z
-    X_axis_coord = vectorfield.V.grid.xgcm_grid.axes["X"].coords.keys()
-    offset = 1 if "right" in X_axis_coord else 0
-    xi_o = np.clip(xi + offset, 0, xdim - 1)
+    xi_o = np.clip(xi + offsets["X"], 0, xdim - 1)
     xi_full = np.tile(np.array([xi_o, xi_o]).flatten(), lenT)
 
-    axis_dim = grid.get_axis_dim_mapping(V.dims)
-
-    # Create DataArrays for indexing
-    selection_dict = {
-        axis_dim["X"]: xr.DataArray(xi_full, dims=("points")),
-        axis_dim["Y"]: xr.DataArray(yi_full, dims=("points")),
-    }
-    if "Z" in axis_dim:
-        selection_dict[axis_dim["Z"]] = xr.DataArray(zi_full, dims=("points"))
-    if "time" in V.dims:
-        selection_dict["time"] = xr.DataArray(ti_full, dims=("points"))
-
-    corner_data = V.isel(selection_dict).data.reshape(lenT, 2, len(xsi))
-
-    if lenT == 2:
-        tau_full = tau[np.newaxis, :]
-        corner_data = corner_data[0, :] * (1 - tau_full) + corner_data[1, :] * tau_full
-    else:
-        corner_data = corner_data[0, :]
+    selection_dict = _create_selection_dict(V.dims)
+    corner_data = _compute_corner_data(V, selection_dict)
 
     V0 = corner_data[0, :] * c1
     V1 = corner_data[1, :] * c3
     Vvel = (1 - eta) * V0 + eta * V1
 
-    meshJac = 1852 * 60.0 if grid._mesh == "spherical" else 1
-
+    # rotate velocities to eastward/northward directions
+    meshJac = 1852 * 60.0 if grid._mesh == "spherical" else 1.0
     jac = i_u._compute_jacobian_determinant(py, px, eta, xsi) * meshJac
 
     u = (
@@ -299,49 +294,18 @@ def CGrid_Velocity(
     u = np.where(np.abs(dlon / lon) > 1e-4, np.nan, u)
 
     if vectorfield.W:
-        data = vectorfield.W.data
-        # Time coordinates: 2 points at ti, then 2 points at ti+1
-        if lenT == 1:
-            ti_full = np.repeat(ti, 2)
-        else:
-            ti_1 = np.clip(ti + 1, 0, tdim - 1)
-            ti_full = np.concatenate([np.repeat(ti, 2), np.repeat(ti_1, 2)])
+        W = vectorfield.W.data
 
-        # Z coordinates: 1 points at zi + offset, repeated for both time levels
-        Z_axis_coord = vectorfield.W.grid.xgcm_grid.axes["Z"].coords.keys()
-        offset = 1 if "right" in Z_axis_coord else 0
-        zi_0 = np.clip(zi + offset, 0, zdim - 1)
-        zi_1 = np.clip(zi + 1 + offset, 0, zdim - 1)
-        zi_full = np.tile(np.array([zi_0, zi_1]).flatten(), lenT)
+        # Y coordinates: yi+offset for each spatial point, repeated for time
+        yi_o = np.clip(yi + offsets["Y"], 0, ydim - 1)
+        yi_full = np.tile(yi_o, (lenT) * 2)
 
-        # Y coordinates: yi+offset for each spatial point, repeated for time/z
-        offset = 1 if "right" in Y_axis_coord else 0
-        yi_0 = np.clip(yi + offset, 0, ydim - 1)
-        yi_full = np.tile(yi_0, (lenT) * 2)
-
-        # X coordinates: xi+offset for each spatial point, repeated for time/z
-        offset = 1 if "right" in X_axis_coord else 0
-        xi_o = np.clip(xi + offset, 0, xdim - 1)
+        # X coordinates: xi+offset for each spatial point, repeated for time
+        xi_o = np.clip(xi + offsets["X"], 0, xdim - 1)
         xi_full = np.tile(xi_o, (lenT) * 2)
 
-        axis_dim = grid.get_axis_dim_mapping(data.dims)
-
-        # Create DataArrays for indexing
-        selection_dict = {
-            axis_dim["X"]: xr.DataArray(xi_full, dims=("points")),
-            axis_dim["Y"]: xr.DataArray(yi_full, dims=("points")),
-            axis_dim["Z"]: xr.DataArray(zi_full, dims=("points")),
-        }
-        if "time" in data.dims:
-            selection_dict["time"] = xr.DataArray(ti_full, dims=("points"))
-
-        corner_data = data.isel(selection_dict).data.reshape(lenT, 2, len(xsi))
-
-        if lenT == 2:
-            tau_full = tau[np.newaxis, :]
-            corner_data = corner_data[0, :, :] * (1 - tau_full) + corner_data[1, :, :] * tau_full
-        else:
-            corner_data = corner_data[0, :, :]
+        selection_dict = _create_selection_dict(W.dims, zdir=True)
+        corner_data = _compute_corner_data(W, selection_dict)
 
         w = corner_data[0, :] * (1 - zeta) + corner_data[1, :] * zeta
         if is_dask_collection(w):
