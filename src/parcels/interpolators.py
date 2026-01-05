@@ -208,14 +208,14 @@ def CGrid_Velocity(
 
     # Y coordinates: [yi, yi, yi+1, yi+1] for each spatial point, repeated for time/z
     yi_1 = np.clip(yi + 1, 0, ydim - 1)
-    yi_full = np.tile(np.repeat(np.column_stack([yi, yi_1]), 2), (lenT))
+    yi_full = np.tile(np.array([yi, yi, yi_1, yi_1]).flatten(), lenT)
     # # TODO check why in some cases minus needed here!!!
     # yi_minus_1 = np.clip(yi - 1, 0, ydim - 1)
     # yi = np.tile(np.repeat(np.column_stack([yi_minus_1, yi]), 2), (lenT))
 
     # X coordinates: [xi, xi+1, xi, xi+1] for each spatial point, repeated for time/z
     xi_1 = np.clip(xi + 1, 0, xdim - 1)
-    xi_full = np.tile(np.column_stack([xi, xi_1, xi, xi_1]).flatten(), (lenT))
+    xi_full = np.tile(np.array([xi, xi_1]).flatten(), lenT * 2)
 
     for data in [U, V]:
         axis_dim = grid.get_axis_dim_mapping(data.dims)
@@ -230,27 +230,25 @@ def CGrid_Velocity(
         if "time" in data.dims:
             selection_dict["time"] = xr.DataArray(ti_full, dims=("points"))
 
-        corner_data = data.isel(selection_dict).data.reshape(lenT, len(xsi), 4)
+        corner_data = data.isel(selection_dict).data.reshape(lenT, 2, 2, len(xsi))
 
         if lenT == 2:
-            tau_full = tau[:, np.newaxis]
-            corner_data = corner_data[0, :, :] * (1 - tau_full) + corner_data[1, :, :] * tau_full
+            tau_full = tau[np.newaxis, :]
+            corner_data = corner_data[0, :] * (1 - tau_full) + corner_data[1, :] * tau_full
         else:
-            corner_data = corner_data[0, :, :]
+            corner_data = corner_data[0, :]
 
         X_axis_coord = vectorfield.U.grid.xgcm_grid.axes["X"].coords.keys()
         Y_axis_coord = vectorfield.V.grid.xgcm_grid.axes["Y"].coords.keys()
 
         if data is U:
-            val0 = 2 if "right" in X_axis_coord else 0
-            val1 = 3 if "right" in X_axis_coord else 1
-            U0 = corner_data[:, val0] * c4
-            U1 = corner_data[:, val1] * c2
+            offset = 1 if "right" in X_axis_coord else 0
+            U0 = corner_data[offset, 0, :] * c4
+            U1 = corner_data[offset, 1, :] * c2
         elif data is V:
-            val0 = 1 if "right" in Y_axis_coord else 0
-            val1 = 3 if "right" in Y_axis_coord else 2
-            V0 = corner_data[:, val0] * c1
-            V1 = corner_data[:, val1] * c3
+            offset = 1 if "right" in Y_axis_coord else 0
+            V0 = corner_data[0, offset, :] * c1
+            V1 = corner_data[1, offset, :] * c3
 
     U = (1 - xsi) * U0 + xsi * U1
     V = (1 - eta) * V0 + eta * V1
