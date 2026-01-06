@@ -45,12 +45,14 @@ def SampleOmegaCroco(particles, fieldset):
 def AdvectionRK4_3D_CROCO(particles, fieldset):  # pragma: no cover
     """Advection of particles using fourth-order Runge-Kutta integration including vertical velocity.
     This kernel assumes the vertical velocity is the 'w' field from CROCO output and works on sigma-layers.
+    It also uses linear interpolation of the W field, which gives much better results than the default C-grid interpolation.
     """
     dt = _constrain_dt_to_within_time_interval(fieldset.time_interval, particles.time, particles.dt)
     sigma = particles.z / fieldset.h[particles.time, 0, particles.lat, particles.lon]
 
     sig = convert_z_to_sigma_croco(fieldset, particles.time, particles.z, particles.lat, particles.lon, particles)
-    (u1, v1, w1) = fieldset.UVW[particles.time, sig, particles.lat, particles.lon, particles]
+    (u1, v1) = fieldset.UV[particles.time, sig, particles.lat, particles.lon, particles]
+    w1 = fieldset.W[particles.time, sig, particles.lat, particles.lon, particles]
     w1 *= sigma / fieldset.h[particles.time, 0, particles.lat, particles.lon]
     lon1 = particles.lon + u1 * 0.5 * dt
     lat1 = particles.lat + v1 * 0.5 * dt
@@ -58,7 +60,8 @@ def AdvectionRK4_3D_CROCO(particles, fieldset):  # pragma: no cover
     dep1 = sig_dep1 * fieldset.h[particles.time, 0, lat1, lon1]
 
     sig1 = convert_z_to_sigma_croco(fieldset, particles.time + 0.5 * dt, dep1, lat1, lon1, particles)
-    (u2, v2, w2) = fieldset.UVW[particles.time + 0.5 * dt, sig1, lat1, lon1, particles]
+    (u2, v2) = fieldset.UV[particles.time + 0.5 * dt, sig1, lat1, lon1, particles]
+    w2 = fieldset.W[particles.time + 0.5 * dt, sig1, lat1, lon1, particles]
     w2 *= sig_dep1 / fieldset.h[particles.time, 0, lat1, lon1]
     lon2 = particles.lon + u2 * 0.5 * dt
     lat2 = particles.lat + v2 * 0.5 * dt
@@ -66,7 +69,8 @@ def AdvectionRK4_3D_CROCO(particles, fieldset):  # pragma: no cover
     dep2 = sig_dep2 * fieldset.h[particles.time, 0, lat2, lon2]
 
     sig2 = convert_z_to_sigma_croco(fieldset, particles.time + 0.5 * dt, dep2, lat2, lon2, particles)
-    (u3, v3, w3) = fieldset.UVW[particles.time + 0.5 * dt, sig2, lat2, lon2, particles]
+    (u3, v3) = fieldset.UV[particles.time + 0.5 * dt, sig2, lat2, lon2, particles]
+    w3 = fieldset.W[particles.time + 0.5 * dt, sig2, lat2, lon2, particles]
     w3 *= sig_dep2 / fieldset.h[particles.time, 0, lat2, lon2]
     lon3 = particles.lon + u3 * dt
     lat3 = particles.lat + v3 * dt
@@ -74,7 +78,8 @@ def AdvectionRK4_3D_CROCO(particles, fieldset):  # pragma: no cover
     dep3 = sig_dep3 * fieldset.h[particles.time, 0, lat3, lon3]
 
     sig3 = convert_z_to_sigma_croco(fieldset, particles.time + dt, dep3, lat3, lon3, particles)
-    (u4, v4, w4) = fieldset.UVW[particles.time + dt, sig3, lat3, lon3, particles]
+    (u4, v4) = fieldset.UV[particles.time + dt, sig3, lat3, lon3, particles]
+    w4 = fieldset.W[particles.time + dt, sig3, lat3, lon3, particles]
     w4 *= sig_dep3 / fieldset.h[particles.time, 0, lat3, lon3]
     lon4 = particles.lon + u4 * dt
     lat4 = particles.lat + v4 * dt
