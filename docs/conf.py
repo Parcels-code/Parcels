@@ -533,7 +533,7 @@ nb_execution_timeout = 75
 
 # -- Options for autoapi --------------------------------------------------
 autoapi_dirs = ["../src/parcels"]
-# autoapi_add_toctree_entry = False
+autoapi_add_toctree_entry = False
 autoapi_root = "reference"
 autoapi_options = [
     "members",

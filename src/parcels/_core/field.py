@@ -14,7 +14,7 @@ from parcels._core.converters import (
     _unitconverters_map,
 )
 from parcels._core.index_search import GRID_SEARCH_ERROR, LEFT_OUT_OF_BOUNDS, RIGHT_OUT_OF_BOUNDS, _search_time_index
-from parcels._core.particle import KernelParticle
+from parcels._core.particlesetview import ParticleSetView
 from parcels._core.statuscodes import (
     AllParcelsErrorCodes,
     StatusCode,
@@ -35,9 +35,9 @@ __all__ = ["Field", "VectorField"]
 
 
 def _deal_with_errors(error, key, vector_type: VectorType):
-    if isinstance(key, KernelParticle):
+    if isinstance(key, ParticleSetView):
         key.state = AllParcelsErrorCodes[type(error)]
-    elif isinstance(key[-1], KernelParticle):
+    elif isinstance(key[-1], ParticleSetView):
         key[-1].state = AllParcelsErrorCodes[type(error)]
     else:
         raise RuntimeError(f"{error}. Error could not be handled because particles was not part of the Field Sampling.")
@@ -54,22 +54,25 @@ class Field:
     """The Field class that holds scalar field data.
     The `Field` object is a wrapper around a xarray.DataArray or uxarray.UxDataArray object.
     Additionally, it holds a dynamic Callable procedure that is used to interpolate the field data.
-    During initialization, the user is required to supply a custom interpolation method that is used to interpolate the field data,
-    so long as the interpolation method has the correct signature.
+    During initialization, the user is required to supply a custom interpolation method that is used
+    to interpolate the field data, so long as the interpolation method has the correct signature.
 
     Notes
     -----
     The xarray.DataArray or uxarray.UxDataArray object contains the field data and metadata.
-        * dims: (time, [nz1 | nz], [face_lat | node_lat | edge_lat], [face_lon | node_lon | edge_lon])
-        * attrs: (location, mesh, mesh)
 
-    When using a xarray.DataArray object,
+    * dims: (time, [nz1 | nz], [face_lat | node_lat | edge_lat], [face_lon | node_lon | edge_lon])
+    * attrs: (location, mesh, mesh)
+
+    When using a xarray.DataArray object:
+
     * The xarray.DataArray object must have the "location" and "mesh" attributes set.
-    * The "location" attribute must be set to one of the following to define which pairing of points a field is associated with.
-       * "node"
-       * "face"
-       * "x_edge"
-       * "y_edge"
+    * The "location" attribute must be set to one of the following to define which pairing of points a field is associated with:
+        * "node"
+        * "face"
+        * "x_edge"
+        * "y_edge"
+
     * For an A-Grid, the "location" attribute must be set to / is assumed to be "node" (node_lat,node_lon).
     * For a C-Grid, the "location" setting for a field has the following interpretation:
         * "node" ~> the field is associated with the vorticity points (node_lat, node_lon)
@@ -77,7 +80,8 @@ class Field:
         * "x_edge" ~> the field is associated with the u-velocity points (face_lat, node_lon)
         * "y_edge" ~> the field is associated with the v-velocity points (node_lat, face_lon)
 
-    When using a uxarray.UxDataArray object,
+    When using a uxarray.UxDataArray object:
+
     * The uxarray.UxDataArray.UxGrid object must have the "Conventions" attribute set to "UGRID-1.0"
       and the uxarray.UxDataArray object must comply with the UGRID conventions.
       See https://ugrid-conventions.github.io/ugrid-conventions/ for more information.
@@ -225,7 +229,7 @@ class Field:
     def __getitem__(self, key):
         self._check_velocitysampling()
         try:
-            if isinstance(key, KernelParticle):
+            if isinstance(key, ParticleSetView):
                 return self.eval(key.time, key.z, key.lat, key.lon, key)
             else:
                 return self.eval(*key)
@@ -326,7 +330,7 @@ class VectorField:
 
     def __getitem__(self, key):
         try:
-            if isinstance(key, KernelParticle):
+            if isinstance(key, ParticleSetView):
                 return self.eval(key.time, key.z, key.lat, key.lon, key)
             else:
                 return self.eval(*key)

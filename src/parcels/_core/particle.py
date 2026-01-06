@@ -11,7 +11,7 @@ from parcels._core.utils.string import _assert_str_and_python_varname
 from parcels._core.utils.time import TimeInterval
 from parcels._reprs import _format_list_items_multiline
 
-__all__ = ["KernelParticle", "Particle", "ParticleClass", "Variable"]
+__all__ = ["Particle", "ParticleClass", "Variable"]
 _TO_WRITE_OPTIONS = [True, False, "once"]
 
 
@@ -114,30 +114,6 @@ class ParticleClass:
         _assert_no_duplicate_variable_names(existing_vars=self.variables, new_vars=variable)
 
         return ParticleClass(variables=self.variables + variable)
-
-
-class KernelParticle:
-    """Simple class to be used in a kernel that links a particle (on the kernel level) to a particle dataset."""
-
-    def __init__(self, data, index):
-        self._data = data
-        self._index = index
-
-    def __getattr__(self, name):
-        return self._data[name][self._index]
-
-    def __setattr__(self, name, value):
-        if name in ["_data", "_index"]:
-            object.__setattr__(self, name, value)
-        else:
-            self._data[name][self._index] = value
-
-    def __getitem__(self, index):
-        self._index = index
-        return self
-
-    def __len__(self):
-        return len(self._index)
 
 
 def _assert_no_duplicate_variable_names(*, existing_vars: list[Variable], new_vars: list[Variable]):
