@@ -97,6 +97,19 @@ def _get_corner_data_Agrid(
     return data.isel(selection_dict).data.reshape(lenT, lenZ, 2, 2, npart)
 
 
+def _get_offsets_dictionary(grid):
+    offsets = {}
+    for axis in ["X", "Y"]:
+        axis_coords = grid.xgcm_grid.axes[axis].coords.keys()
+        offsets[axis] = 1 if "right" in axis_coords else 0
+    if "Z" in grid.xgcm_grid.axes:
+        axis_coords = grid.xgcm_grid.axes["Z"].coords.keys()
+        offsets["Z"] = 1 if "right" in axis_coords else 0
+    else:
+        offsets["Z"] = 0
+    return offsets
+
+
 def XLinear(
     particle_positions: dict[str, float | np.ndarray],
     grid_positions: dict[_XGRID_AXES, dict[str, int | float | np.ndarray]],
@@ -165,13 +178,9 @@ def CGrid_Velocity(
     U = vectorfield.U.data
     V = vectorfield.V.data
     grid = vectorfield.grid
+    offsets = _get_offsets_dictionary(grid)
     tdim, zdim, ydim, xdim = U.shape[0], U.shape[1], U.shape[2], U.shape[3]
     lenT = 2 if np.any(tau > 0) else 1
-
-    offsets = {}
-    for axis in ["X", "Y"]:
-        axis_coords = grid.xgcm_grid.axes[axis].coords.keys()
-        offsets[axis] = 1 if "right" in axis_coords else 0
 
     if grid.lon.ndim == 1:
         px = np.array([grid.lon[xi], grid.lon[xi + 1], grid.lon[xi + 1], grid.lon[xi]])
@@ -217,8 +226,8 @@ def CGrid_Velocity(
         if "Z" in axis_dim:
             if zdir:
                 # Z coordinates: 1 point at zi and 1 point at zi+1 repeated for lenT time levels
-                zi_0 = np.clip(zi, 0, zdim - 1)
-                zi_1 = np.clip(zi + 1, 0, zdim - 1)
+                zi_0 = np.clip(zi + offsets["Z"], 0, zdim - 1)
+                zi_1 = np.clip(zi + offsets["Z"] + 1, 0, zdim - 1)
                 zi_full = np.tile(np.array([zi_0, zi_1]).flatten(), lenT)
             else:
                 # Z coordinates: 2 points at zi, repeated for lenT time levels
@@ -334,6 +343,11 @@ def CGrid_Tracer(
 
     axis_dim = field.grid.get_axis_dim_mapping(field.data.dims)
     data = field.data
+
+    offsets = _get_offsets_dictionary(field.grid)
+    zi = np.clip(zi + offsets["Z"], 0, data.shape[1] - 1)
+    yi = np.clip(yi + offsets["Y"], 0, data.shape[2] - 1)
+    xi = np.clip(xi + offsets["X"], 0, data.shape[3] - 1)
 
     lenT = 2 if np.any(tau > 0) else 1
 
