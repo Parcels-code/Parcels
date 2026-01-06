@@ -60,9 +60,8 @@ class Field:
     Notes
     -----
     The xarray.DataArray or uxarray.UxDataArray object contains the field data and metadata.
-
-    * dims: (time, [nz1 | nz], [face_lat | node_lat | edge_lat], [face_lon | node_lon | edge_lon])
-    * attrs: (location, mesh, mesh)
+        * dims: (time, [zc | zf], [face_lat | node_lat | edge_lat], [face_lon | node_lon | edge_lon])
+        * attrs: (location, mesh)
 
     When using a xarray.DataArray object:
 
@@ -177,10 +176,10 @@ class Field:
         if type(self.data) is xr.DataArray:
             return self.grid.zdim
         else:
-            if "nz1" in self.data.dims:
-                return self.data.sizes["nz1"]
-            elif "nz" in self.data.dims:
-                return self.data.sizes["nz"]
+            if "zc" in self.data.dims:
+                return self.data.sizes["zc"]
+            elif "zf" in self.data.dims:
+                return self.data.sizes["zf"]
             else:
                 return 0
 
@@ -403,9 +402,9 @@ def _assert_valid_uxdataarray(data: ux.UxDataArray):
     uxarray.UxDataArray object.
     """
     # Validate dimensions
-    if not ("nz1" in data.dims or "nz" in data.dims):
+    if not ("zc" in data.dims or "zf" in data.dims):
         raise ValueError(
-            "Field is missing a 'nz1' or 'nz' dimension in the field's metadata. "
+            "Field is missing a 'zc' or 'zf' dimension in the field's metadata. "
             "This attribute is required for xarray.DataArray objects."
         )
 
@@ -423,23 +422,6 @@ def _assert_valid_uxdataarray(data: ux.UxDataArray):
                 f"Field is missing a '{key}' attribute in the field's metadata. "
                 "This attribute is required for xarray.DataArray objects."
             )
-
-    _assert_valid_uxgrid(data.uxgrid)
-
-
-def _assert_valid_uxgrid(grid):
-    """Verifies that all the required attributes are present in the uxarray.UxDataArray.UxGrid object."""
-    if "Conventions" not in grid.attrs.keys():
-        raise ValueError(
-            "Field is missing a 'Conventions' attribute in the field's metadata. "
-            "This attribute is required for uxarray.UxDataArray objects."
-        )
-    if grid.attrs["Conventions"] != "UGRID-1.0":
-        raise ValueError(
-            "Field has a 'Conventions' attribute that is not 'UGRID-1.0'. "
-            "This attribute is required for uxarray.UxDataArray objects."
-            "See https://ugrid-conventions.github.io/ugrid-conventions/ for more information."
-        )
 
 
 def _assert_compatible_combination(data: xr.DataArray | ux.UxDataArray, grid: ux.Grid | XGrid):
