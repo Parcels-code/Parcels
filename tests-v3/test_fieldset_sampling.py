@@ -14,7 +14,6 @@ from parcels import (
     Geographic,
     Particle,
     ParticleSet,
-    StatusCode,
     Variable,
 )
 from tests.utils import create_fieldset_global
@@ -794,82 +793,6 @@ def test_multiple_grid_addlater_error():
     except RuntimeError:
         fail = True
     assert fail
-
-
-@pytest.mark.v4alpha
-@pytest.mark.xfail(reason="Implementation of NestedFields is being reconsidered in v4.")
-def test_nestedfields():
-    from parcels import NestedField
-
-    xdim = 10
-    ydim = 20
-
-    U1 = Field(
-        "U1",
-        0.1 * np.ones((ydim, xdim), dtype=np.float32),
-        lon=np.linspace(0.0, 1.0, xdim, dtype=np.float32),
-        lat=np.linspace(0.0, 1.0, ydim, dtype=np.float32),
-    )
-    V1 = Field(
-        "V1",
-        0.2 * np.ones((ydim, xdim), dtype=np.float32),
-        lon=np.linspace(0.0, 1.0, xdim, dtype=np.float32),
-        lat=np.linspace(0.0, 1.0, ydim, dtype=np.float32),
-    )
-    U2 = Field(
-        "U2",
-        0.3 * np.ones((ydim, xdim), dtype=np.float32),
-        lon=np.linspace(0.0, 2.0, xdim, dtype=np.float32),
-        lat=np.linspace(0.0, 2.0, ydim, dtype=np.float32),
-    )
-    V2 = Field(
-        "V2",
-        0.4 * np.ones((ydim, xdim), dtype=np.float32),
-        lon=np.linspace(0.0, 2.0, xdim, dtype=np.float32),
-        lat=np.linspace(0.0, 2.0, ydim, dtype=np.float32),
-    )
-    U = NestedField("U", [U1, U2])
-    V = NestedField("V", [V1, V2])
-    fieldset = FieldSet(U, V)
-
-    P1 = Field(
-        "P1",
-        0.1 * np.ones((ydim, xdim), dtype=np.float32),
-        lon=np.linspace(0.0, 1.0, xdim, dtype=np.float32),
-        lat=np.linspace(0.0, 1.0, ydim, dtype=np.float32),
-    )
-    P2 = Field(
-        "P2",
-        0.2 * np.ones((ydim, xdim), dtype=np.float32),
-        lon=np.linspace(0.0, 2.0, xdim, dtype=np.float32),
-        lat=np.linspace(0.0, 2.0, ydim, dtype=np.float32),
-    )
-    P = NestedField("P", [P1, P2])
-    fieldset.add_field(P)
-
-    def Recover(particle, fieldset, time):  # pragma: no cover
-        if particle.state == StatusCode.ErrorOutOfBounds:
-            particle.dlon = 0
-            particle.dlat = 0
-            particle.ddepth = 0
-            particle.lon = 0
-            particle.lat = 0
-            particle.p = 999
-            particle.state = StatusCode.Evaluate
-
-    pset = ParticleSet(fieldset, pclass=pclass(), lon=[0], lat=[0.3])
-    pset.execute(AdvectionRK4 + pset.Kernel(SampleP), runtime=2, dt=1)
-    assert np.isclose(pset.lat[0], 0.5)
-    assert np.isclose(pset.p[0], 0.1)
-    pset = ParticleSet(fieldset, pclass=pclass(), lon=[0], lat=[1.1])
-    pset.execute(AdvectionRK4 + pset.Kernel(SampleP), runtime=2, dt=1)
-    assert np.isclose(pset.lat[0], 1.5)
-    assert np.isclose(pset.p[0], 0.2)
-    pset = ParticleSet(fieldset, pclass=pclass(), lon=[0], lat=[2.3])
-    pset.execute(pset.Kernel(AdvectionRK4) + SampleP + Recover, runtime=1, dt=1)
-    assert np.isclose(pset.lat[0], 0)
-    assert np.isclose(pset.p[0], 999)
-    assert np.allclose(fieldset.UV[0][0, 0, 0, 0], [0.1, 0.2])
 
 
 def test_fieldset_sampling_updating_order(tmp_zarrfile):
