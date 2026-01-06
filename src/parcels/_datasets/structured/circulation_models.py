@@ -24,6 +24,7 @@ def _copernicusmarine():
                     "long_name": "Eastward velocity",
                     "standard_name": "eastward_sea_water_velocity",
                     "valid_min": -5.0,
+                    "_FillValue": -999.99,
                 },
             ),
             "vo": (
@@ -36,6 +37,7 @@ def _copernicusmarine():
                     "long_name": "Northward velocity",
                     "standard_name": "northward_sea_water_velocity",
                     "valid_min": -5.0,
+                    "_FillValue": -999.99,
                 },
             ),
         },
@@ -103,6 +105,7 @@ def _copernicusmarine_waves():
                     "cell_methods": "time:point area:mean",
                     "missing_value": -32767,
                     "type_of_analysis": "spectral analysis",
+                    "_FillValue": -999.99,
                 },
             ),
             "VSDY": (
@@ -116,6 +119,7 @@ def _copernicusmarine_waves():
                     "cell_methods": "time:point area:mean",
                     "missing_value": -32767,
                     "type_of_analysis": "spectral analysis",
+                    "_FillValue": -999.99,
                 },
             ),
         },
