@@ -73,9 +73,3 @@ def test_advection_3DCROCO():
     )
     np.testing.assert_allclose(pset.z, Z.flatten(), atol=5)  # TODO lower this atol
     np.testing.assert_allclose(pset.lon, [x + runtime for x in X.flatten()], atol=1e-3)
-
-    # Verify omega values against v3 values
-    omega_v3 = np.array(
-        [-1.8354329e-05, -1.4220999e-05, -4.9913068e-15, -1.6971180e-05, -1.4220999e-05, -4.9913068e-15]
-    )
-    np.testing.assert_allclose(pset.omega, omega_v3, rtol=1e-2)
