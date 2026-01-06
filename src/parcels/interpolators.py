@@ -340,12 +340,9 @@ def CGrid_Tracer(
     if lenT == 2:
         ti_1 = np.clip(ti + 1, 0, data.shape[0] - 1)
         ti = np.concatenate([np.repeat(ti), np.repeat(ti_1)])
-        zi_1 = np.clip(zi + 1, 0, data.shape[1] - 1)
-        zi = np.concatenate([np.repeat(zi), np.repeat(zi_1)])
-        yi_1 = np.clip(yi + 1, 0, data.shape[2] - 1)
-        yi = np.concatenate([np.repeat(yi), np.repeat(yi_1)])
-        xi_1 = np.clip(xi + 1, 0, data.shape[3] - 1)
-        xi = np.concatenate([np.repeat(xi), np.repeat(xi_1)])
+        zi = np.tile(zi, (lenT) * 2)
+        yi = np.tile(yi, (lenT) * 2)
+        xi = np.tile(xi, (lenT) * 2)
 
     # Create DataArrays for indexing
     selection_dict = {
