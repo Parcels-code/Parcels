@@ -14,7 +14,7 @@ from parcels._core.converters import (
     _unitconverters_map,
 )
 from parcels._core.index_search import GRID_SEARCH_ERROR, LEFT_OUT_OF_BOUNDS, RIGHT_OUT_OF_BOUNDS, _search_time_index
-from parcels._core.particle import KernelParticle
+from parcels._core.particlesetview import ParticleSetView
 from parcels._core.statuscodes import (
     AllParcelsErrorCodes,
     StatusCode,
@@ -35,9 +35,9 @@ __all__ = ["Field", "VectorField"]
 
 
 def _deal_with_errors(error, key, vector_type: VectorType):
-    if isinstance(key, KernelParticle):
+    if isinstance(key, ParticleSetView):
         key.state = AllParcelsErrorCodes[type(error)]
-    elif isinstance(key[-1], KernelParticle):
+    elif isinstance(key[-1], ParticleSetView):
         key[-1].state = AllParcelsErrorCodes[type(error)]
     else:
         raise RuntimeError(f"{error}. Error could not be handled because particles was not part of the Field Sampling.")
@@ -229,7 +229,7 @@ class Field:
     def __getitem__(self, key):
         self._check_velocitysampling()
         try:
-            if isinstance(key, KernelParticle):
+            if isinstance(key, ParticleSetView):
                 return self.eval(key.time, key.z, key.lat, key.lon, key)
             else:
                 return self.eval(*key)
@@ -330,7 +330,7 @@ class VectorField:
 
     def __getitem__(self, key):
         try:
-            if isinstance(key, KernelParticle):
+            if isinstance(key, ParticleSetView):
                 return self.eval(key.time, key.z, key.lat, key.lon, key)
             else:
                 return self.eval(*key)
