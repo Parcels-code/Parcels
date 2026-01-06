@@ -433,6 +433,7 @@ def test_execution_fail_python_exception(fieldset, npart):
     [
         ("Lat1", [0, 1]),
         ("Lat2", [2, 0]),
+        ("Lat1and2", [2, 1]),
         ("Lat1then2", [2, 1]),
     ],
 )
