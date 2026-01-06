@@ -380,7 +380,7 @@ class FieldSet:
         # Reset interpolation method for fields that use XLinear
         for field in fieldset.fields.values():
             if hasattr(field, "interp_method") and field.interp_method == XLinear:
-                if field.name not in ["h", "Zeta"]:
+                if field.name not in ["h", "W"]:
                     field.interp_method = CGrid_Tracer
 
         return fieldset
