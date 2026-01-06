@@ -256,9 +256,24 @@ class FieldSet:
         ds_dims = list(ds.dims)
         if not all(dim in ds_dims for dim in ["time", "nz", "nz1"]):
             raise ValueError(
-                f"Dataset missing one of the required dimensions 'time', 'nz', or 'nz1'. Found dimensions {ds_dims}"
+                f"Dataset missing one of the required dimensions 'time', 'nz', or 'nz1' for FESOM data. Found dimensions {ds_dims}"
             )
-        grid = UxGrid(ds.uxgrid, z=ds.coords["nz"], mesh="spherical")
+        # Rename vertical dimensions
+        ds = ds.rename_dims(
+            {
+                "nz": "zf",  # Vertical Interface
+                "nz1": "zc",  # Vertical Center
+            }
+        )
+        # Rename vertical coordinates
+        ds = ds.rename(
+            {
+                "nz": "zf",  # Vertical Interface
+                "nz1": "zc",  # Vertical Center
+            }
+        )
+
+        grid = UxGrid(ds.uxgrid, z=ds.coords["zf"], mesh="spherical")
         ds = _discover_fesom2_U_and_V(ds)
 
         fields = {}
@@ -526,10 +541,10 @@ def _ds_rename_using_standard_names(ds: xr.Dataset | ux.UxDataset, name_dict: di
 def _select_uxinterpolator(da: ux.UxDataArray):
     """Selects the appropriate uxarray interpolator for a given uxarray UxDataArray"""
     supported_uxinterp_mapping = {
-        # (nz1,n_face): face-center laterally, layer centers vertically — piecewise constant
-        "nz1,n_face": UxPiecewiseConstantFace,
-        # (nz,n_node): node/corner laterally, layer interfaces vertically — barycentric lateral & linear vertical
-        "nz,n_node": UxPiecewiseLinearNode,
+        # (zc,n_face): face-center laterally, layer centers vertically — piecewise constant
+        "zc,n_face": UxPiecewiseConstantFace,
+        # (zf,n_node): node/corner laterally, layer interfaces vertically — barycentric lateral & linear vertical
+        "zf,n_node": UxPiecewiseLinearNode,
     }
     # Extract only spatial dimensions, neglecting time
     da_spatial_dims = tuple(d for d in da.dims if d not in ("time",))
@@ -543,7 +558,7 @@ def _select_uxinterpolator(da: ux.UxDataArray):
     vdim = None
     ldim = None
     for d in da_spatial_dims:
-        if d in ("nz", "nz1"):
+        if d in ("zf", "zc"):
             vdim = d
         if d in ("n_face", "n_node"):
             ldim = d

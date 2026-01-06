@@ -28,6 +28,18 @@ def ds_fesom_channel() -> ux.UxDataset:
         f"{fesom_path}/w.fesom_channel.nc",
     ]
     ds = ux.open_mfdataset(grid_path, data_path).rename_vars({"u": "U", "v": "V", "w": "W"})
+    ds = ds.rename_dims(
+        {
+            "nz": "zf",  # Vertical Interface
+            "nz1": "zc",  # Vertical Center
+        }
+    )
+    ds = ds.rename(
+        {
+            "nz": "zf",  # Vertical Interface
+            "nz1": "zc",  # Vertical Center
+        }
+    )
     return ds
 
 
@@ -112,7 +124,19 @@ def test_fesom2_square_delaunay_uniform_z_coordinate_eval():
     Since the underlying data is constant, we can check that the values are as expected.
     """
     ds = datasets_unstructured["fesom2_square_delaunay_uniform_z_coordinate"]
-    grid = UxGrid(ds.uxgrid, z=ds.coords["nz"], mesh="flat")
+    ds = ds.rename_dims(
+        {
+            "nz": "zf",  # Vertical Interface
+            "nz1": "zc",  # Vertical Center
+        }
+    )
+    ds = ds.rename(
+        {
+            "nz": "zf",  # Vertical Interface
+            "nz1": "zc",  # Vertical Center
+        }
+    )
+    grid = UxGrid(ds.uxgrid, z=ds.coords["zf"], mesh="flat")
     UVW = VectorField(
         name="UVW",
         U=Field(name="U", data=ds.U, grid=grid, interp_method=UxPiecewiseConstantFace),
@@ -154,11 +178,23 @@ def test_fesom2_square_delaunay_antimeridian_eval():
     Ensures that the fieldset can be created and evaluated correctly.
     Since the underlying data is constant, we can check that the values are as expected.
     """
-    ds = datasets_unstructured["fesom2_square_delaunay_antimeridian"]
+    ds = datasets_unstructured["fesom2_square_delaunay_antimeridian"].copy(deep=True)
+    ds = ds.rename_dims(
+        {
+            "nz": "zf",  # Vertical Interface
+            "nz1": "zc",  # Vertical Center
+        }
+    )
+    ds = ds.rename(
+        {
+            "nz": "zf",  # Vertical Interface
+            "nz1": "zc",  # Vertical Center
+        }
+    )
     P = Field(
         name="p",
         data=ds.p,
-        grid=UxGrid(ds.uxgrid, z=ds.coords["nz"], mesh="spherical"),
+        grid=UxGrid(ds.uxgrid, z=ds.coords["zf"], mesh="spherical"),
         interp_method=UxPiecewiseLinearNode,
     )
     fieldset = FieldSet([P])

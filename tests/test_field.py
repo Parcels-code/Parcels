@@ -186,16 +186,29 @@ def test_field_unstructured_z_linear():
     linear functions of the vertical coordinate. This allows for testing of exactness of the interpolation methods.
     """
     ds = datasets_unstructured["fesom2_square_delaunay_uniform_z_coordinate"].copy(deep=True)
+    ds = ds.rename_dims(
+        {
+            "nz": "zf",  # Vertical Interface
+            "nz1": "zc",  # Vertical Center
+        }
+    )
+
+    ds = ds.rename(
+        {
+            "nz": "zf",  # Vertical Interface
+            "nz1": "zc",  # Vertical Center
+        }
+    )
 
     # Change the pressure values to be linearly dependent on the vertical coordinate
-    for k, z in enumerate(ds.coords["nz1"]):
+    for k, z in enumerate(ds.coords["zc"]):
         ds["p"].values[:, k, :] = z
 
     # Change the vertical velocity values to be linearly dependent on the vertical coordinate
-    for k, z in enumerate(ds.coords["nz"]):
+    for k, z in enumerate(ds.coords["zf"]):
         ds["W"].values[:, k, :] = z
 
-    grid = UxGrid(ds.uxgrid, z=ds.coords["nz"], mesh="flat")
+    grid = UxGrid(ds.uxgrid, z=ds.coords["zc"], mesh="flat")
     # Note that the vertical coordinate is required to be the position of the layer interfaces ("nz"), not the mid-layers ("nz1")
     P = Field(name="p", data=ds.p, grid=grid, interp_method=UxPiecewiseConstantFace)
 
@@ -232,8 +245,20 @@ def test_field_unstructured_z_linear():
 
 def test_field_constant_in_time():
     """Tests field evaluation for a field with no time interval (i.e., constant in time)."""
-    ds = datasets_unstructured["stommel_gyre_delaunay"]
-    grid = UxGrid(ds.uxgrid, z=ds.coords["nz"], mesh="flat")
+    ds = datasets_unstructured["stommel_gyre_delaunay"].copy(deep=True)
+    ds = ds.rename_dims(
+        {
+            "nz": "zf",  # Vertical Interface
+            "nz1": "zc",  # Vertical Center
+        }
+    )
+    ds = ds.rename(
+        {
+            "nz": "zf",  # Vertical Interface
+            "nz1": "zc",  # Vertical Center
+        }
+    )
+    grid = UxGrid(ds.uxgrid, z=ds.coords["zf"], mesh="flat")
     # Note that the vertical coordinate is required to be the position of the layer interfaces ("nz"), not the mid-layers ("nz1")
     P = Field(name="p", data=ds.p, grid=grid, interp_method=UxPiecewiseConstantFace)
 

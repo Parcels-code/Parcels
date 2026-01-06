@@ -1,6 +1,6 @@
 DIM_TO_VERTICAL_LOCATION_MAP = {
-    "nz1": "center",
-    "nz": "face",
+    "zc": "center",
+    "zf": "face",
 }
 
 
