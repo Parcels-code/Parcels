@@ -103,7 +103,7 @@ class UxGrid(BaseGrid):
         if np.any(ei):
             indices = self.unravel_index(ei)
             fi = indices.get("FACE")
-            is_in_cell, coords = uxgrid_point_in_cell(self.uxgrid, y, x, fi, fi)
+            is_in_cell, coords = uxgrid_point_in_cell(self, y, x, fi, fi)
             y_check = y[is_in_cell == 0]
             x_check = x[is_in_cell == 0]
             zero_indices = np.where(is_in_cell == 0)[0]
