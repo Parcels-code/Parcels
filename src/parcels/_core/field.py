@@ -14,7 +14,7 @@ from parcels._core.converters import (
     _unitconverters_map,
 )
 from parcels._core.index_search import GRID_SEARCH_ERROR, LEFT_OUT_OF_BOUNDS, RIGHT_OUT_OF_BOUNDS, _search_time_index
-from parcels._core.particle import ParticleSetView
+from parcels._core.particlesetview import ParticleSetView
 from parcels._core.statuscodes import (
     AllParcelsErrorCodes,
     StatusCode,
