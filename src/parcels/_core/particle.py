@@ -11,7 +11,7 @@ from parcels._core.utils.string import _assert_str_and_python_varname
 from parcels._core.utils.time import TimeInterval
 from parcels._reprs import _format_list_items_multiline
 
-__all__ = ["Particle", "ParticleClass", "ParticleSetView", "Variable"]
+__all__ = ["Particle", "ParticleClass", "Variable"]
 _TO_WRITE_OPTIONS = [True, False, "once"]
 
 
