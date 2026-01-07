@@ -5,16 +5,67 @@ from __future__ import annotations
 import textwrap
 from typing import TYPE_CHECKING, Any
 
+import xarray as xr
+
 if TYPE_CHECKING:
     from parcels import Field, FieldSet, ParticleSet
 
 
-def field_repr(field: Field) -> str:  # TODO v4: Rework or remove entirely
+def fieldset_repr(fieldset: FieldSet) -> str:
+    """Return a pretty repr for FieldSet"""
+    fields = [f for f in fieldset.fields.values() if getattr(f.__class__, "__name__", "") == "Field"]
+    vfields = [f for f in fieldset.fields.values() if getattr(f.__class__, "__name__", "") == "VectorField"]
+
+    fields_repr = "\n".join([repr(f) for f in fields])
+    vfields_repr = "\n".join([vectorfield_repr(vf, from_fieldset_repr=True) for vf in vfields])
+
+    out = f"""<{type(fieldset).__name__}>
+    fields:
+{textwrap.indent(fields_repr, 8 * " ")}
+    vectorfields:
+{textwrap.indent(vfields_repr, 8 * " ")}
+"""
+    return textwrap.dedent(out).strip()
+
+
+def field_repr(field: Field, offset: int = 0) -> str:
     """Return a pretty repr for Field"""
-    out = f"""<{type(field).__name__}>
-    name            : {field.name!r}
-    data            : {field.data!r}
-    extrapolate time: {field.allow_time_extrapolation!r}
+    with xr.set_options(display_expand_data=False):
+        out = f"""<{type(field).__name__} {field.name!r}>
+    Parcels attributes:
+        name            : {field.name!r}
+        interp_method   : {field.interp_method!r}
+        time_interval   : {field.time_interval!r}
+        units           : {field.units!r}
+        igrid           : {field.igrid!r}
+    DataArray:
+{textwrap.indent(repr(field.data), 8 * " ")}
+{textwrap.indent(repr(field.grid), 4 * " ")}
+"""
+    return textwrap.indent(out, " " * offset).strip()
+
+
+def vectorfield_repr(fieldset: FieldSet, from_fieldset_repr=False) -> str:
+    """Return a pretty repr for VectorField"""
+    out = f"""<{type(fieldset).__name__} {fieldset.name!r}>
+    Parcels attributes:
+        name                  : {fieldset.name!r}
+        vector_interp_method  : {fieldset.vector_interp_method!r}
+        vector_type           : {fieldset.vector_type!r}
+    {field_repr(fieldset.U, offset=4) if not from_fieldset_repr else ""}
+    {field_repr(fieldset.V, offset=4) if not from_fieldset_repr else ""}
+    {field_repr(fieldset.W, offset=4) if not from_fieldset_repr and fieldset.W else ""}"""
+    return out
+
+
+def xgrid_repr(grid: Any) -> str:
+    """Return a pretty repr for Grid"""
+    out = f"""<{type(grid).__name__}>
+    Parcels attributes:
+        mesh                  : {grid._mesh}
+        spatialhash           : {grid._spatialhash}
+    xgcm Grid:
+{textwrap.indent(repr(grid.xgcm_grid), 8 * " ")}
 """
     return textwrap.dedent(out).strip()
 
@@ -58,17 +109,6 @@ def particleset_repr(pset: ParticleSet) -> str:
     ptype      : {pset._ptype}
     # particles: {len(pset)}
     particles  : {_format_list_items_multiline(particles, level=2)}
-"""
-    return textwrap.dedent(out).strip()
-
-
-def fieldset_repr(fieldset: FieldSet) -> str:  # TODO v4: Rework or remove entirely
-    """Return a pretty repr for FieldSet"""
-    fields_repr = "\n".join([repr(f) for f in fieldset.fields.values()])
-
-    out = f"""<{type(fieldset).__name__}>
-    fields:
-{textwrap.indent(fields_repr, 8 * " ")}
 """
     return textwrap.dedent(out).strip()
 
