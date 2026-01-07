@@ -162,7 +162,7 @@ def _format_list_items_multiline(items: list[str] | dict, level: int = 1, with_b
     indentation_str_end = (level - 1) * 4 * " "
 
     if isinstance(items, dict):
-        entries = [f"{k!r}: {v!r}" for k, v in items.items()]
+        entries = [f"{k!s}: {v!s}" for k, v in items.items()]
     else:
         entries = [i if isinstance(i, str) else repr(i) for i in items]
 
