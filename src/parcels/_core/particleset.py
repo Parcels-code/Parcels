@@ -70,7 +70,6 @@ class ParticleSet:
         **kwargs,
     ):
         self._data = None
-        self._repeat_starttime = None
         self._kernel = None
 
         self.fieldset = fieldset
