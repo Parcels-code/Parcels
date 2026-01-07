@@ -318,7 +318,8 @@ def _icon_square_delaunay_uniform_z_coordinate():
     The bottom topography is flat and uniform, and the vertical grid spacing is constant with 10 layers spanning [0,1000.0]
     The lateral velocity field components are non-zero constant, and the vertical velocity component is zero.
     The pressure field is constant.
-    All fields are placed on location consistent with FESOM2 variable placement conventions
+    All fields are face registered and at vertical layer centers, except for the vertical velocity component, which is
+    at vertical layer interfaces.
     """
     lon, lat = np.meshgrid(np.linspace(0, 60.0, Nx, dtype=np.float32), np.linspace(0, 60.0, Nx, dtype=np.float32))
     lon_flat = lon.ravel()
@@ -350,7 +351,7 @@ def _icon_square_delaunay_uniform_z_coordinate():
         (T, nz1, uxgrid.n_face), dtype=np.float64
     )  # Lateral velocity is on the element centers and face centers
     W = np.zeros(
-        (T, nz, uxgrid.n_node), dtype=np.float64
+        (T, nz, uxgrid.n_face), dtype=np.float64
     )  # Vertical velocity is on the element faces and face vertices
     P = np.ones((T, nz1, uxgrid.n_node), dtype=np.float64)  # Pressure is on the element centers and face vertices
 
@@ -384,7 +385,7 @@ def _icon_square_delaunay_uniform_z_coordinate():
         data=W,
         name="w",
         uxgrid=uxgrid,
-        dims=["time", "depth_2", "n_node"],
+        dims=["time", "depth_2", "n_face"],
         coords=dict(
             time=(["time"], TIME),
             depth_2=(["depth_2"], zf),

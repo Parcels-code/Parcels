@@ -322,6 +322,13 @@ def test_fieldset_from_copernicusmarine_with_W(caplog):
     assert "renamed it to 'W'" in caplog.text
 
 
+def test_fieldset_from_icon():
+    ds = datasets_unstructured["icon_square_delaunay_uniform_z_coordinate"]
+    fieldset = FieldSet.from_icon(ds)
+    assert "U" in fieldset.fields
+    assert "V" in fieldset.fields
+    assert "UVW" in fieldset.fields
+
 def test_fieldset_from_fesom2():
     ds = datasets_unstructured["stommel_gyre_delaunay"]
     fieldset = FieldSet.from_fesom2(ds)

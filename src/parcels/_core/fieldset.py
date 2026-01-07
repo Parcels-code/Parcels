@@ -19,7 +19,7 @@ from parcels._core.uxgrid import UxGrid
 from parcels._core.xgrid import _DEFAULT_XGCM_KWARGS, XGrid
 from parcels._logger import logger
 from parcels._typing import Mesh
-from parcels.interpolators import UxPiecewiseConstantFace, UxPiecewiseLinearNode, XConstantField, XLinear
+from parcels.interpolators import UxPiecewiseConstantFace, UxPiecewiseLinearNode, XConstantField, XLinear, ZeroInterpolator
 
 if TYPE_CHECKING:
     from parcels._core.basegrid import BaseGrid
@@ -594,7 +594,7 @@ def _select_uxinterpolator(da: ux.UxDataArray):
     da_spatial_dims = tuple(d for d in da.dims if d not in ("time",))
     if len(da_spatial_dims) != 2:
         raise ValueError(
-            "Fields on unstructured grids must have two spatial dimensions, one vertical (nz or nz1) and one lateral (n_face, n_edge, or n_node)"
+            "Fields on unstructured grids must have two spatial dimensions, one vertical (zf or zc) and one lateral (n_face, n_edge, or n_node)"
         )
 
     # Construct key (string) for mapping to interpolator
@@ -612,4 +612,8 @@ def _select_uxinterpolator(da: ux.UxDataArray):
         if key in supported_uxinterp_mapping.keys():
             return supported_uxinterp_mapping[key]
 
-    return None
+    logger.warning(
+            f"Interpolator not found for UxDataArray {da.name} with spatial dimensions {da_spatial_dims}. Setting default interpolator to ZeroInterpolator"
+        )
+
+    return ZeroInterpolator
