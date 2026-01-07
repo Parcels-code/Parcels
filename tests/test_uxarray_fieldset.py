@@ -28,18 +28,12 @@ def ds_fesom_channel() -> ux.UxDataset:
         f"{fesom_path}/w.fesom_channel.nc",
     ]
     ds = ux.open_mfdataset(grid_path, data_path).rename_vars({"u": "U", "v": "V", "w": "W"})
-    ds = ds.rename_dims(
-        {
-            "nz": "zf",  # Vertical Interface
-            "nz1": "zc",  # Vertical Center
-        }
-    )
     ds = ds.rename(
         {
             "nz": "zf",  # Vertical Interface
             "nz1": "zc",  # Vertical Center
         }
-    )
+    ).set_index(zf="zf", zc="zc")
     return ds
 
 
@@ -50,13 +44,13 @@ def uv_fesom_channel(ds_fesom_channel) -> VectorField:
         U=Field(
             name="U",
             data=ds_fesom_channel.U,
-            grid=UxGrid(ds_fesom_channel.uxgrid, z=ds_fesom_channel.coords["nz"], mesh="flat"),
+            grid=UxGrid(ds_fesom_channel.uxgrid, z=ds_fesom_channel.coords["zf"], mesh="flat"),
             interp_method=UxPiecewiseConstantFace,
         ),
         V=Field(
             name="V",
             data=ds_fesom_channel.V,
-            grid=UxGrid(ds_fesom_channel.uxgrid, z=ds_fesom_channel.coords["nz"], mesh="flat"),
+            grid=UxGrid(ds_fesom_channel.uxgrid, z=ds_fesom_channel.coords["zf"], mesh="flat"),
             interp_method=UxPiecewiseConstantFace,
         ),
     )
@@ -70,19 +64,19 @@ def uvw_fesom_channel(ds_fesom_channel) -> VectorField:
         U=Field(
             name="U",
             data=ds_fesom_channel.U,
-            grid=UxGrid(ds_fesom_channel.uxgrid, z=ds_fesom_channel.coords["nz"], mesh="flat"),
+            grid=UxGrid(ds_fesom_channel.uxgrid, z=ds_fesom_channel.coords["zf"], mesh="flat"),
             interp_method=UxPiecewiseConstantFace,
         ),
         V=Field(
             name="V",
             data=ds_fesom_channel.V,
-            grid=UxGrid(ds_fesom_channel.uxgrid, z=ds_fesom_channel.coords["nz"], mesh="flat"),
+            grid=UxGrid(ds_fesom_channel.uxgrid, z=ds_fesom_channel.coords["zf"], mesh="flat"),
             interp_method=UxPiecewiseConstantFace,
         ),
         W=Field(
             name="W",
             data=ds_fesom_channel.W,
-            grid=UxGrid(ds_fesom_channel.uxgrid, z=ds_fesom_channel.coords["nz"], mesh="flat"),
+            grid=UxGrid(ds_fesom_channel.uxgrid, z=ds_fesom_channel.coords["zf"], mesh="flat"),
             interp_method=UxPiecewiseLinearNode,
         ),
     )
@@ -124,18 +118,12 @@ def test_fesom2_square_delaunay_uniform_z_coordinate_eval():
     Since the underlying data is constant, we can check that the values are as expected.
     """
     ds = datasets_unstructured["fesom2_square_delaunay_uniform_z_coordinate"]
-    ds = ds.rename_dims(
-        {
-            "nz": "zf",  # Vertical Interface
-            "nz1": "zc",  # Vertical Center
-        }
-    )
     ds = ds.rename(
         {
             "nz": "zf",  # Vertical Interface
             "nz1": "zc",  # Vertical Center
         }
-    )
+    ).set_index(zf="zf", zc="zc")
     grid = UxGrid(ds.uxgrid, z=ds.coords["zf"], mesh="flat")
     UVW = VectorField(
         name="UVW",
@@ -179,18 +167,12 @@ def test_fesom2_square_delaunay_antimeridian_eval():
     Since the underlying data is constant, we can check that the values are as expected.
     """
     ds = datasets_unstructured["fesom2_square_delaunay_antimeridian"].copy(deep=True)
-    ds = ds.rename_dims(
-        {
-            "nz": "zf",  # Vertical Interface
-            "nz1": "zc",  # Vertical Center
-        }
-    )
     ds = ds.rename(
         {
             "nz": "zf",  # Vertical Interface
             "nz1": "zc",  # Vertical Center
         }
-    )
+    ).set_index(zf="zf", zc="zc")
     P = Field(
         name="p",
         data=ds.p,

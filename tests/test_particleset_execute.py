@@ -479,19 +479,12 @@ def test_execution_update_particle_in_kernel_function(fieldset, kernel_names, ex
 
 def test_uxstommelgyre_pset_execute():
     ds = datasets_unstructured["stommel_gyre_delaunay"].copy(deep=True)
-    ds = ds.rename_dims(
-        {
-            "nz": "zf",  # Vertical Interface
-            "nz1": "zc",  # Vertical Center
-        }
-    )
-
     ds = ds.rename(
         {
             "nz": "zf",  # Vertical Interface
             "nz1": "zc",  # Vertical Center
         }
-    )
+    ).set_index(zf="zf", zc="zc")
     grid = UxGrid(grid=ds.uxgrid, z=ds.coords["zf"], mesh="spherical")
     U = Field(
         name="U",
@@ -532,18 +525,12 @@ def test_uxstommelgyre_pset_execute():
 
 def test_uxstommelgyre_multiparticle_pset_execute():
     ds = datasets_unstructured["stommel_gyre_delaunay"].copy(deep=True)
-    ds = ds.rename_dims(
-        {
-            "nz": "zf",  # Vertical Interface
-            "nz1": "zc",  # Vertical Center
-        }
-    )
     ds = ds.rename(
         {
             "nz": "zf",  # Vertical Interface
             "nz1": "zc",  # Vertical Center
         }
-    )
+    ).set_index(zf="zf", zc="zc")
     grid = UxGrid(grid=ds.uxgrid, z=ds.coords["zf"], mesh="spherical")
     U = Field(
         name="U",

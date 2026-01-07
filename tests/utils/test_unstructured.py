@@ -15,7 +15,7 @@ def test_get_vertical_location_from_dims():
 
     # Test with both dimensions
     with pytest.raises(ValueError):
-        get_vertical_location_from_dims(("zc", "nf", "time"))
+        get_vertical_location_from_dims(("zc", "zf", "time"))
 
     # Test with no vertical dimension
     with pytest.raises(ValueError):

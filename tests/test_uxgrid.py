@@ -3,10 +3,13 @@ import pytest
 from parcels import UxGrid
 from parcels._datasets.unstructured.generic import datasets as uxdatasets
 
+GENERIC_Z_COORDS = ["nz", "zf", "depth_2"]
+
 
 @pytest.mark.parametrize("uxds", [pytest.param(uxds, id=key) for key, uxds in uxdatasets.items()])
 def test_uxgrid_init_on_generic_datasets(uxds):
-    UxGrid(uxds.uxgrid, z=uxds.coords["nz"], mesh="flat")
+    vertical_coord = next((z_coord for z_coord in uxds.coords if z_coord in GENERIC_Z_COORDS), None)
+    UxGrid(uxds.uxgrid, z=uxds.coords[vertical_coord], mesh="flat")
 
 
 @pytest.mark.parametrize("uxds", [uxdatasets["stommel_gyre_delaunay"]])

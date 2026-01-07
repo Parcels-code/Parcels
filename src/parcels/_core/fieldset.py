@@ -239,6 +239,48 @@ class FieldSet:
         )
         return FieldSet.from_sgrid_conventions(ds, mesh="spherical")
 
+    def from_uxdataset(ds: ux.UxDataset):
+        """Create a FieldSet from a Parcels compliant uxarray.UxDataset.
+        The main requirements for a uxDataset are naming conventions for vertical grid dimensions & coordinates
+
+          zf - Name for coordinate and dimension for vertical positions at layer interfaces
+          zc - Name for coordinate and dimension for vertical positions at layer centers
+
+        Parameters
+        ----------
+        ds : uxarray.UxDataset
+            uxarray.UxDataset as obtained from the uxarray package but with appropriate named vertical dimensions
+
+        Returns
+        -------
+        FieldSet
+            FieldSet object containing the fields from the dataset that can be used for a Parcels simulation.
+        """
+        ds_dims = list(ds.dims)
+        if not all(dim in ds_dims for dim in ["time", "zf", "zc"]):
+            raise ValueError(
+                f"Dataset missing one of the required dimensions 'time', 'zf', or 'zc' for uxDataset. Found dimensions {ds_dims}"
+            )
+
+        grid = UxGrid(ds.uxgrid, z=ds.coords["zf"], mesh="spherical")
+        ds = _discover_ux_U_and_V(ds)
+
+        fields = {}
+        if "U" in ds.data_vars and "V" in ds.data_vars:
+            fields["U"] = Field("U", ds["U"], grid, _select_uxinterpolator(ds["U"]))
+            fields["V"] = Field("V", ds["V"], grid, _select_uxinterpolator(ds["U"]))
+
+            if "W" in ds.data_vars:
+                fields["W"] = Field("W", ds["W"], grid, _select_uxinterpolator(ds["U"]))
+                fields["UVW"] = VectorField("UVW", fields["U"], fields["V"], fields["W"])
+            else:
+                fields["UV"] = VectorField("UV", fields["U"], fields["V"])
+
+        for varname in set(ds.data_vars) - set(fields.keys()):
+            fields[varname] = Field(varname, ds[varname], grid, _select_uxinterpolator(ds[varname]))
+
+        return FieldSet(list(fields.values()))
+
     def from_fesom2(ds: ux.UxDataset):
         """Create a FieldSet from a FESOM2 uxarray.UxDataset.
 
@@ -258,39 +300,41 @@ class FieldSet:
             raise ValueError(
                 f"Dataset missing one of the required dimensions 'time', 'nz', or 'nz1' for FESOM data. Found dimensions {ds_dims}"
             )
-        # Rename vertical dimensions
-        ds = ds.rename_dims(
-            {
-                "nz": "zf",  # Vertical Interface
-                "nz1": "zc",  # Vertical Center
-            }
-        )
-        # Rename vertical coordinates
         ds = ds.rename(
             {
                 "nz": "zf",  # Vertical Interface
                 "nz1": "zc",  # Vertical Center
             }
-        )
+        ).set_index(zf="zf", zc="zc")
 
-        grid = UxGrid(ds.uxgrid, z=ds.coords["zf"], mesh="spherical")
-        ds = _discover_fesom2_U_and_V(ds)
+        return FieldSet.from_uxdataset(ds)
 
-        fields = {}
-        if "U" in ds.data_vars and "V" in ds.data_vars:
-            fields["U"] = Field("U", ds["U"], grid, _select_uxinterpolator(ds["U"]))
-            fields["V"] = Field("V", ds["V"], grid, _select_uxinterpolator(ds["U"]))
+    def from_icon(ds: ux.UxDataset):
+        """Create a FieldSet from a ICON uxarray.UxDataset.
 
-            if "W" in ds.data_vars:
-                fields["W"] = Field("W", ds["W"], grid, _select_uxinterpolator(ds["U"]))
-                fields["UVW"] = VectorField("UVW", fields["U"], fields["V"], fields["W"])
-            else:
-                fields["UV"] = VectorField("UV", fields["U"], fields["V"])
+        Parameters
+        ----------
+        ds : uxarray.UxDataset
+            uxarray.UxDataset as obtained from the uxarray package.
 
-        for varname in set(ds.data_vars) - set(fields.keys()):
-            fields[varname] = Field(varname, ds[varname], grid, _select_uxinterpolator(ds[varname]))
-
-        return FieldSet(list(fields.values()))
+        Returns
+        -------
+        FieldSet
+            FieldSet object containing the fields from the dataset that can be used for a Parcels simulation.
+        """
+        ds = ds.copy()
+        ds_dims = list(ds.dims)
+        if not all(dim in ds_dims for dim in ["time", "depth", "depth_2"]):
+            raise ValueError(
+                f"Dataset missing one of the required dimensions 'time', 'depth', or 'depth_2' for ICON data. Found dimensions {ds_dims}"
+            )
+        ds = ds.rename(
+            {
+                "depth_2": "zf",  # Vertical Interface
+                "depth": "zc",  # Vertical Center
+            }
+        ).set_index(zf="zf", zc="zc")
+        return FieldSet.from_uxdataset(ds)
 
     def from_sgrid_conventions(
         ds: xr.Dataset, mesh: Mesh
@@ -486,13 +530,13 @@ def _discover_copernicusmarine_U_and_V(ds: xr.Dataset) -> xr.Dataset:
     return ds
 
 
-def _discover_fesom2_U_and_V(ds: ux.UxDataset) -> ux.UxDataset:
+def _discover_ux_U_and_V(ds: ux.UxDataset) -> ux.UxDataset:
     # Common variable names for U and V found in UxDatasets
-    common_fesom_UV = [("unod", "vnod"), ("u", "v")]
-    common_fesom_W = ["w"]
+    common_ux_UV = [("unod", "vnod"), ("u", "v")]
+    common_ux_W = ["w"]
 
     if "W" not in ds:
-        for common_W in common_fesom_W:
+        for common_W in common_ux_W:
             if common_W in ds:
                 ds = _ds_rename_using_standard_names(ds, {common_W: "W"})
                 break
@@ -504,7 +548,7 @@ def _discover_fesom2_U_and_V(ds: ux.UxDataset) -> ux.UxDataset:
             "Dataset has only one of the two variables 'U' and 'V'. Please rename the appropriate variable in your dataset to have both 'U' and 'V' for Parcels simulation."
         )
 
-    for common_U, common_V in common_fesom_UV:
+    for common_U, common_V in common_ux_UV:
         if common_U in ds:
             if common_V not in ds:
                 raise ValueError(
