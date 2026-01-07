@@ -19,7 +19,13 @@ from parcels._core.uxgrid import UxGrid
 from parcels._core.xgrid import _DEFAULT_XGCM_KWARGS, XGrid
 from parcels._logger import logger
 from parcels._typing import Mesh
-from parcels.interpolators import UxPiecewiseConstantFace, UxPiecewiseLinearNode, XConstantField, XLinear, ZeroInterpolator
+from parcels.interpolators import (
+    UxConstantFaceConstantZC,
+    UxLinearNodeLinearZF,
+    XConstantField,
+    XLinear,
+    ZeroInterpolator,
+)
 
 if TYPE_CHECKING:
     from parcels._core.basegrid import BaseGrid
@@ -586,9 +592,9 @@ def _select_uxinterpolator(da: ux.UxDataArray):
     """Selects the appropriate uxarray interpolator for a given uxarray UxDataArray"""
     supported_uxinterp_mapping = {
         # (zc,n_face): face-center laterally, layer centers vertically — piecewise constant
-        "zc,n_face": UxPiecewiseConstantFace,
+        "zc,n_face": UxConstantFaceConstantZC,
         # (zf,n_node): node/corner laterally, layer interfaces vertically — barycentric lateral & linear vertical
-        "zf,n_node": UxPiecewiseLinearNode,
+        "zf,n_node": UxLinearNodeLinearZF,
     }
     # Extract only spatial dimensions, neglecting time
     da_spatial_dims = tuple(d for d in da.dims if d not in ("time",))
@@ -613,7 +619,7 @@ def _select_uxinterpolator(da: ux.UxDataArray):
             return supported_uxinterp_mapping[key]
 
     logger.warning(
-            f"Interpolator not found for UxDataArray {da.name} with spatial dimensions {da_spatial_dims}. Setting default interpolator to ZeroInterpolator"
-        )
+        f"Interpolator not found for UxDataArray {da.name} with spatial dimensions {da_spatial_dims}. Setting default interpolator to ZeroInterpolator"
+    )
 
     return ZeroInterpolator

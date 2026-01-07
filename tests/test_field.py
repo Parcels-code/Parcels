@@ -9,7 +9,7 @@ from parcels import Field, UxGrid, VectorField, XGrid
 from parcels._datasets.structured.generic import T as T_structured
 from parcels._datasets.structured.generic import datasets as datasets_structured
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
-from parcels.interpolators import UxPiecewiseConstantFace, UxPiecewiseLinearNode, XLinear
+from parcels.interpolators import UxConstantFaceConstantZC, UxLinearNodeLinearZF, XLinear
 
 
 def test_field_init_param_types():
@@ -203,7 +203,7 @@ def test_field_unstructured_z_linear():
 
     grid = UxGrid(ds.uxgrid, z=ds.coords["zf"], mesh="flat")
     # Note that the vertical coordinate is required to be the position of the layer interfaces ("nz"), not the mid-layers ("nz1")
-    P = Field(name="p", data=ds.p, grid=grid, interp_method=UxPiecewiseConstantFace)
+    P = Field(name="p", data=ds.p, grid=grid, interp_method=UxConstantFaceConstantZC)
 
     # Test above first cell center - for piecewise constant, should return the depth of the first cell center
     assert np.isclose(
@@ -221,7 +221,7 @@ def test_field_unstructured_z_linear():
         944.44445801,
     )
 
-    W = Field(name="W", data=ds.W, grid=grid, interp_method=UxPiecewiseLinearNode)
+    W = Field(name="W", data=ds.W, grid=grid, interp_method=UxLinearNodeLinearZF)
     assert np.isclose(
         W.eval(time=[0], z=[10.0], y=[30.0], x=[30.0], applyConversion=False),
         10.0,
@@ -247,7 +247,7 @@ def test_field_constant_in_time():
     ).set_index(zf="zf", zc="zc")
     grid = UxGrid(ds.uxgrid, z=ds.coords["zf"], mesh="flat")
     # Note that the vertical coordinate is required to be the position of the layer interfaces ("nz"), not the mid-layers ("nz1")
-    P = Field(name="p", data=ds.p, grid=grid, interp_method=UxPiecewiseConstantFace)
+    P = Field(name="p", data=ds.p, grid=grid, interp_method=UxConstantFaceConstantZC)
 
     # Assert that the field can be evaluated at any time, and returns the same value
     time = np.datetime64("2000-01-01T00:00:00")

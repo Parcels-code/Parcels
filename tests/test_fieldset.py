@@ -329,6 +329,7 @@ def test_fieldset_from_icon():
     assert "V" in fieldset.fields
     assert "UVW" in fieldset.fields
 
+
 def test_fieldset_from_fesom2():
     ds = datasets_unstructured["stommel_gyre_delaunay"]
     fieldset = FieldSet.from_fesom2(ds)

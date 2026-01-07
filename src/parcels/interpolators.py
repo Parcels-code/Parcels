@@ -18,8 +18,8 @@ if TYPE_CHECKING:
 __all__ = [
     "CGrid_Tracer",
     "CGrid_Velocity",
-    "UxPiecewiseConstantFace",
-    "UxPiecewiseLinearNode",
+    "UxConstantFaceConstantZC",
+    "UxLinearNodeLinearZF",
     "XConstantField",
     "XFreeslip",
     "XLinear",
@@ -641,28 +641,24 @@ def XLinearInvdistLandTracer(
     return values.compute() if is_dask_collection(values) else values
 
 
-def UxPiecewiseConstantFace(
+def UxConstantFaceConstantZC(
     particle_positions: dict[str, float | np.ndarray],
     grid_positions: dict[_UXGRID_AXES, dict[str, int | float | np.ndarray]],
     field: Field,
 ):
-    """
-    Piecewise constant interpolation kernel for face registered data.
-    This interpolation method is appropriate for fields that are
-    face registered, such as u,v in FESOM.
-    """
+    """Piecewise constant interpolation kernel for face registered data that is vertically centered (on zc points)"""
     return field.data.values[
         grid_positions["T"]["index"], grid_positions["Z"]["index"], grid_positions["FACE"]["index"]
     ]
 
 
-def UxPiecewiseLinearNode(
+def UxLinearNodeLinearZF(
     particle_positions: dict[str, float | np.ndarray],
     grid_positions: dict[_UXGRID_AXES, dict[str, int | float | np.ndarray]],
     field: Field,
 ):
     """
-    Piecewise linear interpolation kernel for node registered data located at vertical interface levels.
+    Piecewise linear interpolation kernel for node registered data located at vertical interface levels (zf points).
     This interpolation method is appropriate for fields that are node registered such as the vertical
     velocity W in FESOM2. Effectively, it applies barycentric interpolation in the lateral direction
     and piecewise linear interpolation in the vertical direction.
