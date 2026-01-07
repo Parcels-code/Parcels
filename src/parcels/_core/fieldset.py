@@ -21,6 +21,8 @@ from parcels._logger import logger
 from parcels._typing import Mesh
 from parcels.interpolators import (
     UxConstantFaceConstantZC,
+    UxConstantFaceLinearZF,
+    UxLinearNodeConstantZC,
     UxLinearNodeLinearZF,
     XConstantField,
     XLinear,
@@ -593,8 +595,12 @@ def _select_uxinterpolator(da: ux.UxDataArray):
     supported_uxinterp_mapping = {
         # (zc,n_face): face-center laterally, layer centers vertically — piecewise constant
         "zc,n_face": UxConstantFaceConstantZC,
+        # (zc,n_node): node/corner laterally, layer centers vertically — barycentric lateral & piecewise constant vertical
+        "zc,n_node": UxLinearNodeConstantZC,
         # (zf,n_node): node/corner laterally, layer interfaces vertically — barycentric lateral & linear vertical
         "zf,n_node": UxLinearNodeLinearZF,
+        # (zf,n_face): face-center laterally, layer interfaces vertically — piecewise constant lateral & linear vertical
+        "zf,n_face": UxConstantFaceLinearZF,
     }
     # Extract only spatial dimensions, neglecting time
     da_spatial_dims = tuple(d for d in da.dims if d not in ("time",))

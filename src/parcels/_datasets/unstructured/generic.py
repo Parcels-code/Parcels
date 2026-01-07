@@ -341,7 +341,6 @@ def _icon_square_delaunay_uniform_z_coordinate():
         method="regional_delaunay",
         boundary_points=boundary_points,
     )
-    uxgrid.attrs["Conventions"] = "UGRID-1.0"
 
     # Define arrays U (zonal), V (meridional) and P (sea surface height)
     U = np.ones(
@@ -401,7 +400,7 @@ def _icon_square_delaunay_uniform_z_coordinate():
         dims=["time", "depth", "n_node"],
         coords=dict(
             time=(["time"], TIME),
-            depth_2=(["depth"], zc),
+            depth=(["depth"], zc),
         ),
         attrs=dict(description="pressure", units="N/m^2", location="node", mesh="delaunay", Conventions="UGRID-1.0"),
     )
