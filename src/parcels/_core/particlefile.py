@@ -16,6 +16,7 @@ from zarr.storage import DirectoryStore
 import parcels
 from parcels._core.particle import ParticleClass
 from parcels._core.utils.time import timedelta_to_float
+from parcels._reprs import particlefile_repr
 
 if TYPE_CHECKING:
     from parcels._core.particle import Variable
@@ -96,12 +97,7 @@ class ParticleFile:
         # TODO v4: Add check that if create_new_zarrfile is False, the store already exists
 
     def __repr__(self) -> str:
-        return (
-            f"{type(self).__name__}("
-            f"outputdt={self.outputdt!r}, "
-            f"chunks={self.chunks!r}, "
-            f"create_new_zarrfile={self.create_new_zarrfile!r})"
-        )
+        return particlefile_repr(self)
 
     def set_metadata(self, parcels_grid_mesh: Literal["spherical", "flat"]):
         self.metadata.update(

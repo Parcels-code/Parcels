@@ -5,6 +5,7 @@ from __future__ import annotations
 import textwrap
 from typing import TYPE_CHECKING, Any
 
+import numpy as np
 import xarray as xr
 
 if TYPE_CHECKING:
@@ -28,7 +29,8 @@ def fieldset_repr(fieldset: FieldSet) -> str:
     return textwrap.dedent(out).strip()
 
 
-def field_repr(field: Field, offset: int = 0) -> str:
+# TODO add land_value here after HG #2451 is merged
+def field_repr(field: Field, level: int = 0) -> str:
     """Return a pretty repr for Field"""
     with xr.set_options(display_expand_data=False):
         out = f"""<{type(field).__name__} {field.name!r}>
@@ -42,7 +44,7 @@ def field_repr(field: Field, offset: int = 0) -> str:
 {textwrap.indent(repr(field.data), 8 * " ")}
 {textwrap.indent(repr(field.grid), 4 * " ")}
 """
-    return textwrap.indent(out, " " * offset).strip()
+    return textwrap.indent(out, " " * level * 4).strip()
 
 
 def vectorfield_repr(fieldset: FieldSet, from_fieldset_repr=False) -> str:
@@ -52,9 +54,9 @@ def vectorfield_repr(fieldset: FieldSet, from_fieldset_repr=False) -> str:
         name                  : {fieldset.name!r}
         vector_interp_method  : {fieldset.vector_interp_method!r}
         vector_type           : {fieldset.vector_type!r}
-    {field_repr(fieldset.U, offset=4) if not from_fieldset_repr else ""}
-    {field_repr(fieldset.V, offset=4) if not from_fieldset_repr else ""}
-    {field_repr(fieldset.W, offset=4) if not from_fieldset_repr and fieldset.W else ""}"""
+    {field_repr(fieldset.U, level=1) if not from_fieldset_repr else ""}
+    {field_repr(fieldset.V, level=1) if not from_fieldset_repr else ""}
+    {field_repr(fieldset.W, level=1) if not from_fieldset_repr and fieldset.W else ""}"""
     return out
 
 
@@ -70,7 +72,66 @@ def xgrid_repr(grid: Any) -> str:
     return textwrap.dedent(out).strip()
 
 
-def _format_list_items_multiline(items: list[str], level: int = 1) -> str:
+def particleset_repr(pset: ParticleSet) -> str:
+    """Return a pretty repr for ParticleSet"""
+    if len(pset) < 10:
+        particles = [repr(p) for p in pset]
+    else:
+        particles = [repr(pset[i]) for i in range(7)] + ["..."]
+
+    out = f"""<{type(pset).__name__}>
+    Number of particles: {len(pset)}
+    Particles:
+{_format_list_items_multiline(particles, level=2, with_brackets=False)}
+    Pclass:
+{textwrap.indent(repr(pset._ptype), 8 * " ")}
+"""
+    return textwrap.dedent(out).strip()
+
+
+def particlesetview_repr(pview: Any) -> str:
+    """Return a pretty repr for ParticleSetView"""
+    time_string = "not_yet_set" if pview.time is None or np.isnan(pview.time) else f"{pview.time:f}"
+    out = f"P[{pview.trajectory}]: time={time_string}, z={pview.z:f}, lat={pview.lat:f}, lon={pview.lon:f}"
+    vars = [v.name for v in pview._ptype.variables if v.to_write is True and v.name not in ["lon", "lat", "z", "time"]]
+    for var in vars:
+        out += f", {var}={getattr(pview, var):f}"
+
+    return textwrap.dedent(out).strip()
+
+
+def particleclass_repr(pclass: Any) -> str:
+    vars = [repr(v) for v in pclass.variables]
+    out = f"""
+{_format_list_items_multiline(vars, level=1, with_brackets=False)}
+"""
+    return textwrap.dedent(out).strip()
+
+
+def variable_repr(var: Any) -> str:
+    return f"Variable(name={var._name!r}, dtype={var.dtype!r}, initial={var.initial!r}, to_write={var.to_write!r}, attrs={var.attrs!r})"
+
+
+def timeinterval_repr(ti: Any) -> str:
+    return f"TimeInterval(left={ti.left!r}, right={ti.right!r})"
+
+
+def particlefile_repr(pfile: Any) -> str:
+    out = f"""{type(pfile).__name__}
+        outputdt    : {pfile.outputdt!r}
+        chunks      : {pfile.chunks!r}
+        create_new_zarrfile: {pfile.create_new_zarrfile!r}
+"""
+    return textwrap.dedent(out).strip()
+
+
+def default_repr(obj: Any):
+    if is_builtin_object(obj):
+        return repr(obj)
+    return object.__repr__(obj)
+
+
+def _format_list_items_multiline(items: list[str], level: int = 1, with_brackets: bool = True) -> str:
     """Given a list of strings, formats them across multiple lines.
 
     Uses indentation levels of 4 spaces provided by ``level``.
@@ -88,35 +149,15 @@ def _format_list_items_multiline(items: list[str], level: int = 1) -> str:
     if len(items) == 0:
         return "[]"
 
-    assert level >= 1, "Indentation level >=1 supported"
+    assert level >= 0, "Indentation level >=0 supported"
     indentation_str = level * 4 * " "
     indentation_str_end = (level - 1) * 4 * " "
 
     items_str = ",\n".join([textwrap.indent(i, indentation_str) for i in items])
-    return f"[\n{items_str}\n{indentation_str_end}]"
-
-
-def particleset_repr(pset: ParticleSet) -> str:
-    """Return a pretty repr for ParticleSet"""
-    if len(pset) < 10:
-        particles = [repr(p) for p in pset]
+    if with_brackets:
+        return f"[\n{items_str}\n{indentation_str_end}]"
     else:
-        particles = [repr(pset[i]) for i in range(7)] + ["..."]
-
-    out = f"""<{type(pset).__name__}>
-    fieldset   :
-{textwrap.indent(repr(pset.fieldset), " " * 8)}
-    ptype      : {pset._ptype}
-    # particles: {len(pset)}
-    particles  : {_format_list_items_multiline(particles, level=2)}
-"""
-    return textwrap.dedent(out).strip()
-
-
-def default_repr(obj: Any):
-    if is_builtin_object(obj):
-        return repr(obj)
-    return object.__repr__(obj)
+        return f"{items_str}"
 
 
 def is_builtin_object(obj):

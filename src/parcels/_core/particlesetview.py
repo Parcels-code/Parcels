@@ -1,12 +1,15 @@
 import numpy as np
 
+from parcels._reprs import particlesetview_repr
+
 
 class ParticleSetView:
     """Class to be used in a kernel that links a View of the ParticleSet (on the kernel level) to a ParticleSet."""
 
-    def __init__(self, data, index):
+    def __init__(self, data, index, ptype):
         self._data = data
         self._index = index
+        self._ptype = ptype
 
     def __getattr__(self, name):
         # Return a proxy that behaves like the underlying numpy array but
@@ -25,10 +28,13 @@ class ParticleSetView:
         return self._data[name][self._index]
 
     def __setattr__(self, name, value):
-        if name in ["_data", "_index"]:
+        if name in ["_data", "_index", "_ptype"]:
             object.__setattr__(self, name, value)
         else:
             self._data[name][self._index] = value
+
+    def __repr__(self):
+        return particlesetview_repr(self)
 
     def __getitem__(self, index):
         # normalize single-element tuple indexing (e.g., (inds,))

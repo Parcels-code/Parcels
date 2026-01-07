@@ -166,7 +166,7 @@ class ParticleSet:
 
     def __getitem__(self, index):
         """Get a single particle by index."""
-        return ParticleSetView(self._data, index=index)
+        return ParticleSetView(self._data, index=index, ptype=self._ptype)
 
     def __setattr__(self, name, value):
         if name in ["_data"]:
