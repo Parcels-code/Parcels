@@ -272,10 +272,6 @@ class FieldSet:
         ds = convert.nemo_to_sgrid(ds)
         fieldset = FieldSet.from_sgrid_conventions(ds, mesh="spherical")
         fieldset.V.units = GeographicPolar()
-        if "UV" in fieldset.fields:
-            fieldset.UV.vector_interp_method = CGrid_Velocity
-        if "UVW" in fieldset.fields:
-            fieldset.UVW.vector_interp_method = CGrid_Velocity
         return fieldset
 
     def from_fesom2(ds: ux.UxDataset):
@@ -395,11 +391,20 @@ class FieldSet:
         if "U" in ds.data_vars and "V" in ds.data_vars:
             fields["U"] = Field("U", ds["U"], grid, XLinear)
             fields["V"] = Field("V", ds["V"], grid, XLinear)
-            fields["UV"] = VectorField("UV", fields["U"], fields["V"])
+            fields["UV"] = VectorField(
+                "UV",
+                fields["U"],
+                fields["V"],
+                vector_interp_method=CGrid_Velocity,
+                # ^Seems to work with AGrid as well? (at least, tests aren't failing -
+                # either logic needs to be added to choose interpolator, or this interpolator should be renamed)
+            )
 
             if "W" in ds.data_vars:
                 fields["W"] = Field("W", ds["W"], grid, XLinear)
-                fields["UVW"] = VectorField("UVW", fields["U"], fields["V"], fields["W"])
+                fields["UVW"] = VectorField(
+                    "UVW", fields["U"], fields["V"], fields["W"], vector_interp_method=CGrid_Velocity
+                )
 
         for varname in set(ds.data_vars) - set(fields.keys()) - skip_vars:
             fields[varname] = Field(varname, ds[varname], grid, XLinear)
