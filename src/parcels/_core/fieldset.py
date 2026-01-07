@@ -10,6 +10,7 @@ import uxarray as ux
 import xarray as xr
 import xgcm
 
+from parcels import convert
 from parcels._core.converters import GeographicPolar
 from parcels._core.field import Field, VectorField
 from parcels._core.utils import sgrid
@@ -20,6 +21,7 @@ from parcels._core.uxgrid import UxGrid
 from parcels._core.xgrid import _DEFAULT_XGCM_KWARGS, XGrid
 from parcels._logger import logger
 from parcels._typing import Mesh
+from parcels.convert import _discover_U_and_V, _ds_rename_using_standard_names, _maybe_rename_coords
 from parcels.interpolators import (
     CGrid_Velocity,
     UxPiecewiseConstantFace,
@@ -267,47 +269,7 @@ class FieldSet:
         If you encounter issues with your specific NEMO dataset, please open an issue on the Parcels GitHub repository with details about your dataset.
 
         """
-        ds = ds.copy()
-        ds = _maybe_rename_variables(ds, _NEMO_VARNAMES_MAPPING)
-        ds = _discover_U_and_V(ds, _NEMO_CF_STANDARD_NAME_FALLBACKS)
-        ds = _maybe_create_depth_dim(ds)
-        ds = _maybe_bring_UV_depths_to_depth(ds)
-        ds = _drop_unused_dimensions_and_coords(ds, _NEMO_DIMENSION_NAMES)
-        ds = _maybe_rename_coords(ds, _NEMO_AXIS_VARNAMES)
-        ds = _assign_dims_as_coords(ds, _NEMO_DIMENSION_NAMES)
-        ds = _set_coords(ds, _NEMO_DIMENSION_NAMES)
-        ds = _maybe_remove_depth_from_lonlat(ds)
-        ds = _set_axis_attrs(ds, _NEMO_AXIS_VARNAMES)
-
-        expected_axes = set("XYZT")  # TODO: Update after we have support for 2D spatial fields
-        if missing_axes := (expected_axes - set(ds.cf.axes)):
-            raise ValueError(
-                f"Dataset missing CF compliant metadata for axes "
-                f"{missing_axes}. Expected 'axis' attribute to be set "
-                f"on all dimension axes {expected_axes}. "
-                "HINT: Add xarray metadata attribute 'axis' to dimension - e.g., ds['lat'].attrs['axis'] = 'Y'"
-            )
-
-        if "W" in ds.data_vars:
-            # Negate W to convert from up positive to down positive (as that's the direction of positive z)
-            ds["W"].data *= -1
-        if "grid" in ds.cf.cf_roles:
-            raise ValueError(
-                "Dataset already has a 'grid' variable (according to cf_roles). Didn't expect there to be grid metadata on copernicusmarine datasets - please open an issue with more information about your dataset."
-            )
-        ds["grid"] = xr.DataArray(
-            0,
-            attrs=sgrid.Grid2DMetadata(
-                cf_role="grid_topology",
-                topology_dimension=2,
-                node_dimensions=("glamf", "gphif"),
-                face_dimensions=(
-                    sgrid.DimDimPadding("x_center", "x", sgrid.Padding.LOW),
-                    sgrid.DimDimPadding("y_center", "y", sgrid.Padding.LOW),
-                ),
-                vertical_dimensions=(sgrid.DimDimPadding("z_center", "depth", sgrid.Padding.HIGH),),
-            ).to_attrs(),
-        )
+        ds = convert.nemo_to_sgrid(ds)
         fieldset = FieldSet.from_sgrid_conventions(ds, mesh="spherical")
         fieldset.V.units = GeographicPolar()
         if "UV" in fieldset.fields:
@@ -513,134 +475,6 @@ _COPERNICUS_MARINE_CF_STANDARD_NAME_FALLBACKS = {
     "W": ["upward_sea_water_velocity", "vertical_sea_water_velocity"],
 }
 
-_NEMO_CF_STANDARD_NAME_FALLBACKS = {
-    "UV": [
-        (
-            "sea_water_x_velocity",
-            "sea_water_y_velocity",
-        ),
-    ],
-    "W": ["upward_sea_water_velocity", "vertical_sea_water_velocity"],
-}
-
-_NEMO_DIMENSION_NAMES = ["x", "y", "time", "glamf", "gphif", "depth"]
-
-_NEMO_AXIS_VARNAMES = {
-    "X": "glamf",
-    "Y": "gphif",
-    "Z": "depth",
-    "T": "time",
-}
-
-_NEMO_VARNAMES_MAPPING = {
-    "time_counter": "time",
-    "depthw": "depth",
-    "uo": "U",
-    "vo": "V",
-    "wo": "W",
-}
-
-
-def _maybe_bring_UV_depths_to_depth(ds):
-    if "U" in ds.variables and "depthu" in ds.U.coords and "depth" in ds.coords:
-        ds["U"] = ds["U"].assign_coords(depthu=ds["depth"].values).rename({"depthu": "depth"})
-    if "V" in ds.variables and "depthv" in ds.V.coords and "depth" in ds.coords:
-        ds["V"] = ds["V"].assign_coords(depthv=ds["depth"].values).rename({"depthv": "depth"})
-    return ds
-
-
-def _maybe_create_depth_dim(ds):
-    if "depth" not in ds.dims:
-        ds = ds.expand_dims({"depth": [0]})
-        ds["depth"] = xr.DataArray([0], dims=["depth"])
-    return ds
-
-
-def _maybe_rename_coords(ds, AXIS_VARNAMES):
-    try:
-        for axis, [coord] in ds.cf.axes.items():
-            ds = ds.rename({coord: AXIS_VARNAMES[axis]})
-    except ValueError as e:
-        raise ValueError(f"Multiple coordinates found on axis '{axis}'. Check your DataSet.") from e
-    return ds
-
-
-def _maybe_rename_variables(ds, VARNAMES_MAPPING):
-    rename_dict = {old: new for old, new in VARNAMES_MAPPING.items() if (old in ds.data_vars) or (old in ds.coords)}
-    if rename_dict:
-        ds = ds.rename(rename_dict)
-    return ds
-
-
-def _assign_dims_as_coords(ds, DIMENSION_NAMES):
-    for axis in DIMENSION_NAMES:
-        if axis in ds.dims and axis not in ds.coords:
-            ds = ds.assign_coords({axis: np.arange(ds.sizes[axis])})
-    return ds
-
-
-def _drop_unused_dimensions_and_coords(ds, DIMENSION_NAMES):
-    for dim in ds.dims:
-        if dim not in DIMENSION_NAMES:
-            ds = ds.drop_dims(dim, errors="ignore")
-    for coord in ds.coords:
-        if coord not in DIMENSION_NAMES:
-            ds = ds.drop_vars(coord, errors="ignore")
-    return ds
-
-
-def _set_coords(ds, DIMENSION_NAMES):
-    for varname in DIMENSION_NAMES:
-        if varname in ds and varname not in ds.coords:
-            ds = ds.set_coords([varname])
-    return ds
-
-
-def _maybe_remove_depth_from_lonlat(ds):
-    for coord in ["glamf", "gphif"]:
-        if coord in ds.coords and "depth" in ds[coord].dims:
-            ds[coord] = ds[coord].squeeze("depth", drop=True)
-    return ds
-
-
-def _set_axis_attrs(ds, AXIS_VARNAMES):
-    for axis, varname in AXIS_VARNAMES.items():
-        if varname in ds.coords:
-            ds[varname].attrs["axis"] = axis
-    return ds
-
-
-def _discover_U_and_V(ds: xr.Dataset, cf_standard_names_fallbacks) -> xr.Dataset:
-    # Assumes that the dataset has U and V data
-
-    if "W" not in ds:
-        for cf_standard_name_W in cf_standard_names_fallbacks["W"]:
-            if cf_standard_name_W in ds.cf.standard_names:
-                ds = _ds_rename_using_standard_names(ds, {cf_standard_name_W: "W"})
-                break
-
-    if "U" in ds and "V" in ds:
-        return ds  # U and V already present
-    elif "U" in ds or "V" in ds:
-        raise ValueError(
-            "Dataset has only one of the two variables 'U' and 'V'. Please rename the appropriate variable in your dataset to have both 'U' and 'V' for Parcels simulation."
-        )
-
-    for cf_standard_name_U, cf_standard_name_V in cf_standard_names_fallbacks["UV"]:
-        if cf_standard_name_U in ds.cf.standard_names:
-            if cf_standard_name_V not in ds.cf.standard_names:
-                raise ValueError(
-                    f"Dataset has variable with CF standard name {cf_standard_name_U!r}, "
-                    f"but not the matching variable with CF standard name {cf_standard_name_V!r}. "
-                    "Please rename the appropriate variables in your dataset to have both 'U' and 'V' for Parcels simulation."
-                )
-        else:
-            continue
-
-        ds = _ds_rename_using_standard_names(ds, {cf_standard_name_U: "U", cf_standard_name_V: "V"})
-        break
-    return ds
-
 
 def _discover_fesom2_U_and_V(ds: ux.UxDataset) -> ux.UxDataset:
     # Common variable names for U and V found in UxDatasets
@@ -681,16 +515,6 @@ def _discover_fesom2_U_and_V(ds: ux.UxDataset) -> ux.UxDataset:
                 )
             continue
 
-    return ds
-
-
-def _ds_rename_using_standard_names(ds: xr.Dataset | ux.UxDataset, name_dict: dict[str, str]) -> xr.Dataset:
-    for standard_name, rename_to in name_dict.items():
-        name = ds.cf[standard_name].name
-        ds = ds.rename({name: rename_to})
-        logger.info(
-            f"cf_xarray found variable {name!r} with CF standard name {standard_name!r} in dataset, renamed it to {rename_to!r} for Parcels simulation."
-        )
     return ds
 
 
