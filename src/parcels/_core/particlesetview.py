@@ -56,7 +56,7 @@ class ParticleSetView:
                 raise ValueError(
                     f"Boolean index has incompatible length {arr.size} for selection of size {int(np.sum(base))}"
                 )
-            return ParticleSetView(self._data, new_index)
+            return ParticleSetView(self._data, new_index, self._ptype)
 
         # Integer array/list, slice or single integer relative to the local view
         # (boolean masks were handled above). Normalize and map to global
@@ -71,12 +71,12 @@ class ParticleSetView:
                 base_arr = np.asarray(base)
                 sel = base_arr[idx]
             new_index[sel] = True
-            return ParticleSetView(self._data, new_index)
+            return ParticleSetView(self._data, new_index, self._ptype)
 
         # Fallback: try to assign directly (preserves previous behaviour for other index types)
         try:
             new_index[base] = index
-            return ParticleSetView(self._data, new_index)
+            return ParticleSetView(self._data, new_index, self._ptype)
         except Exception as e:
             raise TypeError(f"Unsupported index type for ParticleSetView.__getitem__: {type(index)!r}") from e
 
