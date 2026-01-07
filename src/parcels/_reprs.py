@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING, Any
 
 import numpy as np
 import xarray as xr
+from zarr.storage import DirectoryStore
 
 if TYPE_CHECKING:
     from parcels import Field, FieldSet, ParticleSet
@@ -77,7 +78,7 @@ def particleset_repr(pset: ParticleSet) -> str:
     if len(pset) < 10:
         particles = [repr(p) for p in pset]
     else:
-        particles = [repr(pset[i]) for i in range(7)] + ["..."]
+        particles = [repr(pset[i]) for i in range(7)] + ["..."] + [repr(pset[-1])]
 
     out = f"""<{type(pset).__name__}>
     Number of particles: {len(pset)}
@@ -101,6 +102,7 @@ def particlesetview_repr(pview: Any) -> str:
 
 
 def particleclass_repr(pclass: Any) -> str:
+    """Return a pretty repr for ParticleClass"""
     vars = [repr(v) for v in pclass.variables]
     out = f"""
 {_format_list_items_multiline(vars, level=1, with_brackets=False)}
@@ -109,18 +111,24 @@ def particleclass_repr(pclass: Any) -> str:
 
 
 def variable_repr(var: Any) -> str:
+    """Return a pretty repr for Variable"""
     return f"Variable(name={var._name!r}, dtype={var.dtype!r}, initial={var.initial!r}, to_write={var.to_write!r}, attrs={var.attrs!r})"
 
 
 def timeinterval_repr(ti: Any) -> str:
+    """Return a pretty repr for TimeInterval"""
     return f"TimeInterval(left={ti.left!r}, right={ti.right!r})"
 
 
 def particlefile_repr(pfile: Any) -> str:
-    out = f"""{type(pfile).__name__}
-        outputdt    : {pfile.outputdt!r}
-        chunks      : {pfile.chunks!r}
-        create_new_zarrfile: {pfile.create_new_zarrfile!r}
+    """Return a pretty repr for ParticleFile"""
+    out = f"""<{type(pfile).__name__}>
+    store               : {_format_zarr_output_location(pfile.store)}
+    outputdt            : {pfile.outputdt!r}
+    chunks              : {pfile.chunks!r}
+    create_new_zarrfile : {pfile.create_new_zarrfile!r}
+    metadata            :
+{_format_list_items_multiline(pfile.metadata, level=2, with_brackets=False)}
 """
     return textwrap.dedent(out).strip()
 
@@ -131,8 +139,8 @@ def default_repr(obj: Any):
     return object.__repr__(obj)
 
 
-def _format_list_items_multiline(items: list[str], level: int = 1, with_brackets: bool = True) -> str:
-    """Given a list of strings, formats them across multiple lines.
+def _format_list_items_multiline(items: list[str] | dict, level: int = 1, with_brackets: bool = True) -> str:
+    """Given a list of strings or a dict, formats them across multiple lines.
 
     Uses indentation levels of 4 spaces provided by ``level``.
 
@@ -149,15 +157,26 @@ def _format_list_items_multiline(items: list[str], level: int = 1, with_brackets
     if len(items) == 0:
         return "[]"
 
-    assert level >= 0, "Indentation level >=0 supported"
+    assert level >= 1, "Indentation level >=1 supported"
     indentation_str = level * 4 * " "
     indentation_str_end = (level - 1) * 4 * " "
 
-    items_str = ",\n".join([textwrap.indent(i, indentation_str) for i in items])
+    if isinstance(items, dict):
+        entries = [f"{k!r}: {v!r}" for k, v in items.items()]
+    else:
+        entries = [i if isinstance(i, str) else repr(i) for i in items]
+
     if with_brackets:
+        items_str = ",\n".join([textwrap.indent(e, indentation_str) for e in entries])
         return f"[\n{items_str}\n{indentation_str_end}]"
     else:
-        return f"{items_str}"
+        return "\n".join([textwrap.indent(e, indentation_str) for e in entries])
+
+
+def _format_zarr_output_location(zarr_obj):
+    if isinstance(zarr_obj, DirectoryStore):
+        return zarr_obj.path
+    return repr(zarr_obj)
 
 
 def is_builtin_object(obj):
