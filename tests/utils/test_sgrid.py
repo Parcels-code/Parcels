@@ -15,6 +15,7 @@ grid2dmetadata = sgrid.Grid2DMetadata(
         sgrid.DimDimPadding("face_dimension1", "node_dimension1", sgrid.Padding.LOW),
         sgrid.DimDimPadding("face_dimension2", "node_dimension2", sgrid.Padding.LOW),
     ),
+    node_coordinates=("node_coordinates_dim1", "node_coordinates_dim2"),
     vertical_dimensions=(
         sgrid.DimDimPadding("vertical_dimensions_dim1", "vertical_dimensions_dim2", sgrid.Padding.LOW),
     ),
@@ -29,6 +30,7 @@ grid3dmetadata = sgrid.Grid3DMetadata(
         sgrid.DimDimPadding("face_dimension2", "node_dimension2", sgrid.Padding.LOW),
         sgrid.DimDimPadding("face_dimension3", "node_dimension3", sgrid.Padding.LOW),
     ),
+    node_coordinates=("node_coordinates_dim1", "node_coordinates_dim2", "node_coordinates_dim3"),
 )
 
 
@@ -252,6 +254,18 @@ def test_parse_sgrid_3d(grid_metadata: sgrid.Grid3DMetadata):
             )
         ),
         (
+            sgrid.Grid2DMetadata(
+                cf_role="grid_topology",
+                topology_dimension=2,
+                node_dimensions=("node_dimension1", "node_dimension2"),
+                face_dimensions=(
+                    sgrid.DimDimPadding("face_dimension1", "node_dimension1", sgrid.Padding.LOW),
+                    sgrid.DimDimPadding("face_dimension2", "node_dimension2", sgrid.Padding.LOW),
+                ),
+                node_coordinates=("node_coordinates_dim1", "node_coordinates_dim2"),
+            )
+        ),
+        (
             sgrid.Grid3DMetadata(
                 cf_role="grid_topology",
                 topology_dimension=3,
@@ -261,6 +275,19 @@ def test_parse_sgrid_3d(grid_metadata: sgrid.Grid3DMetadata):
                     sgrid.DimDimPadding("face_dimension2", "node_dimension2", sgrid.Padding.LOW),
                     sgrid.DimDimPadding("face_dimension3", "node_dimension3", sgrid.Padding.LOW),
                 ),
+            )
+        ),
+        (
+            sgrid.Grid3DMetadata(
+                cf_role="grid_topology",
+                topology_dimension=3,
+                node_dimensions=("node_dimension1", "node_dimension2", "node_dimension3"),
+                volume_dimensions=(
+                    sgrid.DimDimPadding("face_dimension1", "node_dimension1", sgrid.Padding.LOW),
+                    sgrid.DimDimPadding("face_dimension2", "node_dimension2", sgrid.Padding.LOW),
+                    sgrid.DimDimPadding("face_dimension3", "node_dimension3", sgrid.Padding.LOW),
+                ),
+                node_coordinates=("node_coordinates_dim1", "node_coordinates_dim2", "node_coordinates_dim3"),
             )
         ),
     ],
