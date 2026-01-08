@@ -354,10 +354,10 @@ def _icon_square_delaunay_uniform_z_coordinate():
     )  # Vertical velocity is on the element faces and face vertices
     P = np.ones((T, zc.size, uxgrid.n_node), dtype=np.float64)  # Pressure is on the element centers and face vertices
 
-    U[0,:,:] = zc[:,None]*uxgrid.face_lon.values[None,:]
-    V[0,:,:] = zc[:,None]*uxgrid.face_lat.values[None,:]
-    W[0,:,:] = zf[:,None]*uxgrid.face_lon.values[None,:]*uxgrid.face_lat.values[None,:]
-    P[0,:,:] = zc[:,None]*uxgrid.node_lon.values[None,:]*uxgrid.node_lat.values[None,:]*0.0001
+    U[0, :, :] = zc[:, None] * uxgrid.face_lon.values[None, :]
+    V[0, :, :] = zc[:, None] * uxgrid.face_lat.values[None, :]
+    W[0, :, :] = zf[:, None] * uxgrid.face_lon.values[None, :] * uxgrid.face_lat.values[None, :]
+    P[0, :, :] = zc[:, None] * uxgrid.node_lon.values[None, :] * uxgrid.node_lat.values[None, :] * 0.0001
 
     u = ux.UxDataArray(
         data=U,
