@@ -204,4 +204,8 @@ def nemo_to_sgrid(ds: xr.Dataset):
             vertical_dimensions=(sgrid.DimDimPadding("z_center", "depth", sgrid.Padding.HIGH),),
         ).to_attrs(),
     )
+
+    # NEMO models are always in degrees
+    ds["glamf"].attrs["units"] = "degrees"
+    ds["gphif"].attrs["units"] = "degrees"
     return ds
