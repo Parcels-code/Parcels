@@ -311,8 +311,10 @@ class VectorField:
             (u, v, w) = self._vector_interp_method(particle_positions, grid_positions, self)
 
         if applyConversion:
-            u = self.U.units.to_target(u, z, y, x)
-            v = self.V.units.to_target(v, z, y, x)
+            if self.U.grid._mesh == "spherical":
+                meshJac = 1852 * 60.0 * np.cos(np.deg2rad(y))
+                u = u / meshJac
+                v = v / meshJac
             if "3D" in self.vector_type:
                 w = self.W.units.to_target(w, z, y, x)
 

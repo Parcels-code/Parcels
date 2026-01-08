@@ -10,7 +10,6 @@ import uxarray as ux
 import xarray as xr
 import xgcm
 
-from parcels._core.converters import GeographicPolar
 from parcels._core.field import Field, VectorField
 from parcels._core.utils import sgrid
 from parcels._core.utils.string import _assert_str_and_python_varname
@@ -309,7 +308,6 @@ class FieldSet:
             ).to_attrs(),
         )
         fieldset = FieldSet.from_sgrid_conventions(ds, mesh="spherical")
-        fieldset.V.units = GeographicPolar()
         if "UV" in fieldset.fields:
             fieldset.UV.vector_interp_method = CGrid_Velocity
         if "UVW" in fieldset.fields:
