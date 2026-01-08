@@ -47,6 +47,30 @@ class AttrsSerializable(Protocol):
     def from_attrs(cls, d: dict[str, Hashable]) -> Self: ...
 
 
+# Note that - for some optional attributes in the SGRID spec - these IDs are not available
+# hence this isn't full coverage
+_ID_FETCHERS_GRID2DMETADATA = {
+    "node_dimension1": lambda meta: meta.node_dimensions[0],
+    "node_dimension2": lambda meta: meta.node_dimensions[1],
+    "face_dimension1": lambda meta: meta.face_dimensions[0].dim1,
+    "face_dimension2": lambda meta: meta.face_dimensions[1].dim1,
+    "type1": lambda meta: meta.face_dimensions[0].padding,
+    "type2": lambda meta: meta.face_dimensions[1].padding,
+}
+
+_ID_FETCHERS_GRID3DMETADATA = {
+    "node_dimension1": lambda meta: meta.node_dimensions[0],
+    "node_dimension2": lambda meta: meta.node_dimensions[1],
+    "node_dimension3": lambda meta: meta.node_dimensions[2],
+    "face_dimension1": lambda meta: meta.volume_dimensions[0].dim1,
+    "face_dimension2": lambda meta: meta.volume_dimensions[1].dim1,
+    "face_dimension3": lambda meta: meta.volume_dimensions[2].dim1,
+    "type1": lambda meta: meta.volume_dimensions[0].padding,
+    "type2": lambda meta: meta.volume_dimensions[1].padding,
+    "type3": lambda meta: meta.volume_dimensions[2].padding,
+}
+
+
 class Grid2DMetadata(AttrsSerializable):
     def __init__(
         self,
@@ -152,6 +176,19 @@ class Grid2DMetadata(AttrsSerializable):
     def rename_dims(self, dims_dict: dict[str, str]) -> Self:
         return _metadata_rename_dims(self, dims_dict)
 
+    def get_value_by_id(self, id: str) -> str:
+        """In the SGRID specification different parts of the spec are identified to with different "ID"s.
+
+        Easily extract the value for a given ID.
+
+        Example
+        -------
+        # Get padding 2
+        >>> get_name_from_id("type2")
+        "low"
+        """
+        return _ID_FETCHERS_GRID2DMETADATA[id](self)
+
 
 class Grid3DMetadata(AttrsSerializable):
     def __init__(
@@ -248,6 +285,19 @@ class Grid3DMetadata(AttrsSerializable):
 
     def rename_dims(self, dims_dict: dict[str, str]) -> Self:
         return _metadata_rename_dims(self, dims_dict)
+
+    def get_value_by_id(self, id: str) -> str:
+        """In the SGRID specification different parts of the spec are identified to with different "ID"s.
+
+        Easily extract the value for a given ID.
+
+        Example
+        -------
+        # Get padding 2
+        >>> get_name_from_id("type2")
+        "low"
+        """
+        return _ID_FETCHERS_GRID3DMETADATA[id](self)
 
 
 @dataclass
