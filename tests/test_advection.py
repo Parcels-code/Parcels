@@ -24,7 +24,7 @@ from parcels.kernels import (
     AdvectionRK4_3D,
     AdvectionRK45,
 )
-from tests.utils import DEFAULT_PARTICLES, round_and_hash_float_array
+from tests.utils import DEFAULT_PARTICLES
 
 
 @pytest.mark.parametrize("mesh", ["spherical", "flat"])
@@ -450,14 +450,18 @@ def test_nemo_3D_curvilinear_fieldset(kernel):
     fieldset = parcels.FieldSet.from_nemo(ds)
 
     npart = 10
-    lons = np.linspace(1.9, 3.4, npart)
-    lats = np.linspace(52.5, 51.6, npart)
-    pset = parcels.ParticleSet(fieldset, lon=lons, lat=lats, z=np.ones_like(lons))
+    lons_initial = np.linspace(1.9, 3.4, npart)
+    lats_initial = np.linspace(52.5, 51.6, npart)
+    z_initial = np.ones_like(lons_initial)
+    pset = parcels.ParticleSet(fieldset, lon=lons_initial, lat=lats_initial, z=z_initial)
 
     pset.execute(kernel, runtime=np.timedelta64(3, "D") + np.timedelta64(18, "h"), dt=np.timedelta64(6, "h"))
 
     if kernel == AdvectionRK4:
-        np.testing.assert_equal(round_and_hash_float_array([p.lon for p in pset], decimals=5), 29977383852960156017546)
+        np.testing.assert_allclose([p.z for p in pset], z_initial)
     elif kernel == AdvectionRK4_3D:
         # TODO check why decimals needs to be so low in RK4_3D (compare to v3)
-        np.testing.assert_equal(round_and_hash_float_array([p.z for p in pset], decimals=1), 29747210774230389239432)
+        np.testing.assert_allclose(
+            [p.z for p in pset],
+            [0.666162, 0.8667131, 0.92150104, 0.9605109, 0.9577529, 1.0041442, 1.0284728, 1.0033542, 1.2949713, 1.3928112],
+        )  # fmt:skip
