@@ -11,7 +11,7 @@ import xarray as xr
 import xgcm
 
 from parcels import convert
-from parcels._core.converters import GeographicPolar
+from parcels._core.converters import Geographic, GeographicPolar
 from parcels._core.field import Field, VectorField
 from parcels._core.utils import sgrid
 from parcels._core.utils.string import _assert_str_and_python_varname
@@ -409,7 +409,12 @@ class FieldSet:
         for varname in set(ds.data_vars) - set(fields.keys()) - skip_vars:
             fields[varname] = Field(varname, ds[varname], grid, XLinear)
 
-        return FieldSet(list(fields.values()))
+        fieldset = FieldSet(list(fields.values()))
+        if mesh == "spherical":
+            fieldset.U.units = GeographicPolar()
+            fieldset.V.units = Geographic()
+
+        return fieldset
 
 
 class CalendarError(Exception):  # TODO: Move to a parcels errors module
