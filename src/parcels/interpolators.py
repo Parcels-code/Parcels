@@ -691,7 +691,6 @@ def UxLinearNodeConstantZC(
     zi, fi = grid_positions["Z"]["index"], grid_positions["FACE"]["index"]
     bcoords = grid_positions["FACE"]["bcoord"]
     node_ids = field.grid.uxgrid.face_node_connectivity[fi, :].values
-
     return np.sum(
         field.data.values[ti[:, None], zi[:, None], node_ids] * bcoords, axis=-1
     )  # Linear interpolation in the vertical direction

@@ -185,3 +185,44 @@ def test_fesom2_square_delaunay_antimeridian_eval():
     assert np.isclose(fieldset.p.eval(time=[0], z=[1.0], y=[30.0], x=[-180.0], applyConversion=False), 1.0)
     assert np.isclose(fieldset.p.eval(time=[0], z=[1.0], y=[30.0], x=[180.0], applyConversion=False), 1.0)
     assert np.isclose(fieldset.p.eval(time=[0], z=[1.0], y=[30.0], x=[170.0], applyConversion=False), 1.0)
+
+def test_icon_evals():
+    ds = datasets_unstructured["icon_square_delaunay_uniform_z_coordinate"].copy(deep=True)
+    fieldset = FieldSet.from_icon(ds)
+    
+    # Query points, are chosen to be just a fraction off from the center of a cell for testing
+    # This generic dataset has an effective lateral grid-spacing of 3 degrees and vertical grid
+    # spacing of 100m - shifting by 1/10 of a degree laterally and 10m vertically should keep us 
+    # within the cell and make for easy exactness checking of constant and linear interpolation
+    xc = ds.uxgrid.face_lon.values
+    yc = ds.uxgrid.face_lat.values
+    zc = 0.0*xc + ds.depth.values[1] # Make zc the same length as xc
+
+    tq = 0.0*xc
+    xq = xc + 0.1 
+    yq = yc + 0.1 
+    zq = zc + 10.0
+
+    # The exact function for U is U=z*x . The U variable is center registered both laterally and
+    # vertically. In this case, piecewise constant interpolation is expected in both directions.
+    # The expected value for interpolation is then just computed using the cell center locations
+    assert np.allclose(fieldset.U.eval(time=tq, z=zq, y=yq, x=xq, applyConversion=False), zc*xc)
+
+    # The exact function for V is V=z*y . The V variable is center registered both laterally and
+    # vertically. In this case, piecewise constant interpolation is expected in both directions
+    # The expected value for interpolation is then just computed using the cell center locations
+    assert np.allclose(fieldset.V.eval(time=tq, z=zq, y=yq, x=xq, applyConversion=False), zc*yc)
+
+    # The exact function for W is W=z*x*y . The W variable is center registered laterally and
+    # interface registered vertically. In this case, piecewise constant interpolation is expected
+    # laterally, while piecewise linear is expected vertically.
+    # The expected value for interpolation is then just computed using the cell center locations
+    # for the latitude and longitude, and the query point for the vertical interpolation
+    assert np.allclose(fieldset.W.eval(time=tq, z=zq, y=yq, x=xq, applyConversion=False), zq*yc*xc)
+
+    # The exact function for P is P=0.0001*z*x*y . The P variable is node registered laterally and
+    # center registered vertically. In this case, piecewise linear interpolation is expected
+    # laterally and piecewise constant is expected vertically
+    # The expected value for interpolation is then just computed using query point locations
+    # for the latitude and longitude, and the layer centers vertically.
+    assert np.allclose(fieldset.p.eval(time=tq, z=zq, y=yq, x=xq, applyConversion=False), 0.0001*zc*xq*yq, rtol=1e-2)

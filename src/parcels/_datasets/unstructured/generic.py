@@ -21,10 +21,10 @@ def _stommel_gyre_delaunay():
     The velocity field provides a slow moving interior circulation and a western boundary current. All fields are placed
     on the vertices of the grid and at the element vertical faces.
     """
-    lon, lat = np.meshgrid(np.linspace(0, 60.0, Nx, dtype=np.float32), np.linspace(0, 60.0, Nx, dtype=np.float32))
+    lon, lat = np.meshgrid(np.linspace(0, 60.0, Nx, dtype=np.float64), np.linspace(0, 60.0, Nx, dtype=np.float64))
     lon_flat = lon.ravel()
     lat_flat = lat.ravel()
-    zf = np.linspace(0.0, 1000.0, 2, endpoint=True, dtype=np.float32)  # Vertical element faces
+    zf = np.linspace(0.0, 1000.0, 2, endpoint=True, dtype=np.float64)  # Vertical element faces
     zc = 0.5 * (zf[:-1] + zf[1:])  # Vertical element centers
     nz = zf.size
     nz1 = zc.size
@@ -120,10 +120,10 @@ def _fesom2_square_delaunay_uniform_z_coordinate():
     The pressure field is constant.
     All fields are placed on location consistent with FESOM2 variable placement conventions
     """
-    lon, lat = np.meshgrid(np.linspace(0, 60.0, Nx, dtype=np.float32), np.linspace(0, 60.0, Nx, dtype=np.float32))
+    lon, lat = np.meshgrid(np.linspace(0, 60.0, Nx, dtype=np.float64), np.linspace(0, 60.0, Nx, dtype=np.float64))
     lon_flat = lon.ravel()
     lat_flat = lat.ravel()
-    zf = np.linspace(0.0, 1000.0, 10, endpoint=True, dtype=np.float32)  # Vertical element faces
+    zf = np.linspace(0.0, 1000.0, 10, endpoint=True, dtype=np.float64)  # Vertical element faces
     zc = 0.5 * (zf[:-1] + zf[1:])  # Vertical element centers
     nz = zf.size
     nz1 = zc.size
@@ -218,12 +218,12 @@ def _fesom2_square_delaunay_antimeridian():
     All fields are placed on location consistent with FESOM2 variable placement conventions
     """
     lon, lat = np.meshgrid(
-        np.linspace(-210.0, -150.0, Nx, dtype=np.float32), np.linspace(-40.0, 40.0, Nx, dtype=np.float32)
+        np.linspace(-210.0, -150.0, Nx, dtype=np.float64), np.linspace(-40.0, 40.0, Nx, dtype=np.float64)
     )
     # wrap longitude from [-180,180]
     lon_flat = lon.ravel()
     lat_flat = lat.ravel()
-    zf = np.linspace(0.0, 1000.0, 10, endpoint=True, dtype=np.float32)  # Vertical element faces
+    zf = np.linspace(0.0, 1000.0, 10, endpoint=True, dtype=np.float64)  # Vertical element faces
     zc = 0.5 * (zf[:-1] + zf[1:])  # Vertical element centers
     nz = zf.size
     nz1 = zc.size
@@ -321,10 +321,10 @@ def _icon_square_delaunay_uniform_z_coordinate():
     All fields are face registered and at vertical layer centers, except for the vertical velocity component, which is
     at vertical layer interfaces.
     """
-    lon, lat = np.meshgrid(np.linspace(0, 60.0, Nx, dtype=np.float32), np.linspace(0, 60.0, Nx, dtype=np.float32))
+    lon, lat = np.meshgrid(np.linspace(0, 60.0, Nx, dtype=np.float64), np.linspace(0, 60.0, Nx, dtype=np.float64))
     lon_flat = lon.ravel()
     lat_flat = lat.ravel()
-    zf = np.linspace(0.0, 1000.0, 10, endpoint=True, dtype=np.float32)  # Vertical element faces
+    zf = np.linspace(0.0, 1000.0, 10, endpoint=True, dtype=np.float64)  # Vertical element faces
     zc = 0.5 * (zf[:-1] + zf[1:])  # Vertical element centers
     nz = zf.size
     nz1 = zc.size
@@ -344,15 +344,20 @@ def _icon_square_delaunay_uniform_z_coordinate():
 
     # Define arrays U (zonal), V (meridional) and P (sea surface height)
     U = np.ones(
-        (T, nz1, uxgrid.n_face), dtype=np.float64
+        (T, zc.size, uxgrid.n_face), dtype=np.float64
     )  # Lateral velocity is on the element centers and face centers
     V = np.ones(
-        (T, nz1, uxgrid.n_face), dtype=np.float64
+        (T, zc.size, uxgrid.n_face), dtype=np.float64
     )  # Lateral velocity is on the element centers and face centers
     W = np.zeros(
-        (T, nz, uxgrid.n_face), dtype=np.float64
+        (T, zf.size, uxgrid.n_face), dtype=np.float64
     )  # Vertical velocity is on the element faces and face vertices
-    P = np.ones((T, nz1, uxgrid.n_node), dtype=np.float64)  # Pressure is on the element centers and face vertices
+    P = np.ones((T, zc.size, uxgrid.n_node), dtype=np.float64)  # Pressure is on the element centers and face vertices
+
+    U[0,:,:] = zc[:,None]*uxgrid.face_lon.values[None,:]
+    V[0,:,:] = zc[:,None]*uxgrid.face_lat.values[None,:]
+    W[0,:,:] = zf[:,None]*uxgrid.face_lon.values[None,:]*uxgrid.face_lat.values[None,:]
+    P[0,:,:] = zc[:,None]*uxgrid.node_lon.values[None,:]*uxgrid.node_lat.values[None,:]*0.0001
 
     u = ux.UxDataArray(
         data=U,
@@ -382,7 +387,7 @@ def _icon_square_delaunay_uniform_z_coordinate():
     )
     w = ux.UxDataArray(
         data=W,
-        name="w",
+        name="W",
         uxgrid=uxgrid,
         dims=["time", "depth_2", "n_face"],
         coords=dict(
