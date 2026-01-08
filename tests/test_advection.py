@@ -439,9 +439,11 @@ def test_nemo_curvilinear_fieldset():
     "kernel",
     [
         AdvectionRK4,
-        pytest.mark.xfail(
+        pytest.param(
             AdvectionRK4_3D,
-            reason="from_nemo had 'fieldset.V.units = GeographicPolar()', I'm not sure _why_ this code is needed to get this to pass. To be further investigated.",
+            marks=pytest.mark.xfail(
+                reason="from_nemo had 'fieldset.V.units = GeographicPolar()', I'm not sure _why_ this code is needed to get this to pass. To be further investigated.",
+            ),
         ),
     ],
 )
