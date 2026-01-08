@@ -37,8 +37,8 @@ def grid2Dmetadata(draw) -> sgrid.Grid2DMetadata:
     padding_type1 = draw(padding)
     padding_type2 = draw(padding)
 
-    node_coordinates_dim1 = names[4]
-    node_coordinates_dim2 = names[5]
+    node_coordinates_var1 = names[4]
+    node_coordinates_var2 = names[5]
     has_node_coordinates = draw(st.booleans())
 
     vertical_dimensions_dim1 = names[6]
@@ -47,7 +47,7 @@ def grid2Dmetadata(draw) -> sgrid.Grid2DMetadata:
     has_vertical_dimensions = draw(st.booleans())
 
     if has_node_coordinates:
-        node_coordinates = (node_coordinates_dim1, node_coordinates_dim2)
+        node_coordinates = (node_coordinates_var1, node_coordinates_var2)
     else:
         node_coordinates = None
 
@@ -85,13 +85,13 @@ def grid3Dmetadata(draw) -> sgrid.Grid3DMetadata:
     padding_type2 = draw(padding)
     padding_type3 = draw(padding)
 
-    node_coordinates_dim1 = names[6]
-    node_coordinates_dim2 = names[7]
+    node_coordinates_var1 = names[6]
+    node_coordinates_var2 = names[7]
     node_coordinates_dim3 = names[8]
     has_node_coordinates = draw(st.booleans())
 
     if has_node_coordinates:
-        node_coordinates = (node_coordinates_dim1, node_coordinates_dim2, node_coordinates_dim3)
+        node_coordinates = (node_coordinates_var1, node_coordinates_var2, node_coordinates_dim3)
     else:
         node_coordinates = None
 

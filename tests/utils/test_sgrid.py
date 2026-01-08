@@ -16,7 +16,7 @@ def create_example_grid2dmetadata(with_vertical_dimensions: bool, with_node_coor
         if with_vertical_dimensions
         else None
     )
-    node_coordinates = ("node_coordinates_dim1", "node_coordinates_dim2") if with_node_coordinates else None
+    node_coordinates = ("node_coordinates_var1", "node_coordinates_var2") if with_node_coordinates else None
 
     return sgrid.Grid2DMetadata(
         cf_role="grid_topology",
@@ -33,7 +33,7 @@ def create_example_grid2dmetadata(with_vertical_dimensions: bool, with_node_coor
 
 def create_example_grid3dmetadata(with_node_coordinates: bool):
     node_coordinates = (
-        ("node_coordinates_dim1", "node_coordinates_dim2", "node_coordinates_dim3") if with_node_coordinates else None
+        ("node_coordinates_var1", "node_coordinates_var2", "node_coordinates_dim3") if with_node_coordinates else None
     )
     return sgrid.Grid3DMetadata(
         cf_role="grid_topology",
