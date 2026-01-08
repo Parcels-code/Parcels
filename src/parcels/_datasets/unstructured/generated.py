@@ -20,8 +20,6 @@ def simple_small_delaunay(nx=10, ny=10):
     lat_flat = lat.ravel()
     zf = np.linspace(0.0, 1000.0, 2, endpoint=True, dtype=np.float32)  # Vertical element faces
     zc = 0.5 * (zf[:-1] + zf[1:])  # Vertical element centers
-    nz = zf.size
-    nz1 = zc.size
 
     # mask any point on one of the boundaries
     mask = np.isclose(lon_flat, 0.0) | np.isclose(lon_flat, 1.0) | np.isclose(lat_flat, 0.0) | np.isclose(lat_flat, 1.0)
@@ -36,12 +34,12 @@ def simple_small_delaunay(nx=10, ny=10):
     uxgrid.attrs["Conventions"] = "UGRID-1.0"
 
     # Define arrays U (zonal), V (meridional), W (vertical), and P (sea surface height)
-    U = np.zeros((1, nz1, uxgrid.n_face), dtype=np.float64)
-    V = np.zeros((1, nz1, uxgrid.n_face), dtype=np.float64)
-    W = np.zeros((1, nz, uxgrid.n_node), dtype=np.float64)
-    P = np.zeros((1, nz1, uxgrid.n_face), dtype=np.float64)
+    U = np.zeros((1, zc.size, uxgrid.n_face), dtype=np.float64)
+    V = np.zeros((1, zc.size, uxgrid.n_face), dtype=np.float64)
+    W = np.zeros((1, zf.size, uxgrid.n_node), dtype=np.float64)
+    P = np.zeros((1, zc.size, uxgrid.n_face), dtype=np.float64)
     # Define Tface, a ficticious tracer field on the face centroids
-    Tface = np.zeros((1, nz1, uxgrid.n_face), dtype=np.float64)
+    Tface = np.zeros((1, zc.size, uxgrid.n_face), dtype=np.float64)
 
     for i, (x, y) in enumerate(zip(uxgrid.face_lon, uxgrid.face_lat, strict=False)):
         P[0, :, i] = -vmax * delta * (1 - x) * (math.exp(-x / delta) - 1) * np.sin(math.pi * y)
@@ -50,7 +48,7 @@ def simple_small_delaunay(nx=10, ny=10):
         Tface[0, :, i] = np.sin(math.pi * y) * np.cos(math.pi * x)
 
     # Define Tnode, the same ficticious tracer field as above but on the face corner vertices
-    Tnode = np.zeros((1, nz, uxgrid.n_node), dtype=np.float64)
+    Tnode = np.zeros((1, zc.size, uxgrid.n_node), dtype=np.float64)
     for i, (x, y) in enumerate(zip(uxgrid.node_lon, uxgrid.node_lat, strict=False)):
         Tnode[0, :, i] = np.sin(math.pi * y) * np.cos(math.pi * x)
 
@@ -58,10 +56,10 @@ def simple_small_delaunay(nx=10, ny=10):
         data=U,
         name="U",
         uxgrid=uxgrid,
-        dims=["time", "nz1", "n_face"],
+        dims=["time", "zc", "n_face"],
         coords=dict(
             time=(["time"], [TIME[0]]),
-            nz1=(["nz1"], zc),
+            zc=(["zc"], zc),
         ),
         attrs=dict(
             description="zonal velocity", units="m/s", location="face", mesh="delaunay", Conventions="UGRID-1.0"
@@ -71,10 +69,10 @@ def simple_small_delaunay(nx=10, ny=10):
         data=V,
         name="V",
         uxgrid=uxgrid,
-        dims=["time", "nz1", "n_face"],
+        dims=["time", "zc", "n_face"],
         coords=dict(
             time=(["time"], [TIME[0]]),
-            nz1=(["nz1"], zc),
+            zc=(["zc"], zc),
         ),
         attrs=dict(
             description="meridional velocity", units="m/s", location="face", mesh="delaunay", Conventions="UGRID-1.0"
@@ -84,10 +82,10 @@ def simple_small_delaunay(nx=10, ny=10):
         data=W,
         name="W",
         uxgrid=uxgrid,
-        dims=["time", "nz", "n_node"],
+        dims=["time", "zf", "n_node"],
         coords=dict(
             time=(["time"], [TIME[0]]),
-            nz=(["nz"], zf),
+            zf=(["zf"], zf),
         ),
         attrs=dict(
             description="meridional velocity", units="m/s", location="node", mesh="delaunay", Conventions="UGRID-1.0"
@@ -97,10 +95,10 @@ def simple_small_delaunay(nx=10, ny=10):
         data=P,
         name="p",
         uxgrid=uxgrid,
-        dims=["time", "nz1", "n_face"],
+        dims=["time", "zc", "n_face"],
         coords=dict(
             time=(["time"], [TIME[0]]),
-            nz1=(["nz1"], zc),
+            zc=(["zc"], zc),
         ),
         attrs=dict(description="pressure", units="N/m^2", location="face", mesh="delaunay", Conventions="UGRID-1.0"),
     )
@@ -109,10 +107,10 @@ def simple_small_delaunay(nx=10, ny=10):
         data=Tface,
         name="T_face",
         uxgrid=uxgrid,
-        dims=["time", "nz1", "n_face"],
+        dims=["time", "zc", "n_face"],
         coords=dict(
             time=(["time"], [TIME[0]]),
-            nz1=(["nz1"], zc),
+            zc=(["zc"], zc),
         ),
         attrs=dict(
             description="Tracer field sampled on face centers",
@@ -126,10 +124,10 @@ def simple_small_delaunay(nx=10, ny=10):
         data=Tnode,
         name="T_node",
         uxgrid=uxgrid,
-        dims=["time", "nz", "n_node"],
+        dims=["time", "zc", "n_node"],
         coords=dict(
             time=(["time"], [TIME[0]]),
-            nz1=(["nz"], zf),
+            zc=(["zc"], zc),
         ),
         attrs=dict(
             description="Tracer field sampled on face vertices",
