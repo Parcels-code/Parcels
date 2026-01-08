@@ -196,7 +196,8 @@ def nemo_to_sgrid(ds: xr.Dataset):
         attrs=sgrid.Grid2DMetadata(
             cf_role="grid_topology",
             topology_dimension=2,
-            node_dimensions=("glamf", "gphif"),
+            node_dimensions=("x", "y"),
+            node_coordinates=("glamf", "gphif"),
             face_dimensions=(
                 sgrid.DimDimPadding("x_center", "x", sgrid.Padding.LOW),
                 sgrid.DimDimPadding("y_center", "y", sgrid.Padding.LOW),
