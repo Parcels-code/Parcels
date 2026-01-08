@@ -227,10 +227,4 @@ def test_icon_evals():
     # Since barycentric interpolation is exact for functions f=a*x+b*y laterally, the expected
     # value for interpolation is then just computed using query point locations
     # for the latitude and longitude, and the layer centers vertically.
-<<<<<<< HEAD
     assert np.allclose(fieldset.p.eval(time=tq, z=zq, y=yq, x=xq, applyConversion=False), zc * (xq + yq))
-=======
-    assert np.allclose(
-        fieldset.p.eval(time=tq, z=zq, y=yq, x=xq, applyConversion=False), 0.0001 * zc * xq * yq, rtol=1e-2
-    )
->>>>>>> f0d3f51f9a6fb033416a06cb10cd9997f3fc5370
