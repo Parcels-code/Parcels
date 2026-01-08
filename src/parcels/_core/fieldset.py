@@ -271,7 +271,6 @@ class FieldSet:
         """
         ds = convert.nemo_to_sgrid(ds)
         fieldset = FieldSet.from_sgrid_conventions(ds, mesh="spherical")
-        fieldset.V.units = GeographicPolar()
         return fieldset
 
     def from_fesom2(ds: ux.UxDataset):
