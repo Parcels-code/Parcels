@@ -1,3 +1,5 @@
+import itertools
+
 import numpy as np
 import pytest
 import xarray as xr
@@ -7,31 +9,47 @@ from hypothesis import assume, example, given
 from parcels._core.utils import sgrid
 from tests.strategies import sgrid as sgrid_strategies
 
-grid2dmetadata = sgrid.Grid2DMetadata(
-    cf_role="grid_topology",
-    topology_dimension=2,
-    node_dimensions=("node_dimension1", "node_dimension2"),
-    face_dimensions=(
-        sgrid.DimDimPadding("face_dimension1", "node_dimension1", sgrid.Padding.LOW),
-        sgrid.DimDimPadding("face_dimension2", "node_dimension2", sgrid.Padding.LOW),
-    ),
-    node_coordinates=("node_coordinates_dim1", "node_coordinates_dim2"),
-    vertical_dimensions=(
-        sgrid.DimDimPadding("vertical_dimensions_dim1", "vertical_dimensions_dim2", sgrid.Padding.LOW),
-    ),
-)
 
-grid3dmetadata = sgrid.Grid3DMetadata(
-    cf_role="grid_topology",
-    topology_dimension=3,
-    node_dimensions=("node_dimension1", "node_dimension2", "node_dimension3"),
-    volume_dimensions=(
-        sgrid.DimDimPadding("face_dimension1", "node_dimension1", sgrid.Padding.LOW),
-        sgrid.DimDimPadding("face_dimension2", "node_dimension2", sgrid.Padding.LOW),
-        sgrid.DimDimPadding("face_dimension3", "node_dimension3", sgrid.Padding.LOW),
-    ),
-    node_coordinates=("node_coordinates_dim1", "node_coordinates_dim2", "node_coordinates_dim3"),
-)
+def create_example_grid2dmetadata(with_vertical_dimensions: bool, with_node_coordinates: bool):
+    vertical_dimensions = (
+        (sgrid.DimDimPadding("vertical_dimensions_dim1", "vertical_dimensions_dim2", sgrid.Padding.LOW),)
+        if with_vertical_dimensions
+        else None
+    )
+    node_coordinates = ("node_coordinates_dim1", "node_coordinates_dim2") if with_node_coordinates else None
+
+    return sgrid.Grid2DMetadata(
+        cf_role="grid_topology",
+        topology_dimension=2,
+        node_dimensions=("node_dimension1", "node_dimension2"),
+        face_dimensions=(
+            sgrid.DimDimPadding("face_dimension1", "node_dimension1", sgrid.Padding.LOW),
+            sgrid.DimDimPadding("face_dimension2", "node_dimension2", sgrid.Padding.LOW),
+        ),
+        node_coordinates=node_coordinates,
+        vertical_dimensions=vertical_dimensions,
+    )
+
+
+def create_example_grid3dmetadata(with_node_coordinates: bool):
+    node_coordinates = (
+        ("node_coordinates_dim1", "node_coordinates_dim2", "node_coordinates_dim3") if with_node_coordinates else None
+    )
+    return sgrid.Grid3DMetadata(
+        cf_role="grid_topology",
+        topology_dimension=3,
+        node_dimensions=("node_dimension1", "node_dimension2", "node_dimension3"),
+        volume_dimensions=(
+            sgrid.DimDimPadding("face_dimension1", "node_dimension1", sgrid.Padding.LOW),
+            sgrid.DimDimPadding("face_dimension2", "node_dimension2", sgrid.Padding.LOW),
+            sgrid.DimDimPadding("face_dimension3", "node_dimension3", sgrid.Padding.LOW),
+        ),
+        node_coordinates=node_coordinates,
+    )
+
+
+grid2dmetadata = create_example_grid2dmetadata(with_vertical_dimensions=True, with_node_coordinates=True)
+grid3dmetadata = create_example_grid3dmetadata(with_node_coordinates=True)
 
 
 def dummy_sgrid_ds(grid: sgrid.Grid2DMetadata | sgrid.Grid3DMetadata) -> xr.Dataset:
@@ -227,70 +245,10 @@ def test_parse_sgrid_3d(grid_metadata: sgrid.Grid3DMetadata):
 @pytest.mark.parametrize(
     "grid",
     [
-        (
-            sgrid.Grid2DMetadata(
-                cf_role="grid_topology",
-                topology_dimension=2,
-                node_dimensions=("node_dimension1", "node_dimension2"),
-                face_dimensions=(
-                    sgrid.DimDimPadding("face_dimension1", "node_dimension1", sgrid.Padding.LOW),
-                    sgrid.DimDimPadding("face_dimension2", "node_dimension2", sgrid.Padding.LOW),
-                ),
-                vertical_dimensions=(
-                    sgrid.DimDimPadding("vertical_dimensions_dim1", "vertical_dimensions_dim2", sgrid.Padding.LOW),
-                ),
-            )
-        ),
-        (
-            sgrid.Grid2DMetadata(
-                cf_role="grid_topology",
-                topology_dimension=2,
-                node_dimensions=("node_dimension1", "node_dimension2"),
-                face_dimensions=(
-                    sgrid.DimDimPadding("face_dimension1", "node_dimension1", sgrid.Padding.LOW),
-                    sgrid.DimDimPadding("face_dimension2", "node_dimension2", sgrid.Padding.LOW),
-                ),
-                vertical_dimensions=None,
-            )
-        ),
-        (
-            sgrid.Grid2DMetadata(
-                cf_role="grid_topology",
-                topology_dimension=2,
-                node_dimensions=("node_dimension1", "node_dimension2"),
-                face_dimensions=(
-                    sgrid.DimDimPadding("face_dimension1", "node_dimension1", sgrid.Padding.LOW),
-                    sgrid.DimDimPadding("face_dimension2", "node_dimension2", sgrid.Padding.LOW),
-                ),
-                node_coordinates=("node_coordinates_dim1", "node_coordinates_dim2"),
-            )
-        ),
-        (
-            sgrid.Grid3DMetadata(
-                cf_role="grid_topology",
-                topology_dimension=3,
-                node_dimensions=("node_dimension1", "node_dimension2", "node_dimension3"),
-                volume_dimensions=(
-                    sgrid.DimDimPadding("face_dimension1", "node_dimension1", sgrid.Padding.LOW),
-                    sgrid.DimDimPadding("face_dimension2", "node_dimension2", sgrid.Padding.LOW),
-                    sgrid.DimDimPadding("face_dimension3", "node_dimension3", sgrid.Padding.LOW),
-                ),
-            )
-        ),
-        (
-            sgrid.Grid3DMetadata(
-                cf_role="grid_topology",
-                topology_dimension=3,
-                node_dimensions=("node_dimension1", "node_dimension2", "node_dimension3"),
-                volume_dimensions=(
-                    sgrid.DimDimPadding("face_dimension1", "node_dimension1", sgrid.Padding.LOW),
-                    sgrid.DimDimPadding("face_dimension2", "node_dimension2", sgrid.Padding.LOW),
-                    sgrid.DimDimPadding("face_dimension3", "node_dimension3", sgrid.Padding.LOW),
-                ),
-                node_coordinates=("node_coordinates_dim1", "node_coordinates_dim2", "node_coordinates_dim3"),
-            )
-        ),
-    ],
+        create_example_grid2dmetadata(with_node_coordinates=i, with_vertical_dimensions=j)
+        for i, j in itertools.product([False, True], [False, True])
+    ]
+    + [create_example_grid3dmetadata(with_node_coordinates=i) for i in [False, True]],
 )
 def test_rename_dims(grid):
     dims = sgrid.get_unique_dim_names(grid)
