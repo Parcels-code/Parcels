@@ -247,7 +247,7 @@ class FieldSet:
         )
         return FieldSet.from_sgrid_conventions(ds, mesh="spherical")
 
-    def from_uxdataset(ds: ux.UxDataset):
+    def from_uxdataset(ds: ux.UxDataset, mesh: str = "spherical"):
         """Create a FieldSet from a Parcels compliant uxarray.UxDataset.
         The main requirements for a uxDataset are naming conventions for vertical grid dimensions & coordinates
 
@@ -270,7 +270,7 @@ class FieldSet:
                 f"Dataset missing one of the required dimensions 'time', 'zf', or 'zc' for uxDataset. Found dimensions {ds_dims}"
             )
 
-        grid = UxGrid(ds.uxgrid, z=ds.coords["zf"], mesh="spherical")
+        grid = UxGrid(ds.uxgrid, z=ds.coords["zf"], mesh=mesh)
         ds = _discover_ux_U_and_V(ds)
 
         fields = {}
@@ -289,7 +289,7 @@ class FieldSet:
 
         return FieldSet(list(fields.values()))
 
-    def from_fesom2(ds: ux.UxDataset):
+    def from_fesom2(ds: ux.UxDataset, mesh: str = "spherical"):
         """Create a FieldSet from a FESOM2 uxarray.UxDataset.
 
         Parameters
@@ -315,9 +315,9 @@ class FieldSet:
             }
         ).set_index(zf="zf", zc="zc")
 
-        return FieldSet.from_uxdataset(ds)
+        return FieldSet.from_uxdataset(ds, mesh=mesh)
 
-    def from_icon(ds: ux.UxDataset):
+    def from_icon(ds: ux.UxDataset, mesh: str = "spherical"):
         """Create a FieldSet from a ICON uxarray.UxDataset.
 
         Parameters
@@ -342,7 +342,7 @@ class FieldSet:
                 "depth": "zc",  # Vertical Center
             }
         ).set_index(zf="zf", zc="zc")
-        return FieldSet.from_uxdataset(ds)
+        return FieldSet.from_uxdataset(ds, mesh=mesh)
 
     def from_sgrid_conventions(
         ds: xr.Dataset, mesh: Mesh
