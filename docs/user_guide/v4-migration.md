@@ -47,4 +47,4 @@ Version 4 of Parcels is unreleased at the moment. The information in this migrat
 
 ## UnitConverters
 
-- The default `UnitConverter` is now called `Unity()`
+- UnitConverters have been removed. Instead, Interpolation functions should handle unit conversion internally, based on the value of `grid._mesh` ("spherical" or "flat").
