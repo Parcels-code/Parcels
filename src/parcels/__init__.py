@@ -24,8 +24,6 @@ from parcels._core.uxgrid import UxGrid
 from parcels._core.xgrid import XGrid
 
 from parcels._core.converters import (
-    GeographicPolarSquare,
-    GeographicSquare,
     Unity,
 )
 
@@ -62,8 +60,6 @@ __all__ = [  # noqa: RUF022
     "UxGrid",
     "XGrid",
     # Converters
-    "GeographicPolarSquare",
-    "GeographicSquare",
     "Unity",
     # Status codes and errors
     "AllParcelsErrorCodes",
