@@ -163,7 +163,28 @@ def _discover_U_and_V(ds: xr.Dataset, cf_standard_names_fallbacks) -> xr.Dataset
     return ds
 
 
-def nemo_to_sgrid(*, coords: xr.Dataset, **fields: dict[str, xr.Dataset]):
+def nemo_to_sgrid(*, coords: xr.Dataset, **fields: dict[str, xr.Dataset | xr.DataArray]):
+    # TODO: Update docstring
+    """Create a FieldSet from a xarray.Dataset from NEMO netcdf files.
+
+    Parameters
+    ----------
+    ds : xarray.Dataset
+        xarray.Dataset as obtained from a set of NEMO netcdf files.
+
+    Returns
+    -------
+    xarray.Dataset
+        Dataset object following SGRID conventions to be (optionally) modified and passed to a FieldSet constructor.
+
+    Notes
+    -----
+    The NEMO model (https://www.nemo-ocean.eu/) is used by a variety of oceanographic institutions around the world.
+    Output from these models may differ subtly in terms of variable names and metadata conventions.
+    This function attempts to standardize these differences to create a Parcels FieldSet.
+    If you encounter issues with your specific NEMO dataset, please open an issue on the Parcels GitHub repository with details about your dataset.
+
+    """
     fields = fields.copy()
     coords = coords[["gphif", "glamf"]]
 
@@ -171,6 +192,8 @@ def nemo_to_sgrid(*, coords: xr.Dataset, **fields: dict[str, xr.Dataset]):
         if isinstance(field_da, xr.Dataset):
             field_da = field_da[name]
             # TODO: logging message, warn if multiple fields are in this dataset
+        else:
+            field_da = field_da.rename(name)
 
         match name:
             case "U":
@@ -179,7 +202,7 @@ def nemo_to_sgrid(*, coords: xr.Dataset, **fields: dict[str, xr.Dataset]):
                 field_da = field_da.rename({"x": "x_center"})
             case _:
                 pass
-
+        field_da = field_da.reset_coords(drop=True)
         fields[name] = field_da
 
     if "time" in coords.dims:

@@ -416,14 +416,13 @@ def test_peninsula_fieldset(kernel, rtol, grid_type):
 
 def test_nemo_curvilinear_fieldset():
     data_folder = parcels.download_example_dataset("NemoCurvilinear_data")
-    ds_fields = xr.open_mfdataset(
-        data_folder.glob("*.nc4"),
-        data_vars="minimal",
-        coords="minimal",
-        compat="override",
-    )
-    ds_fields = ds_fields.isel(time=0, z_a=0, z=0, drop=True)
-    fieldset = parcels.FieldSet.from_nemo(ds_fields)
+    U = xr.open_mfdataset(data_folder.glob("*U.nc4"))
+    V = xr.open_mfdataset(data_folder.glob("*V.nc4"))
+    coords = xr.open_dataset(data_folder / "mesh_mask.nc4")
+
+    ds = parcels.convert.nemo_to_sgrid(U=U, V=V, coords=coords)
+
+    fieldset = parcels.FieldSet.from_sgrid_conventions(ds)
 
     npart = 20
     lonp = 30 * np.ones(npart)
@@ -449,16 +448,14 @@ def test_nemo_curvilinear_fieldset():
 )
 def test_nemo_3D_curvilinear_fieldset(kernel):
     data_folder = parcels.download_example_dataset("NemoNorthSeaORCA025-N006_data")
-    ds_fields = xr.open_mfdataset(
-        data_folder.glob("ORCA*.nc"),
-        data_vars="minimal",
-        coords="minimal",
-        compat="override",
-    )
-    ds_coords = xr.open_dataset(data_folder / "coordinates.nc", decode_times=False)
-    ds_coords = ds_coords.isel(time=0, drop=True)
-    ds = xr.merge([ds_fields, ds_coords[["glamf", "gphif"]]])
-    fieldset = parcels.FieldSet.from_nemo(ds)
+    U = xr.open_mfdataset(data_folder.glob("*U.nc"))
+    V = xr.open_mfdataset(data_folder.glob("*V.nc"))
+    W = xr.open_mfdataset(data_folder.glob("*W.nc"))
+    coords = xr.open_dataset(data_folder / "coordinates.nc", decode_times=False)
+
+    ds = parcels.convert.nemo_to_sgrid(U=U["uo"], V=V["vo"], W=W["wo"], coords=coords)
+
+    fieldset = parcels.FieldSet.from_sgrid_conventions(ds)
 
     npart = 10
     lons_initial = np.linspace(1.9, 3.4, npart)

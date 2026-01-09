@@ -10,7 +10,6 @@ import uxarray as ux
 import xarray as xr
 import xgcm
 
-from parcels import convert
 from parcels._core.converters import Geographic, GeographicPolar
 from parcels._core.field import Field, VectorField
 from parcels._core.utils import sgrid
@@ -247,31 +246,6 @@ class FieldSet:
             ).to_attrs(),
         )
         return FieldSet.from_sgrid_conventions(ds, mesh="spherical")
-
-    def from_nemo(ds: xr.Dataset):
-        """Create a FieldSet from a xarray.Dataset from NEMO netcdf files.
-
-        Parameters
-        ----------
-        ds : xarray.Dataset
-            xarray.Dataset as obtained from a set of NEMO netcdf files.
-
-        Returns
-        -------
-        FieldSet
-            FieldSet object containing the fields from the dataset that can be used for a Parcels simulation.
-
-        Notes
-        -----
-        The NEMO model (https://www.nemo-ocean.eu/) is used by a variety of oceanographic institutions around the world.
-        Output from these models may differ subtly in terms of variable names and metadata conventions.
-        This function attempts to standardize these differences to create a Parcels FieldSet.
-        If you encounter issues with your specific NEMO dataset, please open an issue on the Parcels GitHub repository with details about your dataset.
-
-        """
-        ds = convert.nemo_to_sgrid(ds)
-        fieldset = FieldSet.from_sgrid_conventions(ds)
-        return fieldset
 
     def from_fesom2(ds: ux.UxDataset):
         """Create a FieldSet from a FESOM2 uxarray.UxDataset.
@@ -571,7 +545,7 @@ def _get_mesh_type_from_sgrid_dataset(ds_sgrid: xr.Dataset) -> Mesh:
 
     sgrid_metadata = sgrid.parse_grid_attrs(grid_da.attrs)
 
-    fpoint_x, fpoint_y = sgrid_metadata.node_dimensions
+    fpoint_x, fpoint_y = sgrid_metadata.node_coordinates
 
     if _is_coordinate_in_degrees(ds_sgrid[fpoint_x]) ^ _is_coordinate_in_degrees(ds_sgrid[fpoint_x]):
         msg = (
@@ -588,7 +562,7 @@ def _is_coordinate_in_degrees(da: xr.DataArray) -> bool:
     match da.attrs.get("units"):
         case None:
             raise ValueError(
-                f"Coordinate {da.name} of your dataset has no 'units' attribute - we don't know what the spatial units are."
+                f"Coordinate {da.name!r} of your dataset has no 'units' attribute - we don't know what the spatial units are."
             )
         case "degrees":
             return True
