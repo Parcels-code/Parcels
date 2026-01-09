@@ -8,11 +8,6 @@ import numpy as np
 import uxarray as ux
 import xarray as xr
 
-from parcels._core.converters import (
-    UnitConverter,
-    Unity,
-    _unitconverters_map,
-)
 from parcels._core.index_search import GRID_SEARCH_ERROR, LEFT_OUT_OF_BOUNDS, RIGHT_OUT_OF_BOUNDS, _search_time_index
 from parcels._core.particle import KernelParticle
 from parcels._core.statuscodes import (
@@ -135,24 +130,9 @@ class Field:
 
         self.igrid = -1  # Default the grid index to -1
 
-        if self.grid._mesh == "flat" or (self.name not in _unitconverters_map.keys()):
-            self.units = Unity()
-        elif self.grid._mesh == "spherical":
-            self.units = _unitconverters_map[self.name]
-
         if self.data.shape[0] > 1:
             if "time" not in self.data.coords:
                 raise ValueError("Field data is missing a 'time' coordinate.")
-
-    @property
-    def units(self):
-        return self._units
-
-    @units.setter
-    def units(self, value):
-        if not isinstance(value, UnitConverter):
-            raise ValueError(f"Units must be a UnitConverter object, got {type(value)}")
-        self._units = value
 
     @property
     def xdim(self):
@@ -218,8 +198,6 @@ class Field:
 
         _update_particle_states_interp_value(particles, value)
 
-        if applyConversion:
-            value = self.units.to_target(value, z, y, x)
         return value
 
     def __getitem__(self, key):
@@ -315,8 +293,6 @@ class VectorField:
                 meshJac = 1852 * 60.0 * np.cos(np.deg2rad(y))
                 u = u / meshJac
                 v = v / meshJac
-            if "3D" in self.vector_type:
-                w = self.W.units.to_target(w, z, y, x)
 
         for vel in (u, v, w):
             _update_particle_states_interp_value(particles, vel)
