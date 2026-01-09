@@ -9,7 +9,7 @@ from parcels import Field, UxGrid, VectorField, XGrid
 from parcels._datasets.structured.generic import T as T_structured
 from parcels._datasets.structured.generic import datasets as datasets_structured
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
-from parcels.interpolators import UxConstantFaceConstantZC, UxLinearNodeLinearZF, XLinear
+from parcels.interpolators import UxConstantFaceConstantZC, UxLinearNodeConstantZC, UxLinearNodeLinearZF, XLinear
 
 
 def test_field_init_param_types():
@@ -203,7 +203,7 @@ def test_field_unstructured_z_linear():
 
     grid = UxGrid(ds.uxgrid, z=ds.coords["zf"], mesh="flat")
     # Note that the vertical coordinate is required to be the position of the layer interfaces ("nz"), not the mid-layers ("nz1")
-    P = Field(name="p", data=ds.p, grid=grid, interp_method=UxConstantFaceConstantZC)
+    P = Field(name="p", data=ds.p, grid=grid, interp_method=UxLinearNodeConstantZC)
 
     # Test above first cell center - for piecewise constant, should return the depth of the first cell center
     assert np.isclose(
