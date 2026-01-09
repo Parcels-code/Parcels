@@ -386,8 +386,10 @@ class FieldSet:
 
         fieldset = FieldSet(list(fields.values()))
         if mesh == "spherical":
-            fieldset.U.units = GeographicPolar()
-            fieldset.V.units = Geographic()
+            if "U" in fieldset.fields:
+                fieldset.U.units = GeographicPolar()
+            if "V" in fieldset.fields:
+                fieldset.V.units = Geographic()
 
         return fieldset
 
