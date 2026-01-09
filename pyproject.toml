@@ -110,7 +110,7 @@ ignore = [
   "RUF043",
   "RUF046", # Value being cast to `int` is already an integer
 
-  # Parcels specific deviations from PEP8
+  # Parcels specific deviations from PEP8 naming
   'N802', # We use function names that are camelcased to denote functions
   'N806', # We use capitalized variable names within functions in Parcels to denote fields, as well as multidimensional arrays
   'N811', # Well, this just seems like a bad rule O_o
