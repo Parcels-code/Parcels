@@ -44,6 +44,8 @@ SGRID_PADDING_TO_XGCM_POSITION = {
 
 class AttrsSerializable(Protocol):
     def to_attrs(self) -> dict[str, str | int]: ...
+
+    @classmethod
     def from_attrs(cls, d: dict[str, Hashable]) -> Self: ...
 
 
