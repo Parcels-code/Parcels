@@ -456,6 +456,31 @@ def test_nemo_curvilinear_fieldset():
     np.testing.assert_allclose(pset.lat, latp, atol=1e-1)
 
 
+def test_nemo_curvilinear_with_vvel():
+    """Testing that a constant meridional velocity field in a NEMO curvilinear grid
+    results in correct particle movement.
+    Only works in Southern hemisphere (away from the tripolar rotated grid).
+    """
+    data_folder = parcels.download_example_dataset("NemoCurvilinear_data")
+    ds_fields = xr.open_mfdataset(
+        data_folder.glob("*.nc4"),
+        data_vars="minimal",
+        coords="minimal",
+        compat="override",
+    )
+    ds_fields = ds_fields.isel(time=0, z_a=0, z=0, drop=True)
+    vvel = 0.5  # m/s
+    ds_fields["V"].data[:] = vvel  # set a constant meridional velocity
+    fieldset = parcels.FieldSet.from_nemo(ds_fields)
+
+    lonp, latp = 30, -70
+    pset = parcels.ParticleSet(fieldset, lon=lonp, lat=latp)
+    pset.execute(AdvectionEE, runtime=np.timedelta64(10, "D"), dt=np.timedelta64(1, "D"))
+
+    v = (pset.lat - latp) / pset.time * 1852 * 60
+    np.testing.assert_allclose(v, vvel, atol=1e-5)
+
+
 @pytest.mark.parametrize("kernel", [AdvectionRK4, AdvectionRK4_3D])
 def test_nemo_3D_curvilinear_fieldset(kernel):
     data_folder = parcels.download_example_dataset("NemoNorthSeaORCA025-N006_data")
