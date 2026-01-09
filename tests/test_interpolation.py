@@ -182,7 +182,6 @@ def test_interpolation_mesh_type(mesh, npart=10):
     assert fieldset.U.eval(time, 0, lat, 0, apply_conversion=False) == 1
 
 
-
 interp_methods = {
     "linear": XLinear,
 }
