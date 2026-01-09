@@ -7,8 +7,6 @@ import numpy as np
 import numpy.typing as npt
 
 __all__ = [
-    "Geographic",
-    "GeographicPolar",
     "GeographicPolarSquare",
     "GeographicSquare",
     "UnitConverter",
@@ -53,34 +51,6 @@ class Unity(UnitConverter):
         return value
 
 
-class Geographic(UnitConverter):
-    """Unit converter from geometric to geographic coordinates (m to degree)"""
-
-    source_unit = "m"
-    target_unit = "degree"
-
-    def to_target(self, value, z, y, x):
-        return value / 1000.0 / 1.852 / 60.0
-
-    def to_source(self, value, z, y, x):
-        return value * 1000.0 * 1.852 * 60.0
-
-
-class GeographicPolar(UnitConverter):
-    """Unit converter from geometric to geographic coordinates (m to degree)
-    with a correction to account for narrower grid cells closer to the poles.
-    """
-
-    source_unit = "m"
-    target_unit = "degree"
-
-    def to_target(self, value, z, y, x):
-        return value / 1000.0 / 1.852 / 60.0 / np.cos(y * pi / 180)
-
-    def to_source(self, value, z, y, x):
-        return value * 1000.0 * 1.852 * 60.0 * np.cos(y * pi / 180)
-
-
 class GeographicSquare(UnitConverter):
     """Square distance converter from geometric to geographic coordinates (m2 to degree2)"""
 
@@ -110,8 +80,6 @@ class GeographicPolarSquare(UnitConverter):
 
 
 _unitconverters_map = {
-    "U": GeographicPolar(),
-    "V": Geographic(),
     "Kh_zonal": GeographicPolarSquare(),
     "Kh_meridional": GeographicSquare(),
 }
