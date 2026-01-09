@@ -146,6 +146,20 @@ def XConstantField(
     return field.data[0, 0, 0, 0].values
 
 
+def XLinear_Velocity(
+    particle_positions: dict[str, float | np.ndarray],
+    grid_positions: dict[_XGRID_AXES, dict[str, int | float | np.ndarray]],
+    vectorfield: VectorField,
+):
+    u = XLinear(particle_positions, grid_positions, vectorfield.U)
+    v = XLinear(particle_positions, grid_positions, vectorfield.V)
+    if vectorfield.W:
+        w = XLinear(particle_positions, grid_positions, vectorfield.W)
+    else:
+        w = 0.0
+    return u, v, w
+
+
 def CGrid_Velocity(
     particle_positions: dict[str, float | np.ndarray],
     grid_positions: dict[_XGRID_AXES, dict[str, int | float | np.ndarray]],
