@@ -66,41 +66,41 @@ def _maybe_create_depth_dim(ds):
     return ds
 
 
-def _maybe_rename_coords(ds, AXIS_VARNAMES):
+def _maybe_rename_coords(ds, axis_varnames):
     try:
         for axis, [coord] in ds.cf.axes.items():
-            ds = ds.rename({coord: AXIS_VARNAMES[axis]})
+            ds = ds.rename({coord: axis_varnames[axis]})
     except ValueError as e:
         raise ValueError(f"Multiple coordinates found on axis '{axis}'. Check your DataSet.") from e
     return ds
 
 
-def _maybe_rename_variables(ds, VARNAMES_MAPPING):
-    rename_dict = {old: new for old, new in VARNAMES_MAPPING.items() if (old in ds.data_vars) or (old in ds.coords)}
+def _maybe_rename_variables(ds, varnames_mapping):
+    rename_dict = {old: new for old, new in varnames_mapping.items() if (old in ds.data_vars) or (old in ds.coords)}
     if rename_dict:
         ds = ds.rename(rename_dict)
     return ds
 
 
-def _assign_dims_as_coords(ds, DIMENSION_NAMES):
-    for axis in DIMENSION_NAMES:
+def _assign_dims_as_coords(ds, dimension_names):
+    for axis in dimension_names:
         if axis in ds.dims and axis not in ds.coords:
             ds = ds.assign_coords({axis: np.arange(ds.sizes[axis])})
     return ds
 
 
-def _drop_unused_dimensions_and_coords(ds, DIMENSION_NAMES):
+def _drop_unused_dimensions_and_coords(ds, dimension_names):
     for dim in ds.dims:
-        if dim not in DIMENSION_NAMES:
+        if dim not in dimension_names:
             ds = ds.drop_dims(dim, errors="ignore")
     for coord in ds.coords:
-        if coord not in DIMENSION_NAMES:
+        if coord not in dimension_names:
             ds = ds.drop_vars(coord, errors="ignore")
     return ds
 
 
-def _set_coords(ds, DIMENSION_NAMES):
-    for varname in DIMENSION_NAMES:
+def _set_coords(ds, dimension_names):
+    for varname in dimension_names:
         if varname in ds and varname not in ds.coords:
             ds = ds.set_coords([varname])
     return ds
@@ -113,8 +113,8 @@ def _maybe_remove_depth_from_lonlat(ds):
     return ds
 
 
-def _set_axis_attrs(ds, AXIS_VARNAMES):
-    for axis, varname in AXIS_VARNAMES.items():
+def _set_axis_attrs(ds, axis_varnames):
+    for axis, varname in axis_varnames.items():
         if varname in ds.coords:
             ds[varname].attrs["axis"] = axis
     return ds
