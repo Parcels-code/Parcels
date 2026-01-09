@@ -71,7 +71,6 @@ fieldset = parcels.FieldSet.from_copernicusmarine(ds_fields)
 
 # Set unit converters for custom wind fields
 fieldset.UWind.units = parcels.GeographicPolar()
-fieldset.VWind.units = parcels.Geographic()
 ```
 
 Now we define a wind kernel that uses a forward Euler method to apply the wind forcing. Note that we update the `particles.dlon` and `particles.dlat` variables, rather than `particles.lon` and `particles.lat` directly.
