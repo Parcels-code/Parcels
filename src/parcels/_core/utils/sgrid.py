@@ -54,6 +54,7 @@ class Grid2DMetadata(AttrsSerializable):
         topology_dimension: Literal[2],
         node_dimensions: tuple[Dim, Dim],
         face_dimensions: tuple[DimDimPadding, DimDimPadding],
+        node_coordinates: None | tuple[Dim, Dim] = None,
         vertical_dimensions: None | tuple[DimDimPadding] = None,
     ):
         if cf_role != "grid_topology":
@@ -76,6 +77,14 @@ class Grid2DMetadata(AttrsSerializable):
         ):
             raise ValueError("face_dimensions must be a tuple of 2 DimDimPadding for a 2D grid")
 
+        if node_coordinates is not None:
+            if not (
+                isinstance(node_coordinates, tuple)
+                and len(node_coordinates) == 2
+                and all(isinstance(nd, str) for nd in node_coordinates)
+            ):
+                raise ValueError("node_coordinates must be a tuple of 2 dimensions for a 2D grid")
+
         if vertical_dimensions is not None:
             if not (
                 isinstance(vertical_dimensions, tuple)
@@ -90,20 +99,20 @@ class Grid2DMetadata(AttrsSerializable):
         self.node_dimensions = node_dimensions
         self.face_dimensions = face_dimensions
 
-        #! Optional attributes aren't really important to Parcels, can be added later if needed
+        # Optional attributes
+        self.node_coordinates = node_coordinates
+        self.vertical_dimensions = vertical_dimensions
+
+        #! Some optional attributes aren't really important to Parcels, can be added later if needed
         # Optional attributes
         # # With defaults (set in init)
         # edge1_dimensions: tuple[Dim, DimDimPadding]
         # edge2_dimensions: tuple[DimDimPadding, Dim]
 
         # # Without defaults
-        # node_coordinates: None | Any = None
         # edge1_coordinates: None | Any = None
         # edge2_coordinates: None | Any = None
         # face_coordinate: None | Any = None
-
-        #! Important optional attribute for 2D grids with vertical layering
-        self.vertical_dimensions = vertical_dimensions
 
     def __repr__(self) -> str:
         return repr_from_dunder_dict(self)
@@ -121,6 +130,7 @@ class Grid2DMetadata(AttrsSerializable):
                 topology_dimension=attrs["topology_dimension"],
                 node_dimensions=load_mappings(attrs["node_dimensions"]),
                 face_dimensions=load_mappings(attrs["face_dimensions"]),
+                node_coordinates=maybe_load_mappings(attrs.get("node_coordinates")),
                 vertical_dimensions=maybe_load_mappings(attrs.get("vertical_dimensions")),
             )
         except Exception as e:
@@ -133,6 +143,8 @@ class Grid2DMetadata(AttrsSerializable):
             node_dimensions=dump_mappings(self.node_dimensions),
             face_dimensions=dump_mappings(self.face_dimensions),
         )
+        if self.node_coordinates is not None:
+            d["node_coordinates"] = dump_mappings(self.node_coordinates)
         if self.vertical_dimensions is not None:
             d["vertical_dimensions"] = dump_mappings(self.vertical_dimensions)
         return d
@@ -148,6 +160,7 @@ class Grid3DMetadata(AttrsSerializable):
         topology_dimension: Literal[3],
         node_dimensions: tuple[Dim, Dim, Dim],
         volume_dimensions: tuple[DimDimPadding, DimDimPadding, DimDimPadding],
+        node_coordinates: None | tuple[Dim, Dim, Dim] = None,
     ):
         if cf_role != "grid_topology":
             raise ValueError(f"cf_role must be 'grid_topology', got {cf_role!r}")
@@ -169,13 +182,24 @@ class Grid3DMetadata(AttrsSerializable):
         ):
             raise ValueError("face_dimensions must be a tuple of 2 DimDimPadding for a 2D grid")
 
+        if node_coordinates is not None:
+            if not (
+                isinstance(node_coordinates, tuple)
+                and len(node_coordinates) == 3
+                and all(isinstance(nd, str) for nd in node_coordinates)
+            ):
+                raise ValueError("node_coordinates must be a tuple of 3 dimensions for a 3D grid")
+
         # Required attributes
         self.cf_role = cf_role
         self.topology_dimension = topology_dimension
         self.node_dimensions = node_dimensions
         self.volume_dimensions = volume_dimensions
 
-        # ! Optional attributes aren't really important to Parcels, can be added later if needed
+        # Optional attributes
+        self.node_coordinates = node_coordinates
+
+        # ! Some optional attributes aren't really important to Parcels, can be added later if needed
         # Optional attributes
         # # With defaults (set in init)
         # edge1_dimensions: tuple[DimDimPadding, Dim, Dim]
@@ -186,7 +210,6 @@ class Grid3DMetadata(AttrsSerializable):
         # face3_dimensions: tuple[DimDimPadding, DimDimPadding, Dim]
 
         # # Without defaults
-        # node_coordinates
         # edge *i_coordinates*
         # face *i_coordinates*
         # volume_coordinates
@@ -207,17 +230,21 @@ class Grid3DMetadata(AttrsSerializable):
                 topology_dimension=attrs["topology_dimension"],
                 node_dimensions=load_mappings(attrs["node_dimensions"]),
                 volume_dimensions=load_mappings(attrs["volume_dimensions"]),
+                node_coordinates=maybe_load_mappings(attrs.get("node_coordinates")),
             )
         except Exception as e:
             raise SGridParsingException(f"Failed to parse Grid3DMetadata from {attrs=!r}") from e
 
     def to_attrs(self) -> dict[str, str | int]:
-        return dict(
+        d = dict(
             cf_role=self.cf_role,
             topology_dimension=self.topology_dimension,
             node_dimensions=dump_mappings(self.node_dimensions),
             volume_dimensions=dump_mappings(self.volume_dimensions),
         )
+        if self.node_coordinates is not None:
+            d["node_coordinates"] = dump_mappings(self.node_coordinates)
+        return d
 
     def rename_dims(self, dims_dict: dict[str, str]) -> Self:
         return _metadata_rename_dims(self, dims_dict)
