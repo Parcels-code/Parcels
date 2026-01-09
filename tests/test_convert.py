@@ -7,14 +7,11 @@ from parcels._core.utils import sgrid
 
 def test_nemo_to_sgrid():
     data_folder = parcels.download_example_dataset("NemoCurvilinear_data")
-    ds_fields = xr.open_mfdataset(
-        data_folder.glob("*.nc4"),
-        data_vars="minimal",
-        coords="minimal",
-        compat="override",
-    )
-    ds_fields = ds_fields.isel(time=0, z_a=0, z=0, drop=True)
-    ds = convert.nemo_to_sgrid(ds_fields)
+    U = xr.open_mfdataset(data_folder.glob("*U.nc4"))
+    V = xr.open_mfdataset(data_folder.glob("*V.nc4"))
+    coords = xr.open_dataset(data_folder / "mesh_mask.nc4")
+
+    ds = convert.nemo_to_sgrid(U=U, V=V, coords=coords)
 
     assert ds["grid"].attrs == {
         "cf_role": "grid_topology",
@@ -32,8 +29,8 @@ def test_nemo_to_sgrid():
     assert {
         meta.get_value_by_id("node_dimension1"),  # X edge
         meta.get_value_by_id("face_dimension2"),  # Y center
-    } in set(ds["U"].dims)
+    }.issubset(set(ds["U"].dims))
     assert {
         meta.get_value_by_id("face_dimension1"),  # X center
         meta.get_value_by_id("node_dimension2"),  # Y edge
-    } in set(ds["V"].dims)
+    }.issubset(set(ds["V"].dims))

@@ -33,13 +33,15 @@ _NEMO_CF_STANDARD_NAME_FALLBACKS = {
     "W": ["upward_sea_water_velocity", "vertical_sea_water_velocity"],
 }
 
-_NEMO_DIMENSION_NAMES = ["x", "y", "time", "glamf", "gphif", "depth"]
+_NEMO_DIMENSION_COORD_NAMES = ["x", "y", "time", "x", "x_center", "y", "y_center", "depth", "glamf", "gphif"]
 
 _NEMO_AXIS_VARNAMES = {
-    "X": "glamf",
-    "Y": "gphif",
-    "Z": "depth",
-    "T": "time",
+    "x": "X",
+    "x_center": "X",
+    "y": "Y",
+    "y_center": "Y",
+    "depth": "Z",
+    "time": "T",
 }
 
 _NEMO_VARNAMES_MAPPING = {
@@ -89,12 +91,12 @@ def _assign_dims_as_coords(ds, dimension_names):
     return ds
 
 
-def _drop_unused_dimensions_and_coords(ds, dimension_names):
+def _drop_unused_dimensions_and_coords(ds, dimension_and_coord_names):
     for dim in ds.dims:
-        if dim not in dimension_names:
+        if dim not in dimension_and_coord_names:
             ds = ds.drop_dims(dim, errors="ignore")
     for coord in ds.coords:
-        if coord not in dimension_names:
+        if coord not in dimension_and_coord_names:
             ds = ds.drop_vars(coord, errors="ignore")
     return ds
 
@@ -113,10 +115,9 @@ def _maybe_remove_depth_from_lonlat(ds):
     return ds
 
 
-def _set_axis_attrs(ds, axis_varnames):
-    for axis, varname in axis_varnames.items():
-        if varname in ds.coords:
-            ds[varname].attrs["axis"] = axis
+def _set_axis_attrs(ds, dim_axis):
+    for dim, axis in dim_axis.items():
+        ds[dim].attrs["axis"] = axis
     return ds
 
 
@@ -162,16 +163,45 @@ def _discover_U_and_V(ds: xr.Dataset, cf_standard_names_fallbacks) -> xr.Dataset
     return ds
 
 
-def nemo_to_sgrid(ds: xr.Dataset):
-    ds = ds.copy()
+def nemo_to_sgrid(*, coords: xr.Dataset, **fields: dict[str, xr.Dataset]):
+    fields = fields.copy()
+    coords = coords[["gphif", "glamf"]]
+
+    for name, field_da in fields.items():
+        if isinstance(field_da, xr.Dataset):
+            field_da = field_da[name]
+            # TODO: logging message, warn if multiple fields are in this dataset
+
+        match name:
+            case "U":
+                field_da = field_da.rename({"y": "y_center"})
+            case "V":
+                field_da = field_da.rename({"x": "x_center"})
+            case _:
+                pass
+
+        fields[name] = field_da
+
+    if "time" in coords.dims:
+        if coords.dims["time"] != 1:
+            raise ValueError("Time dimension in coords must be length 1 (i.e., no time-varying grid).")
+        coords = coords.isel(time=0).drop("time")
+    if len(coords.dims) == 3:
+        for dim, len_ in coords.dims.items():
+            if len_ == 1:
+                # TODO: log statement about selecting along z dim of 1
+                coords = coords.isel({dim: 0})
+    if len(coords.dims) != 2:
+        raise ValueError("Expected coordsinates to be 2 dimensional")
+
+    ds = xr.merge(list(fields.values()) + [coords])
     ds = _maybe_rename_variables(ds, _NEMO_VARNAMES_MAPPING)
     ds = _discover_U_and_V(ds, _NEMO_CF_STANDARD_NAME_FALLBACKS)
     ds = _maybe_create_depth_dim(ds)
     ds = _maybe_bring_UV_depths_to_depth(ds)
-    ds = _drop_unused_dimensions_and_coords(ds, _NEMO_DIMENSION_NAMES)
-    ds = _maybe_rename_coords(ds, _NEMO_AXIS_VARNAMES)
-    ds = _assign_dims_as_coords(ds, _NEMO_DIMENSION_NAMES)
-    ds = _set_coords(ds, _NEMO_DIMENSION_NAMES)
+    ds = _drop_unused_dimensions_and_coords(ds, _NEMO_DIMENSION_COORD_NAMES)
+    ds = _assign_dims_as_coords(ds, _NEMO_DIMENSION_COORD_NAMES)
+    ds = _set_coords(ds, _NEMO_DIMENSION_COORD_NAMES)
     ds = _maybe_remove_depth_from_lonlat(ds)
     ds = _set_axis_attrs(ds, _NEMO_AXIS_VARNAMES)
 
