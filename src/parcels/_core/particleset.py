@@ -9,7 +9,6 @@ import xarray as xr
 from tqdm import tqdm
 from zarr.storage import DirectoryStore
 
-from parcels._core.converters import _convert_to_flat_array
 from parcels._core.kernel import Kernel
 from parcels._core.particle import KernelParticle, Particle, create_particle_data
 from parcels._core.statuscodes import StatusCode
@@ -73,9 +72,9 @@ class ParticleSet:
         self._kernel = None
 
         self.fieldset = fieldset
-        lon = np.empty(shape=0) if lon is None else _convert_to_flat_array(lon)
-        lat = np.empty(shape=0) if lat is None else _convert_to_flat_array(lat)
-        time = np.empty(shape=0) if time is None else _convert_to_flat_array(time)
+        lon = np.empty(shape=0) if lon is None else np.array(lon).flatten()
+        lat = np.empty(shape=0) if lat is None else np.array(lat).flatten()
+        time = np.empty(shape=0) if time is None else np.array(time).flatten()
 
         if trajectory_ids is None:
             trajectory_ids = np.arange(lon.size)
@@ -87,7 +86,7 @@ class ParticleSet:
                     minz = min(minz, field.grid.depth[0])
             z = np.ones(lon.size) * minz
         else:
-            z = _convert_to_flat_array(z)
+            z = np.array(z).flatten()
         assert lon.size == lat.size and lon.size == z.size, "lon, lat, z don't all have the same lenghts"
 
         if time is None or len(time) == 0:
@@ -108,7 +107,7 @@ class ParticleSet:
 
         for kwvar in kwargs:
             if kwvar not in ["partition_function"]:
-                kwargs[kwvar] = _convert_to_flat_array(kwargs[kwvar])
+                kwargs[kwvar] = np.array(kwargs[kwvar]).flatten()
                 assert lon.size == kwargs[kwvar].size, (
                     f"{kwvar} and positions (lon, lat, z) don't have the same lengths."
                 )
