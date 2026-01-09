@@ -86,6 +86,7 @@ select = [
   "TID", # flake8-tidy-imports
   "T100", # Checks for the presence of debugger calls and imports
   "N", # pep8 naming conventions
+  "PGH004", # ensures no blanket noqa's are used
 ]
 
 exclude = [
