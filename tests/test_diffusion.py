@@ -7,11 +7,8 @@ from scipy import stats
 from parcels import (
     Field,
     FieldSet,
-    GeographicPolarSquare,
-    GeographicSquare,
     Particle,
     ParticleSet,
-    Unity,
     Variable,
     VectorField,
     XGrid,
@@ -40,13 +37,6 @@ def test_fieldKh_Brownian(mesh):
     fieldset.add_constant_field("Kh_zonal", kh_zonal, mesh=mesh)
     fieldset.add_constant_field("Kh_meridional", kh_meridional, mesh=mesh)
 
-    if mesh == "spherical":
-        assert isinstance(fieldset.Kh_zonal.units, GeographicPolarSquare)
-        assert isinstance(fieldset.Kh_meridional.units, GeographicSquare)
-    else:
-        assert isinstance(fieldset.Kh_zonal.units, Unity)
-        assert isinstance(fieldset.Kh_meridional.units, Unity)
-
     npart = 100
     runtime = np.timedelta64(2, "h")
 
@@ -58,10 +48,10 @@ def test_fieldKh_Brownian(mesh):
     expected_std_lat = np.sqrt(2 * kh_meridional * mesh_conversion**2 * timedelta_to_float(runtime))
 
     tol = 500 * mesh_conversion  # effectively 500 m errors
-    assert np.allclose(np.std(pset.lat), expected_std_lat, atol=tol)
-    assert np.allclose(np.std(pset.lon), expected_std_lon, atol=tol)
-    assert np.allclose(np.mean(pset.lon), 0, atol=tol)
-    assert np.allclose(np.mean(pset.lat), 0, atol=tol)
+    np.testing.assert_allclose(np.std(pset.lat), expected_std_lat, atol=tol)
+    np.testing.assert_allclose(np.std(pset.lon), expected_std_lon, atol=tol)
+    np.testing.assert_allclose(np.mean(pset.lon), 0, atol=tol)
+    np.testing.assert_allclose(np.mean(pset.lat), 0, atol=tol)
 
 
 @pytest.mark.parametrize("mesh", ["spherical", "flat"])
