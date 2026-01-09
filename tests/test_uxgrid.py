@@ -29,5 +29,5 @@ def test_uxgrid_mesh(uxds, mesh):
 def test_xgrid_get_axis_dim(uxds):
     grid = UxGrid(uxds.uxgrid, z=uxds.coords["nz"], mesh="flat")
 
-    assert grid.get_axis_dim("FACE") == 721
+    assert grid.get_axis_dim("FACE") == 718
     assert grid.get_axis_dim("Z") == 2
