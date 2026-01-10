@@ -176,7 +176,7 @@ def test_interpolation_mesh_type(mesh, npart=10):
     time = 0.0
     u_expected = 1.0 if mesh == "flat" else 1.0 / (1852 * 60 * np.cos(np.radians(lat)))
 
-    assert fieldset.U.eval(time, 0, lat, 0, applyConversion=False) == 1.0
+    assert fieldset.U.eval(time, 0, lat, 0) == 1.0
     assert fieldset.V[time, 0, lat, 0] == 0.0
 
     u, v = fieldset.UV[time, 0, lat, 0]
