@@ -180,9 +180,27 @@ class Field:
     def eval(self, time: datetime, z, y, x, particles=None):
         """Interpolate field values in space and time.
 
-        We interpolate linearly in time and apply implicit unit
-        conversion to the result. Note that we defer to
-        scipy.interpolate to perform spatial interpolation.
+        Parameters
+        ----------
+        time : float or array-like
+            Time(s) at which to sample the field.
+        z, y, x : scalar or array-like
+            Vertical (z), latitudinal (y) and longitudinal (x) positions to sample.
+            Inputs are promoted to 1-D arrays internally.
+        particles : ParticleSet, optional
+            If provided, used to associate results with particle indices and to
+            update particle state and element indices. Defaults to None.
+
+        Returns
+        -------
+        (value) : float or array-like
+            The interpolated value as a numpy.ndarray (or scalar) with the same
+            broadcasted shape as the input coordinates.
+
+        Notes
+        -----
+        - Particle states are updated for out-of-bounds, search errors and NaN
+          interpolation values.
         """
         if particles is None:
             _ei = None
@@ -262,11 +280,34 @@ class VectorField:
         self._vector_interp_method = method
 
     def eval(self, time: datetime, z, y, x, particles=None, applyConversion=True):
-        """Interpolate field values in space and time.
+        """Interpolate vectorfield values in space and time.
 
-        We interpolate linearly in time and apply implicit unit
-        conversion to the result. Note that we defer to
-        scipy.interpolate to perform spatial interpolation.
+        Parameters
+        ----------
+        time : float or array-like
+            Time(s) at which to sample the field.
+        z, y, x : scalar or array-like
+            Vertical (z), latitudinal (y) and longitudinal (x) positions to sample.
+            Inputs are promoted to 1-D arrays internally.
+        particles : ParticleSet, optional
+            If provided, used to associate results with particle indices and to
+            update particle state and element indices. Defaults to None.
+        applyConversion : bool, default True
+            If True and the underlying grid is spherical, the horizontal velocity
+            components (U, V) are converted from m s^-1 to degrees s^-1.
+            If False, raw interpolated values are returned.
+
+        Returns
+        -------
+        (u, v, (w,)) : tuple or array-like
+            The interpolated velocity components: (u, v) for 2D vectors or (u, v, w)
+            for 3D vectors. Each element is a numpy.ndarray (or scalar) with the same
+            broadcasted shape as the input coordinates.
+
+        Notes
+        -----
+        - Particle states are updated for out-of-bounds, search errors and NaN
+          interpolation values.
         """
         if particles is None:
             _ei = None
