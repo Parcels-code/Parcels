@@ -184,7 +184,7 @@ class Field:
                 stacklevel=2,
             )
 
-    def eval(self, time: datetime, z, y, x, particles=None, apply_conversion=True):
+    def eval(self, time: datetime, z, y, x, particles=None):
         """Interpolate field values in space and time.
 
         We interpolate linearly in time and apply implicit unit
