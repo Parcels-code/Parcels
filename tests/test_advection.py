@@ -30,22 +30,27 @@ from tests.utils import DEFAULT_PARTICLES, round_and_hash_float_array
 
 @pytest.mark.parametrize("mesh", ["spherical", "flat"])
 def test_advection_zonal(mesh, npart=10):
-    """Particles at high latitude move geographically faster due to the pole correction in `GeographicPolar`."""
+    """Particles at high latitude move geographically faster due to the pole correction."""
     ds = simple_UV_dataset(mesh=mesh)
     ds["U"].data[:] = 1.0
     fieldset = FieldSet.from_sgrid_conventions(ds, mesh=mesh)
 
-    pset = ParticleSet(fieldset, lon=np.zeros(npart) + 20.0, lat=np.linspace(0, 80, npart))
-    pset.execute(AdvectionRK4, runtime=np.timedelta64(2, "h"), dt=np.timedelta64(15, "m"))
+    runtime = 7200
+    startlat = np.linspace(0, 80, npart)
+    startlon = 20.0 + np.zeros(npart)
+    pset = ParticleSet(fieldset, lon=startlon, lat=startlat)
+    pset.execute(AdvectionRK4, runtime=runtime, dt=np.timedelta64(15, "m"))
 
+    expected_dlon = runtime
     if mesh == "spherical":
-        assert (np.diff(pset.lon) > 1.0e-4).all()
-    else:
-        assert (np.diff(pset.lon) < 1.0e-4).all()
+        expected_dlon /= 1852 * 60 * np.cos(np.deg2rad(pset.lat))
+
+    np.testing.assert_allclose(pset.lon - startlon, expected_dlon, atol=1e-5)
+    np.testing.assert_allclose(pset.lat, startlat, atol=1e-5)
 
 
 def test_advection_zonal_with_particlefile(tmp_store):
-    """Particles at high latitude move geographically faster due to the pole correction in `GeographicPolar`."""
+    """Particles at high latitude move geographically faster due to the pole correction."""
     npart = 10
     ds = simple_UV_dataset(mesh="flat")
     ds["U"].data[:] = 1.0
@@ -86,6 +91,27 @@ def test_advection_zonal_periodic():
     np.testing.assert_allclose(pset.total_dlon, 4.1, atol=1e-5)
     np.testing.assert_allclose(pset.lon, startlon, atol=1e-5)
     np.testing.assert_allclose(pset.lat, 0.5, atol=1e-5)
+
+
+@pytest.mark.parametrize("mesh", ["spherical", "flat"])
+def test_advection_meridional(mesh, npart=10):
+    """All particles move the same in meridional direction, regardless of latitude."""
+    ds = simple_UV_dataset(mesh=mesh)
+    ds["V"].data[:] = 1.0
+    fieldset = FieldSet.from_sgrid_conventions(ds, mesh=mesh)
+
+    runtime = 7200
+    startlat = np.linspace(0, 80, npart)
+    startlon = 20.0 + np.zeros(npart)
+    pset = ParticleSet(fieldset, lon=startlon, lat=startlat)
+    pset.execute(AdvectionRK4, runtime=runtime, dt=np.timedelta64(15, "m"))
+
+    expected_dlat = runtime
+    if mesh == "spherical":
+        expected_dlat /= 1852 * 60
+
+    np.testing.assert_allclose(pset.lon, startlon, atol=1e-5)
+    np.testing.assert_allclose(pset.lat - startlat, expected_dlat, atol=1e-4)
 
 
 def test_horizontal_advection_in_3D_flow(npart=10):
