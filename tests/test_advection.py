@@ -114,17 +114,20 @@ def test_advection_meridional(mesh, npart=10):
     np.testing.assert_allclose(pset.lat - startlat, expected_dlat, atol=1e-4)
 
 
-def test_horizontal_advection_in_3D_flow(npart=10):
-    """Flat 2D zonal flow that increases linearly with z from 0 m/s to 1 m/s."""
-    ds = simple_UV_dataset(mesh="flat")
+@pytest.mark.parametrize("mesh", ["spherical", "flat"])
+def test_horizontal_advection_in_3D_flow(mesh, npart=10):
+    """2D zonal flow that increases linearly with z from 0 m/s to 1 m/s."""
+    ds = simple_UV_dataset(mesh=mesh)
     ds["U"].data[:] = 1.0
     ds["U"].data[:, 0, :, :] = 0.0  # Set U to 0 at the surface
-    fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
+    fieldset = FieldSet.from_sgrid_conventions(ds, mesh=mesh)
 
     pset = ParticleSet(fieldset, lon=np.zeros(npart), lat=np.zeros(npart), z=np.linspace(0.1, 0.9, npart))
     pset.execute(AdvectionRK4, runtime=np.timedelta64(2, "h"), dt=np.timedelta64(15, "m"))
 
     expected_lon = pset.z * pset.time
+    if mesh == "spherical":
+        expected_lon /= 1852 * 60 * np.cos(np.deg2rad(pset.lat))
     np.testing.assert_allclose(pset.lon, expected_lon, atol=1.0e-1)
 
 
