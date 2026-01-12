@@ -9,6 +9,7 @@ import xgcm
 
 from parcels._core.basegrid import BaseGrid
 from parcels._core.index_search import _search_1d_array, _search_indices_curvilinear_2d
+from parcels._reprs import xgrid_repr
 from parcels._typing import assert_valid_mesh
 
 _XGRID_AXES = Literal["X", "Y", "Z"]
@@ -134,6 +135,9 @@ class XGrid(BaseGrid):
         ds = _drop_field_data(ds)
         grid = xgcm.Grid(ds, **xgcm_kwargs)
         return cls(grid, mesh=mesh)
+
+    def __repr__(self):
+        return xgrid_repr(self)
 
     @property
     def axes(self) -> list[_XGRID_AXES]:

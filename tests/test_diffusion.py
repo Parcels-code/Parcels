@@ -5,7 +5,6 @@ import pytest
 from scipy import stats
 
 from parcels import (
-    Field,
     FieldSet,
     GeographicPolarSquare,
     GeographicSquare,
@@ -16,7 +15,6 @@ from parcels import (
 )
 from parcels._core.utils.time import timedelta_to_float
 from parcels._datasets.structured.generated import simple_UV_dataset
-from parcels.interpolators import XLinear
 from parcels.kernels import AdvectionDiffusionEM, AdvectionDiffusionM1, DiffusionUniformKh
 from tests.utils import create_fieldset_zeros_conversion
 
@@ -68,7 +66,6 @@ def test_fieldKh_SpatiallyVaryingDiffusion(mesh, kernel):
     ds = simple_UV_dataset(dims=(2, 1, ydim, xdim), mesh=mesh)
     ds["lon"].data = np.linspace(-1e6, 1e6, xdim)
     ds["lat"].data = np.linspace(-1e6, 1e6, ydim)
-    fieldset = FieldSet.from_sgrid_conventions(ds, mesh=mesh)
 
     Kh = np.zeros((ydim, xdim), dtype=np.float32)
     for x in range(xdim):
@@ -76,10 +73,7 @@ def test_fieldKh_SpatiallyVaryingDiffusion(mesh, kernel):
 
     ds["Kh_zonal"] = (["time", "depth", "YG", "XG"], np.full((2, 1, ydim, xdim), Kh))
     ds["Kh_meridional"] = (["time", "depth", "YG", "XG"], np.full((2, 1, ydim, xdim), Kh))
-    Kh_zonal = Field("Kh_zonal", ds["Kh_zonal"], grid=fieldset.U.grid, interp_method=XLinear)
-    Kh_meridional = Field("Kh_meridional", ds["Kh_meridional"], grid=fieldset.V.grid, interp_method=XLinear)
-    fieldset.add_field(Kh_zonal)
-    fieldset.add_field(Kh_meridional)
+    fieldset = FieldSet.from_sgrid_conventions(ds, mesh=mesh)
     fieldset.add_constant("dres", float(ds["lon"][1] - ds["lon"][0]))
 
     npart = 10000

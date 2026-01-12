@@ -80,11 +80,9 @@ def test_particleclass_invalid_vars():
                     Variable("varc", dtype=np.float32, to_write=True),
                 ]
             ),
-            """ParticleClass(variables=[
-    Variable(name='vara', dtype=dtype('float32'), initial=0, to_write=True, attrs={}),
-    Variable(name='varb', dtype=dtype('float32'), initial=0, to_write=False, attrs={}),
-    Variable(name='varc', dtype=dtype('float32'), initial=0, to_write=True, attrs={})
-])""",
+            """Variable(name='vara', dtype=dtype('float32'), initial=0, to_write=True, attrs={})
+Variable(name='varb', dtype=dtype('float32'), initial=0, to_write=False, attrs={})
+Variable(name='varc', dtype=dtype('float32'), initial=0, to_write=True, attrs={})""",
         ),
     ],
 )

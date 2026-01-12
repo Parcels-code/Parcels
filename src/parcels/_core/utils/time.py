@@ -6,6 +6,8 @@ from typing import TYPE_CHECKING, TypeVar
 import cftime
 import numpy as np
 
+from parcels._reprs import timeinterval_repr
+
 if TYPE_CHECKING:
     from parcels._typing import TimeLike
 
@@ -61,7 +63,7 @@ class TimeInterval:
         return (0 <= item).all() and (item <= self.time_length_as_flt).all()
 
     def __repr__(self) -> str:
-        return f"TimeInterval(left={self.left!r}, right={self.right!r})"
+        return timeinterval_repr(self)
 
     def __eq__(self, other: object) -> bool:
         if not isinstance(other, TimeInterval):

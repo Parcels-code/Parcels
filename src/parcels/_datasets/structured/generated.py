@@ -10,6 +10,7 @@ from parcels._core.utils.sgrid import (
     _attach_sgrid_metadata,
 )
 from parcels._core.utils.time import timedelta_to_float
+from parcels._datasets.utils import _attach_sgrid_metadata
 
 
 def simple_UV_dataset(dims=(360, 2, 30, 4), maxdepth=1, mesh="spherical"):
@@ -34,10 +35,10 @@ def simple_UV_dataset(dims=(360, 2, 30, 4), maxdepth=1, mesh="spherical"):
             topology_dimension=2,
             node_dimensions=("XG", "YG"),
             face_dimensions=(
-                DimDimPadding("XC", "XG", Padding.HIGH),
-                DimDimPadding("YC", "YG", Padding.HIGH),
+                DimDimPadding("XC", "XG", Padding.LOW),
+                DimDimPadding("YC", "YG", Padding.LOW),
             ),
-            vertical_dimensions=(DimDimPadding("depth", "depth", Padding.NONE),),
+            vertical_dimensions=(DimDimPadding("ZC", "depth", Padding.BOTH),),
         ),
     )
 
