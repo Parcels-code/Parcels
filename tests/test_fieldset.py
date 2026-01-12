@@ -317,7 +317,7 @@ def test_fieldset_from_copernicusmarine_with_W(caplog):
     assert "U" in fieldset.fields
     assert "V" in fieldset.fields
     assert "W" in fieldset.fields
-    assert "UV" not in fieldset.fields
+    assert "UV" in fieldset.fields
     assert "UVW" in fieldset.fields
     assert "renamed it to 'W'" in caplog.text
 

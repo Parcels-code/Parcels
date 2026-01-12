@@ -9,9 +9,9 @@ from parcels._compat import _attrgetter_helper
 from parcels._core.statuscodes import StatusCode
 from parcels._core.utils.string import _assert_str_and_python_varname
 from parcels._core.utils.time import TimeInterval
-from parcels._reprs import _format_list_items_multiline
+from parcels._reprs import particleclass_repr, variable_repr
 
-__all__ = ["KernelParticle", "Particle", "ParticleClass", "Variable"]
+__all__ = ["Particle", "ParticleClass", "Variable"]
 _TO_WRITE_OPTIONS = [True, False, "once"]
 
 
@@ -70,7 +70,7 @@ class Variable:
         return self._name
 
     def __repr__(self):
-        return f"Variable(name={self._name!r}, dtype={self.dtype!r}, initial={self.initial!r}, to_write={self.to_write!r}, attrs={self.attrs!r})"
+        return variable_repr(self)
 
 
 class ParticleClass:
@@ -92,8 +92,7 @@ class ParticleClass:
         self.variables = variables
 
     def __repr__(self):
-        vars = [repr(v) for v in self.variables]
-        return f"ParticleClass(variables={_format_list_items_multiline(vars)})"
+        return particleclass_repr(self)
 
     def add_variable(self, variable: Variable | list[Variable]):
         """Add a new variable to the Particle class. This returns a new Particle class with the added variable(s).
@@ -114,30 +113,6 @@ class ParticleClass:
         _assert_no_duplicate_variable_names(existing_vars=self.variables, new_vars=variable)
 
         return ParticleClass(variables=self.variables + variable)
-
-
-class KernelParticle:
-    """Simple class to be used in a kernel that links a particle (on the kernel level) to a particle dataset."""
-
-    def __init__(self, data, index):
-        self._data = data
-        self._index = index
-
-    def __getattr__(self, name):
-        return self._data[name][self._index]
-
-    def __setattr__(self, name, value):
-        if name in ["_data", "_index"]:
-            object.__setattr__(self, name, value)
-        else:
-            self._data[name][self._index] = value
-
-    def __getitem__(self, index):
-        self._index = index
-        return self
-
-    def __len__(self):
-        return len(self._index)
 
 
 def _assert_no_duplicate_variable_names(*, existing_vars: list[Variable], new_vars: list[Variable]):

@@ -239,18 +239,20 @@ def uxgrid_point_in_cell(grid, y: np.ndarray, x: np.ndarray, yi: np.ndarray, xi:
             axis=-1,
         )
 
-        # Get projection points onto element plane
-        # for the projection, all points are computed relative to v0
-        r1 = np.squeeze(face_vertices[:, 1, :] - face_vertices[:, 0, :])  # (M,3)
-        r2 = np.squeeze(face_vertices[:, 2, :] - face_vertices[:, 0, :])  # (M,3)
+        # Get projection points onto element plane. Keep the leading
+        # dimension even for single-face queries so shapes remain (M,3).
+        r1 = face_vertices[:, 1, :] - face_vertices[:, 0, :]
+        r2 = face_vertices[:, 2, :] - face_vertices[:, 0, :]
         nhat = np.cross(r1, r2)
         norm = np.linalg.norm(nhat, axis=-1)
+        # Avoid division by zero for degenerate faces
+        norm = np.where(norm == 0.0, 1.0, norm)
         nhat = nhat / norm[:, None]
         # Calculate the component of the points in the direction of nhat
-        ptilde = points - np.squeeze(face_vertices[:, 0, :])
+        ptilde = points - face_vertices[:, 0, :]
         pdotnhat = np.sum(ptilde * nhat, axis=-1)
         # Reconstruct points with normal component removed.
-        points = ptilde - pdotnhat[:, None] * nhat + np.squeeze(face_vertices[:, 0, :])
+        points = ptilde - pdotnhat[:, None] * nhat + face_vertices[:, 0, :]
 
     else:
         nids = grid.uxgrid.face_node_connectivity[xi].values
@@ -274,7 +276,7 @@ def uxgrid_point_in_cell(grid, y: np.ndarray, x: np.ndarray, yi: np.ndarray, xi:
     return is_in_cell, coords
 
 
-def _triangle_area(A, B, C):
+def _triangle_area(A, B, C):  # noqa: N803
     """Compute the area of a triangle given by three points."""
     d1 = B - A
     d2 = C - A

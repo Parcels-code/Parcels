@@ -3,7 +3,13 @@ import math
 import numpy as np
 import xarray as xr
 
+from parcels._core.utils.sgrid import (
+    DimDimPadding,
+    Grid2DMetadata,
+    Padding,
+)
 from parcels._core.utils.time import timedelta_to_float
+from parcels._datasets.utils import _attach_sgrid_metadata
 
 
 def simple_UV_dataset(dims=(360, 2, 30, 4), maxdepth=1, mesh="spherical"):
@@ -21,6 +27,18 @@ def simple_UV_dataset(dims=(360, 2, 30, 4), maxdepth=1, mesh="spherical"):
             "lat": (["YG"], np.linspace(-90, 90, dims[2]), {"axis": "Y", "c_grid_axis_shift": 0.5}),
             "lon": (["XG"], np.linspace(-max_lon, max_lon, dims[3]), {"axis": "X", "c_grid_axis_shift": -0.5}),
         },
+    ).pipe(
+        _attach_sgrid_metadata,
+        Grid2DMetadata(
+            cf_role="grid_topology",
+            topology_dimension=2,
+            node_dimensions=("XG", "YG"),
+            face_dimensions=(
+                DimDimPadding("XC", "XG", Padding.LOW),
+                DimDimPadding("YC", "YG", Padding.LOW),
+            ),
+            vertical_dimensions=(DimDimPadding("ZC", "depth", Padding.BOTH),),
+        ),
     )
 
 

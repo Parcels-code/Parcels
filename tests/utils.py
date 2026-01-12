@@ -10,10 +10,9 @@ import numpy as np
 import xarray as xr
 
 import parcels
-from parcels import Field, FieldSet, Particle, Variable, VectorField
+from parcels import FieldSet, Particle, Variable
 from parcels._core.xgrid import _FIELD_DATA_ORDERING, XGrid, get_axis_from_dim_name
 from parcels._datasets.structured.generated import simple_UV_dataset
-from parcels.interpolators import XLinear
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 TEST_ROOT = PROJECT_ROOT / "tests"
@@ -78,12 +77,7 @@ def create_fieldset_zeros_conversion(mesh="spherical", xdim=200, ydim=100) -> Fi
     ds = simple_UV_dataset(dims=(2, 1, ydim, xdim), mesh=mesh)
     ds["lon"].data = np.linspace(-1e6 * mesh_conversion, 1e6 * mesh_conversion, xdim)
     ds["lat"].data = np.linspace(-1e6 * mesh_conversion, 1e6 * mesh_conversion, ydim)
-    grid = XGrid.from_dataset(ds, mesh=mesh)
-    U = Field("U", ds["U"], grid, interp_method=XLinear)
-    V = Field("V", ds["V"], grid, interp_method=XLinear)
-
-    UV = VectorField("UV", U, V)
-    return FieldSet([U, V, UV])
+    return FieldSet.from_sgrid_conventions(ds, mesh=mesh)
 
 
 def create_simple_pset(n=1):

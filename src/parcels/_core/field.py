@@ -14,7 +14,7 @@ from parcels._core.converters import (
     _unitconverters_map,
 )
 from parcels._core.index_search import GRID_SEARCH_ERROR, LEFT_OUT_OF_BOUNDS, RIGHT_OUT_OF_BOUNDS, _search_time_index
-from parcels._core.particle import KernelParticle
+from parcels._core.particlesetview import ParticleSetView
 from parcels._core.statuscodes import (
     AllParcelsErrorCodes,
     StatusCode,
@@ -24,7 +24,7 @@ from parcels._core.utils.time import TimeInterval
 from parcels._core.uxgrid import UxGrid
 from parcels._core.xgrid import XGrid, _transpose_xfield_data_to_tzyx, assert_all_field_dims_have_axis
 from parcels._python import assert_same_function_signature
-from parcels._reprs import default_repr
+from parcels._reprs import field_repr, vectorfield_repr
 from parcels._typing import VectorType
 from parcels.interpolators import (
     ZeroInterpolator,
@@ -35,9 +35,9 @@ __all__ = ["Field", "VectorField"]
 
 
 def _deal_with_errors(error, key, vector_type: VectorType):
-    if isinstance(key, KernelParticle):
+    if isinstance(key, ParticleSetView):
         key.state = AllParcelsErrorCodes[type(error)]
-    elif isinstance(key[-1], KernelParticle):
+    elif isinstance(key[-1], ParticleSetView):
         key[-1].state = AllParcelsErrorCodes[type(error)]
     else:
         raise RuntimeError(f"{error}. Error could not be handled because particles was not part of the Field Sampling.")
@@ -148,6 +148,9 @@ class Field:
             if "time" not in self.data.coords:
                 raise ValueError("Field data is missing a 'time' coordinate.")
 
+    def __repr__(self):
+        return field_repr(self)
+
     @property
     def units(self):
         return self._units
@@ -201,7 +204,7 @@ class Field:
                 stacklevel=2,
             )
 
-    def eval(self, time: datetime, z, y, x, particles=None, applyConversion=True):
+    def eval(self, time: datetime, z, y, x, particles=None, apply_conversion=True):
         """Interpolate field values in space and time.
 
         We interpolate linearly in time and apply implicit unit
@@ -222,14 +225,14 @@ class Field:
 
         _update_particle_states_interp_value(particles, value)
 
-        if applyConversion:
+        if apply_conversion:
             value = self.units.to_target(value, z, y, x)
         return value
 
     def __getitem__(self, key):
         self._check_velocitysampling()
         try:
-            if isinstance(key, KernelParticle):
+            if isinstance(key, ParticleSetView):
                 return self.eval(key.time, key.z, key.lat, key.lon, key)
             else:
                 return self.eval(*key)
@@ -241,7 +244,12 @@ class VectorField:
     """VectorField class that holds vector field data needed to execute particles."""
 
     def __init__(
-        self, name: str, U: Field, V: Field, W: Field | None = None, vector_interp_method: Callable | None = None
+        self,
+        name: str,
+        U: Field,  # noqa: N803
+        V: Field,  # noqa: N803
+        W: Field | None = None,  # noqa: N803
+        vector_interp_method: Callable | None = None,
     ):
         _assert_str_and_python_varname(name)
 
@@ -272,11 +280,7 @@ class VectorField:
             self._vector_interp_method = vector_interp_method
 
     def __repr__(self):
-        return f"""<{type(self).__name__}>
-    name: {self.name!r}
-    U: {default_repr(self.U)}
-    V: {default_repr(self.V)}
-    W: {default_repr(self.W)}"""
+        return vectorfield_repr(self)
 
     @property
     def vector_interp_method(self):
@@ -287,7 +291,7 @@ class VectorField:
         assert_same_function_signature(method, ref=ZeroInterpolator_Vector, context="Interpolation")
         self._vector_interp_method = method
 
-    def eval(self, time: datetime, z, y, x, particles=None, applyConversion=True):
+    def eval(self, time: datetime, z, y, x, particles=None, apply_conversion=True):
         """Interpolate field values in space and time.
 
         We interpolate linearly in time and apply implicit unit
@@ -314,7 +318,7 @@ class VectorField:
         else:
             (u, v, w) = self._vector_interp_method(particle_positions, grid_positions, self)
 
-        if applyConversion:
+        if apply_conversion:
             u = self.U.units.to_target(u, z, y, x)
             v = self.V.units.to_target(v, z, y, x)
             if "3D" in self.vector_type:
@@ -330,7 +334,7 @@ class VectorField:
 
     def __getitem__(self, key):
         try:
-            if isinstance(key, KernelParticle):
+            if isinstance(key, ParticleSetView):
                 return self.eval(key.time, key.z, key.lat, key.lon, key)
             else:
                 return self.eval(*key)

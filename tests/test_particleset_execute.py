@@ -55,11 +55,7 @@ def fieldset_no_time_interval() -> FieldSet:
 def zonal_flow_fieldset() -> FieldSet:
     ds = simple_UV_dataset(mesh="flat")
     ds["U"].data[:] = 1.0
-    grid = XGrid.from_dataset(ds, mesh="flat")
-    U = Field("U", ds["U"], grid, interp_method=XLinear)
-    V = Field("V", ds["V"], grid, interp_method=XLinear)
-    UV = VectorField("UV", U, V)
-    return FieldSet([U, V, UV])
+    return FieldSet.from_sgrid_conventions(ds, mesh="flat")
 
 
 def test_pset_execute_invalid_arguments(fieldset, fieldset_no_time_interval):
@@ -433,13 +429,7 @@ def test_execution_fail_python_exception(fieldset, npart):
     [
         ("Lat1", [0, 1]),
         ("Lat2", [2, 0]),
-        pytest.param(
-            "Lat1and2",
-            [2, 1],
-            marks=pytest.mark.xfail(
-                reason="Will be fixed alongside GH #2143 . Failing due to https://github.com/OceanParcels/Parcels/pull/2199#issuecomment-3285278876."
-            ),
-        ),
+        ("Lat1and2", [2, 1]),
         ("Lat1then2", [2, 1]),
     ],
 )

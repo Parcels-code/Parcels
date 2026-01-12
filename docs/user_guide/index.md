@@ -27,6 +27,7 @@ The tutorials written for Parcels v3 are currently being updated for Parcels v4.
 examples/explanation_grids.md
 examples/tutorial_nemo_curvilinear.ipynb
 examples/tutorial_unitconverters.ipynb
+examples/tutorial_nestedgrids.ipynb
 ```
 
 <!-- examples/documentation_indexing.ipynb -->
