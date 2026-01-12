@@ -272,12 +272,10 @@ class VectorField:
         else:
             self.vector_type = "2D"
 
-        # Setting the interpolation method dynamically
         if vector_interp_method is None:
-            self._vector_interp_method = None
-        else:
-            assert_same_function_signature(vector_interp_method, ref=ZeroInterpolator_Vector, context="Interpolation")
-            self._vector_interp_method = vector_interp_method
+            raise ValueError("vector_interp_method must be provided for VectorField initialization.")
+        assert_same_function_signature(vector_interp_method, ref=ZeroInterpolator_Vector, context="Interpolation")
+        self._vector_interp_method = vector_interp_method
 
     def __repr__(self):
         return vectorfield_repr(self)
@@ -308,15 +306,7 @@ class VectorField:
 
         particle_positions, grid_positions = _get_positions(self.U, time, z, y, x, particles, _ei)
 
-        if self._vector_interp_method is None:
-            u = self.U._interp_method(particle_positions, grid_positions, self.U)
-            v = self.V._interp_method(particle_positions, grid_positions, self.V)
-            if "3D" in self.vector_type:
-                w = self.W._interp_method(particle_positions, grid_positions, self.W)
-            else:
-                w = 0.0
-        else:
-            (u, v, w) = self._vector_interp_method(particle_positions, grid_positions, self)
+        (u, v, w) = self._vector_interp_method(particle_positions, grid_positions, self)
 
         if apply_conversion:
             u = self.U.units.to_target(u, z, y, x)
