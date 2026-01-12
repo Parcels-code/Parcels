@@ -5,6 +5,7 @@ from parcels._core.utils.sgrid import (
     DimDimPadding,
     Grid2DMetadata,
     Padding,
+    _attach_sgrid_metadata,
 )
 from parcels._core.utils.sgrid import (
     rename_dims as sgrid_rename_dims,
