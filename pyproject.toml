@@ -85,7 +85,14 @@ select = [
   "ISC001", # single-line-implicit-string-concatenation
   "TID", # flake8-tidy-imports
   "T100", # Checks for the presence of debugger calls and imports
+  "N", # pep8 naming conventions
+  "PGH004", # ensures no blanket noqa's are used
 ]
+
+exclude = [
+  "tests-v3/**",
+  'docs/user_guide/examples_v3/**',
+] # TODO v4: Remove once folders are gone
 
 ignore = [
   # line too long (82 > 79 characters)
@@ -103,6 +110,13 @@ ignore = [
   # Pattern passed to `match=` contains metacharacters but is neither escaped nor raw
   "RUF043",
   "RUF046", # Value being cast to `int` is already an integer
+
+  # Parcels specific deviations from PEP8 naming
+  'N802', # We use function names that are camelcased to denote functions
+  'N806', # We use capitalized variable names within functions in Parcels to denote fields, as well as multidimensional arrays
+  'N811', # Well, this just seems like a bad rule O_o
+  'N816', # TODO: Enable for `src` and consider disabling for notebooks
+  'N818', # Not all Parcels exceptions should have an "Error" suffix
 
   # TODO: Move this ignore so that it only applies in the tests folder. Do in conjunction with any doc related rules
   "RUF059", # Unpacked variable `coords` is never used

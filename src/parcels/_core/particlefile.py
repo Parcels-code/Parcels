@@ -126,7 +126,7 @@ class ParticleFile:
     def create_new_zarrfile(self):
         return self._create_new_zarrfile
 
-    def _extend_zarr_dims(self, Z, store, dtype, axis):
+    def _extend_zarr_dims(self, Z, store, dtype, axis):  # noqa: N803
         if axis == 1:
             a = np.full((Z.shape[0], self.chunks[1]), _DATATYPES_TO_FILL_VALUES[dtype], dtype=dtype)
             obs = zarr.group(store=store, overwrite=False)["obs"]

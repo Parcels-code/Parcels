@@ -28,7 +28,7 @@ mappings = st.lists(dim_dim_padding | dimension_name).map(tuple)
 
 @st.composite
 def grid2Dmetadata(draw) -> sgrid.Grid2DMetadata:
-    N = 6
+    N = 8
     names = draw(st.lists(dimension_name, min_size=N, max_size=N, unique=True))
     node_dimension1 = names[0]
     node_dimension2 = names[1]
@@ -37,10 +37,19 @@ def grid2Dmetadata(draw) -> sgrid.Grid2DMetadata:
     padding_type1 = draw(padding)
     padding_type2 = draw(padding)
 
-    vertical_dimensions_dim1 = names[4]
-    vertical_dimensions_dim2 = names[5]
+    node_coordinates_var1 = names[4]
+    node_coordinates_var2 = names[5]
+    has_node_coordinates = draw(st.booleans())
+
+    vertical_dimensions_dim1 = names[6]
+    vertical_dimensions_dim2 = names[7]
     vertical_dimensions_padding = draw(padding)
     has_vertical_dimensions = draw(st.booleans())
+
+    if has_node_coordinates:
+        node_coordinates = (node_coordinates_var1, node_coordinates_var2)
+    else:
+        node_coordinates = None
 
     if has_vertical_dimensions:
         vertical_dimensions = (
@@ -57,13 +66,14 @@ def grid2Dmetadata(draw) -> sgrid.Grid2DMetadata:
             sgrid.DimDimPadding(face_dimension1, node_dimension1, padding_type1),
             sgrid.DimDimPadding(face_dimension2, node_dimension2, padding_type2),
         ),
+        node_coordinates=node_coordinates,
         vertical_dimensions=vertical_dimensions,
     )
 
 
 @st.composite
 def grid3Dmetadata(draw) -> sgrid.Grid3DMetadata:
-    N = 6
+    N = 9
     names = draw(st.lists(dimension_name, min_size=N, max_size=N, unique=True))
     node_dimension1 = names[0]
     node_dimension2 = names[1]
@@ -75,6 +85,16 @@ def grid3Dmetadata(draw) -> sgrid.Grid3DMetadata:
     padding_type2 = draw(padding)
     padding_type3 = draw(padding)
 
+    node_coordinates_var1 = names[6]
+    node_coordinates_var2 = names[7]
+    node_coordinates_dim3 = names[8]
+    has_node_coordinates = draw(st.booleans())
+
+    if has_node_coordinates:
+        node_coordinates = (node_coordinates_var1, node_coordinates_var2, node_coordinates_dim3)
+    else:
+        node_coordinates = None
+
     return sgrid.Grid3DMetadata(
         cf_role="grid_topology",
         topology_dimension=3,
@@ -84,6 +104,7 @@ def grid3Dmetadata(draw) -> sgrid.Grid3DMetadata:
             sgrid.DimDimPadding(face_dimension2, node_dimension2, padding_type2),
             sgrid.DimDimPadding(face_dimension3, node_dimension3, padding_type3),
         ),
+        node_coordinates=node_coordinates,
     )
 
 
