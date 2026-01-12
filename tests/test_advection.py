@@ -14,7 +14,7 @@ from parcels._datasets.structured.generated import (
     simple_UV_dataset,
     stommel_gyre_dataset,
 )
-from parcels.interpolators import CGrid_Velocity, XLinear
+from parcels.interpolators import CGrid_Velocity, XLinear, XLinear_Velocity
 from parcels.kernels import (
     AdvectionDiffusionEM,
     AdvectionDiffusionM1,
@@ -213,10 +213,10 @@ def test_length1dimensions(u, v, w):  # TODO: Refactor this test to be more read
     grid = XGrid.from_dataset(ds, mesh="flat")
     U = Field("U", ds["U"], grid, interp_method=XLinear)
     V = Field("V", ds["V"], grid, interp_method=XLinear)
-    fields = [U, V, VectorField("UV", U, V)]
+    fields = [U, V, VectorField("UV", U, V, vector_interp_method=XLinear_Velocity)]
     if w:
         W = Field("W", ds["W"], grid, interp_method=XLinear)
-        fields.append(VectorField("UVW", U, V, W))
+        fields.append(VectorField("UVW", U, V, W, vector_interp_method=XLinear_Velocity))
     fieldset = FieldSet(fields)
 
     x0, y0, z0 = 2, 8, -4
@@ -236,7 +236,7 @@ def test_radialrotation(npart=10):
     grid = XGrid.from_dataset(ds, mesh="flat")
     U = parcels.Field("U", ds["U"], grid, interp_method=XLinear)
     V = parcels.Field("V", ds["V"], grid, interp_method=XLinear)
-    UV = parcels.VectorField("UV", U, V)
+    UV = parcels.VectorField("UV", U, V, vector_interp_method=XLinear_Velocity)
     fieldset = parcels.FieldSet([U, V, UV])
 
     dt = np.timedelta64(30, "s")
@@ -277,10 +277,10 @@ def test_moving_eddy(kernel, rtol):
     if kernel in [AdvectionRK2_3D, AdvectionRK4_3D]:
         # Using W to test 3D advection (assuming same velocity as V)
         W = Field("W", ds["V"], grid, interp_method=XLinear)
-        UVW = VectorField("UVW", U, V, W)
+        UVW = VectorField("UVW", U, V, W, vector_interp_method=XLinear_Velocity)
         fieldset = FieldSet([U, V, W, UVW])
     else:
-        UV = VectorField("UV", U, V)
+        UV = VectorField("UV", U, V, vector_interp_method=XLinear_Velocity)
         fieldset = FieldSet([U, V, UV])
     if kernel in [AdvectionDiffusionEM, AdvectionDiffusionM1]:
         # Add zero diffusivity field for diffusion kernels
@@ -328,7 +328,7 @@ def test_decaying_moving_eddy(kernel, rtol):
     grid = XGrid.from_dataset(ds, mesh="flat")
     U = Field("U", ds["U"], grid, interp_method=XLinear)
     V = Field("V", ds["V"], grid, interp_method=XLinear)
-    UV = VectorField("UV", U, V)
+    UV = VectorField("UV", U, V, vector_interp_method=XLinear_Velocity)
     fieldset = FieldSet([U, V, UV])
 
     start_lon, start_lat = 10000, 10000
@@ -376,7 +376,7 @@ def test_stommelgyre_fieldset(kernel, rtol, grid_type):
     npart = 2
     ds = stommel_gyre_dataset(grid_type=grid_type)
     grid = XGrid.from_dataset(ds, mesh="flat")
-    vector_interp_method = None if grid_type == "A" else CGrid_Velocity
+    vector_interp_method = XLinear_Velocity if grid_type == "A" else CGrid_Velocity
     U = Field("U", ds["U"], grid, interp_method=XLinear)
     V = Field("V", ds["V"], grid, interp_method=XLinear)
     P = Field("P", ds["P"], grid, interp_method=XLinear)
@@ -420,7 +420,7 @@ def test_peninsula_fieldset(kernel, rtol, grid_type):
     U = Field("U", ds["U"], grid, interp_method=XLinear)
     V = Field("V", ds["V"], grid, interp_method=XLinear)
     P = Field("P", ds["P"], grid, interp_method=XLinear)
-    UV = VectorField("UV", U, V)
+    UV = VectorField("UV", U, V, vector_interp_method=XLinear_Velocity)
     fieldset = FieldSet([U, V, P, UV])
 
     dt = np.timedelta64(30, "m")

@@ -24,6 +24,7 @@ __all__ = [
     "XFreeslip",
     "XLinear",
     "XLinearInvdistLandTracer",
+    "XLinear_Velocity",
     "XNearest",
     "XPartialslip",
     "ZeroInterpolator",
@@ -151,6 +152,7 @@ def XLinear_Velocity(
     grid_positions: dict[_XGRID_AXES, dict[str, int | float | np.ndarray]],
     vectorfield: VectorField,
 ):
+    """Trilinear interpolation on a regular grid for VectorFields of velocity."""
     u = XLinear(particle_positions, grid_positions, vectorfield.U)
     v = XLinear(particle_positions, grid_positions, vectorfield.V)
     if vectorfield.W:
