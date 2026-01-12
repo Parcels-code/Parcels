@@ -42,7 +42,7 @@ As we can see, the reanalysis dataset contains eastward velocity `uo`, northward
 (`thetao`) and salinity (`so`) fields.
 
 These hydrodynamic fields need to be stored in a {py:obj}`parcels.FieldSet` object. Parcels provides tooling to parse many types
-of models or observations into such a `parcels.FieldSet` object. Here, we use {py:obj}`FieldSet.from_copernicusmarine()`, which
+of models or observations into such a `parcels.FieldSet` object. Here, we use {py:func}`parcels.FieldSet.from_copernicusmarine()`, which
 recognizes the standard names of a velocity field:
 
 ```{code-cell}
