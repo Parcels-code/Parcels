@@ -206,11 +206,11 @@ def nemo_to_sgrid(*, coords: xr.Dataset, **fields: dict[str, xr.Dataset | xr.Dat
         fields[name] = field_da
 
     if "time" in coords.dims:
-        if coords.dims["time"] != 1:
+        if coords.sizes["time"] != 1:
             raise ValueError("Time dimension in coords must be length 1 (i.e., no time-varying grid).")
         coords = coords.isel(time=0).drop("time")
     if len(coords.dims) == 3:
-        for dim, len_ in coords.dims.items():
+        for dim, len_ in coords.sizes.items():
             if len_ == 1:
                 # TODO: log statement about selecting along z dim of 1
                 coords = coords.isel({dim: 0})
