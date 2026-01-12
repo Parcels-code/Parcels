@@ -55,8 +55,8 @@ def _get_corner_data_Agrid(
     zi: int,
     yi: int,
     xi: int,
-    lenT: int,
-    lenZ: int,
+    lenT: int,  # noqa: N803
+    lenZ: int,  # noqa: N803
     npart: int,
     axis_dim: dict[str, str],
 ) -> np.ndarray:

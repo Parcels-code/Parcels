@@ -19,6 +19,7 @@ from parcels._core.utils.time import is_compatible as datetime_is_compatible
 from parcels._core.uxgrid import UxGrid
 from parcels._core.xgrid import _DEFAULT_XGCM_KWARGS, XGrid
 from parcels._logger import logger
+from parcels._reprs import fieldset_repr
 from parcels._typing import Mesh
 from parcels.convert import _discover_U_and_V, _ds_rename_using_standard_names, _maybe_rename_coords
 from parcels.interpolators import (
@@ -82,6 +83,9 @@ class FieldSet:
             return self.constants[name]
         else:
             raise AttributeError(f"FieldSet has no attribute '{name}'")
+
+    def __repr__(self):
+        return fieldset_repr(self)
 
     @property
     def time_interval(self):
@@ -190,7 +194,8 @@ class FieldSet:
                 grids.append(field.grid)
         return grids
 
-    def from_copernicusmarine(ds: xr.Dataset):
+    @classmethod
+    def from_copernicusmarine(cls, ds: xr.Dataset):
         """Create a FieldSet from a Copernicus Marine Service xarray.Dataset.
 
         Parameters
@@ -245,9 +250,10 @@ class FieldSet:
                 vertical_dimensions=(sgrid.DimDimPadding("z_center", "depth", sgrid.Padding.LOW),),
             ).to_attrs(),
         )
-        return FieldSet.from_sgrid_conventions(ds, mesh="spherical")
+        return cls.from_sgrid_conventions(ds, mesh="spherical")
 
-    def from_fesom2(ds: ux.UxDataset):
+    @classmethod
+    def from_fesom2(cls, ds: ux.UxDataset):
         """Create a FieldSet from a FESOM2 uxarray.UxDataset.
 
         Parameters
@@ -283,10 +289,11 @@ class FieldSet:
         for varname in set(ds.data_vars) - set(fields.keys()):
             fields[varname] = Field(varname, ds[varname], grid, _select_uxinterpolator(ds[varname]))
 
-        return FieldSet(list(fields.values()))
+        return cls(list(fields.values()))
 
+    @classmethod
     def from_sgrid_conventions(
-        ds: xr.Dataset, mesh: Mesh | None = None
+        cls, ds: xr.Dataset, mesh: Mesh | None = None
     ):  # TODO: Update mesh to be discovered from the dataset metadata
         """Create a FieldSet from a dataset using SGRID convention metadata.
 
@@ -384,13 +391,12 @@ class FieldSet:
         for varname in set(ds.data_vars) - set(fields.keys()) - skip_vars:
             fields[varname] = Field(varname, ds[varname], grid, XLinear)
 
-        fieldset = FieldSet(list(fields.values()))
+        fieldset = cls(list(fields.values()))
         if mesh == "spherical":
             if "U" in fieldset.fields:
                 fieldset.U.units = GeographicPolar()
             if "V" in fieldset.fields:
                 fieldset.V.units = Geographic()
-
         return fieldset
 
 

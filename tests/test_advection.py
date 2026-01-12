@@ -102,8 +102,8 @@ def test_horizontal_advection_in_3D_flow(npart=10):
 
 
 @pytest.mark.parametrize("direction", ["up", "down"])
-@pytest.mark.parametrize("wErrorThroughSurface", [True, False])
-def test_advection_3D_outofbounds(direction, wErrorThroughSurface):
+@pytest.mark.parametrize("resubmerge_particle", [True, False])
+def test_advection_3D_outofbounds(direction, resubmerge_particle):
     ds = simple_UV_dataset(mesh="flat")
     ds["W"] = ds["V"].copy()  # Just to have W field present
     ds["U"].data[:] = 0.01  # Set U to small value (to avoid horizontal out of bounds)
@@ -130,14 +130,14 @@ def test_advection_3D_outofbounds(direction, wErrorThroughSurface):
         particles[inds].state = StatusCode.Evaluate
 
     kernels = [AdvectionRK4_3D]
-    if wErrorThroughSurface:
+    if resubmerge_particle:
         kernels.append(SubmergeParticle)
     kernels.append(DeleteParticle)
 
     pset = ParticleSet(fieldset=fieldset, lon=0.5, lat=0.5, z=0.9)
     pset.execute(kernels, runtime=np.timedelta64(10, "s"), dt=np.timedelta64(1, "s"))
 
-    if direction == "up" and wErrorThroughSurface:
+    if direction == "up" and resubmerge_particle:
         np.testing.assert_allclose(pset.lon[0], 0.6, atol=1e-5)
         np.testing.assert_allclose(pset.z[0], 0, atol=1e-5)
     else:
