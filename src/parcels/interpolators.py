@@ -20,6 +20,7 @@ __all__ = [
     "CGrid_Velocity",
     "UxPiecewiseConstantFace",
     "UxPiecewiseLinearNode",
+    "Ux_Velocity",
     "XConstantField",
     "XFreeslip",
     "XLinear",
@@ -698,3 +699,18 @@ def UxPiecewiseLinearNode(
     zk = field.grid.z.values[zi]
     zkp1 = field.grid.z.values[zi + 1]
     return (fzk * (zkp1 - z) + fzkp1 * (z - zk)) / (zkp1 - zk)  # Linear interpolation in the vertical direction
+
+
+def Ux_Velocity(
+    particle_positions: dict[str, float | np.ndarray],
+    grid_positions: dict[_UXGRID_AXES, dict[str, int | float | np.ndarray]],
+    vectorfield: VectorField,
+):
+    """Interpolation kernel for Vectorfields of velocity on a UxGrid."""
+    u = vectorfield.U._interp_method(particle_positions, grid_positions, vectorfield.U)
+    v = vectorfield.V._interp_method(particle_positions, grid_positions, vectorfield.V)
+    if "3D" in vectorfield.vector_type:
+        w = vectorfield.W._interp_method(particle_positions, grid_positions, vectorfield.W)
+    else:
+        w = 0.0
+    return u, v, w
