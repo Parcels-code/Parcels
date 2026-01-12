@@ -7,7 +7,7 @@ things.
 These functions use knowledge about the model to attach any missing metadata. The functions
 emit verbose messaging so that the user is kept in the loop. The returned output is an
 Xarray dataset so that users can further provide any missing metadata that was unable to
-be determined.
+be determined before they pass it to the FieldSet constructor.
 """
 
 from __future__ import annotations
