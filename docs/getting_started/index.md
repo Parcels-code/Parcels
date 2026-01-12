@@ -9,7 +9,3 @@ Getting started with parcels is easy; here you will find:
 🎓 Output tutorial <tutorial_output.ipynb>
 📖 Conceptual workflow <explanation_concepts.md>
 ```
-
-```{note}
-TODO: Add links to Reference API in quickstart tutorial and concepts explanation
-```
