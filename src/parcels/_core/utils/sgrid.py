@@ -461,6 +461,18 @@ def _metadata_rename_dims(grid: Grid2DMetadata, dims_dict: dict[str, str]) -> Gr
 def _metadata_rename_dims(grid: Grid3DMetadata, dims_dict: dict[str, str]) -> Grid3DMetadata: ...
 
 
+def _attach_sgrid_metadata(ds, grid: Grid2DMetadata | Grid3DMetadata):
+    """Copies the dataset and attaches the SGRID metadata in 'grid' variable. Modifies 'conventions' attribute."""
+    ds = ds.copy()
+    ds["grid"] = (
+        [],
+        0,
+        grid.to_attrs(),
+    )
+    ds.attrs["Conventions"] = "SGRID"
+    return ds
+
+
 def _metadata_rename_dims(grid, dims_dict):
     """
     Renames dimensions in SGrid metadata.
