@@ -18,6 +18,7 @@ from parcels._core.utils.time import is_compatible as datetime_is_compatible
 from parcels._core.uxgrid import UxGrid
 from parcels._core.xgrid import _DEFAULT_XGCM_KWARGS, XGrid
 from parcels._logger import logger
+from parcels._reprs import fieldset_repr
 from parcels._typing import Mesh
 from parcels.interpolators import UxPiecewiseConstantFace, UxPiecewiseLinearNode, XConstantField, XLinear
 
@@ -74,6 +75,9 @@ class FieldSet:
             return self.constants[name]
         else:
             raise AttributeError(f"FieldSet has no attribute '{name}'")
+
+    def __repr__(self):
+        return fieldset_repr(self)
 
     @property
     def time_interval(self):

@@ -24,7 +24,7 @@ from parcels._core.utils.time import TimeInterval
 from parcels._core.uxgrid import UxGrid
 from parcels._core.xgrid import XGrid, _transpose_xfield_data_to_tzyx, assert_all_field_dims_have_axis
 from parcels._python import assert_same_function_signature
-from parcels._reprs import default_repr
+from parcels._reprs import field_repr, vectorfield_repr
 from parcels._typing import VectorType
 from parcels.interpolators import (
     ZeroInterpolator,
@@ -147,6 +147,9 @@ class Field:
         if self.data.shape[0] > 1:
             if "time" not in self.data.coords:
                 raise ValueError("Field data is missing a 'time' coordinate.")
+
+    def __repr__(self):
+        return field_repr(self)
 
     @property
     def units(self):
@@ -277,11 +280,7 @@ class VectorField:
             self._vector_interp_method = vector_interp_method
 
     def __repr__(self):
-        return f"""<{type(self).__name__}>
-    name: {self.name!r}
-    U: {default_repr(self.U)}
-    V: {default_repr(self.V)}
-    W: {default_repr(self.W)}"""
+        return vectorfield_repr(self)
 
     @property
     def vector_interp_method(self):
