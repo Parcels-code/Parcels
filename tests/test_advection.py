@@ -30,7 +30,7 @@ from tests.utils import DEFAULT_PARTICLES, round_and_hash_float_array
 
 @pytest.mark.parametrize("mesh", ["spherical", "flat"])
 def test_advection_zonal(mesh, npart=10):
-    """Particles at high latitude move geographically faster due to the pole correction in `GeographicPolar`."""
+    """Particles at high latitude move geographically faster due to the pole correction."""
     ds = simple_UV_dataset(mesh=mesh)
     ds["U"].data[:] = 1.0
     fieldset = FieldSet.from_sgrid_conventions(ds, mesh=mesh)
@@ -45,7 +45,7 @@ def test_advection_zonal(mesh, npart=10):
 
 
 def test_advection_zonal_with_particlefile(tmp_store):
-    """Particles at high latitude move geographically faster due to the pole correction in `GeographicPolar`."""
+    """Particles at high latitude move geographically faster due to the pole correction."""
     npart = 10
     ds = simple_UV_dataset(mesh="flat")
     ds["U"].data[:] = 1.0
@@ -439,8 +439,6 @@ def test_nemo_curvilinear_fieldset():
 
     U = parcels.Field("U", ds["U"], grid, interp_method=XLinear)
     V = parcels.Field("V", ds["V"], grid, interp_method=XLinear)
-    U.units = parcels.GeographicPolar()
-    V.units = parcels.GeographicPolar()  # U and V need GeographicPolar for C-Grid interpolation to work correctly
     UV = parcels.VectorField("UV", U, V, vector_interp_method=CGrid_Velocity)
     fieldset = parcels.FieldSet([U, V, UV])
 
@@ -522,8 +520,6 @@ def test_nemo_3D_curvilinear_fieldset(kernel):
     U = parcels.Field("U", ds["U"], grid, interp_method=XLinear)
     V = parcels.Field("V", ds["V"], grid, interp_method=XLinear)
     W = parcels.Field("W", ds["W"], grid, interp_method=XLinear)
-    U.units = parcels.GeographicPolar()
-    V.units = parcels.GeographicPolar()  # U and V need GoegraphicPolar for C-Grid interpolation to work correctly
     UV = parcels.VectorField("UV", U, V, vector_interp_method=CGrid_Velocity)
     UVW = parcels.VectorField("UVW", U, V, W, vector_interp_method=CGrid_Velocity)
     fieldset = parcels.FieldSet([U, V, W, UV, UVW])

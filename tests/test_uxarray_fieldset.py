@@ -122,7 +122,7 @@ def test_fesom2_square_delaunay_uniform_z_coordinate_eval():
     P = Field(name="p", data=ds.p, grid=grid, interp_method=UxPiecewiseLinearNode)
     fieldset = FieldSet([UVW, P, UVW.U, UVW.V, UVW.W])
 
-    (u, v, w) = fieldset.UVW.eval(time=[0.0], z=[1.0], y=[30.0], x=[30.0], applyConversion=False)
+    (u, v, w) = fieldset.UVW.eval(time=[0.0], z=[1.0], y=[30.0], x=[30.0], apply_conversion=False)
     assert np.allclose([u.item(), v.item(), w.item()], [1.0, 1.0, 0.0], rtol=1e-3, atol=1e-6)
 
     assert np.isclose(
