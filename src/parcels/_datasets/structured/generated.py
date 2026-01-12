@@ -7,6 +7,7 @@ from parcels._core.utils.sgrid import (
     DimDimPadding,
     Grid2DMetadata,
     Padding,
+    _attach_sgrid_metadata,
 )
 from parcels._core.utils.time import timedelta_to_float
 from parcels._datasets.utils import _attach_sgrid_metadata
@@ -25,7 +26,7 @@ def simple_UV_dataset(dims=(360, 2, 30, 4), maxdepth=1, mesh="spherical"):
             "YG": (["YG"], np.arange(dims[2]), {"axis": "Y", "c_grid_axis_shift": -0.5}),
             "XC": (["XC"], np.arange(dims[3]) + 0.5, {"axis": "X"}),
             "XG": (["XG"], np.arange(dims[3]), {"axis": "X", "c_grid_axis_shift": -0.5}),
-            "lat": (["YG"], np.linspace(-max_lat, max_lat, dims[2]), {"axis": "Y", "c_grid_axis_shift": 0.5}),
+            "lat": (["YG"], np.linspace(-max_lat, max_lat, dims[2]), {"axis": "Y", "c_grid_axis_shift": -0.5}),
             "lon": (["XG"], np.linspace(-max_lon, max_lon, dims[3]), {"axis": "X", "c_grid_axis_shift": -0.5}),
         },
     ).pipe(

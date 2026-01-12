@@ -179,7 +179,7 @@ def test_interpolation_mesh_type(mesh, npart=10):
     assert np.isclose(u, u_expected, atol=1e-7)
     assert v == 0.0
 
-    assert fieldset.U.eval(time, 0, lat, 0, applyConversion=False) == 1.0
+    assert fieldset.U.eval(time, 0, lat, 0, apply_conversion=False) == 1
 
 
 interp_methods = {
