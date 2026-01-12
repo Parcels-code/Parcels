@@ -177,7 +177,7 @@ class Grid2DMetadata(AttrsSerializable):
         return _metadata_rename_dims(self, dims_dict)
 
     def get_value_by_id(self, id: str) -> str:
-        """In the SGRID specification different parts of the spec are identified to with different "ID"s.
+        """In the SGRID specification for 2D grids, different parts of the spec are identified by different "ID"s.
 
         Easily extract the value for a given ID.
 
