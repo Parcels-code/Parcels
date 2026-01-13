@@ -4,7 +4,7 @@ import pytest
 from parcels import Field, FieldSet, Particle, ParticleSet, Variable, VectorField, XGrid
 from parcels._core.statuscodes import StatusCode
 from parcels._datasets.structured.generic import datasets as datasets_structured
-from parcels.interpolators import XLinear
+from parcels.interpolators import XLinear, XLinear_Velocity
 
 
 @pytest.fixture
@@ -13,7 +13,7 @@ def fieldset() -> FieldSet:
     grid = XGrid.from_dataset(ds, mesh="flat")
     U = Field("U", ds["U_A_grid"], grid, interp_method=XLinear)
     V = Field("V", ds["V_A_grid"], grid, interp_method=XLinear)
-    UV = VectorField("UV", U, V)
+    UV = VectorField("UV", U, V, vector_interp_method=XLinear_Velocity)
     return FieldSet([U, V, UV])
 
 

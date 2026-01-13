@@ -29,10 +29,6 @@ def SampleUV(particle, fieldset, time):  # pragma: no cover
     (particle.u, particle.v) = fieldset.UV[time, particle.depth, particle.lat, particle.lon]
 
 
-def SampleUVNoConvert(particle, fieldset, time):  # pragma: no cover
-    (particle.u, particle.v) = fieldset.UV.eval(time, particle.depth, particle.lat, particle.lon, applyConversion=False)
-
-
 def SampleP(particle, fieldset, time):  # pragma: no cover
     particle.p = fieldset.P[particle]
 
@@ -437,24 +433,6 @@ def test_fieldset_sample_geographic(fieldset_geometric):
     pset = ParticleSet(fieldset, pclass=pclass(), lat=lat, lon=np.zeros(npart) - 45.0)
     pset.execute(pset.Kernel(SampleUV), endtime=1.0, dt=1.0)
     assert np.allclose(pset.u, lat, rtol=1e-6)
-
-
-@pytest.mark.v4alpha
-@pytest.mark.xfail(reason="GH1946")
-def test_fieldset_sample_geographic_noconvert(fieldset_geometric):
-    """Sample a fieldset without conversion to geographic units."""
-    npart = 120
-    fieldset = fieldset_geometric
-    lon = np.linspace(-170, 170, npart)
-    lat = np.linspace(-80, 80, npart)
-
-    pset = ParticleSet(fieldset, pclass=pclass(), lon=lon, lat=np.zeros(npart) + 70.0)
-    pset.execute(pset.Kernel(SampleUVNoConvert), endtime=1.0, dt=1.0)
-    assert np.allclose(pset.v, lon * 1000 * 1.852 * 60, rtol=1e-6)
-
-    pset = ParticleSet(fieldset, pclass=pclass(), lat=lat, lon=np.zeros(npart) - 45.0)
-    pset.execute(pset.Kernel(SampleUVNoConvert), endtime=1.0, dt=1.0)
-    assert np.allclose(pset.u, lat * 1000 * 1.852 * 60, rtol=1e-6)
 
 
 @pytest.mark.v4alpha

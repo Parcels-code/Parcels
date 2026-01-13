@@ -22,11 +22,12 @@ from parcels._reprs import fieldset_repr
 from parcels._typing import Mesh
 from parcels.convert import _discover_U_and_V, _ds_rename_using_standard_names, _maybe_rename_coords
 from parcels.interpolators import (
-    CGrid_Velocity,
+    Ux_Velocity,
     UxPiecewiseConstantFace,
     UxPiecewiseLinearNode,
     XConstantField,
     XLinear,
+    XLinear_Velocity,
 )
 
 if TYPE_CHECKING:
@@ -273,9 +274,11 @@ class FieldSet:
 
             if "W" in ds.data_vars:
                 fields["W"] = Field("W", ds["W"], grid, _select_uxinterpolator(ds["U"]))
-                fields["UVW"] = VectorField("UVW", fields["U"], fields["V"], fields["W"])
+                fields["UVW"] = VectorField(
+                    "UVW", fields["U"], fields["V"], fields["W"], vector_interp_method=Ux_Velocity
+                )
             else:
-                fields["UV"] = VectorField("UV", fields["U"], fields["V"])
+                fields["UV"] = VectorField("UV", fields["U"], fields["V"], vector_interp_method=Ux_Velocity)
 
         for varname in set(ds.data_vars) - set(fields.keys()):
             fields[varname] = Field(varname, ds[varname], grid, _select_uxinterpolator(ds[varname]))
@@ -364,19 +367,12 @@ class FieldSet:
         if "U" in ds.data_vars and "V" in ds.data_vars:
             fields["U"] = Field("U", ds["U"], grid, XLinear)
             fields["V"] = Field("V", ds["V"], grid, XLinear)
-            fields["UV"] = VectorField(
-                "UV",
-                fields["U"],
-                fields["V"],
-                vector_interp_method=CGrid_Velocity,
-                # ^Seems to work with AGrid as well? (at least, tests aren't failing -
-                # either logic needs to be added to choose interpolator, or this interpolator should be renamed)
-            )
+            fields["UV"] = VectorField("UV", fields["U"], fields["V"], vector_interp_method=XLinear_Velocity)
 
             if "W" in ds.data_vars:
                 fields["W"] = Field("W", ds["W"], grid, XLinear)
                 fields["UVW"] = VectorField(
-                    "UVW", fields["U"], fields["V"], fields["W"], vector_interp_method=CGrid_Velocity
+                    "UVW", fields["U"], fields["V"], fields["W"], vector_interp_method=XLinear_Velocity
                 )
 
         for varname in set(ds.data_vars) - set(fields.keys()) - skip_vars:
