@@ -13,7 +13,7 @@ from parcels._datasets.structured.generic import T as T_structured
 from parcels._datasets.structured.generic import datasets as datasets_structured
 from parcels._datasets.structured.generic import datasets_sgrid
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
-from parcels.interpolators import XLinear
+from parcels.interpolators import XLinear, XLinear_Velocity
 from tests import utils
 
 ds = datasets_structured["ds_2d_left"]
@@ -25,7 +25,7 @@ def fieldset() -> FieldSet:
     grid = XGrid.from_dataset(ds, mesh="flat")
     U = Field("U", ds["U_A_grid"], grid, interp_method=XLinear)
     V = Field("V", ds["V_A_grid"], grid, interp_method=XLinear)
-    UV = VectorField("UV", U, V)
+    UV = VectorField("UV", U, V, vector_interp_method=XLinear_Velocity)
 
     return FieldSet(
         [U, V, UV],
@@ -165,7 +165,6 @@ def test_fieldset_init_incompatible_calendars():
     grid = XGrid.from_dataset(ds1, mesh="flat")
     U = Field("U", ds1["U_A_grid"], grid, interp_method=XLinear)
     V = Field("V", ds1["V_A_grid"], grid, interp_method=XLinear)
-    UV = VectorField("UV", U, V)
 
     ds2 = ds.copy()
     ds2["time"] = (
@@ -177,7 +176,7 @@ def test_fieldset_init_incompatible_calendars():
     incompatible_calendar = Field("test", ds2["data_g"], grid2, interp_method=XLinear)
 
     with pytest.raises(CalendarError, match="Expected field '.*' to have calendar compatible with datetime object"):
-        FieldSet([U, V, UV, incompatible_calendar])
+        FieldSet([U, V, incompatible_calendar])
 
 
 def test_fieldset_add_field_incompatible_calendars(fieldset):

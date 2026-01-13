@@ -247,8 +247,10 @@ class VectorField:
         W: Field | None = None,  # noqa: N803
         vector_interp_method: Callable | None = None,
     ):
-        _assert_str_and_python_varname(name)
+        if vector_interp_method is None:
+            raise ValueError("vector_interp_method must be provided for VectorField initialization.")
 
+        _assert_str_and_python_varname(name)
         self.name = name
         self.U = U
         self.V = V
@@ -268,12 +270,8 @@ class VectorField:
         else:
             self.vector_type = "2D"
 
-        # Setting the interpolation method dynamically
-        if vector_interp_method is None:
-            self._vector_interp_method = None
-        else:
-            assert_same_function_signature(vector_interp_method, ref=ZeroInterpolator_Vector, context="Interpolation")
-            self._vector_interp_method = vector_interp_method
+        assert_same_function_signature(vector_interp_method, ref=ZeroInterpolator_Vector, context="Interpolation")
+        self._vector_interp_method = vector_interp_method
 
     def __repr__(self):
         return vectorfield_repr(self)
@@ -287,7 +285,7 @@ class VectorField:
         assert_same_function_signature(method, ref=ZeroInterpolator_Vector, context="Interpolation")
         self._vector_interp_method = method
 
-    def eval(self, time: datetime, z, y, x, particles=None, apply_conversion=True):
+    def eval(self, time: datetime, z, y, x, particles=None):
         """Interpolate vectorfield values in space and time.
 
         Parameters
@@ -300,10 +298,6 @@ class VectorField:
         particles : ParticleSet, optional
             If provided, used to associate results with particle indices and to
             update particle state and element indices. Defaults to None.
-        apply_conversion : bool, default True
-            If True and the underlying grid is spherical, the horizontal velocity
-            components (U, V) are converted from m s^-1 to degrees s^-1.
-            If False, raw interpolated values are returned.
 
         Returns
         -------
@@ -327,26 +321,7 @@ class VectorField:
 
         particle_positions, grid_positions = _get_positions(self.U, time, z, y, x, particles, _ei)
 
-        if self._vector_interp_method is None:
-            u = self.U._interp_method(particle_positions, grid_positions, self.U)
-            v = self.V._interp_method(particle_positions, grid_positions, self.V)
-
-            if apply_conversion and self.U.grid._mesh == "spherical":
-                u /= 1852 * 60.0 * np.cos(np.deg2rad(y))
-                v /= 1852 * 60.0
-
-            if "3D" in self.vector_type:
-                w = self.W._interp_method(particle_positions, grid_positions, self.W)
-            else:
-                w = 0.0
-        else:
-            (u, v, w) = self._vector_interp_method(particle_positions, grid_positions, self)
-
-            if apply_conversion:
-                if self.U.grid._mesh == "spherical":
-                    meshJac = 1852 * 60.0 * np.cos(np.deg2rad(y))
-                    u = u / meshJac
-                    v = v / meshJac
+        (u, v, w) = self._vector_interp_method(particle_positions, grid_positions, self)
 
         for vel in (u, v, w):
             _update_particle_states_interp_value(particles, vel)

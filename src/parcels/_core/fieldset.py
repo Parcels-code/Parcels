@@ -20,7 +20,14 @@ from parcels._core.xgrid import _DEFAULT_XGCM_KWARGS, XGrid
 from parcels._logger import logger
 from parcels._reprs import fieldset_repr
 from parcels._typing import Mesh
-from parcels.interpolators import UxPiecewiseConstantFace, UxPiecewiseLinearNode, XConstantField, XLinear
+from parcels.interpolators import (
+    Ux_Velocity,
+    UxPiecewiseConstantFace,
+    UxPiecewiseLinearNode,
+    XConstantField,
+    XLinear,
+    XLinear_Velocity,
+)
 
 if TYPE_CHECKING:
     from parcels._core.basegrid import BaseGrid
@@ -266,9 +273,11 @@ class FieldSet:
 
             if "W" in ds.data_vars:
                 fields["W"] = Field("W", ds["W"], grid, _select_uxinterpolator(ds["U"]))
-                fields["UVW"] = VectorField("UVW", fields["U"], fields["V"], fields["W"])
+                fields["UVW"] = VectorField(
+                    "UVW", fields["U"], fields["V"], fields["W"], vector_interp_method=Ux_Velocity
+                )
             else:
-                fields["UV"] = VectorField("UV", fields["U"], fields["V"])
+                fields["UV"] = VectorField("UV", fields["U"], fields["V"], vector_interp_method=Ux_Velocity)
 
         for varname in set(ds.data_vars) - set(fields.keys()):
             fields[varname] = Field(varname, ds[varname], grid, _select_uxinterpolator(ds[varname]))
@@ -350,11 +359,13 @@ class FieldSet:
         if "U" in ds.data_vars and "V" in ds.data_vars:
             fields["U"] = Field("U", ds["U"], grid, XLinear)
             fields["V"] = Field("V", ds["V"], grid, XLinear)
-            fields["UV"] = VectorField("UV", fields["U"], fields["V"])
+            fields["UV"] = VectorField("UV", fields["U"], fields["V"], vector_interp_method=XLinear_Velocity)
 
             if "W" in ds.data_vars:
                 fields["W"] = Field("W", ds["W"], grid, XLinear)
-                fields["UVW"] = VectorField("UVW", fields["U"], fields["V"], fields["W"])
+                fields["UVW"] = VectorField(
+                    "UVW", fields["U"], fields["V"], fields["W"], vector_interp_method=XLinear_Velocity
+                )
 
         for varname in set(ds.data_vars) - set(fields.keys()) - skip_vars:
             fields[varname] = Field(varname, ds[varname], grid, XLinear)

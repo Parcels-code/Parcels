@@ -71,7 +71,12 @@ ds_fields["VWind"] = xr.DataArray(
 fieldset = parcels.FieldSet.from_copernicusmarine(ds_fields)
 
 # Create a vecorfield for the wind
-windvector = parcels.VectorField("Wind", fieldset.UWind, fieldset.VWind)
+windvector = parcels.VectorField(
+    "Wind",
+    fieldset.UWind,
+    fieldset.VWind,
+    vector_interp_method=parcels.interpolators.XLinear_Velocity
+)
 fieldset.add_field(windvector)
 ```
 
