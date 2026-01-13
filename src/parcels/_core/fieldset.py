@@ -111,14 +111,6 @@ class FieldSet:
         name : str
             Name of the :class:`parcels.field.Field` object to be added. Defaults
             to name in Field object.
-
-
-        Examples
-        --------
-        For usage examples see the following tutorials:
-
-        * `Unit converters <../examples/tutorial_unitconverters.ipynb>`__ (Default value = None)
-
         """
         if not isinstance(field, (Field, VectorField)):
             raise ValueError(f"Expected `field` to be a Field or VectorField object. Got {type(field)}")
@@ -142,8 +134,8 @@ class FieldSet:
         value :
             Value of the constant field
         mesh : str
-            String indicating the type of mesh coordinates and
-            units used during velocity interpolation, see also `this tutorial <../examples/tutorial_unitconverters.ipynb>`__:
+            String indicating the type of mesh coordinates,
+            see also `this tutorial <../examples/tutorial_unitconverters.ipynb>`__:
 
             1. spherical (default): Lat and lon in degree, with a
                correction for zonal velocity U near the poles.
@@ -306,7 +298,7 @@ class FieldSet:
         ds : xarray.Dataset
             xarray.Dataset with SGRID convention metadata.
         mesh : str
-            String indicating the type of mesh coordinates and units used during
+            String indicating the type of mesh coordinates used during
             velocity interpolation. Options are "spherical" or "flat".
 
         Returns

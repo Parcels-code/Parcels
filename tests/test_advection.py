@@ -29,7 +29,7 @@ from tests.utils import DEFAULT_PARTICLES
 
 @pytest.mark.parametrize("mesh", ["spherical", "flat"])
 def test_advection_zonal(mesh, npart=10):
-    """Particles at high latitude move geographically faster due to the pole correction in `GeographicPolar`."""
+    """Particles at high latitude move geographically faster due to the pole correction."""
     ds = simple_UV_dataset(mesh=mesh)
     ds["U"].data[:] = 1.0
     fieldset = FieldSet.from_sgrid_conventions(ds, mesh=mesh)
@@ -44,7 +44,7 @@ def test_advection_zonal(mesh, npart=10):
 
 
 def test_advection_zonal_with_particlefile(tmp_store):
-    """Particles at high latitude move geographically faster due to the pole correction in `GeographicPolar`."""
+    """Particles at high latitude move geographically faster due to the pole correction."""
     npart = 10
     ds = simple_UV_dataset(mesh="flat")
     ds["U"].data[:] = 1.0

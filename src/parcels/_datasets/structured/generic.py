@@ -8,7 +8,7 @@ from parcels._core.utils.sgrid import (
     _attach_sgrid_metadata,
 )
 from parcels._core.utils.sgrid import (
-    rename_dims as sgrid_rename_dims,
+    rename as sgrid_rename,
 )
 from parcels._datasets.utils import _attach_sgrid_metadata
 
@@ -258,11 +258,12 @@ datasets_sgrid = {
                     DimDimPadding("XC", "XG", Padding.HIGH),
                     DimDimPadding("YC", "YG", Padding.HIGH),
                 ),
+                node_coordinates=("lon", "lat"),
                 vertical_dimensions=(DimDimPadding("ZC", "ZG", Padding.HIGH),),
             ),
         )
         .pipe(
-            sgrid_rename_dims,
+            sgrid_rename,
             _COMODO_TO_2D_SGRID,
         )
     ),
@@ -278,11 +279,12 @@ datasets_sgrid = {
                     DimDimPadding("XC", "XG", Padding.LOW),
                     DimDimPadding("YC", "YG", Padding.LOW),
                 ),
+                node_coordinates=("lon", "lat"),
                 vertical_dimensions=(DimDimPadding("ZC", "ZG", Padding.LOW),),
             ),
         )
         .pipe(
-            sgrid_rename_dims,
+            sgrid_rename,
             _COMODO_TO_2D_SGRID,
         )
     ),
