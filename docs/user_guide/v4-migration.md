@@ -40,6 +40,7 @@ Version 4 of Parcels is unreleased at the moment. The information in this migrat
 - `Field.eval()` returns an array of floats instead of a single float (related to the vectorization)
 - `Field.eval()` does not throw OutOfBounds or other errors
 - The `NestedField` class has been removed. See the Nested Grids how-to guide for how to set up Nested Grids in v4.
+- `applyConversion` has been renamed to `apply_conversion` and only works for VectorFields. Conversion of units should be handled in Kernels.
 
 ## GridSet
 
@@ -47,4 +48,4 @@ Version 4 of Parcels is unreleased at the moment. The information in this migrat
 
 ## UnitConverters
 
-- The default `UnitConverter` is now called `Unity()`
+- UnitConverters have been removed. Instead, Interpolation functions should handle unit conversion internally, based on the value of `grid._mesh` ("spherical" or "flat").
