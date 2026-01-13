@@ -8,11 +8,6 @@ import numpy as np
 import uxarray as ux
 import xarray as xr
 
-from parcels._core.converters import (
-    UnitConverter,
-    Unity,
-    _unitconverters_map,
-)
 from parcels._core.index_search import GRID_SEARCH_ERROR, LEFT_OUT_OF_BOUNDS, RIGHT_OUT_OF_BOUNDS, _search_time_index
 from parcels._core.particlesetview import ParticleSetView
 from parcels._core.statuscodes import (
@@ -24,7 +19,7 @@ from parcels._core.utils.time import TimeInterval
 from parcels._core.uxgrid import UxGrid
 from parcels._core.xgrid import XGrid, _transpose_xfield_data_to_tzyx, assert_all_field_dims_have_axis
 from parcels._python import assert_same_function_signature
-from parcels._reprs import default_repr
+from parcels._reprs import field_repr, vectorfield_repr
 from parcels._typing import VectorType
 from parcels.interpolators import (
     ZeroInterpolator,
@@ -138,24 +133,12 @@ class Field:
 
         self.igrid = -1  # Default the grid index to -1
 
-        if self.grid._mesh == "flat" or (self.name not in _unitconverters_map.keys()):
-            self.units = Unity()
-        elif self.grid._mesh == "spherical":
-            self.units = _unitconverters_map[self.name]
-
         if self.data.shape[0] > 1:
             if "time" not in self.data.coords:
                 raise ValueError("Field data is missing a 'time' coordinate.")
 
-    @property
-    def units(self):
-        return self._units
-
-    @units.setter
-    def units(self, value):
-        if not isinstance(value, UnitConverter):
-            raise ValueError(f"Units must be a UnitConverter object, got {type(value)}")
-        self._units = value
+    def __repr__(self):
+        return field_repr(self)
 
     @property
     def xdim(self):
@@ -200,12 +183,30 @@ class Field:
                 stacklevel=2,
             )
 
-    def eval(self, time: datetime, z, y, x, particles=None, applyConversion=True):
+    def eval(self, time: datetime, z, y, x, particles=None):
         """Interpolate field values in space and time.
 
-        We interpolate linearly in time and apply implicit unit
-        conversion to the result. Note that we defer to
-        scipy.interpolate to perform spatial interpolation.
+        Parameters
+        ----------
+        time : float or array-like
+            Time(s) at which to sample the field.
+        z, y, x : scalar or array-like
+            Vertical (z), latitudinal (y) and longitudinal (x) positions to sample.
+            Inputs are promoted to 1-D arrays internally.
+        particles : ParticleSet, optional
+            If provided, used to associate results with particle indices and to
+            update particle state and element indices. Defaults to None.
+
+        Returns
+        -------
+        (value) : float or array-like
+            The interpolated value as a numpy.ndarray (or scalar) with the same
+            broadcasted shape as the input coordinates.
+
+        Notes
+        -----
+        - Particle states are updated for out-of-bounds, search errors and NaN
+          interpolation values.
         """
         if particles is None:
             _ei = None
@@ -221,8 +222,6 @@ class Field:
 
         _update_particle_states_interp_value(particles, value)
 
-        if applyConversion:
-            value = self.units.to_target(value, z, y, x)
         return value
 
     def __getitem__(self, key):
@@ -240,10 +239,17 @@ class VectorField:
     """VectorField class that holds vector field data needed to execute particles."""
 
     def __init__(
-        self, name: str, U: Field, V: Field, W: Field | None = None, vector_interp_method: Callable | None = None
+        self,
+        name: str,
+        U: Field,  # noqa: N803
+        V: Field,  # noqa: N803
+        W: Field | None = None,  # noqa: N803
+        vector_interp_method: Callable | None = None,
     ):
-        _assert_str_and_python_varname(name)
+        if vector_interp_method is None:
+            raise ValueError("vector_interp_method must be provided for VectorField initialization.")
 
+        _assert_str_and_python_varname(name)
         self.name = name
         self.U = U
         self.V = V
@@ -263,19 +269,11 @@ class VectorField:
         else:
             self.vector_type = "2D"
 
-        # Setting the interpolation method dynamically
-        if vector_interp_method is None:
-            self._vector_interp_method = None
-        else:
-            assert_same_function_signature(vector_interp_method, ref=ZeroInterpolator_Vector, context="Interpolation")
-            self._vector_interp_method = vector_interp_method
+        assert_same_function_signature(vector_interp_method, ref=ZeroInterpolator_Vector, context="Interpolation")
+        self._vector_interp_method = vector_interp_method
 
     def __repr__(self):
-        return f"""<{type(self).__name__}>
-    name: {self.name!r}
-    U: {default_repr(self.U)}
-    V: {default_repr(self.V)}
-    W: {default_repr(self.W)}"""
+        return vectorfield_repr(self)
 
     @property
     def vector_interp_method(self):
@@ -286,12 +284,31 @@ class VectorField:
         assert_same_function_signature(method, ref=ZeroInterpolator_Vector, context="Interpolation")
         self._vector_interp_method = method
 
-    def eval(self, time: datetime, z, y, x, particles=None, applyConversion=True):
-        """Interpolate field values in space and time.
+    def eval(self, time: datetime, z, y, x, particles=None):
+        """Interpolate vectorfield values in space and time.
 
-        We interpolate linearly in time and apply implicit unit
-        conversion to the result. Note that we defer to
-        scipy.interpolate to perform spatial interpolation.
+        Parameters
+        ----------
+        time : float or array-like
+            Time(s) at which to sample the field.
+        z, y, x : scalar or array-like
+            Vertical (z), latitudinal (y) and longitudinal (x) positions to sample.
+            Inputs are promoted to 1-D arrays internally.
+        particles : ParticleSet, optional
+            If provided, used to associate results with particle indices and to
+            update particle state and element indices. Defaults to None.
+
+        Returns
+        -------
+        (u, v, (w,)) : tuple or array-like
+            The interpolated velocity components: (u, v) for 2D vectors or (u, v, w)
+            for 3D vectors. Each element is a numpy.ndarray (or scalar) with the same
+            broadcasted shape as the input coordinates.
+
+        Notes
+        -----
+        - Particle states are updated for out-of-bounds, search errors and NaN
+          interpolation values.
         """
         if particles is None:
             _ei = None
@@ -303,21 +320,7 @@ class VectorField:
 
         particle_positions, grid_positions = _get_positions(self.U, time, z, y, x, particles, _ei)
 
-        if self._vector_interp_method is None:
-            u = self.U._interp_method(particle_positions, grid_positions, self.U)
-            v = self.V._interp_method(particle_positions, grid_positions, self.V)
-            if "3D" in self.vector_type:
-                w = self.W._interp_method(particle_positions, grid_positions, self.W)
-            else:
-                w = 0.0
-        else:
-            (u, v, w) = self._vector_interp_method(particle_positions, grid_positions, self)
-
-        if applyConversion:
-            u = self.U.units.to_target(u, z, y, x)
-            v = self.V.units.to_target(v, z, y, x)
-            if "3D" in self.vector_type:
-                w = self.W.units.to_target(w, z, y, x)
+        (u, v, w) = self._vector_interp_method(particle_positions, grid_positions, self)
 
         for vel in (u, v, w):
             _update_particle_states_interp_value(particles, vel)

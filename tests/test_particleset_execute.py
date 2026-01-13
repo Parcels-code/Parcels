@@ -23,7 +23,7 @@ from parcels._core.utils.time import timedelta_to_float
 from parcels._datasets.structured.generated import simple_UV_dataset
 from parcels._datasets.structured.generic import datasets as datasets_structured
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
-from parcels.interpolators import UxConstantFaceConstantZC, UxLinearNodeLinearZF, XLinear
+from parcels.interpolators import Ux_Velocity, UxConstantFaceConstantZC, UxLinearNodeLinearZF, XLinear, XLinear_Velocity
 from parcels.kernels import AdvectionEE, AdvectionRK2, AdvectionRK4, AdvectionRK4_3D, AdvectionRK45
 from tests.common_kernels import DoNothing
 from tests.utils import DEFAULT_PARTICLES
@@ -35,7 +35,7 @@ def fieldset() -> FieldSet:
     grid = XGrid.from_dataset(ds, mesh="flat")
     U = Field("U", ds["U_A_grid"], grid, interp_method=XLinear)
     V = Field("V", ds["V_A_grid"], grid, interp_method=XLinear)
-    UV = VectorField("UV", U, V)
+    UV = VectorField("UV", U, V, vector_interp_method=XLinear_Velocity)
     return FieldSet([U, V, UV])
 
 
@@ -47,7 +47,7 @@ def fieldset_no_time_interval() -> FieldSet:
     grid = XGrid.from_dataset(ds, mesh="flat")
     U = Field("U", ds["U_A_grid"], grid, interp_method=XLinear)
     V = Field("V", ds["V_A_grid"], grid, interp_method=XLinear)
-    UV = VectorField("UV", U, V)
+    UV = VectorField("UV", U, V, vector_interp_method=XLinear_Velocity)
     return FieldSet([U, V, UV])
 
 
@@ -55,11 +55,7 @@ def fieldset_no_time_interval() -> FieldSet:
 def zonal_flow_fieldset() -> FieldSet:
     ds = simple_UV_dataset(mesh="flat")
     ds["U"].data[:] = 1.0
-    grid = XGrid.from_dataset(ds, mesh="flat")
-    U = Field("U", ds["U"], grid, interp_method=XLinear)
-    V = Field("V", ds["V"], grid, interp_method=XLinear)
-    UV = VectorField("UV", U, V)
-    return FieldSet([U, V, UV])
+    return FieldSet.from_sgrid_conventions(ds, mesh="flat")
 
 
 def test_pset_execute_invalid_arguments(fieldset, fieldset_no_time_interval):
@@ -504,7 +500,7 @@ def test_uxstommelgyre_pset_execute():
         grid=grid,
         interp_method=UxConstantFaceConstantZC,
     )
-    UV = VectorField(name="UV", U=U, V=V)
+    UV = VectorField(name="UV", U=U, V=V, vector_interp_method=Ux_Velocity)
     fieldset = FieldSet([UV, UV.U, UV.V, P])
     pset = ParticleSet(
         fieldset,
@@ -556,7 +552,7 @@ def test_uxstommelgyre_multiparticle_pset_execute():
         grid=grid,
         interp_method=UxConstantFaceConstantZC,
     )
-    UVW = VectorField(name="UVW", U=U, V=V, W=W)
+    UVW = VectorField(name="UVW", U=U, V=V, W=W, vector_interp_method=Ux_Velocity)
     fieldset = FieldSet([UVW, UVW.U, UVW.V, UVW.W, P])
     pset = ParticleSet(
         fieldset,
@@ -595,7 +591,7 @@ def test_uxstommelgyre_pset_execute_output():
         grid=grid,
         interp_method=UxConstantFaceConstantZC,
     )
-    UV = VectorField(name="UV", U=U, V=V)
+    UV = VectorField(name="UV", U=U, V=V, vector_interp_method=Ux_Velocity)
     fieldset = FieldSet([UV, UV.U, UV.V, P])
     pset = ParticleSet(
         fieldset,

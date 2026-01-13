@@ -6,14 +6,14 @@ import numpy as np
 import pytest
 import xarray as xr
 
-from parcels import Field, Geographic, GeographicPolar, ParticleFile, ParticleSet, VectorField, XGrid
+from parcels import Field, ParticleFile, ParticleSet, VectorField, XGrid
 from parcels._core.fieldset import CalendarError, FieldSet, _datetime_to_msg
 from parcels._datasets.structured.circulation_models import datasets as datasets_circulation_models
 from parcels._datasets.structured.generic import T as T_structured
 from parcels._datasets.structured.generic import datasets as datasets_structured
 from parcels._datasets.structured.generic import datasets_sgrid
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
-from parcels.interpolators import XLinear
+from parcels.interpolators import XLinear, XLinear_Velocity, Ux_Velocity
 from tests import utils
 
 ds = datasets_structured["ds_2d_left"]
@@ -25,7 +25,7 @@ def fieldset() -> FieldSet:
     grid = XGrid.from_dataset(ds, mesh="flat")
     U = Field("U", ds["U_A_grid"], grid, interp_method=XLinear)
     V = Field("V", ds["V_A_grid"], grid, interp_method=XLinear)
-    UV = VectorField("UV", U, V)
+    UV = VectorField("UV", U, V, vector_interp_method=XLinear_Velocity)
 
     return FieldSet(
         [U, V, UV],
@@ -165,7 +165,6 @@ def test_fieldset_init_incompatible_calendars():
     grid = XGrid.from_dataset(ds1, mesh="flat")
     U = Field("U", ds1["U_A_grid"], grid, interp_method=XLinear)
     V = Field("V", ds1["V_A_grid"], grid, interp_method=XLinear)
-    UV = VectorField("UV", U, V)
 
     ds2 = ds.copy()
     ds2["time"] = (
@@ -177,7 +176,7 @@ def test_fieldset_init_incompatible_calendars():
     incompatible_calendar = Field("test", ds2["data_g"], grid2, interp_method=XLinear)
 
     with pytest.raises(CalendarError, match="Expected field '.*' to have calendar compatible with datetime object"):
-        FieldSet([U, V, UV, incompatible_calendar])
+        FieldSet([U, V, incompatible_calendar])
 
 
 def test_fieldset_add_field_incompatible_calendars(fieldset):
@@ -260,14 +259,6 @@ def test_fieldset_from_copernicusmarine(ds, caplog):
     assert "renamed it to 'V'" in caplog.text
 
 
-@pytest.mark.parametrize("ds", _COPERNICUS_DATASETS)
-def test_grid_mesh_units_from_copernicusmarine(ds):
-    fieldset = FieldSet.from_copernicusmarine(ds)
-    assert fieldset.U.grid._mesh == "spherical"
-    assert isinstance(fieldset.U.units, GeographicPolar)
-    assert isinstance(fieldset.V.units, Geographic)
-
-
 @pytest.mark.parametrize("ds", [datasets_circulation_models["ds_copernicusmarine"].copy()])
 def test_fieldset_from_copernicusmarine_missing_axis(ds, caplog):
     del ds["latitude"].attrs["axis"]
@@ -317,7 +308,7 @@ def test_fieldset_from_copernicusmarine_with_W(caplog):
     assert "U" in fieldset.fields
     assert "V" in fieldset.fields
     assert "W" in fieldset.fields
-    assert "UV" not in fieldset.fields
+    assert "UV" in fieldset.fields
     assert "UVW" in fieldset.fields
     assert "renamed it to 'W'" in caplog.text
 

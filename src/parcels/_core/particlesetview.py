@@ -1,12 +1,15 @@
 import numpy as np
 
+from parcels._reprs import particlesetview_repr
+
 
 class ParticleSetView:
     """Class to be used in a kernel that links a View of the ParticleSet (on the kernel level) to a ParticleSet."""
 
-    def __init__(self, data, index):
+    def __init__(self, data, index, ptype):
         self._data = data
         self._index = index
+        self._ptype = ptype
 
     def __getattr__(self, name):
         # Return a proxy that behaves like the underlying numpy array but
@@ -25,10 +28,13 @@ class ParticleSetView:
         return self._data[name][self._index]
 
     def __setattr__(self, name, value):
-        if name in ["_data", "_index"]:
+        if name in ["_data", "_index", "_ptype"]:
             object.__setattr__(self, name, value)
         else:
             self._data[name][self._index] = value
+
+    def __repr__(self):
+        return particlesetview_repr(self)
 
     def __getitem__(self, index):
         # normalize single-element tuple indexing (e.g., (inds,))
@@ -50,7 +56,7 @@ class ParticleSetView:
                 raise ValueError(
                     f"Boolean index has incompatible length {arr.size} for selection of size {int(np.sum(base))}"
                 )
-            return ParticleSetView(self._data, new_index)
+            return ParticleSetView(self._data, new_index, self._ptype)
 
         # Integer array/list, slice or single integer relative to the local view
         # (boolean masks were handled above). Normalize and map to global
@@ -65,12 +71,12 @@ class ParticleSetView:
                 base_arr = np.asarray(base)
                 sel = base_arr[idx]
             new_index[sel] = True
-            return ParticleSetView(self._data, new_index)
+            return ParticleSetView(self._data, new_index, self._ptype)
 
         # Fallback: try to assign directly (preserves previous behaviour for other index types)
         try:
             new_index[base] = index
-            return ParticleSetView(self._data, new_index)
+            return ParticleSetView(self._data, new_index, self._ptype)
         except Exception as e:
             raise TypeError(f"Unsupported index type for ParticleSetView.__getitem__: {type(index)!r}") from e
 

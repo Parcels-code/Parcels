@@ -7,9 +7,7 @@ from typing import Literal
 import numpy as np
 import xarray as xr
 from tqdm import tqdm
-from zarr.storage import DirectoryStore
 
-from parcels._core.converters import _convert_to_flat_array
 from parcels._core.kernel import Kernel
 from parcels._core.particle import Particle, create_particle_data
 from parcels._core.particlesetview import ParticleSetView
@@ -21,7 +19,7 @@ from parcels._core.utils.time import (
 )
 from parcels._core.warnings import ParticleSetWarning
 from parcels._logger import logger
-from parcels._reprs import particleset_repr
+from parcels._reprs import _format_zarr_output_location, particleset_repr
 
 __all__ = ["ParticleSet"]
 
@@ -70,13 +68,12 @@ class ParticleSet:
         **kwargs,
     ):
         self._data = None
-        self._repeat_starttime = None
         self._kernel = None
 
         self.fieldset = fieldset
-        lon = np.empty(shape=0) if lon is None else _convert_to_flat_array(lon)
-        lat = np.empty(shape=0) if lat is None else _convert_to_flat_array(lat)
-        time = np.empty(shape=0) if time is None else _convert_to_flat_array(time)
+        lon = np.empty(shape=0) if lon is None else np.array(lon).flatten()
+        lat = np.empty(shape=0) if lat is None else np.array(lat).flatten()
+        time = np.empty(shape=0) if time is None else np.array(time).flatten()
 
         if trajectory_ids is None:
             trajectory_ids = np.arange(lon.size)
@@ -88,7 +85,7 @@ class ParticleSet:
                     minz = min(minz, field.grid.depth[0])
             z = np.ones(lon.size) * minz
         else:
-            z = _convert_to_flat_array(z)
+            z = np.array(z).flatten()
         assert lon.size == lat.size and lon.size == z.size, "lon, lat, z don't all have the same lenghts"
 
         if time is None or len(time) == 0:
@@ -109,7 +106,7 @@ class ParticleSet:
 
         for kwvar in kwargs:
             if kwvar not in ["partition_function"]:
-                kwargs[kwvar] = _convert_to_flat_array(kwargs[kwvar])
+                kwargs[kwvar] = np.array(kwargs[kwvar]).flatten()
                 assert lon.size == kwargs[kwvar].size, (
                     f"{kwvar} and positions (lon, lat, z) don't have the same lengths."
                 )
@@ -167,7 +164,7 @@ class ParticleSet:
 
     def __getitem__(self, index):
         """Get a single particle by index."""
-        return ParticleSetView(self._data, index=index)
+        return ParticleSetView(self._data, index=index, ptype=self._ptype)
 
     def __setattr__(self, name, value):
         if name in ["_data"]:
@@ -447,7 +444,7 @@ class ParticleSet:
 
         # Set up pbar
         if output_file:
-            logger.info(f"Output files are stored in {_format_output_location(output_file.store)}")
+            logger.info(f"Output files are stored in {_format_zarr_output_location(output_file.store)}")
 
         if verbose_progress:
             pbar = tqdm(total=end_time - start_time, file=sys.stdout)
@@ -592,9 +589,3 @@ def _get_start_time(first_release_time, time_interval, sign_dt, runtime):
 
     start_time = first_release_time if not np.isnan(first_release_time) else fieldset_start
     return start_time
-
-
-def _format_output_location(zarr_obj):
-    if isinstance(zarr_obj, DirectoryStore):
-        return zarr_obj.path
-    return repr(zarr_obj)

@@ -24,8 +24,7 @@ def peninsula_fieldset(xdim, ydim, mesh="flat", grid_type="A"):
     xdim :
         Vertical dimension of the generated fieldset
     mesh : str
-        String indicating the type of mesh coordinates and
-        units used during velocity interpolation:
+        String indicating the type of mesh coordinates used during velocity interpolation:
 
         1. spherical: Lat and lon in degree, with a
            correction for zonal velocity U near the poles.

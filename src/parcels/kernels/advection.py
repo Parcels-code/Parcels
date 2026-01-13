@@ -316,7 +316,7 @@ def AdvectionAnalytical(particles, fieldset):  # pragma: no cover
             V0 = V0 * (1 - tau) + tau * direction * fieldset.V.data[ti + 1, yi, xi + 1] * c1 * dz
             V1 = V1 * (1 - tau) + tau * direction * fieldset.V.data[ti + 1, yi + 1, xi + 1] * c3 * dz
 
-    def compute_ds(F0, F1, r, direction, tol):
+    def compute_ds(F0, F1, r, direction, tol):  # noqa: N803
         up = F0 * (1 - r) + F1 * r
         r_target = 1.0 if direction * up >= 0.0 else 0.0
         B = F0 - F1
@@ -358,7 +358,7 @@ def AdvectionAnalytical(particles, fieldset):  # pragma: no cover
     s_min = min(abs(ds_x), abs(ds_y), abs(ds_z), abs(ds_t / (dxdy * dz)))
 
     # calculate end position in time s_min
-    def compute_rs(r, B, delta, s_min):
+    def compute_rs(r, B, delta, s_min):  # noqa: N803
         if abs(B) < tol:
             return -delta * s_min + r
         else:

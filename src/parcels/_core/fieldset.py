@@ -18,14 +18,17 @@ from parcels._core.utils.time import is_compatible as datetime_is_compatible
 from parcels._core.uxgrid import UxGrid
 from parcels._core.xgrid import _DEFAULT_XGCM_KWARGS, XGrid
 from parcels._logger import logger
+from parcels._reprs import fieldset_repr
 from parcels._typing import Mesh
 from parcels.interpolators import (
     UxConstantFaceConstantZC,
     UxConstantFaceLinearZF,
     UxLinearNodeConstantZC,
     UxLinearNodeLinearZF,
+    Ux_Velocity,
     XConstantField,
     XLinear,
+    XLinear_Velocity,
     ZeroInterpolator,
 )
 
@@ -83,6 +86,9 @@ class FieldSet:
         else:
             raise AttributeError(f"FieldSet has no attribute '{name}'")
 
+    def __repr__(self):
+        return fieldset_repr(self)
+
     @property
     def time_interval(self):
         """Returns the valid executable time interval of the FieldSet,
@@ -107,14 +113,6 @@ class FieldSet:
         name : str
             Name of the :class:`parcels.field.Field` object to be added. Defaults
             to name in Field object.
-
-
-        Examples
-        --------
-        For usage examples see the following tutorials:
-
-        * `Unit converters <../examples/tutorial_unitconverters.ipynb>`__ (Default value = None)
-
         """
         if not isinstance(field, (Field, VectorField)):
             raise ValueError(f"Expected `field` to be a Field or VectorField object. Got {type(field)}")
@@ -138,8 +136,8 @@ class FieldSet:
         value :
             Value of the constant field
         mesh : str
-            String indicating the type of mesh coordinates and
-            units used during velocity interpolation, see also `this tutorial <../examples/tutorial_unitconverters.ipynb>`__:
+            String indicating the type of mesh coordinates,
+            see also `this tutorial <../examples/tutorial_unitconverters.ipynb>`__:
 
             1. spherical (default): Lat and lon in degree, with a
                correction for zonal velocity U near the poles.
@@ -190,7 +188,8 @@ class FieldSet:
                 grids.append(field.grid)
         return grids
 
-    def from_copernicusmarine(ds: xr.Dataset):
+    @classmethod
+    def from_copernicusmarine(cls, ds: xr.Dataset):
         """Create a FieldSet from a Copernicus Marine Service xarray.Dataset.
 
         Parameters
@@ -245,9 +244,10 @@ class FieldSet:
                 vertical_dimensions=(sgrid.DimDimPadding("z_center", "depth", sgrid.Padding.LOW),),
             ).to_attrs(),
         )
-        return FieldSet.from_sgrid_conventions(ds, mesh="spherical")
+        return cls.from_sgrid_conventions(ds, mesh="spherical")
 
-    def from_uxdataset(ds: ux.UxDataset, mesh: str = "spherical"):
+    @classmethod
+    def from_uxdataset(cls, ds: ux.UxDataset, mesh: str = "spherical"):
         """Create a FieldSet from a Parcels compliant uxarray.UxDataset.
         The main requirements for a uxDataset are naming conventions for vertical grid dimensions & coordinates
 
@@ -280,16 +280,17 @@ class FieldSet:
 
             if "W" in ds.data_vars:
                 fields["W"] = Field("W", ds["W"], grid, _select_uxinterpolator(ds["W"]))
-                fields["UVW"] = VectorField("UVW", fields["U"], fields["V"], fields["W"])
+                fields["UVW"] = VectorField("UVW", fields["U"], fields["V"], fields["W"],vector_interp_method=Ux_Velocity)
             else:
-                fields["UV"] = VectorField("UV", fields["U"], fields["V"])
+                fields["UV"] = VectorField("UV", fields["U"], fields["V"],vector_interp_method=Ux_Velocity)
 
         for varname in set(ds.data_vars) - set(fields.keys()):
             fields[varname] = Field(varname, ds[varname], grid, _select_uxinterpolator(ds[varname]))
 
-        return FieldSet(list(fields.values()))
+        return cls(list(fields.values()))
 
-    def from_fesom2(ds: ux.UxDataset, mesh: str = "spherical"):
+    @classmethod
+    def from_fesom2(cls, ds: ux.UxDataset, mesh: str = "spherical"):
         """Create a FieldSet from a FESOM2 uxarray.UxDataset.
 
         Parameters
@@ -317,7 +318,8 @@ class FieldSet:
 
         return FieldSet.from_uxdataset(ds, mesh=mesh)
 
-    def from_icon(ds: ux.UxDataset, mesh: str = "spherical"):
+    @classmethod
+    def from_icon(cls, ds: ux.UxDataset, mesh: str = "spherical"):
         """Create a FieldSet from a ICON uxarray.UxDataset.
 
         Parameters
@@ -344,8 +346,9 @@ class FieldSet:
         ).set_index(zf="zf", zc="zc")
         return FieldSet.from_uxdataset(ds, mesh=mesh)
 
+    @classmethod
     def from_sgrid_conventions(
-        ds: xr.Dataset, mesh: Mesh
+        cls, ds: xr.Dataset, mesh: Mesh
     ):  # TODO: Update mesh to be discovered from the dataset metadata
         """Create a FieldSet from a dataset using SGRID convention metadata.
 
@@ -358,7 +361,7 @@ class FieldSet:
         ds : xarray.Dataset
             xarray.Dataset with SGRID convention metadata.
         mesh : str
-            String indicating the type of mesh coordinates and units used during
+            String indicating the type of mesh coordinates used during
             velocity interpolation. Options are "spherical" or "flat".
 
         Returns
@@ -418,17 +421,18 @@ class FieldSet:
         if "U" in ds.data_vars and "V" in ds.data_vars:
             fields["U"] = Field("U", ds["U"], grid, XLinear)
             fields["V"] = Field("V", ds["V"], grid, XLinear)
+            fields["UV"] = VectorField("UV", fields["U"], fields["V"], vector_interp_method=XLinear_Velocity)
 
             if "W" in ds.data_vars:
                 fields["W"] = Field("W", ds["W"], grid, XLinear)
-                fields["UVW"] = VectorField("UVW", fields["U"], fields["V"], fields["W"])
-            else:
-                fields["UV"] = VectorField("UV", fields["U"], fields["V"])
+                fields["UVW"] = VectorField(
+                    "UVW", fields["U"], fields["V"], fields["W"], vector_interp_method=XLinear_Velocity
+                )
 
         for varname in set(ds.data_vars) - set(fields.keys()) - skip_vars:
             fields[varname] = Field(varname, ds[varname], grid, XLinear)
 
-        return FieldSet(list(fields.values()))
+        return cls(list(fields.values()))
 
 
 class CalendarError(Exception):  # TODO: Move to a parcels errors module

@@ -43,6 +43,7 @@ Besides having commutable Kernels, the main advantage of this implementation is 
 Below is a simple example of some particles at the surface of the ocean. We create an idealised zonal wind flow that will "push" a particle that is already affected by the surface currents. The Kernel loop ensures that these two forces act at the same time and location.
 
 ```{code-cell}
+:tags: [hide-output]
 import matplotlib.pyplot as plt
 import numpy as np
 import xarray as xr
@@ -69,21 +70,23 @@ ds_fields["VWind"] = xr.DataArray(
 
 fieldset = parcels.FieldSet.from_copernicusmarine(ds_fields)
 
-# Set unit converters for custom wind fields
-fieldset.UWind.units = parcels.GeographicPolar()
-fieldset.VWind.units = parcels.Geographic()
+# Create a vecorfield for the wind
+windvector = parcels.VectorField(
+    "Wind",
+    fieldset.UWind,
+    fieldset.VWind,
+    vector_interp_method=parcels.interpolators.XLinear_Velocity
+)
+fieldset.add_field(windvector)
 ```
 
 Now we define a wind kernel that uses a forward Euler method to apply the wind forcing. Note that we update the `particles.dlon` and `particles.dlat` variables, rather than `particles.lon` and `particles.lat` directly.
 
 ```{code-cell}
 def wind_kernel(particles, fieldset):
-    particles.dlon += (
-        fieldset.UWind[particles] * particles.dt
-    )
-    particles.dlat += (
-        fieldset.VWind[particles] * particles.dt
-    )
+    uwind, vwind = fieldset.Wind[particles]
+    particles.dlon += uwind * particles.dt
+    particles.dlat += vwind * particles.dt
 ```
 
 First run a simulation where we apply kernels as `[AdvectionRK4, wind_kernel]`

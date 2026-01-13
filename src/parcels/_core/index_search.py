@@ -276,7 +276,7 @@ def uxgrid_point_in_cell(grid, y: np.ndarray, x: np.ndarray, yi: np.ndarray, xi:
     return is_in_cell, coords
 
 
-def _triangle_area(A, B, C):
+def _triangle_area(A, B, C):  # noqa: N803
     """Compute the area of a triangle given by three points."""
     d1 = B - A
     d2 = C - A

@@ -20,10 +20,12 @@ __all__ = [
     "CGrid_Velocity",
     "UxConstantFaceConstantZC",
     "UxLinearNodeLinearZF",
+    "Ux_Velocity",
     "XConstantField",
     "XFreeslip",
     "XLinear",
     "XLinearInvdistLandTracer",
+    "XLinear_Velocity",
     "XNearest",
     "XPartialslip",
     "ZeroInterpolator",
@@ -55,8 +57,8 @@ def _get_corner_data_Agrid(
     zi: int,
     yi: int,
     xi: int,
-    lenT: int,
-    lenZ: int,
+    lenT: int,  # noqa: N803
+    lenZ: int,  # noqa: N803
     npart: int,
     axis_dim: dict[str, str],
 ) -> np.ndarray:
@@ -144,6 +146,25 @@ def XConstantField(
 ):
     """Returning the single value of a Constant Field (with a size=(1,1,1,1) array)"""
     return field.data[0, 0, 0, 0].values
+
+
+def XLinear_Velocity(
+    particle_positions: dict[str, float | np.ndarray],
+    grid_positions: dict[_XGRID_AXES, dict[str, int | float | np.ndarray]],
+    vectorfield: VectorField,
+):
+    """Trilinear interpolation on a regular grid for VectorFields of velocity."""
+    u = XLinear(particle_positions, grid_positions, vectorfield.U)
+    v = XLinear(particle_positions, grid_positions, vectorfield.V)
+    if vectorfield.grid._mesh == "spherical":
+        u /= 1852 * 60 * np.cos(np.deg2rad(particle_positions["lat"]))
+        v /= 1852 * 60
+
+    if vectorfield.W:
+        w = XLinear(particle_positions, grid_positions, vectorfield.W)
+    else:
+        w = 0.0
+    return u, v, w
 
 
 def CGrid_Velocity(
@@ -268,9 +289,10 @@ def CGrid_Velocity(
     U = (1 - xsi) * U0 + xsi * U1
     V = (1 - eta) * V0 + eta * V1
 
-    meshJac = 1852 * 60.0 if grid._mesh == "spherical" else 1
-
-    jac = i_u._compute_jacobian_determinant(py, px, eta, xsi) * meshJac
+    if grid._mesh == "spherical":
+        jac = i_u._compute_jacobian_determinant(py, px, eta, xsi) * 1852 * 60.0
+    else:
+        jac = i_u._compute_jacobian_determinant(py, px, eta, xsi)
 
     u = (
         (-(1 - eta) * U - (1 - xsi) * V) * px[0]
@@ -287,6 +309,11 @@ def CGrid_Velocity(
     if is_dask_collection(u):
         u = u.compute()
         v = v.compute()
+
+    if grid._mesh == "spherical":
+        conversion = 1852 * 60.0 * np.cos(np.deg2rad(particle_positions["lat"]))
+        u /= conversion
+        v /= conversion
 
     # check whether the grid conversion has been applied correctly
     xx = (1 - xsi) * (1 - eta) * px[0] + xsi * (1 - eta) * px[1] + xsi * eta * px[2] + (1 - xsi) * eta * px[3]
@@ -721,3 +748,22 @@ def UxLinearNodeLinearZF(
     zk = field.grid.z.values[zi]
     zkp1 = field.grid.z.values[zi + 1]
     return (fzk * (zkp1 - z) + fzkp1 * (z - zk)) / (zkp1 - zk)  # Linear interpolation in the vertical direction
+
+
+def Ux_Velocity(
+    particle_positions: dict[str, float | np.ndarray],
+    grid_positions: dict[_UXGRID_AXES, dict[str, int | float | np.ndarray]],
+    vectorfield: VectorField,
+):
+    """Interpolation kernel for Vectorfields of velocity on a UxGrid."""
+    u = vectorfield.U._interp_method(particle_positions, grid_positions, vectorfield.U)
+    v = vectorfield.V._interp_method(particle_positions, grid_positions, vectorfield.V)
+    if vectorfield.grid._mesh == "spherical":
+        u /= 1852 * 60 * np.cos(np.deg2rad(particle_positions["lat"]))
+        v /= 1852 * 60
+
+    if "3D" in vectorfield.vector_type:
+        w = vectorfield.W._interp_method(particle_positions, grid_positions, vectorfield.W)
+    else:
+        w = 0.0
+    return u, v, w

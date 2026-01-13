@@ -23,14 +23,6 @@ from parcels._core.basegrid import BaseGrid
 from parcels._core.uxgrid import UxGrid
 from parcels._core.xgrid import XGrid
 
-from parcels._core.converters import (
-    Geographic,
-    GeographicPolar,
-    GeographicPolarSquare,
-    GeographicSquare,
-    Unity,
-)
-
 from parcels._core.statuscodes import (
     AllParcelsErrorCodes,
     FieldInterpolationError,
@@ -63,12 +55,6 @@ __all__ = [  # noqa: RUF022
     "BaseGrid",
     "UxGrid",
     "XGrid",
-    # Converters
-    "Geographic",
-    "GeographicPolar",
-    "GeographicPolarSquare",
-    "GeographicSquare",
-    "Unity",
     # Status codes and errors
     "AllParcelsErrorCodes",
     "FieldInterpolationError",

@@ -25,7 +25,7 @@ from parcels._core.particle import Particle, create_particle_data, get_default_p
 from parcels._core.utils.time import TimeInterval, timedelta_to_float
 from parcels._datasets.structured.generated import peninsula_dataset
 from parcels._datasets.structured.generic import datasets
-from parcels.interpolators import XLinear
+from parcels.interpolators import XLinear, XLinear_Velocity
 from parcels.kernels import AdvectionRK4
 from tests.common_kernels import DoNothing
 
@@ -37,7 +37,7 @@ def fieldset() -> FieldSet:  # TODO v4: Move into a `conftest.py` file and remov
     grid = XGrid.from_dataset(ds, mesh="flat")
     U = Field("U", ds["U_A_grid"], grid, XLinear)
     V = Field("V", ds["V_A_grid"], grid, XLinear)
-    UV = VectorField("UV", U, V)
+    UV = VectorField("UV", U, V, vector_interp_method=XLinear_Velocity)
 
     return FieldSet(
         [U, V, UV],
