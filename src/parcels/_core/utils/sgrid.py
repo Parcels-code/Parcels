@@ -453,14 +453,6 @@ def get_unique_names(grid: Grid2DMetadata | Grid3DMetadata) -> set[str]:
     return dims
 
 
-@overload
-def _metadata_rename(grid: Grid2DMetadata, names_dict: dict[str, str]) -> Grid2DMetadata: ...
-
-
-@overload
-def _metadata_rename(grid: Grid3DMetadata, names_dict: dict[str, str]) -> Grid3DMetadata: ...
-
-
 def _attach_sgrid_metadata(ds, grid: Grid2DMetadata | Grid3DMetadata):
     """Copies the dataset and attaches the SGRID metadata in 'grid' variable. Modifies 'conventions' attribute."""
     ds = ds.copy()
@@ -471,6 +463,14 @@ def _attach_sgrid_metadata(ds, grid: Grid2DMetadata | Grid3DMetadata):
     )
     ds.attrs["Conventions"] = "SGRID"
     return ds
+
+
+@overload
+def _metadata_rename(grid: Grid2DMetadata, names_dict: dict[str, str]) -> Grid2DMetadata: ...
+
+
+@overload
+def _metadata_rename(grid: Grid3DMetadata, names_dict: dict[str, str]) -> Grid3DMetadata: ...
 
 
 def _metadata_rename(grid, names_dict):
