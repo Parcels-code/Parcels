@@ -21,11 +21,11 @@ from parcels._logger import logger
 from parcels._reprs import fieldset_repr
 from parcels._typing import Mesh
 from parcels.interpolators import (
+    Ux_Velocity,
     UxConstantFaceConstantZC,
     UxConstantFaceLinearZF,
     UxLinearNodeConstantZC,
     UxLinearNodeLinearZF,
-    Ux_Velocity,
     XConstantField,
     XLinear,
     XLinear_Velocity,
@@ -247,7 +247,7 @@ class FieldSet:
         return cls.from_sgrid_conventions(ds, mesh="spherical")
 
     @classmethod
-    def from_uxdataset(cls, ds: ux.UxDataset, mesh: str = "spherical"):
+    def from_ugrid_conventions(cls, ds: ux.UxDataset, mesh: str = "spherical"):
         """Create a FieldSet from a Parcels compliant uxarray.UxDataset.
         The main requirements for a uxDataset are naming conventions for vertical grid dimensions & coordinates
 
@@ -280,9 +280,11 @@ class FieldSet:
 
             if "W" in ds.data_vars:
                 fields["W"] = Field("W", ds["W"], grid, _select_uxinterpolator(ds["W"]))
-                fields["UVW"] = VectorField("UVW", fields["U"], fields["V"], fields["W"],vector_interp_method=Ux_Velocity)
+                fields["UVW"] = VectorField(
+                    "UVW", fields["U"], fields["V"], fields["W"], vector_interp_method=Ux_Velocity
+                )
             else:
-                fields["UV"] = VectorField("UV", fields["U"], fields["V"],vector_interp_method=Ux_Velocity)
+                fields["UV"] = VectorField("UV", fields["U"], fields["V"], vector_interp_method=Ux_Velocity)
 
         for varname in set(ds.data_vars) - set(fields.keys()):
             fields[varname] = Field(varname, ds[varname], grid, _select_uxinterpolator(ds[varname]))
@@ -316,7 +318,7 @@ class FieldSet:
             }
         ).set_index(zf="zf", zc="zc")
 
-        return FieldSet.from_uxdataset(ds, mesh=mesh)
+        return FieldSet.from_ugrid_conventions(ds, mesh=mesh)
 
     @classmethod
     def from_icon(cls, ds: ux.UxDataset, mesh: str = "spherical"):
@@ -344,7 +346,7 @@ class FieldSet:
                 "depth": "zc",  # Vertical Center
             }
         ).set_index(zf="zf", zc="zc")
-        return FieldSet.from_uxdataset(ds, mesh=mesh)
+        return FieldSet.from_ugrid_conventions(ds, mesh=mesh)
 
     @classmethod
     def from_sgrid_conventions(

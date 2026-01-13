@@ -13,7 +13,7 @@ from parcels._datasets.structured.generic import T as T_structured
 from parcels._datasets.structured.generic import datasets as datasets_structured
 from parcels._datasets.structured.generic import datasets_sgrid
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
-from parcels.interpolators import XLinear, XLinear_Velocity, Ux_Velocity
+from parcels.interpolators import XLinear, XLinear_Velocity
 from tests import utils
 
 ds = datasets_structured["ds_2d_left"]
