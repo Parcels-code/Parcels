@@ -285,7 +285,7 @@ class VectorField:
         assert_same_function_signature(method, ref=ZeroInterpolator_Vector, context="Interpolation")
         self._vector_interp_method = method
 
-    def eval(self, time: datetime, z, y, x, particles=None, apply_conversion=True):
+    def eval(self, time: datetime, z, y, x, particles=None):
         """Interpolate vectorfield values in space and time.
 
         Parameters
@@ -298,10 +298,6 @@ class VectorField:
         particles : ParticleSet, optional
             If provided, used to associate results with particle indices and to
             update particle state and element indices. Defaults to None.
-        apply_conversion : bool, default True
-            If True and the underlying grid is spherical, the horizontal velocity
-            components (U, V) are converted from m s^-1 to degrees s^-1.
-            If False, raw interpolated values are returned.
 
         Returns
         -------
