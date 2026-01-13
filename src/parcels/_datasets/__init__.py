@@ -11,8 +11,7 @@ Note that this subpackage is part of the private API for Parcels. Users should n
 
 Developers, note that you should only add functions that create idealised datasets to this subpackage if they are (a) quick to generate, and (b) only use dependencies already shipped with Parcels. No data files should be added to this subpackage. Real world data files should be added to the `Parcels-code/parcels-data` repository on GitHub.
 
-Parcels Dataset Philosophy
--------------------------
+**Parcels Dataset Philosophy**
 
 When adding datasets, there may be a tension between wanting to add a specific dataset or wanting to add machinery to generate completely parameterised datasets (e.g., with different grid resolutions, with different ranges, with different datetimes etc.). There are trade-offs to both approaches:
 
@@ -31,8 +30,7 @@ Most of the time we only want a single dataset. For example, for use in a tutori
 
 Sometimes we may want to test Parcels against a whole range of datasets varying in a certain way - to ensure Parcels works as expected. For these, we should add machinery to create generated datasets.
 
-Structure
---------
+**Structure**
 
 This subpackage is broken down into structured and unstructured parts. Each of these have common submodules:
 
