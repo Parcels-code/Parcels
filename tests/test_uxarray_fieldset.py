@@ -13,6 +13,7 @@ from parcels import (
 )
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
 from parcels.interpolators import (
+    Ux_Velocity,
     UxPiecewiseConstantFace,
     UxPiecewiseLinearNode,
 )
@@ -47,6 +48,7 @@ def uv_fesom_channel(ds_fesom_channel) -> VectorField:
             grid=UxGrid(ds_fesom_channel.uxgrid, z=ds_fesom_channel.coords["nz"], mesh="flat"),
             interp_method=UxPiecewiseConstantFace,
         ),
+        vector_interp_method=Ux_Velocity,
     )
     return UV
 
@@ -73,6 +75,7 @@ def uvw_fesom_channel(ds_fesom_channel) -> VectorField:
             grid=UxGrid(ds_fesom_channel.uxgrid, z=ds_fesom_channel.coords["nz"], mesh="flat"),
             interp_method=UxPiecewiseLinearNode,
         ),
+        vector_interp_method=Ux_Velocity,
     )
     return UVW
 
@@ -118,11 +121,12 @@ def test_fesom2_square_delaunay_uniform_z_coordinate_eval():
         U=Field(name="U", data=ds.U, grid=grid, interp_method=UxPiecewiseConstantFace),
         V=Field(name="V", data=ds.V, grid=grid, interp_method=UxPiecewiseConstantFace),
         W=Field(name="W", data=ds.W, grid=grid, interp_method=UxPiecewiseLinearNode),
+        vector_interp_method=Ux_Velocity,
     )
     P = Field(name="p", data=ds.p, grid=grid, interp_method=UxPiecewiseLinearNode)
     fieldset = FieldSet([UVW, P, UVW.U, UVW.V, UVW.W])
 
-    (u, v, w) = fieldset.UVW.eval(time=[0.0], z=[1.0], y=[30.0], x=[30.0], apply_conversion=False)
+    (u, v, w) = fieldset.UVW.eval(time=[0.0], z=[1.0], y=[30.0], x=[30.0])
     assert np.allclose([u.item(), v.item(), w.item()], [1.0, 1.0, 0.0], rtol=1e-3, atol=1e-6)
 
     assert np.isclose(
