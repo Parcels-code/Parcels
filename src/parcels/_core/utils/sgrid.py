@@ -151,8 +151,8 @@ class Grid2DMetadata(AttrsSerializable):
             d["vertical_dimensions"] = dump_mappings(self.vertical_dimensions)
         return d
 
-    def rename_dims(self, dims_dict: dict[str, str]) -> Self:
-        return _metadata_rename_dims(self, dims_dict)
+    def rename(self, names_dict: dict[str, str]) -> Self:
+        return _metadata_rename(self, names_dict)
 
 
 class Grid3DMetadata(AttrsSerializable):
@@ -248,8 +248,8 @@ class Grid3DMetadata(AttrsSerializable):
             d["node_coordinates"] = dump_mappings(self.node_coordinates)
         return d
 
-    def rename_dims(self, dims_dict: dict[str, str]) -> Self:
-        return _metadata_rename_dims(self, dims_dict)
+    def rename(self, dims_dict: dict[str, str]) -> Self:
+        return _metadata_rename(self, dims_dict)
 
 
 @dataclass
@@ -418,22 +418,22 @@ def parse_sgrid(ds: xr.Dataset):
     return (ds, {"coords": xgcm_coords})
 
 
-def rename_dims(ds: xr.Dataset, dims_dict: dict[str, str]) -> xr.Dataset:
+def rename(ds: xr.Dataset, name_dict: dict[str, str]) -> xr.Dataset:
     grid_da = get_grid_topology(ds)
     if grid_da is None:
         raise ValueError(
             "No variable found in dataset with 'cf_role' attribute set to 'grid_topology'. This doesn't look to be an SGrid dataset - please make your dataset conforms to SGrid conventions."
         )
 
-    ds = ds.rename_dims(dims_dict)
+    ds = ds.rename(name_dict)
 
     # Update the metadata
     grid = parse_grid_attrs(grid_da.attrs)
-    ds[grid_da.name].attrs = grid.rename_dims(dims_dict).to_attrs()
+    ds[grid_da.name].attrs = grid.rename(name_dict).to_attrs()
     return ds
 
 
-def get_unique_dim_names(grid: Grid2DMetadata | Grid3DMetadata) -> set[str]:
+def get_unique_names(grid: Grid2DMetadata | Grid3DMetadata) -> set[str]:
     dims = set()
     dims.update(set(grid.node_dimensions))
 
@@ -454,11 +454,11 @@ def get_unique_dim_names(grid: Grid2DMetadata | Grid3DMetadata) -> set[str]:
 
 
 @overload
-def _metadata_rename_dims(grid: Grid2DMetadata, dims_dict: dict[str, str]) -> Grid2DMetadata: ...
+def _metadata_rename(grid: Grid2DMetadata, names_dict: dict[str, str]) -> Grid2DMetadata: ...
 
 
 @overload
-def _metadata_rename_dims(grid: Grid3DMetadata, dims_dict: dict[str, str]) -> Grid3DMetadata: ...
+def _metadata_rename(grid: Grid3DMetadata, names_dict: dict[str, str]) -> Grid3DMetadata: ...
 
 
 def _attach_sgrid_metadata(ds, grid: Grid2DMetadata | Grid3DMetadata):
@@ -473,24 +473,24 @@ def _attach_sgrid_metadata(ds, grid: Grid2DMetadata | Grid3DMetadata):
     return ds
 
 
-def _metadata_rename_dims(grid, dims_dict):
+def _metadata_rename(grid, names_dict):
     """
-    Renames dimensions in SGrid metadata.
+    Renames dimensions and coordinates in SGrid metadata.
 
-    Similar in API to xr.Dataset.rename_dims. Renames dimensions according to dims_dict mapping
+    Similar in API to xr.Dataset.rename . Renames dimensions according to names_dict mapping
      of old dimension names to new dimension names.
     """
-    dims_dict = dims_dict.copy()
-    assert len(dims_dict) == len(set(dims_dict.values())), "dims_dict contains duplicate target dimension names"
+    names_dict = names_dict.copy()
+    assert len(names_dict) == len(set(names_dict.values())), "names_dict contains duplicate target dimension names"
 
-    existing_dims = get_unique_dim_names(grid)
-    for dim in dims_dict.keys():
-        if dim not in existing_dims:
-            raise ValueError(f"Dimension {dim!r} not found in SGrid metadata dimensions {existing_dims!r}")
+    existing_names = get_unique_names(grid)
+    for name in names_dict.keys():
+        if name not in existing_names:
+            raise ValueError(f"Name {name!r} not found in names defined in SGrid metadata {existing_names!r}")
 
-    for dim in existing_dims:
-        if dim not in dims_dict:
-            dims_dict[dim] = dim  # identity mapping for dimensions not being renamed
+    for name in existing_names:
+        if name not in names_dict:
+            names_dict[name] = name  # identity mapping for names not being renamed
 
     kwargs = {}
     for key, value in grid.__dict__.items():
@@ -499,14 +499,14 @@ def _metadata_rename_dims(grid, dims_dict):
             for item in value:
                 if isinstance(item, DimDimPadding):
                     new_item = DimDimPadding(
-                        dim1=dims_dict[item.dim1],
-                        dim2=dims_dict[item.dim2],
+                        dim1=names_dict[item.dim1],
+                        dim2=names_dict[item.dim2],
                         padding=item.padding,
                     )
                     new_value.append(new_item)
                 else:
                     assert isinstance(item, str)
-                    new_value.append(dims_dict[item])
+                    new_value.append(names_dict[item])
             kwargs[key] = tuple(new_value)
             continue
 
@@ -515,7 +515,7 @@ def _metadata_rename_dims(grid, dims_dict):
             continue
 
         if isinstance(value, str):
-            kwargs[key] = dims_dict[value]
+            kwargs[key] = names_dict[value]
             continue
 
         raise ValueError(f"Unexpected attribute {key!r} on {grid!r}")
