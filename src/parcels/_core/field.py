@@ -247,8 +247,10 @@ class VectorField:
         W: Field | None = None,  # noqa: N803
         vector_interp_method: Callable | None = None,
     ):
-        _assert_str_and_python_varname(name)
+        if vector_interp_method is None:
+            raise ValueError("vector_interp_method must be provided for VectorField initialization.")
 
+        _assert_str_and_python_varname(name)
         self.name = name
         self.U = U
         self.V = V
@@ -268,8 +270,6 @@ class VectorField:
         else:
             self.vector_type = "2D"
 
-        if vector_interp_method is None:
-            raise ValueError("vector_interp_method must be provided for VectorField initialization.")
         assert_same_function_signature(vector_interp_method, ref=ZeroInterpolator_Vector, context="Interpolation")
         self._vector_interp_method = vector_interp_method
 
