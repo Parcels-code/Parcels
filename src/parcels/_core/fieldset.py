@@ -22,6 +22,7 @@ from parcels._reprs import fieldset_repr
 from parcels._typing import Mesh
 from parcels.convert import _discover_U_and_V, _ds_rename_using_standard_names, _maybe_rename_coords
 from parcels.interpolators import (
+    CGrid_Velocity,
     Ux_Velocity,
     UxPiecewiseConstantFace,
     UxPiecewiseLinearNode,
@@ -365,14 +366,15 @@ class FieldSet:
 
         fields = {}
         if "U" in ds.data_vars and "V" in ds.data_vars:
+            vector_interp_method = XLinear_Velocity if _is_agrid(ds) else CGrid_Velocity
             fields["U"] = Field("U", ds["U"], grid, XLinear)
             fields["V"] = Field("V", ds["V"], grid, XLinear)
-            fields["UV"] = VectorField("UV", fields["U"], fields["V"], vector_interp_method=XLinear_Velocity)
+            fields["UV"] = VectorField("UV", fields["U"], fields["V"], vector_interp_method=vector_interp_method)
 
             if "W" in ds.data_vars:
                 fields["W"] = Field("W", ds["W"], grid, XLinear)
                 fields["UVW"] = VectorField(
-                    "UVW", fields["U"], fields["V"], fields["W"], vector_interp_method=XLinear_Velocity
+                    "UVW", fields["U"], fields["V"], fields["W"], vector_interp_method=vector_interp_method
                 )
 
         for varname in set(ds.data_vars) - set(fields.keys()) - skip_vars:
@@ -546,6 +548,12 @@ def _get_mesh_type_from_sgrid_dataset(ds_sgrid: xr.Dataset) -> Mesh:
         raise ValueError(msg)
 
     return "spherical" if _is_coordinate_in_degrees(ds_sgrid[fpoint_x]) else "flat"
+
+
+def _is_agrid(ds: xr.Dataset) -> bool:
+    # check if U and V are defined on the same dimensions
+    # if yes, interpret as A grid
+    return set(ds["U"].dims) == set(ds["V"].dims)
 
 
 def _is_coordinate_in_degrees(da: xr.DataArray) -> bool:
