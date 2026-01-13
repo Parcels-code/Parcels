@@ -156,6 +156,10 @@ def XLinear_Velocity(
     """Trilinear interpolation on a regular grid for VectorFields of velocity."""
     u = XLinear(particle_positions, grid_positions, vectorfield.U)
     v = XLinear(particle_positions, grid_positions, vectorfield.V)
+    if vectorfield.grid._mesh == "spherical":
+        u /= 1852 * 60 * np.cos(np.deg2rad(particle_positions["lat"]))
+        v /= 1852 * 60
+
     if vectorfield.W:
         w = XLinear(particle_positions, grid_positions, vectorfield.W)
     else:
@@ -285,9 +289,10 @@ def CGrid_Velocity(
     U = (1 - xsi) * U0 + xsi * U1
     V = (1 - eta) * V0 + eta * V1
 
-    meshJac = 1852 * 60.0 if grid._mesh == "spherical" else 1
-
-    jac = i_u._compute_jacobian_determinant(py, px, eta, xsi) * meshJac
+    if grid._mesh == "spherical":
+        jac = i_u._compute_jacobian_determinant(py, px, eta, xsi) * 1852 * 60.0
+    else:
+        jac = i_u._compute_jacobian_determinant(py, px, eta, xsi)
 
     u = (
         (-(1 - eta) * U - (1 - xsi) * V) * px[0]
@@ -304,6 +309,11 @@ def CGrid_Velocity(
     if is_dask_collection(u):
         u = u.compute()
         v = v.compute()
+
+    if grid._mesh == "spherical":
+        conversion = 1852 * 60.0 * np.cos(np.deg2rad(particle_positions["lat"]))
+        u /= conversion
+        v /= conversion
 
     # check whether the grid conversion has been applied correctly
     xx = (1 - xsi) * (1 - eta) * px[0] + xsi * (1 - eta) * px[1] + xsi * eta * px[2] + (1 - xsi) * eta * px[3]
@@ -709,6 +719,10 @@ def Ux_Velocity(
     """Interpolation kernel for Vectorfields of velocity on a UxGrid."""
     u = vectorfield.U._interp_method(particle_positions, grid_positions, vectorfield.U)
     v = vectorfield.V._interp_method(particle_positions, grid_positions, vectorfield.V)
+    if vectorfield.grid._mesh == "spherical":
+        u /= 1852 * 60 * np.cos(np.deg2rad(particle_positions["lat"]))
+        v /= 1852 * 60
+
     if "3D" in vectorfield.vector_type:
         w = vectorfield.W._interp_method(particle_positions, grid_positions, vectorfield.W)
     else:
