@@ -258,6 +258,7 @@ datasets_sgrid = {
                     DimDimPadding("XC", "XG", Padding.HIGH),
                     DimDimPadding("YC", "YG", Padding.HIGH),
                 ),
+                node_coordinates=("lon", "lat"),
                 vertical_dimensions=(DimDimPadding("ZC", "ZG", Padding.HIGH),),
             ),
         )
@@ -278,6 +279,7 @@ datasets_sgrid = {
                     DimDimPadding("XC", "XG", Padding.LOW),
                     DimDimPadding("YC", "YG", Padding.LOW),
                 ),
+                node_coordinates=("lon", "lat"),
                 vertical_dimensions=(DimDimPadding("ZC", "ZG", Padding.LOW),),
             ),
         )
