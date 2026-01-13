@@ -8,7 +8,7 @@ from parcels._core.utils.sgrid import (
     _attach_sgrid_metadata,
 )
 from parcels._core.utils.sgrid import (
-    rename as sgrid_rename_dims,
+    rename as sgrid_rename,
 )
 from parcels._datasets.utils import _attach_sgrid_metadata
 
@@ -263,7 +263,7 @@ datasets_sgrid = {
             ),
         )
         .pipe(
-            sgrid_rename_dims,
+            sgrid_rename,
             _COMODO_TO_2D_SGRID,
         )
     ),
@@ -284,7 +284,7 @@ datasets_sgrid = {
             ),
         )
         .pipe(
-            sgrid_rename_dims,
+            sgrid_rename,
             _COMODO_TO_2D_SGRID,
         )
     ),
