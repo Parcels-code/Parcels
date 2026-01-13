@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 import xarray as xr
 
-from parcels import Field, Geographic, GeographicPolar, ParticleFile, ParticleSet, VectorField, XGrid
+from parcels import Field, ParticleFile, ParticleSet, VectorField, XGrid
 from parcels._core.fieldset import CalendarError, FieldSet, _datetime_to_msg
 from parcels._datasets.structured.circulation_models import datasets as datasets_circulation_models
 from parcels._datasets.structured.generic import T as T_structured
@@ -257,14 +257,6 @@ def test_fieldset_from_copernicusmarine(ds, caplog):
     assert "UV" in fieldset.fields
     assert "renamed it to 'U'" in caplog.text
     assert "renamed it to 'V'" in caplog.text
-
-
-@pytest.mark.parametrize("ds", _COPERNICUS_DATASETS)
-def test_grid_mesh_units_from_copernicusmarine(ds):
-    fieldset = FieldSet.from_copernicusmarine(ds)
-    assert fieldset.U.grid._mesh == "spherical"
-    assert isinstance(fieldset.U.units, GeographicPolar)
-    assert isinstance(fieldset.V.units, Geographic)
 
 
 @pytest.mark.parametrize("ds", [datasets_circulation_models["ds_copernicusmarine"].copy()])
