@@ -60,6 +60,7 @@ class BaseGrid(ABC):
             - Unstructured grid: {"Z": (zi, zeta), "FACE": (fi, bcoords)}
 
             Where:
+
             - index (int): The cell position of the particles along the given axis
             - barycentric_coordinates (float or np.ndarray): The coordinates defining
               the particles positions within the grid cell. For structured grids, this

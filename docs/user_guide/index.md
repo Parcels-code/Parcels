@@ -18,10 +18,6 @@ The tutorials written for Parcels v3 are currently being updated for Parcels v4.
 ## How to
 
 ```{note}
-TODO: Add links to Reference API throughout
-```
-
-```{note}
 **Migrate from v3 to v4** using [this migration guide](v4-migration.md)
 ```
 
