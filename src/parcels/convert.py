@@ -244,13 +244,17 @@ def nemo_to_sgrid(*, coords: xr.Dataset, **fields: dict[str, xr.Dataset | xr.Dat
         raise ValueError(
             "Dataset already has a 'grid' variable (according to cf_roles). Didn't expect there to be grid metadata on copernicusmarine datasets - please open an issue with more information about your dataset."
         )
+
+    # Update to use lon and lat internally
+
+    ds = ds.rename({"gphif": "lat", "glamf": "lon"})  # TODO: Logging message about rename
     ds["grid"] = xr.DataArray(
         0,
         attrs=sgrid.Grid2DMetadata(
             cf_role="grid_topology",
             topology_dimension=2,
             node_dimensions=("x", "y"),
-            node_coordinates=("glamf", "gphif"),
+            node_coordinates=("lon", "lat"),
             face_dimensions=(
                 sgrid.DimDimPadding("x_center", "x", sgrid.Padding.LOW),
                 sgrid.DimDimPadding("y_center", "y", sgrid.Padding.LOW),
@@ -260,6 +264,6 @@ def nemo_to_sgrid(*, coords: xr.Dataset, **fields: dict[str, xr.Dataset | xr.Dat
     )
 
     # NEMO models are always in degrees
-    ds["glamf"].attrs["units"] = "degrees"
-    ds["gphif"].attrs["units"] = "degrees"
+    ds["lon"].attrs["units"] = "degrees"
+    ds["lat"].attrs["units"] = "degrees"
     return ds

@@ -18,7 +18,7 @@ def test_nemo_to_sgrid():
         "topology_dimension": 2,
         "node_dimensions": "x y",
         "face_dimensions": "x_center:x (padding:low) y_center:y (padding:low)",
-        "node_coordinates": "glamf gphif",
+        "node_coordinates": "lon lat",
         "vertical_dimensions": "z_center:depth (padding:high)",
     }
 
