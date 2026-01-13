@@ -11,7 +11,7 @@ def test_nemo_to_sgrid():
     V = xr.open_mfdataset(data_folder.glob("*V.nc4"))
     coords = xr.open_dataset(data_folder / "mesh_mask.nc4")
 
-    ds = convert.nemo_to_sgrid(U=U, V=V, coords=coords)
+    ds = convert.nemo_to_sgrid(fields=dict(U=U, V=V), coords=coords)
 
     assert ds["grid"].attrs == {
         "cf_role": "grid_topology",

@@ -449,7 +449,7 @@ def test_nemo_curvilinear_fieldset():
     V = xr.open_mfdataset(data_folder.glob("*V.nc4"))
     coords = xr.open_dataset(data_folder / "mesh_mask.nc4")
 
-    ds = parcels.convert.nemo_to_sgrid(U=U, V=V, coords=coords)
+    ds = parcels.convert.nemo_to_sgrid(fields=dict(U=U, V=V), coords=coords)
 
     fieldset = parcels.FieldSet.from_sgrid_conventions(ds)
 
@@ -477,7 +477,7 @@ def test_nemo_3D_curvilinear_fieldset(kernel):
     W = xr.open_mfdataset(data_folder.glob("*W.nc"))
     coords = xr.open_dataset(data_folder / "coordinates.nc", decode_times=False)
 
-    ds = parcels.convert.nemo_to_sgrid(U=U["uo"], V=V["vo"], W=W["wo"], coords=coords)
+    ds = parcels.convert.nemo_to_sgrid(fields=dict(U=U["uo"], V=V["vo"], W=W["wo"]), coords=coords)
 
     fieldset = parcels.FieldSet.from_sgrid_conventions(ds)
 

@@ -163,7 +163,7 @@ def _discover_U_and_V(ds: xr.Dataset, cf_standard_names_fallbacks) -> xr.Dataset
     return ds
 
 
-def nemo_to_sgrid(*, coords: xr.Dataset, **fields: dict[str, xr.Dataset | xr.DataArray]):
+def nemo_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.Dataset):
     # TODO: Update docstring
     """Create a FieldSet from a xarray.Dataset from NEMO netcdf files.
 
