@@ -10,7 +10,6 @@ import uxarray as ux
 import xarray as xr
 import xgcm
 
-from parcels._core.converters import Geographic, GeographicPolar
 from parcels._core.field import Field, VectorField
 from parcels._core.utils import sgrid
 from parcels._core.utils.string import _assert_str_and_python_varname
@@ -384,11 +383,6 @@ class FieldSet:
             fields[varname] = Field(varname, ds[varname], grid, XLinear)
 
         fieldset = cls(list(fields.values()))
-        if mesh == "spherical":
-            if "U" in fieldset.fields:
-                fieldset.U.units = GeographicPolar()
-            if "V" in fieldset.fields:
-                fieldset.V.units = Geographic()
         return fieldset
 
 
