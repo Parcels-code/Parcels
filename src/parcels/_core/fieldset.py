@@ -380,8 +380,7 @@ class FieldSet:
         for varname in set(ds.data_vars) - set(fields.keys()) - skip_vars:
             fields[varname] = Field(varname, ds[varname], grid, XLinear)
 
-        fieldset = cls(list(fields.values()))
-        return fieldset
+        return cls(list(fields.values()))
 
 
 class CalendarError(Exception):  # TODO: Move to a parcels errors module

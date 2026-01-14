@@ -463,13 +463,7 @@ def test_nemo_curvilinear_fieldset():
     np.testing.assert_allclose(pset.lat, latp, atol=1e-1)
 
 
-@pytest.mark.parametrize(
-    "kernel",
-    [
-        AdvectionRK4,
-        AdvectionRK4_3D,
-    ],
-)
+@pytest.mark.parametrize("kernel", [AdvectionRK4, AdvectionRK4_3D])
 def test_nemo_3D_curvilinear_fieldset(kernel):
     data_folder = parcels.download_example_dataset("NemoNorthSeaORCA025-N006_data")
     U = xr.open_mfdataset(data_folder.glob("*U.nc"))
