@@ -1,9 +1,9 @@
-from .uxinterpolators import (
+from ._uxinterpolators import (
     Ux_Velocity,
     UxPiecewiseConstantFace,
     UxPiecewiseLinearNode,
 )
-from .xinterpolators import (
+from ._xinterpolators import (
     CGrid_Tracer,
     CGrid_Velocity,
     XConstantField,
