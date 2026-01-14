@@ -52,6 +52,30 @@ grid2dmetadata = create_example_grid2dmetadata(with_vertical_dimensions=True, wi
 grid3dmetadata = create_example_grid3dmetadata(with_node_coordinates=True)
 
 
+@pytest.mark.parametrize(
+    ("sgrid_metadata", "id", "value"),
+    [
+        (grid2dmetadata, "node_dimension1", "node_dimension1"),
+        (grid2dmetadata, "node_dimension2", "node_dimension2"),
+        (grid2dmetadata, "face_dimension1", "face_dimension1"),
+        (grid2dmetadata, "face_dimension2", "face_dimension2"),
+        # (grid2dmetadata, "vertical_dimensions_dim1", "vertical_dimensions_dim1"), #! ID's NOT IMPLEMENTED IN SGRID SPEC
+        # (grid2dmetadata, "vertical_dimensions_dim2", "vertical_dimensions_dim2"),
+        (grid3dmetadata, "node_dimension1", "node_dimension1"),
+        (grid3dmetadata, "node_dimension2", "node_dimension2"),
+        (grid3dmetadata, "node_dimension3", "node_dimension3"),
+        (grid3dmetadata, "face_dimension1", "face_dimension1"),
+        (grid3dmetadata, "face_dimension2", "face_dimension2"),
+        (grid3dmetadata, "face_dimension3", "face_dimension3"),
+        (grid3dmetadata, "type1", sgrid.Padding.LOW),
+        (grid3dmetadata, "type2", sgrid.Padding.LOW),
+        (grid3dmetadata, "type3", sgrid.Padding.LOW),
+    ],
+)
+def test_get_value_by_id(sgrid_metadata: sgrid.Grid2DMetadata | sgrid.Grid3DMetadata, id, value):
+    assert sgrid_metadata.get_value_by_id(id) == value
+
+
 def dummy_sgrid_ds(grid: sgrid.Grid2DMetadata | sgrid.Grid3DMetadata) -> xr.Dataset:
     if isinstance(grid, sgrid.Grid2DMetadata):
         return dummy_sgrid_2d_ds(grid)

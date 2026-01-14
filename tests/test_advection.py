@@ -1,7 +1,6 @@
 import numpy as np
 import pytest
 import xarray as xr
-import xgcm
 
 import parcels
 from parcels import Field, FieldSet, Particle, ParticleFile, ParticleSet, StatusCode, Variable, VectorField, XGrid
@@ -25,7 +24,7 @@ from parcels.kernels import (
     AdvectionRK4_3D,
     AdvectionRK45,
 )
-from tests.utils import DEFAULT_PARTICLES, round_and_hash_float_array
+from tests.utils import DEFAULT_PARTICLES
 
 
 @pytest.mark.parametrize("mesh", ["spherical", "flat"])
@@ -446,30 +445,13 @@ def test_peninsula_fieldset(kernel, rtol, grid_type):
 
 def test_nemo_curvilinear_fieldset():
     data_folder = parcels.download_example_dataset("NemoCurvilinear_data")
-    files = data_folder.glob("*.nc4")
-    ds = xr.open_mfdataset(files, combine="nested", data_vars="minimal", coords="minimal", compat="override")
-    ds = (
-        ds.isel(time_counter=0, drop=True)
-        .isel(time=0, drop=True)
-        .isel(z_a=0, drop=True)
-        .rename({"glamf": "lon", "gphif": "lat", "z": "depth"})
-    )
+    U = xr.open_mfdataset(data_folder.glob("*U.nc4"))
+    V = xr.open_mfdataset(data_folder.glob("*V.nc4"))
+    coords = xr.open_dataset(data_folder / "mesh_mask.nc4")
 
-    xgcm_grid = xgcm.Grid(
-        ds,
-        coords={
-            "X": {"left": "x"},
-            "Y": {"left": "y"},
-        },
-        periodic=False,
-        autoparse_metadata=False,
-    )
-    grid = XGrid(xgcm_grid, mesh="spherical")
+    ds = parcels.convert.nemo_to_sgrid(fields=dict(U=U, V=V), coords=coords)
 
-    U = parcels.Field("U", ds["U"], grid, interp_method=XLinear)
-    V = parcels.Field("V", ds["V"], grid, interp_method=XLinear)
-    UV = parcels.VectorField("UV", U, V, vector_interp_method=CGrid_Velocity)
-    fieldset = parcels.FieldSet([U, V, UV])
+    fieldset = parcels.FieldSet.from_sgrid_conventions(ds)
 
     npart = 20
     lonp = 30 * np.ones(npart)
@@ -483,85 +465,29 @@ def test_nemo_curvilinear_fieldset():
 
 @pytest.mark.parametrize("kernel", [AdvectionRK4, AdvectionRK4_3D])
 def test_nemo_3D_curvilinear_fieldset(kernel):
-    download_dir = parcels.download_example_dataset("NemoNorthSeaORCA025-N006_data")
-    ufiles = download_dir.glob("*U.nc")
-    dsu = xr.open_mfdataset(ufiles, decode_times=False, drop_variables=["nav_lat", "nav_lon"])
-    dsu = dsu.rename({"time_counter": "time", "uo": "U"})
+    data_folder = parcels.download_example_dataset("NemoNorthSeaORCA025-N006_data")
+    U = xr.open_mfdataset(data_folder.glob("*U.nc"))
+    V = xr.open_mfdataset(data_folder.glob("*V.nc"))
+    W = xr.open_mfdataset(data_folder.glob("*W.nc"))
+    coords = xr.open_dataset(data_folder / "coordinates.nc", decode_times=False)
 
-    vfiles = download_dir.glob("*V.nc")
-    dsv = xr.open_mfdataset(vfiles, decode_times=False, drop_variables=["nav_lat", "nav_lon"])
-    dsv = dsv.rename({"time_counter": "time", "vo": "V"})
+    ds = parcels.convert.nemo_to_sgrid(fields=dict(U=U["uo"], V=V["vo"], W=W["wo"]), coords=coords)
 
-    wfiles = download_dir.glob("*W.nc")
-    dsw = xr.open_mfdataset(wfiles, decode_times=False, drop_variables=["nav_lat", "nav_lon"])
-    dsw = dsw.rename({"time_counter": "time", "depthw": "depth", "wo": "W"})
-
-    dsu = dsu.assign_coords(depthu=dsw.depth.values)
-    dsu = dsu.rename({"depthu": "depth"})
-
-    dsv = dsv.assign_coords(depthv=dsw.depth.values)
-    dsv = dsv.rename({"depthv": "depth"})
-
-    coord_file = f"{download_dir}/coordinates.nc"
-    dscoord = xr.open_dataset(coord_file, decode_times=False).rename({"glamf": "lon", "gphif": "lat"})
-    dscoord = dscoord.isel(time=0, drop=True)
-
-    ds = xr.merge([dsu, dsv, dsw, dscoord])
-    ds = ds.drop_vars(
-        [
-            "uos",
-            "vos",
-            "nav_lev",
-            "nav_lon",
-            "nav_lat",
-            "tauvo",
-            "tauuo",
-            "time_steps",
-            "gphiu",
-            "gphiv",
-            "gphit",
-            "glamu",
-            "glamv",
-            "glamt",
-            "time_centered_bounds",
-            "time_counter_bounds",
-            "time_centered",
-        ]
-    )
-    ds = ds.drop_vars(["e1f", "e1t", "e1u", "e1v", "e2f", "e2t", "e2u", "e2v"])
-    ds["time"] = [np.timedelta64(int(t), "s") + np.datetime64("1900-01-01") for t in ds["time"]]
-
-    ds["W"] *= -1  # Invert W velocity
-
-    xgcm_grid = xgcm.Grid(
-        ds,
-        coords={
-            "X": {"left": "x"},
-            "Y": {"left": "y"},
-            "Z": {"left": "depth"},
-            "T": {"center": "time"},
-        },
-        periodic=False,
-        autoparse_metadata=False,
-    )
-    grid = XGrid(xgcm_grid, mesh="spherical")
-
-    U = parcels.Field("U", ds["U"], grid, interp_method=XLinear)
-    V = parcels.Field("V", ds["V"], grid, interp_method=XLinear)
-    W = parcels.Field("W", ds["W"], grid, interp_method=XLinear)
-    UV = parcels.VectorField("UV", U, V, vector_interp_method=CGrid_Velocity)
-    UVW = parcels.VectorField("UVW", U, V, W, vector_interp_method=CGrid_Velocity)
-    fieldset = parcels.FieldSet([U, V, W, UV, UVW])
+    fieldset = parcels.FieldSet.from_sgrid_conventions(ds)
 
     npart = 10
-    lons = np.linspace(1.9, 3.4, npart)
-    lats = np.linspace(52.5, 51.6, npart)
-    pset = parcels.ParticleSet(fieldset, lon=lons, lat=lats, z=np.ones_like(lons))
+    lons_initial = np.linspace(1.9, 3.4, npart)
+    lats_initial = np.linspace(52.5, 51.6, npart)
+    z_initial = np.ones_like(lons_initial)
+    pset = parcels.ParticleSet(fieldset, lon=lons_initial, lat=lats_initial, z=z_initial)
 
     pset.execute(kernel, runtime=np.timedelta64(3, "D") + np.timedelta64(18, "h"), dt=np.timedelta64(6, "h"))
 
     if kernel == AdvectionRK4:
-        np.testing.assert_equal(round_and_hash_float_array([p.lon for p in pset], decimals=5), 29977383852960156017546)
+        np.testing.assert_allclose([p.z for p in pset], z_initial)
     elif kernel == AdvectionRK4_3D:
         # TODO check why decimals needs to be so low in RK4_3D (compare to v3)
-        np.testing.assert_equal(round_and_hash_float_array([p.z for p in pset], decimals=1), 29747210774230389239432)
+        np.testing.assert_allclose(
+            [p.z for p in pset],
+            [0.666162, 0.8667131, 0.92150104, 0.9605109, 0.9577529, 1.0041442, 1.0284728, 1.0033542, 1.2949713, 1.3928112],
+        )  # fmt:skip

@@ -29,7 +29,11 @@ mappings = st.lists(dim_dim_padding | dimension_name).map(tuple)
 @st.composite
 def grid2Dmetadata(draw) -> sgrid.Grid2DMetadata:
     N = 8
-    names = draw(st.lists(dimension_name, min_size=N, max_size=N, unique=True))
+    names = draw(
+        st.lists(dimension_name, min_size=N, max_size=N, unique=True)
+        # Reserved, as 'grid' name is used in Parcels testing to store grid information
+        .filter(lambda names: "grid" not in names)
+    )
     node_dimension1 = names[0]
     node_dimension2 = names[1]
     face_dimension1 = names[2]
@@ -74,7 +78,11 @@ def grid2Dmetadata(draw) -> sgrid.Grid2DMetadata:
 @st.composite
 def grid3Dmetadata(draw) -> sgrid.Grid3DMetadata:
     N = 9
-    names = draw(st.lists(dimension_name, min_size=N, max_size=N, unique=True))
+    names = draw(
+        st.lists(dimension_name, min_size=N, max_size=N, unique=True)
+        # Reserved, as 'grid' name is used in Parcels testing to store grid information
+        .filter(lambda names: "grid" not in names)
+    )
     node_dimension1 = names[0]
     node_dimension2 = names[1]
     node_dimension3 = names[2]

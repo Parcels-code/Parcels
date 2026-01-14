@@ -20,7 +20,9 @@ from parcels._core.xgrid import _DEFAULT_XGCM_KWARGS, XGrid
 from parcels._logger import logger
 from parcels._reprs import fieldset_repr
 from parcels._typing import Mesh
+from parcels.convert import _discover_U_and_V, _ds_rename_using_standard_names, _maybe_rename_coords
 from parcels.interpolators import (
+    CGrid_Velocity,
     Ux_Velocity,
     UxPiecewiseConstantFace,
     UxPiecewiseLinearNode,
@@ -209,7 +211,7 @@ class FieldSet:
 
         """
         ds = ds.copy()
-        ds = _discover_copernicusmarine_U_and_V(ds)
+        ds = _discover_U_and_V(ds, _COPERNICUS_MARINE_CF_STANDARD_NAME_FALLBACKS)
         expected_axes = set("XYZT")  # TODO: Update after we have support for 2D spatial fields
         if missing_axes := (expected_axes - set(ds.cf.axes)):
             raise ValueError(
@@ -219,10 +221,10 @@ class FieldSet:
                 "HINT: Add xarray metadata attribute 'axis' to dimension - e.g., ds['lat'].attrs['axis'] = 'Y'"
             )
 
-        ds = _rename_coords_copernicusmarine(ds)
+        ds = _maybe_rename_coords(ds, _COPERNICUS_MARINE_AXIS_VARNAMES)
         if "W" in ds.data_vars:
             # Negate W to convert from up positive to down positive (as that's the direction of positive z)
-            ds["W"] -= ds["W"]
+            ds["W"].data *= -1
 
         if "grid" in ds.cf.cf_roles:
             raise ValueError(
@@ -286,7 +288,7 @@ class FieldSet:
 
     @classmethod
     def from_sgrid_conventions(
-        cls, ds: xr.Dataset, mesh: Mesh
+        cls, ds: xr.Dataset, mesh: Mesh | None = None
     ):  # TODO: Update mesh to be discovered from the dataset metadata
         """Create a FieldSet from a dataset using SGRID convention metadata.
 
@@ -316,6 +318,8 @@ class FieldSet:
         See https://sgrid.github.io/ for more information on the SGRID conventions.
         """
         ds = ds.copy()
+        if mesh is None:
+            mesh = _get_mesh_type_from_sgrid_dataset(ds)
 
         # Ensure time dimension has axis attribute if present
         if "time" in ds.dims and "time" in ds.coords:
@@ -342,6 +346,11 @@ class FieldSet:
             if "T" not in xgcm_kwargs["coords"]:
                 xgcm_kwargs["coords"]["T"] = {"center": "time"}
 
+        if "lon" not in ds.coords or "lat" not in ds.coords:
+            node_dimensions = sgrid.load_mappings(ds.grid.node_dimensions)
+            ds["lon"] = ds[node_dimensions[0]]
+            ds["lat"] = ds[node_dimensions[1]]
+
         # Create xgcm Grid object
         xgcm_grid = xgcm.Grid(ds, autoparse_metadata=False, **xgcm_kwargs, **_DEFAULT_XGCM_KWARGS)
 
@@ -357,14 +366,15 @@ class FieldSet:
 
         fields = {}
         if "U" in ds.data_vars and "V" in ds.data_vars:
+            vector_interp_method = XLinear_Velocity if _is_agrid(ds) else CGrid_Velocity
             fields["U"] = Field("U", ds["U"], grid, XLinear)
             fields["V"] = Field("V", ds["V"], grid, XLinear)
-            fields["UV"] = VectorField("UV", fields["U"], fields["V"], vector_interp_method=XLinear_Velocity)
+            fields["UV"] = VectorField("UV", fields["U"], fields["V"], vector_interp_method=vector_interp_method)
 
             if "W" in ds.data_vars:
                 fields["W"] = Field("W", ds["W"], grid, XLinear)
                 fields["UVW"] = VectorField(
-                    "UVW", fields["U"], fields["V"], fields["W"], vector_interp_method=XLinear_Velocity
+                    "UVW", fields["U"], fields["V"], fields["W"], vector_interp_method=vector_interp_method
                 )
 
         for varname in set(ds.data_vars) - set(fields.keys()) - skip_vars:
@@ -414,19 +424,8 @@ _COPERNICUS_MARINE_AXIS_VARNAMES = {
 }
 
 
-def _rename_coords_copernicusmarine(ds):
-    try:
-        for axis, [coord] in ds.cf.axes.items():
-            ds = ds.rename({coord: _COPERNICUS_MARINE_AXIS_VARNAMES[axis]})
-    except ValueError as e:
-        raise ValueError(f"Multiple coordinates found for Copernicus dataset on axis '{axis}'. Check your data.") from e
-    return ds
-
-
-def _discover_copernicusmarine_U_and_V(ds: xr.Dataset) -> xr.Dataset:
-    # Assumes that the dataset has U and V data
-
-    cf_UV_standard_name_fallbacks = [
+_COPERNICUS_MARINE_CF_STANDARD_NAME_FALLBACKS = {
+    "UV": [
         (
             "eastward_sea_water_velocity",
             "northward_sea_water_velocity",
@@ -448,36 +447,9 @@ def _discover_copernicusmarine_U_and_V(ds: xr.Dataset) -> xr.Dataset:
             "eastward_sea_water_velocity_vertical_mean_over_pelagic_layer",
             "northward_sea_water_velocity_vertical_mean_over_pelagic_layer",
         ),  # GLOBAL_MULTIYEAR_BGC_001_033
-    ]
-    cf_W_standard_name_fallbacks = ["upward_sea_water_velocity", "vertical_sea_water_velocity"]
-
-    if "W" not in ds:
-        for cf_standard_name_W in cf_W_standard_name_fallbacks:
-            if cf_standard_name_W in ds.cf.standard_names:
-                ds = _ds_rename_using_standard_names(ds, {cf_standard_name_W: "W"})
-                break
-
-    if "U" in ds and "V" in ds:
-        return ds  # U and V already present
-    elif "U" in ds or "V" in ds:
-        raise ValueError(
-            "Dataset has only one of the two variables 'U' and 'V'. Please rename the appropriate variable in your dataset to have both 'U' and 'V' for Parcels simulation."
-        )
-
-    for cf_standard_name_U, cf_standard_name_V in cf_UV_standard_name_fallbacks:
-        if cf_standard_name_U in ds.cf.standard_names:
-            if cf_standard_name_V not in ds.cf.standard_names:
-                raise ValueError(
-                    f"Dataset has variable with CF standard name {cf_standard_name_U!r}, "
-                    f"but not the matching variable with CF standard name {cf_standard_name_V!r}. "
-                    "Please rename the appropriate variables in your dataset to have both 'U' and 'V' for Parcels simulation."
-                )
-        else:
-            continue
-
-        ds = _ds_rename_using_standard_names(ds, {cf_standard_name_U: "U", cf_standard_name_V: "V"})
-        break
-    return ds
+    ],
+    "W": ["upward_sea_water_velocity", "vertical_sea_water_velocity"],
+}
 
 
 def _discover_fesom2_U_and_V(ds: ux.UxDataset) -> ux.UxDataset:
@@ -522,16 +494,6 @@ def _discover_fesom2_U_and_V(ds: ux.UxDataset) -> ux.UxDataset:
     return ds
 
 
-def _ds_rename_using_standard_names(ds: xr.Dataset | ux.UxDataset, name_dict: dict[str, str]) -> xr.Dataset:
-    for standard_name, rename_to in name_dict.items():
-        name = ds.cf[standard_name].name
-        ds = ds.rename({name: rename_to})
-        logger.info(
-            f"cf_xarray found variable {name!r} with CF standard name {standard_name!r} in dataset, renamed it to {rename_to!r} for Parcels simulation."
-        )
-    return ds
-
-
 def _select_uxinterpolator(da: ux.UxDataArray):
     """Selects the appropriate uxarray interpolator for a given uxarray UxDataArray"""
     supported_uxinterp_mapping = {
@@ -563,3 +525,43 @@ def _select_uxinterpolator(da: ux.UxDataArray):
             return supported_uxinterp_mapping[key]
 
     return None
+
+
+# TODO: Refactor later into something like `parcels._metadata.discover(dataset)` helper that can be used to discover important metadata like this. I think this whole metadata handling should be refactored into its own module.
+def _get_mesh_type_from_sgrid_dataset(ds_sgrid: xr.Dataset) -> Mesh:
+    """Small helper to inspect SGRID metadata and dataset metadata to determine mesh type."""
+    grid_da = sgrid.get_grid_topology(ds_sgrid)
+    if grid_da is None:
+        raise ValueError("Dataset does not contain SGRID grid topology metadata (cf_role='grid_topology').")
+
+    sgrid_metadata = sgrid.parse_grid_attrs(grid_da.attrs)
+
+    fpoint_x, fpoint_y = sgrid_metadata.node_coordinates
+
+    if _is_coordinate_in_degrees(ds_sgrid[fpoint_x]) ^ _is_coordinate_in_degrees(ds_sgrid[fpoint_x]):
+        msg = (
+            f"Mismatch in units between X and Y coordinates.\n"
+            f"  Coordinate {ds_sgrid[fpoint_x]!r} attrs: {ds_sgrid[fpoint_x].attrs}\n"
+            f"  Coordinate {ds_sgrid[fpoint_y]!r} attrs: {ds_sgrid[fpoint_y].attrs}\n"
+        )
+        raise ValueError(msg)
+
+    return "spherical" if _is_coordinate_in_degrees(ds_sgrid[fpoint_x]) else "flat"
+
+
+def _is_agrid(ds: xr.Dataset) -> bool:
+    # check if U and V are defined on the same dimensions
+    # if yes, interpret as A grid
+    return set(ds["U"].dims) == set(ds["V"].dims)
+
+
+def _is_coordinate_in_degrees(da: xr.DataArray) -> bool:
+    match da.attrs.get("units"):
+        case None:
+            raise ValueError(
+                f"Coordinate {da.name!r} of your dataset has no 'units' attribute - we don't know what the spatial units are."
+            )
+        case "degrees":
+            return True
+        case _:
+            return False
