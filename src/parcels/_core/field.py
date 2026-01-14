@@ -18,6 +18,7 @@ from parcels._core.utils.string import _assert_str_and_python_varname
 from parcels._core.utils.time import TimeInterval
 from parcels._core.uxgrid import UxGrid
 from parcels._core.xgrid import XGrid, _transpose_xfield_data_to_tzyx, assert_all_field_dims_have_axis
+from parcels._logger import logger
 from parcels._python import assert_same_function_signature
 from parcels._reprs import field_repr, vectorfield_repr
 from parcels._typing import VectorType
@@ -132,6 +133,14 @@ class Field:
         assert_same_function_signature(interp_method, ref=ZeroInterpolator, context="Interpolation")
         self._interp_method = interp_method
 
+        # Setting the land value if present
+        print("DATA ATTRS:", data.attrs)
+        if "_FillValue" in data.attrs:
+            self._land_value = data.attrs["_FillValue"]
+        else:
+            logger.info(f"No _FillValue attribute found for field {self.name!r}, defaulting land_value to 0.0")
+            self._land_value = 0.0
+
         self.igrid = -1  # Default the grid index to -1
 
         if self.data.shape[0] > 1:
@@ -175,6 +184,15 @@ class Field:
     def interp_method(self, method: Callable):
         assert_same_function_signature(method, ref=ZeroInterpolator, context="Interpolation")
         self._interp_method = method
+
+    @property
+    def land_value(self):
+        """The value in the field data that represents land points. Can be used to mask land in Interpolators"""
+        return self._land_value
+
+    @land_value.setter
+    def land_value(self, value):
+        self._land_value = value
 
     def _check_velocitysampling(self):
         if self.name in ["U", "V", "W"]:

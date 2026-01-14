@@ -435,7 +435,9 @@ def _Spatialslip(
     def is_land(ti: int, zi: int, yi: int, xi: int):
         uval = corner_dataU[ti, zi, yi, xi, :]
         vval = corner_dataV[ti, zi, yi, xi, :]
-        return np.where(np.isclose(uval, 0.0) & np.isclose(vval, 0.0), True, False)
+        return np.where(
+            np.isclose(uval, vectorfield.U._land_value) & np.isclose(vval, vectorfield.V._land_value), True, False
+        )
 
     f_u = np.ones_like(xsi)
     f_v = np.ones_like(eta)
@@ -614,7 +616,7 @@ def XLinearInvdistLandTracer(
 
     corner_data = _get_corner_data_Agrid(field.data, ti, zi, yi, xi, lenT, lenZ, len(xsi), axis_dim)
 
-    land_mask = np.isclose(corner_data, 0.0)
+    land_mask = np.isclose(corner_data, field._land_value)
     nb_land = np.sum(land_mask, axis=(0, 1, 2, 3))
 
     if np.any(nb_land):

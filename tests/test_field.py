@@ -159,6 +159,20 @@ def test_field_invalid_interpolator():
         )
 
 
+@pytest.mark.parametrize("fill_value", [-999.99, 0.0, 42, None])
+def test_field_land_value(fill_value):
+    ds = datasets_structured["ds_2d_left"].copy()
+    if fill_value is not None:
+        ds["data_g"].attrs["_FillValue"] = fill_value
+    grid = XGrid.from_dataset(ds, mesh="flat")
+
+    field = Field(name="test_field", data=ds["data_g"], grid=grid, interp_method=XLinear)
+    if fill_value is None:
+        assert field.land_value == 0.0
+    else:
+        assert field.land_value == fill_value
+
+
 def test_vectorfield_invalid_interpolator():
     ds = datasets_structured["ds_2d_left"]
     grid = XGrid.from_dataset(ds, mesh="flat")
