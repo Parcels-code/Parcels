@@ -88,6 +88,11 @@ select = [
   "N", # pep8 naming conventions
   "PGH004", # ensures no blanket noqa's are used
   "W", # Pycodestyle warnings
+  "YTT", # checks for misuse of sys.version or sys.version_info
+  # "FBT", # checks for boolean traps (which result in poor function API)
+  # "A", # check for python builtins being used as variables or parameters
+  # "T20", # disallows printing in code - parcels source code should not have dev debugging statements, or should use logging statements instead of prints
+  "NPY201", # numpy 2 deprecations
 ]
 
 exclude = [
