@@ -113,7 +113,7 @@ def test_invalid_lon_lat():
 
     with pytest.raises(
         ValueError,
-        match=".*is defined on the center of the grid, but must be defined on the F points\.",
+        match=r".*is defined on the center of the grid, but must be defined on the F points\.",
     ):
         XGrid.from_dataset(ds, mesh="flat")
 
@@ -121,7 +121,7 @@ def test_invalid_lon_lat():
     ds["lon"], _ = xr.broadcast(ds["YG"], ds["XG"])
     with pytest.raises(
         ValueError,
-        match=".*have different dimensionalities\.",
+        match=r".*have different dimensionalities\.",
     ):
         XGrid.from_dataset(ds, mesh="flat")
 
@@ -131,7 +131,7 @@ def test_invalid_lon_lat():
 
     with pytest.raises(
         ValueError,
-        match=".*must be defined on the X and Y axes and transposed to have dimensions in order of Y, X\.",
+        match=r".*must be defined on the X and Y axes and transposed to have dimensions in order of Y, X\.",
     ):
         XGrid.from_dataset(ds, mesh="flat")
 
