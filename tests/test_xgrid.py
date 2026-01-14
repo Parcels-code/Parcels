@@ -238,7 +238,7 @@ def test_search_1d_array(array, x, expected_xi, expected_xsi):
     ],
 )
 def test_search_1d_array_out_of_bounds(array, x, expected_xi):
-    xi, xsi = _search_1d_array(array, x)
+    xi, _xsi = _search_1d_array(array, x)
     assert xi == expected_xi
 
 

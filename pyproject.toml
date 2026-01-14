@@ -124,9 +124,6 @@ ignore = [
   'N816', # TODO: Enable for `src` and consider disabling for notebooks
   'N818', # Not all Parcels exceptions should have an "Error" suffix
 
-  # TODO: Move this ignore so that it only applies in the tests folder. Do in conjunction with any doc related rules
-  "RUF059", # Unpacked variable `coords` is never used
-
   # TODO: ignore for now (requires more work). Remove ignore once fixed
   # Missing docstring in public module
   "D100",
