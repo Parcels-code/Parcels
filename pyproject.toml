@@ -101,6 +101,7 @@ exclude = [
 ] # TODO v4: Remove once folders are gone
 
 ignore = [
+  # # Rules intentionally excluded
   # line too long (82 > 79 characters)
   "E501",
   # ‘from module import *’ used; unable to detect undefined names
@@ -123,7 +124,7 @@ ignore = [
   'N816', # TODO: Enable for `src` and consider disabling for notebooks
   'N818', # Not all Parcels exceptions should have an "Error" suffix
 
-  # TODO: ignore for now (requires more work). Remove ignore once fixed
+  # # TODO: ignore for now (requires more work). Remove ignore once fixed
   # Missing docstring in public module
   "D100",
   # Missing docstring in public package
