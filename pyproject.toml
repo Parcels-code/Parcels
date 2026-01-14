@@ -179,3 +179,16 @@ module = [
   "pooch",
 ]
 ignore_missing_imports = true
+
+[tool.numpydoc_validation]
+checks = [
+  "GL05", # Summary text does start with infinitive verb
+  "GL06", # Summary text does fit in a single line
+  "GL07", # Sections are in the correct order
+  "GL10", # reST directives {directives} must be followed by two colons
+  "PR05", # Parameter "{param_name}" type should not finish with "."
+  "PR10", # Parameter "{param_name}" requires a space before the colon separating the parameter name and type
+  "RT02", # The first line of the Returns section should contain only the type, unless multiple values are being returned
+]
+# Validation settings to match docs/conf.py numpydoc_validation_checks
+# For all validation codes see: https://numpydoc.readthedocs.io/en/latest/validation.html
