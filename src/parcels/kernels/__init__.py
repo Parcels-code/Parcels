@@ -1,4 +1,4 @@
-from .advection import (
+from ._advection import (
     AdvectionAnalytical,
     AdvectionEE,
     AdvectionRK2,
@@ -8,7 +8,7 @@ from .advection import (
     AdvectionRK4_3D_CROCO,
     AdvectionRK45,
 )
-from .advectiondiffusion import (
+from ._advectiondiffusion import (
     AdvectionDiffusionEM,
     AdvectionDiffusionM1,
     DiffusionUniformKh,
