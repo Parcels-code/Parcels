@@ -10,7 +10,6 @@ from parcels._core.utils.sgrid import (
     _attach_sgrid_metadata,
 )
 from parcels._core.utils.time import timedelta_to_float
-from parcels._datasets.utils import _attach_sgrid_metadata
 
 
 def simple_UV_dataset(dims=(360, 2, 30, 4), maxdepth=1, mesh="spherical"):

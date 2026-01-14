@@ -4,24 +4,7 @@ from typing import Any
 import numpy as np
 import xarray as xr
 
-from parcels._core.utils.sgrid import (
-    Grid2DMetadata,
-    Grid3DMetadata,
-)
-
 _SUPPORTED_ATTR_TYPES = int | float | str | np.ndarray
-
-
-def _attach_sgrid_metadata(ds, grid: Grid2DMetadata | Grid3DMetadata):
-    """Copies the dataset and attaches the SGRID metadata in 'grid' variable. Modifies 'conventions' attribute."""
-    ds = ds.copy()
-    ds["grid"] = (
-        [],
-        0,
-        grid.to_attrs(),
-    )
-    ds.attrs["Conventions"] = "SGRID"
-    return ds
 
 
 def _print_mismatched_keys(d1: dict[Any, Any], d2: dict[Any, Any]) -> None:
