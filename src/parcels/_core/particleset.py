@@ -544,6 +544,9 @@ def _get_simulation_start_and_end_times(
     if runtime is None and time_interval is None:
         raise ValueError("The runtime must be provided when the time_interval is not defined for a fieldset.")
 
+    if runtime is None and endtime is None:
+        raise ValueError("Either runtime or endtime must be provided.")
+
     if sign_dt == 1:
         first_release_time = particle_release_times.min()
     else:
