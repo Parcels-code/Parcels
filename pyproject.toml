@@ -115,7 +115,6 @@ ignore = [
   "UP038",
   # Pattern passed to `match=` contains metacharacters but is neither escaped nor raw
   "RUF043",
-  "RUF046", # Value being cast to `int` is already an integer
 
   # Parcels specific deviations from PEP8 naming
   'N802', # We use function names that are camelcased to denote functions
@@ -139,7 +138,6 @@ ignore = [
   "D404",
   # 1 blank line required between summary line and description (requires writing of summaries)
   "D205",
-  "F811",
 ]
 
 [tool.ruff.lint.per-file-ignores]
