@@ -36,7 +36,9 @@ For several common input datasets, such as the Copernicus Marine Service analysi
 
 ```python
 dataset = xr.open_mfdataset("insert_copernicus_data_files.nc")
-fieldset = parcels.FieldSet.from_copernicusmarine(dataset)
+fields = {"U": ds_fields["uo"], "V": ds_fields["vo"]}
+ds_fset = parcels.convert.copernicusmarine_to_sgrid(fields=fields)
+fieldset = parcels.FieldSet.from_sgrid_conventions(ds_fset)
 ```
 
 In some cases, we might want to combine `parcels.Field`s from different sources in the same `parcels.FieldSet`, such as ocean currents from one dataset and Stokes drift from another. This is possible in Parcels by adding each `parcels.Field` separately:
