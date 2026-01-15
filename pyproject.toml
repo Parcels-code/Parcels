@@ -87,6 +87,12 @@ select = [
   "T100", # Checks for the presence of debugger calls and imports
   "N", # pep8 naming conventions
   "PGH004", # ensures no blanket noqa's are used
+  "W", # Pycodestyle warnings
+  "YTT", # checks for misuse of sys.version or sys.version_info
+  # "FBT", # checks for boolean traps (which result in poor function API)
+  # "A", # check for python builtins being used as variables or parameters
+  # "T20", # disallows printing in code - parcels source code should not have dev debugging statements, or should use logging statements instead of prints
+  "NPY201", # numpy 2 deprecations
 ]
 
 exclude = [
@@ -95,6 +101,7 @@ exclude = [
 ] # TODO v4: Remove once folders are gone
 
 ignore = [
+  # # Rules intentionally excluded
   # line too long (82 > 79 characters)
   "E501",
   # ‘from module import *’ used; unable to detect undefined names
@@ -109,7 +116,6 @@ ignore = [
   "UP038",
   # Pattern passed to `match=` contains metacharacters but is neither escaped nor raw
   "RUF043",
-  "RUF046", # Value being cast to `int` is already an integer
 
   # Parcels specific deviations from PEP8 naming
   'N802', # We use function names that are camelcased to denote functions
@@ -118,10 +124,7 @@ ignore = [
   'N816', # TODO: Enable for `src` and consider disabling for notebooks
   'N818', # Not all Parcels exceptions should have an "Error" suffix
 
-  # TODO: Move this ignore so that it only applies in the tests folder. Do in conjunction with any doc related rules
-  "RUF059", # Unpacked variable `coords` is never used
-
-  # TODO: ignore for now (requires more work). Remove ignore once fixed
+  # # TODO: ignore for now (requires more work). Remove ignore once fixed
   # Missing docstring in public module
   "D100",
   # Missing docstring in public package
@@ -136,7 +139,6 @@ ignore = [
   "D404",
   # 1 blank line required between summary line and description (requires writing of summaries)
   "D205",
-  "F811",
 ]
 
 [tool.ruff.lint.per-file-ignores]

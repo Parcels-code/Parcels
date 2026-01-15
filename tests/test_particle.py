@@ -20,7 +20,7 @@ def test_variable_init():
 
 
 def test_variable_invalid_init():
-    with pytest.raises(ValueError, match="to_write must be one of .*\. Got to_write="):
+    with pytest.raises(ValueError, match=r"to_write must be one of .*\. Got to_write="):
         Variable("name", to_write="test")
 
     with pytest.raises(TypeError, match="Expected a string for variable name, got int instead."):
