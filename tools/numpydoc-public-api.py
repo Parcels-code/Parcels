@@ -18,6 +18,9 @@ from pathlib import Path
 from numpydoc.validate import validate
 
 logger = logging.getLogger("numpydoc-public-api")
+handler = logging.StreamHandler()
+handler.setFormatter(logging.Formatter("%(levelname)s: %(message)s"))
+logger.addHandler(handler)
 
 PROJECT_ROOT = (Path(__file__).parent / "..").resolve()
 PUBLIC_MODULES = ["parcels", "parcels.interpolators"]
@@ -81,6 +84,22 @@ def walk_class(module_str: str, class_: type, public_api: list[str]) -> list[str
 
 
 def main():
+    import argparse
+
+    parser = argparse.ArgumentParser(description="Validate numpydoc docstrings in the public API")
+    parser.add_argument("-v", "--verbose", action="count", default=0, help="Increase verbosity (can be repeated)")
+    args = parser.parse_args()
+
+    # Set logging level based on verbosity: 0=WARNING, 1=INFO, 2+=DEBUG
+    if args.verbose == 0:
+        log_level = logging.WARNING
+    elif args.verbose == 1:
+        log_level = logging.INFO
+    else:
+        log_level = logging.DEBUG
+
+    logger.setLevel(log_level)
+
     with open(PROJECT_ROOT / "tools/tool-data.toml", "rb") as f:
         skip_errors = tomllib.load(f)["numpydoc_skip_errors"]
     public_api = []
