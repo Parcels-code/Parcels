@@ -106,14 +106,13 @@ def main():
     for module in PUBLIC_MODULES:
         public_api += walk_module(module)
 
-    public_api = filter(lambda x: x != ROOT_PACKAGE, public_api)  # For some reason doesn't work on root package
     errors = 0
     for item in public_api:
         logger.info(f"Processing validating {item}")
         try:
             res = validate(item)
-        except AttributeError as e:
-            logger.debug(f"Encountered error. {e!r}")
+        except (AttributeError, StopIteration) as e:
+            logger.warning(f"Could not process {item!r}. Encountered error. {e!r}")
             continue
         if res["type"] in ("module", "float", "int", "dict"):
             continue
