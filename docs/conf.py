@@ -188,7 +188,7 @@ numpydoc_class_members_toctree = False  # https://stackoverflow.com/a/73294408
 with open(PROJECT_ROOT / "tools/tool-data.toml", "rb") as f:
     numpydoc_skip_errors = tomllib.load(f)["numpydoc_skip_errors"]
 
-numpydoc_validation_checks = {"all"} + set(numpydoc_skip_errors)
+numpydoc_validation_checks = {"all"} | set(numpydoc_skip_errors)
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
