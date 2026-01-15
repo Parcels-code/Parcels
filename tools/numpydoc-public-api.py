@@ -9,6 +9,7 @@ docstrings that end up in the documentation).
 
 import functools
 import importlib
+import logging
 import sys
 import tomllib
 import types
@@ -16,12 +17,11 @@ from pathlib import Path
 
 from numpydoc.validate import validate
 
+logger = logging.getLogger("numpydoc-public-api")
+
 PROJECT_ROOT = (Path(__file__).parent / "..").resolve()
 PUBLIC_MODULES = ["parcels", "parcels.interpolators"]
 ROOT_PACKAGE = "parcels"
-
-with open(PROJECT_ROOT / "tools/tool-data.toml", "rb") as f:
-    skip_errors = tomllib.load(f)["numpydoc_skip_errors"]
 
 
 def is_built_in(type_or_instance: type | object):
@@ -57,7 +57,7 @@ def walk_module(module_str: str, public_api: list[str] | None = None) -> list[st
             public_api.append(f"{module_str}.{item_str}")
             walk_class(module_str, item, public_api)
         else:
-            print(
+            logger.info(
                 f"Encountered unexpected public object at '{module_str}.{item_str}' of {item!r} in public API. Don't know how to handle with numpydoc - ignoring."
             )
 
@@ -81,6 +81,8 @@ def walk_class(module_str: str, class_: type, public_api: list[str]) -> list[str
 
 
 def main():
+    with open(PROJECT_ROOT / "tools/tool-data.toml", "rb") as f:
+        skip_errors = tomllib.load(f)["numpydoc_skip_errors"]
     public_api = []
     for module in PUBLIC_MODULES:
         public_api += walk_module(module)
@@ -88,9 +90,11 @@ def main():
     public_api = filter(lambda x: x != ROOT_PACKAGE, public_api)  # For some reason doesn't work on root package
     errors = 0
     for item in public_api:
+        logger.info(f"Processing validating {item}")
         try:
             res = validate(item)
-        except AttributeError:
+        except AttributeError as e:
+            logger.debug(f"Encountered error. {e!r}")
             continue
         if res["type"] in ("module", "float", "int", "dict"):
             continue
