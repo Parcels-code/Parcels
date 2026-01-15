@@ -184,7 +184,6 @@ html_favicon = "favicon.ico"
 # ----------------
 numpydoc_class_members_toctree = False  # https://stackoverflow.com/a/73294408
 
-# full list of numpydoc error codes: https://numpydoc.readthedocs.io/en/latest/validation.html
 with open(PROJECT_ROOT / "tools/tool-data.toml", "rb") as f:
     numpydoc_skip_errors = tomllib.load(f)["numpydoc_skip_errors"]
 
