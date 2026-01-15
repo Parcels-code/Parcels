@@ -42,6 +42,13 @@ _NEMO_VARNAMES_MAPPING = {
     "wo": "W",
 }
 
+_COPERNICUS_MARINE_AXIS_VARNAMES = {
+    "X": "lon",
+    "Y": "lat",
+    "Z": "depth",
+    "T": "time",
+}
+
 
 def _maybe_bring_UV_depths_to_depth(ds):
     if "U" in ds.variables and "depthu" in ds.U.coords and "depth" in ds.coords:
@@ -256,4 +263,68 @@ def nemo_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.Da
 
     # Update to use lon and lat for internal naming
     ds = sgrid.rename(ds, {"gphif": "lat", "glamf": "lon"})  # TODO: Logging message about rename
+    return ds
+
+
+def copernicusmarine_to_sgrid(
+    *, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.Dataset | None = None
+) -> xr.Dataset:
+    """Create an sgrid-compliant xarray.Dataset from a dataset of Copernicus Marine netcdf files.
+
+    Parameters
+    ----------
+    fields : dict[str, xr.Dataset | xr.DataArray]
+        Dictionary of xarray.DataArray objects as obtained from a set of Copernicus Marine netcdf files.
+    coords : xarray.Dataset, optional
+        xarray.Dataset containing coordinate variables. By default these are time, depth, latitude, longitude
+
+    Returns
+    -------
+    xarray.Dataset
+        Dataset object following SGRID conventions to be (optionally) modified and passed to a FieldSet constructor.
+
+    Notes
+    -----
+    See https://help.marine.copernicus.eu/en/collections/9080063-copernicus-marine-toolbox for more information on the copernicusmarine toolbox.
+    The toolbox to ingest data from most of the products on the Copernicus Marine Service (https://data.marine.copernicus.eu/products) into an xarray.Dataset.
+    You can use indexing and slicing to select a subset of the data before passing it to this function.
+
+    """
+    fields = fields.copy()
+
+    for name, field_da in fields.items():
+        if isinstance(field_da, xr.Dataset):
+            field_da = field_da[name]
+            # TODO: logging message, warn if multiple fields are in this dataset
+        else:
+            field_da = field_da.rename(name)
+        fields[name] = field_da
+
+    ds = xr.merge(list(fields.values()) + ([coords] if coords is not None else []))
+    ds.attrs.clear()  # Clear global attributes from the merging
+
+    ds = _maybe_rename_coords(ds, _COPERNICUS_MARINE_AXIS_VARNAMES)
+    if "W" in ds.data_vars:
+        # Negate W to convert from up positive to down positive (as that's the direction of positive z)
+        ds["W"].data *= -1
+
+    if "grid" in ds.cf.cf_roles:
+        raise ValueError(
+            "Dataset already has a 'grid' variable (according to cf_roles). Didn't expect there to be grid metadata on copernicusmarine datasets - please open an issue with more information about your dataset."
+        )
+    ds["grid"] = xr.DataArray(
+        0,
+        attrs=sgrid.Grid2DMetadata(  # use dummy *_center dimensions - this is A grid data (all defined on nodes)
+            cf_role="grid_topology",
+            topology_dimension=2,
+            node_dimensions=("lon", "lat"),
+            node_coordinates=("lon", "lat"),
+            face_dimensions=(
+                sgrid.DimDimPadding("x_center", "lon", sgrid.Padding.LOW),
+                sgrid.DimDimPadding("y_center", "lat", sgrid.Padding.LOW),
+            ),
+            vertical_dimensions=(sgrid.DimDimPadding("z_center", "depth", sgrid.Padding.LOW),),
+        ).to_attrs(),
+    )
+
     return ds
