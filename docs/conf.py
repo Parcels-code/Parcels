@@ -15,7 +15,11 @@ import datetime
 import inspect
 import os
 import sys
+import tomllib
 import warnings
+from pathlib import Path
+
+PROJECT_ROOT = (Path(__file__).parent / "..").resolve()
 
 # If extensions (or modules to document with autodoc) are in another directory,
 # add these directories to sys.path here. If the directory is relative to the
@@ -181,15 +185,10 @@ html_favicon = "favicon.ico"
 numpydoc_class_members_toctree = False  # https://stackoverflow.com/a/73294408
 
 # full list of numpydoc error codes: https://numpydoc.readthedocs.io/en/latest/validation.html
-numpydoc_validation_checks = {
-    "GL05",
-    "GL06",
-    "GL07",
-    "GL10",
-    "PR05",
-    "PR10",
-    "RT02",
-}
+with open(PROJECT_ROOT / "tools/tool-data.toml", "rb") as f:
+    numpydoc_skip_errors = tomllib.load(f)["numpydoc_skip_errors"]
+
+numpydoc_validation_checks = {"all"} + set(numpydoc_skip_errors)
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,

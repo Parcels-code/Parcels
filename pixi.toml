@@ -97,6 +97,12 @@ pre_commit = "*"
 [feature.pre-commit.tasks]
 lint = "pre-commit run --all-files"
 
+[feature.numpydoc.dependencies]
+numpydoc = "*"
+
+[feature.numpydoc.tasks]
+numpydoc-lint = "python tools/numpydoc-public-api.py"
+
 [feature.typing.dependencies]
 mypy = "*"
 lxml = "*" # in CI
@@ -112,6 +118,7 @@ default = { features = [
   "notebooks",
   "typing",
   "pre-commit",
+  "numpydoc",
 ], solve-group = "main" }
 test = { features = ["test"], solve-group = "main" }
 test-minimum = { features = ["test", "minimum"] }
