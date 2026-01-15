@@ -23,16 +23,6 @@ from parcels._logger import logger
 if typing.TYPE_CHECKING:
     import uxarray as ux
 
-_NEMO_CF_STANDARD_NAME_FALLBACKS = {
-    "UV": [
-        (
-            "sea_water_x_velocity",
-            "sea_water_y_velocity",
-        ),
-    ],
-    "W": ["upward_sea_water_velocity", "vertical_sea_water_velocity"],
-}
-
 _NEMO_DIMENSION_COORD_NAMES = ["x", "y", "time", "x", "x_center", "y", "y_center", "depth", "glamf", "gphif"]
 
 _NEMO_AXIS_VARNAMES = {
@@ -131,6 +121,7 @@ def _ds_rename_using_standard_names(ds: xr.Dataset | ux.UxDataset, name_dict: di
     return ds
 
 
+# TODO is this function still needed, now that we require users to provide field names explicitly?
 def _discover_U_and_V(ds: xr.Dataset, cf_standard_names_fallbacks) -> xr.Dataset:
     # Assumes that the dataset has U and V data
 
@@ -219,7 +210,6 @@ def nemo_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.Da
 
     ds = xr.merge(list(fields.values()) + [coords])
     ds = _maybe_rename_variables(ds, _NEMO_VARNAMES_MAPPING)
-    ds = _discover_U_and_V(ds, _NEMO_CF_STANDARD_NAME_FALLBACKS)
     ds = _maybe_create_depth_dim(ds)
     ds = _maybe_bring_UV_depths_to_depth(ds)
     ds = _drop_unused_dimensions_and_coords(ds, _NEMO_DIMENSION_COORD_NAMES)
