@@ -27,12 +27,15 @@ ROOT_PACKAGE = "parcels"
 
 # full list of numpydoc error codes: https://numpydoc.readthedocs.io/en/latest/validation.html
 SKIP_ERRORS = [
+    "GL01",  # parcels is fine with the summary line starting directly after `"""`, or on the next line.
     "SA01",  # Parcels doesn't require the "See also" section
     "SA04",  #
     "ES01",  # We don't require the extended summary for all docstrings
     "EX01",  # We don't require the "Examples" section for all docstrings
     "SS06",  # Not possible to make all summaries one line
+    #
     # To be fixed up
+    "GL02",  # Closin÷g quotes should be placed in the line after the last text in the docstring (do not close the quotes in the same line as the text, or leave a blank line between the last text and the quotes)
     "GL03",  # Double line break found; please use only one blank line to separate sections or paragraphs, and do not leave blank lines at the end of docstrings
     "GL05",  # Tabs found at the start of line "{line_with_tabs}", please use whitespace only
     "GL06",  # Found unknown section "{section}". Allowed sections are: {allowed_sections}
@@ -48,9 +51,7 @@ SKIP_ERRORS = [
     "PR03",  # Wrong parameters order. Actual: {actual_params}. Documented: {documented_params}
     "SA02",  # Missing period at end of description for See Also "{reference_name}" reference
     "SA03",  # Description should be capitalized for See Also
-    # ? Might conflict with Ruff rules. Needs more testing... Enable ignore if they conflict
-    # "GL01", # Docstring text (summary) should start in the line immediately after the opening quotes (not in the same line, or leaving a blank line in between)
-    # "GL02", # Closing quotes should be placed in the line after the last text in the docstring (do not close the quotes in the same line as the text, or leave a blank line between the last text and the quotes)
+    #
     # TODO consider whether to continue ignoring the following
     "GL09",  # Deprecation warning should precede extended summary
     "GL10",  # reST directives {directives} must be followed by two colons
