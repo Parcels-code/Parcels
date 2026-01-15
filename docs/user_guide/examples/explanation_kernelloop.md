@@ -8,13 +8,13 @@ kernelspec:
 
 On this page we discuss Parcels' execution loop, and what happens under the hood when you combine multiple Kernels.
 
-This is not very relevant when you only use the built-in Advection kernels, but can be important when you are writing and combining your own Kernels!
+This is not very relevant when you only use the built-in Advection Kernels, but can be important when you are writing and combining your own Kernels!
 
 ## Background
 
 When you run a Parcels simulation (i.e. a call to `pset.execute()`), the Kernel loop is the main part of the code that is executed. This part of the code loops through time and executes the Kernels for all particle.
 
-In order to make sure that the displacements of a particle in the different Kernels can be summed, all Kernels add to a _change_ in position (`particles.dlon`, `particles.dlat`, and `particles.dz`). This is important, because there are situations where movement kernels would otherwise not commute. Take the example of advecting particles by currents _and_ winds. If the particle would first be moved by the currents and then by the winds, the result could be different from first moving by the winds and then by the currents. Instead, by summing the _changes_ in position, the ordering of the Kernels has no consequence on the particle displacement.
+In order to make sure that the displacements of a particle in the different Kernels can be summed, all Kernels add to a _change_ in position (`particles.dlon`, `particles.dlat`, and `particles.dz`). This is important, because there are situations where movement Kernels would otherwise not commute. Take the example of advecting particles by currents _and_ winds. If the particle would first be moved by the currents and then by the winds, the result could be different from first moving by the winds and then by the currents. Instead, by summing the _changes_ in position, the ordering of the Kernels has no consequence on the particle displacement.
 
 ## Basic implementation
 
@@ -80,7 +80,7 @@ windvector = parcels.VectorField(
 fieldset.add_field(windvector)
 ```
 
-Now we define a wind kernel that uses a forward Euler method to apply the wind forcing. Note that we update the `particles.dlon` and `particles.dlat` variables, rather than `particles.lon` and `particles.lat` directly.
+Now we define a wind Kernel that uses a forward Euler method to apply the wind forcing. Note that we update the `particles.dlon` and `particles.dlat` variables, rather than `particles.lon` and `particles.lat` directly.
 
 ```{code-cell}
 def wind_kernel(particles, fieldset):
@@ -89,7 +89,7 @@ def wind_kernel(particles, fieldset):
     particles.dlat += vwind * particles.dt
 ```
 
-First run a simulation where we apply kernels as `[AdvectionRK4, wind_kernel]`
+First run a simulation where we apply Kernels as `[AdvectionRK4, wind_kernel]`
 
 ```{code-cell}
 :tags: [hide-output]
@@ -110,7 +110,7 @@ pset.execute(
 )
 ```
 
-Then also run a simulation where we apply the kernels in the reverse order as `[wind_kernel, AdvectionRK4]`
+Then also run a simulation where we apply the Kernels in the reverse order as `[wind_kernel, AdvectionRK4]`
 
 ```{code-cell}
 :tags: [hide-output]
