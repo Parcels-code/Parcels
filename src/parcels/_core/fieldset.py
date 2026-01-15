@@ -556,12 +556,11 @@ def _is_agrid(ds: xr.Dataset) -> bool:
 
 
 def _is_coordinate_in_degrees(da: xr.DataArray) -> bool:
-    match da.attrs.get("units"):
-        case None:
-            raise ValueError(
-                f"Coordinate {da.name!r} of your dataset has no 'units' attribute - we don't know what the spatial units are."
-            )
-        case "degrees":
-            return True
-        case _:
-            return False
+    units = da.attrs.get("units")
+    if units is None:
+        raise ValueError(
+            f"Coordinate {da.name!r} of your dataset has no 'units' attribute - we don't know what the spatial units are."
+        )
+    if isinstance(units, str) and "degree" in units.lower():
+        return True
+    return False
