@@ -10,7 +10,6 @@ from parcels._core.utils.sgrid import (
 from parcels._core.utils.sgrid import (
     rename as sgrid_rename,
 )
-from parcels._datasets.utils import _attach_sgrid_metadata
 
 from . import T, X, Y, Z
 
