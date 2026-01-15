@@ -89,7 +89,7 @@ def wind_kernel(particles, fieldset):
     particles.dlat += vwind * particles.dt
 ```
 
-First run a simulation where we apply Kernels as `[AdvectionRK4, wind_kernel]`
+First run a simulation where we apply Kernels as `[AdvectionRK2, wind_kernel]`
 
 ```{code-cell}
 :tags: [hide-output]
@@ -103,14 +103,14 @@ output_file = parcels.ParticleFile(
     store="advection_then_wind.zarr", outputdt=np.timedelta64(6,'h')
 )
 pset.execute(
-    [parcels.kernels.AdvectionRK4, wind_kernel],
+    [parcels.kernels.AdvectionRK2, wind_kernel],
     runtime=np.timedelta64(5,'D'),
     dt=np.timedelta64(1,'h'),
     output_file=output_file,
 )
 ```
 
-Then also run a simulation where we apply the Kernels in the reverse order as `[wind_kernel, AdvectionRK4]`
+Then also run a simulation where we apply the Kernels in the reverse order as `[wind_kernel, AdvectionRK2]`
 
 ```{code-cell}
 :tags: [hide-output]
@@ -121,7 +121,7 @@ output_file_reverse = parcels.ParticleFile(
     store="wind_then_advection.zarr", outputdt=np.timedelta64(6,"h")
 )
 pset_reverse.execute(
-    [wind_kernel, parcels.kernels.AdvectionRK4],
+    [wind_kernel, parcels.kernels.AdvectionRK2],
     runtime=np.timedelta64(5,"D"),
     dt=np.timedelta64(1,"h"),
     output_file=output_file_reverse,

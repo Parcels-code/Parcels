@@ -141,7 +141,7 @@ def Age(particles, fieldset):
     particles.age += particles.dt
 
 # define all kernels to be executed on particles using an (ordered) list
-kernels = [Age, parcels.kernels.AdvectionRK4]
+kernels = [Age, parcels.kernels.AdvectionRK2]
 ```
 
 ```{note}
