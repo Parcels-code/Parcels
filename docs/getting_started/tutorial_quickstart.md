@@ -42,11 +42,16 @@ As we can see, the reanalysis dataset contains eastward velocity `uo`, northward
 (`thetao`) and salinity (`so`) fields.
 
 These hydrodynamic fields need to be stored in a {py:obj}`parcels.FieldSet` object. Parcels provides tooling to parse many types
-of models or observations into such a `parcels.FieldSet` object. Here, we use {py:func}`parcels.FieldSet.from_copernicusmarine()`, which
-recognizes the standard names of a velocity field:
+of models or observations into such a `parcels.FieldSet` object. This is done in a two-step approach.
+
+First, we convert the dataset into an SGRID-compliant dataset, for example by using a version of `parcels.convert.<MODEL>_to_sgrid()`. Then, we create the `parcels.FieldSet` from the SGRID-compliant dataset using `parcels.FieldSet.from_sgrid_conventions()`.
+
+Below, we use a combination of {py:func}`parcels.convert.copernicusmarine_to_sgrid()` and {py:func}`parcels.FieldSet.from_sgrid_conventions()`, providing the names of the velocity fields in the dataset in the dictionary `fields`:
 
 ```{code-cell}
-fieldset = parcels.FieldSet.from_copernicusmarine(ds_fields)
+fields = {"U": ds_fields["uo"], "V": ds_fields["vo"]}
+ds_fset = parcels.convert.copernicusmarine_to_sgrid(fields=fields)
+fieldset = parcels.FieldSet.from_sgrid_conventions(ds_fset)
 ```
 
 The subset contains a region of the Agulhas current along the southeastern coast of Africa:

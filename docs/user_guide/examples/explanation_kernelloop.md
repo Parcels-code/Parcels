@@ -68,7 +68,14 @@ ds_fields["VWind"] = xr.DataArray(
     data=np.zeros((tdim, ydim, xdim)),
     coords=[ds_fields.time, ds_fields.latitude, ds_fields.longitude])
 
-fieldset = parcels.FieldSet.from_copernicusmarine(ds_fields)
+fields = {
+    "U": ds_fields["uo"],
+    "V": ds_fields["vo"],
+    "UWind": ds_fields["UWind"],
+    "VWind": ds_fields["VWind"],
+}
+ds_fset = parcels.convert.copernicusmarine_to_sgrid(fields=fields)
+fieldset = parcels.FieldSet.from_sgrid_conventions(ds_fset)
 
 # Create a vecorfield for the wind
 windvector = parcels.VectorField(

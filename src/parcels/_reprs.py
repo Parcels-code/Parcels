@@ -39,7 +39,6 @@ def field_repr(field: Field, level: int = 0) -> str:
         name            : {field.name!r}
         interp_method   : {field.interp_method!r}
         time_interval   : {field.time_interval!r}
-        units           : {field.units!r}
         igrid           : {field.igrid!r}
     DataArray:
 {textwrap.indent(repr(field.data), 8 * " ")}
