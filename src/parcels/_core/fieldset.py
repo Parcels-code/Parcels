@@ -136,7 +136,6 @@ class FieldSet:
             Value of the constant field
         mesh : str
             String indicating the type of mesh coordinates,
-            see also `this tutorial <../examples/tutorial_unitconverters.ipynb>`__:
 
             1. spherical (default): Lat and lon in degree, with a
                correction for zonal velocity U near the poles.
