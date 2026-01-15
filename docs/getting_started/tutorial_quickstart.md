@@ -49,6 +49,13 @@ recognizes the standard names of a velocity field:
 fieldset = parcels.FieldSet.from_copernicusmarine(ds_fields)
 ```
 
+You can inspect the `fieldset` by simply printing it:
+
+```{code-cell}
+:tags: [hide-output]
+print(fieldset)
+```
+
 The subset contains a region of the Agulhas current along the southeastern coast of Africa:
 
 ```{code-cell}
@@ -79,6 +86,15 @@ pset = parcels.ParticleSet(
     fieldset=fieldset, pclass=parcels.Particle, time=time, z=z, lat=lat, lon=lon
 )
 ```
+
+Again, you can inspect the `pset` by printing it:
+
+```{code-cell}
+:tags: [hide-output]
+print(pset)
+```
+
+And you can plot the particles on top of the temperature and velocity field:
 
 ```{code-cell}
 temperature = ds_fields.isel(time=0, depth=0).thetao.plot(cmap="magma")
