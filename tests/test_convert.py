@@ -46,7 +46,7 @@ _COPERNICUS_DATASETS = [
 
 
 @pytest.mark.parametrize("ds", _COPERNICUS_DATASETS)
-def test_fieldset_from_copernicusmarine(ds, caplog):
+def test_convert_copernicusmarine(ds, caplog):
     if "uo" in ds:
         fields = {"U": ds["uo"], "V": ds["vo"]}
     elif "VSDX" in ds:
@@ -60,7 +60,7 @@ def test_fieldset_from_copernicusmarine(ds, caplog):
     assert "UV" in fieldset.fields
 
 
-def test_fieldset_from_copernicusmarine_no_currents(caplog):
+def test_convert_copernicusmarine_no_currents(caplog):
     ds = datasets_circulation_models["ds_copernicusmarine"]
     ds_fset = convert.copernicusmarine_to_sgrid(fields={"do": ds["uo"]})
     fieldset = FieldSet.from_sgrid_conventions(ds_fset)
@@ -71,7 +71,7 @@ def test_fieldset_from_copernicusmarine_no_currents(caplog):
 
 
 @pytest.mark.parametrize("ds", _COPERNICUS_DATASETS)
-def test_fieldset_from_copernicusmarine_no_logs(ds, caplog):
+def test_convert_copernicusmarine_no_logs(ds, caplog):
     ds = ds.copy()
     zeros = xr.zeros_like(list(ds.data_vars.values())[0])
     ds["U"] = zeros
