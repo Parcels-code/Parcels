@@ -20,7 +20,7 @@ from parcels._core.xgrid import _DEFAULT_XGCM_KWARGS, XGrid
 from parcels._logger import logger
 from parcels._reprs import fieldset_repr
 from parcels._typing import Mesh
-from parcels.convert import _discover_U_and_V, _ds_rename_using_standard_names, _maybe_rename_coords
+from parcels.convert import _ds_rename_using_standard_names
 from parcels.interpolators import (
     CGrid_Velocity,
     Ux_Velocity,
@@ -186,64 +186,6 @@ class FieldSet:
             if field.grid not in grids:
                 grids.append(field.grid)
         return grids
-
-    @classmethod
-    def from_copernicusmarine(cls, ds: xr.Dataset):
-        """Create a FieldSet from a Copernicus Marine Service xarray.Dataset.
-
-        Parameters
-        ----------
-        ds : xarray.Dataset
-            xarray.Dataset as obtained from the copernicusmarine toolbox.
-
-        Returns
-        -------
-        FieldSet
-            FieldSet object containing the fields from the dataset that can be used for a Parcels simulation.
-
-        Notes
-        -----
-        See https://help.marine.copernicus.eu/en/collections/9080063-copernicus-marine-toolbox for more information on the copernicusmarine toolbox.
-        The toolbox to ingest data from most of the products on the Copernicus Marine Service (https://data.marine.copernicus.eu/products) into an xarray.Dataset.
-        You can use indexing and slicing to select a subset of the data before passing it to this function.
-        Note that most Parcels uses will require both U and V fields to be present in the dataset. This function will try to find out which variables in the dataset correspond to U and V.
-        To override the automatic detection, rename the appropriate variables in your dataset to 'U' and 'V' before passing it to this function.
-
-        """
-        ds = ds.copy()
-        ds = _discover_U_and_V(ds, _COPERNICUS_MARINE_CF_STANDARD_NAME_FALLBACKS)
-        expected_axes = set("XYZT")  # TODO: Update after we have support for 2D spatial fields
-        if missing_axes := (expected_axes - set(ds.cf.axes)):
-            raise ValueError(
-                f"Dataset missing CF compliant metadata for axes "
-                f"{missing_axes}. Expected 'axis' attribute to be set "
-                f"on all dimension axes {expected_axes}. "
-                "HINT: Add xarray metadata attribute 'axis' to dimension - e.g., ds['lat'].attrs['axis'] = 'Y'"
-            )
-
-        ds = _maybe_rename_coords(ds, _COPERNICUS_MARINE_AXIS_VARNAMES)
-        if "W" in ds.data_vars:
-            # Negate W to convert from up positive to down positive (as that's the direction of positive z)
-            ds["W"].data *= -1
-
-        if "grid" in ds.cf.cf_roles:
-            raise ValueError(
-                "Dataset already has a 'grid' variable (according to cf_roles). Didn't expect there to be grid metadata on copernicusmarine datasets - please open an issue with more information about your dataset."
-            )
-        ds["grid"] = xr.DataArray(
-            0,
-            attrs=sgrid.Grid2DMetadata(  # use dummy *_center dimensions - this is A grid data (all defined on nodes)
-                cf_role="grid_topology",
-                topology_dimension=2,
-                node_dimensions=("lon", "lat"),
-                face_dimensions=(
-                    sgrid.DimDimPadding("x_center", "lon", sgrid.Padding.LOW),
-                    sgrid.DimDimPadding("y_center", "lat", sgrid.Padding.LOW),
-                ),
-                vertical_dimensions=(sgrid.DimDimPadding("z_center", "depth", sgrid.Padding.LOW),),
-            ).to_attrs(),
-        )
-        return cls.from_sgrid_conventions(ds, mesh="spherical")
 
     @classmethod
     def from_fesom2(cls, ds: ux.UxDataset):
