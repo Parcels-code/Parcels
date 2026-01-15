@@ -11,7 +11,6 @@ import functools
 import importlib
 import logging
 import sys
-import tomllib
 import types
 from pathlib import Path
 
@@ -25,6 +24,50 @@ logger.addHandler(handler)
 PROJECT_ROOT = (Path(__file__).parent / "..").resolve()
 PUBLIC_MODULES = ["parcels", "parcels.interpolators"]
 ROOT_PACKAGE = "parcels"
+
+# full list of numpydoc error codes: https://numpydoc.readthedocs.io/en/latest/validation.html
+SKIP_ERRORS = [
+    "SA01",  # Parcels doesn't require the "See also" section
+    "SA04",  #
+    "ES01",  # We don't require the extended summary for all docstrings
+    "EX01",  # We don't require the "Examples" section for all docstrings
+    "SS06",  # Not possible to make all summaries one line
+    # To be fixed up
+    "GL03",  # Double line break found; please use only one blank line to separate sections or paragraphs, and do not leave blank lines at the end of docstrings
+    "GL05",  # Tabs found at the start of line "{line_with_tabs}", please use whitespace only
+    "GL06",  # Found unknown section "{section}". Allowed sections are: {allowed_sections}
+    "GL07",  # Sections are in the wrong order. Correct order is: {correct_sections}
+    "GL08",  # The object does not have a docstring
+    "SS01",  # No summary found (a short summary in a single line should be present at the beginning of the docstring)
+    "SS02",  # Summary does not start with a capital letter
+    "SS03",  # Summary does not end with a period
+    "SS04",  # Summary contains heading whitespaces
+    "SS05",  # Summary must start with infinitive verb, not third person (e.g. use "Generate" instead of "Generates")
+    "PR01",  # Parameters {missing_params} not documented
+    "PR02",  # Unknown parameters {unknown_params}
+    "PR03",  # Wrong parameters order. Actual: {actual_params}. Documented: {documented_params}
+    "SA02",  # Missing period at end of description for See Also "{reference_name}" reference
+    "SA03",  # Description should be capitalized for See Also
+    # ? Might conflict with Ruff rules. Needs more testing... Enable ignore if they conflict
+    # "GL01", # Docstring text (summary) should start in the line immediately after the opening quotes (not in the same line, or leaving a blank line in between)
+    # "GL02", # Closing quotes should be placed in the line after the last text in the docstring (do not close the quotes in the same line as the text, or leave a blank line between the last text and the quotes)
+    # TODO consider whether to continue ignoring the following
+    "GL09",  # Deprecation warning should precede extended summary
+    "GL10",  # reST directives {directives} must be followed by two colons
+    "PR04",  # Parameter "{param_name}" has no type
+    "PR05",  # Parameter "{param_name}" type should not finish with "."
+    "PR06",  # Parameter "{param_name}" type should use "{right_type}" instead of "{wrong_type}"
+    "PR07",  # Parameter "{param_name}" has no description
+    "PR08",  # Parameter "{param_name}" description should start with a capital letter
+    "PR09",  # Parameter "{param_name}" description should finish with "."
+    "PR10",  # Parameter "{param_name}" requires a space before the colon separating the parameter name and type
+    "RT01",  # No Returns section found
+    "RT02",  # The first line of the Returns section should contain only the type, unless multiple values are being returned
+    "RT03",  # Return value has no description
+    "RT04",  # Return value description should start with a capital letter
+    "RT05",  # Return value description should finish with "."
+    "YD01",  # No Yields section found
+]
 
 
 def is_built_in(type_or_instance: type | object):
@@ -100,8 +143,6 @@ def main():
 
     logger.setLevel(log_level)
 
-    with open(PROJECT_ROOT / "tools/tool-data.toml", "rb") as f:
-        skip_errors = tomllib.load(f)["numpydoc_skip_errors"]
     public_api = []
     for module in PUBLIC_MODULES:
         public_api += walk_module(module)
@@ -117,7 +158,7 @@ def main():
         if res["type"] in ("module", "float", "int", "dict"):
             continue
         for err in res["errors"]:
-            if err[0] not in skip_errors:
+            if err[0] not in SKIP_ERRORS:
                 print(f"{item}: {err}")
                 errors += 1
     sys.exit(errors)
