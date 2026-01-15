@@ -164,7 +164,7 @@ We have to be careful with writing kernels for vector fields on Curvilinear grid
 - [Sample fields like temperature](../user_guide/examples/tutorial_sampling.ipynb).
 - [Mimic the behaviour of ARGO floats](../user_guide/examples/tutorial_Argofloats.ipynb).
 - [Add diffusion to approximate subgrid-scale processes and unresolved physics](../user_guide/examples/tutorial_diffusion.ipynb).
-- [Convert between units in m/s and degrees](../user_guide/examples/tutorial_unitconverters.ipynb).
+- [Convert velocities between units in m s<sup>-1</sup> and degrees s<sup>-1</sup>](../user_guide/examples/tutorial_velocityconversion.ipynb).
 ```
 
 ## 4. Execute

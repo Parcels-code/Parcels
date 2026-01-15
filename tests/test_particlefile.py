@@ -11,7 +11,6 @@ from zarr.storage import MemoryStore
 from parcels import (
     Field,
     FieldSet,
-    Particle,
     ParticleFile,
     ParticleSet,
     ParticleSetWarning,
