@@ -10,7 +10,7 @@ version = "dynamic" # dynamic versioning needs better support in pixi https://gi
 license = "MIT" # can remove this once https://github.com/prefix-dev/pixi-build-backends/issues/397 is resolved
 
 [package.build]
-backend = { name = "pixi-build-python", version = "==0.4.0" }
+backend = { name = "pixi-build-python", version = "0.4.*" }
 
 [package.host-dependencies]
 setuptools = "*"
