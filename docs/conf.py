@@ -188,6 +188,17 @@ with open(PROJECT_ROOT / "tools/tool-data.toml", "rb") as f:
     numpydoc_skip_errors = tomllib.load(f)["numpydoc_skip_errors"]
 
 numpydoc_validation_checks = {"all"} | set(numpydoc_skip_errors)
+numpydoc_validation_exclude = {  # regex to ignore during docstring check
+    r"\.__getitem__",
+    r"\.__contains__",
+    r"\.__hash__",
+    r"\.__mul__",
+    r"\.__sub__",
+    r"\.__add__",
+    r"\.__iter__",
+    r"\.__div__",
+    r"\.__neg__",
+}
 
 # Add any paths that contain custom static files (such as style sheets) here,
 # relative to this directory. They are copied after the builtin static files,
