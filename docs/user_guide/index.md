@@ -28,7 +28,7 @@ examples/explanation_grids.md
 examples/tutorial_nemo.ipynb
 examples/tutorial_velocityconversion.ipynb
 examples/tutorial_nestedgrids.ipynb
-examples/tutorial_summingfields.ipynb
+examples/tutorial_manipulating_field_data.ipynb
 ```
 
 <!-- examples/documentation_indexing.ipynb -->
