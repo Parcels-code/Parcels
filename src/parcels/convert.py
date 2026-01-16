@@ -303,7 +303,7 @@ def croco_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.D
     fields : dict[str, xr.Dataset | xr.DataArray]
         Dictionary of xarray.DataArray objects as obtained from a set of Croco netcdf files.
     coords : xarray.Dataset, optional
-        xarray.Dataset containing coordinate variables. By default these are time, depth, latitude, longitude
+        xarray.Dataset containing coordinate variables.
 
     Returns
     -------
