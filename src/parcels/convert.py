@@ -134,6 +134,29 @@ def _ds_rename_using_standard_names(ds: xr.Dataset | ux.UxDataset, name_dict: di
     return ds
 
 
+def _maybe_convert_time_from_float_to_timedelta(ds: xr.Dataset) -> xr.Dataset:
+    if "time" in ds.coords:
+        if np.issubdtype(ds["time"].data.dtype, np.floating):
+            time_units = ds["time"].attrs.get("units", "").lower()
+            if "hour" in time_units:
+                factor = 3600.0 * 1e9
+            elif "day" in time_units:
+                factor = 86400.0 * 1e9
+            elif "minute" in time_units:
+                factor = 60.0 * 1e9
+            else:
+                # default to seconds if unspecified
+                factor = 1.0 * 1e9
+
+            ns_int = np.rint(ds["time"].values * factor).astype("int64")
+            try:
+                ds["time"] = ns_int.astype("timedelta64[ns]")
+                logger.info("Converted time coordinate from float to timedelta based on units.")
+            except Exception as e:
+                logger.warning(f"Failed to convert time coordinate to timedelta: {e}")
+    return ds
+
+
 # TODO is this function still needed, now that we require users to provide field names explicitly?
 def _discover_U_and_V(ds: xr.Dataset, cf_standard_names_fallbacks) -> xr.Dataset:
     # Assumes that the dataset has U and V data
@@ -306,6 +329,7 @@ def croco_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.D
     ds.attrs.clear()  # Clear global attributes from the merging
 
     ds = _maybe_rename_variables(ds, _CROCO_VARNAMES_MAPPING)
+    ds = _maybe_convert_time_from_float_to_timedelta(ds)
 
     if "grid" in ds.cf.cf_roles:
         raise ValueError(
