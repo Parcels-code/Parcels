@@ -25,8 +25,7 @@ The tutorials written for Parcels v3 are currently being updated for Parcels v4.
 :caption: Set up FieldSets
 :titlesonly:
 examples/explanation_grids.md
-examples/tutorial_nemo_curvilinear.ipynb
-examples/tutorial_nemo_3D.ipynb
+examples/tutorial_nemo.ipynb
 examples/tutorial_velocityconversion.ipynb
 examples/tutorial_nestedgrids.ipynb
 examples/tutorial_summingfields.ipynb
