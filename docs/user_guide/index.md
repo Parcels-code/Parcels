@@ -48,10 +48,6 @@ examples/tutorial_delaystart.ipynb
 examples/explanation_kernelloop.md
 examples/tutorial_sampling.ipynb
 examples/tutorial_statuscodes.ipynb
-examples/tutorial_gsw_density.ipynb
-examples/tutorial_Argofloats.ipynb
-examples/tutorial_diffusion.ipynb
-examples/tutorial_interaction.ipynb
 ```
 
 ```{toctree}
@@ -89,7 +85,12 @@ examples/tutorial_dt_integrators.ipynb
 <!-- examples/documentation_geospatial.ipynb -->
 
 ```{toctree}
-:caption: Worked examples
+:caption: Example Kernels
+:titlesonly:
+examples/tutorial_gsw_density.ipynb
+examples/tutorial_Argofloats.ipynb
+examples/tutorial_diffusion.ipynb
+examples/tutorial_interaction.ipynb
 ```
 
 <!-- examples/documentation_homepage_animation.ipynb -->
