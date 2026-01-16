@@ -1,6 +1,6 @@
 import numpy as np
 
-from parcels.kernels.advection import _constrain_dt_to_within_time_interval
+from parcels.kernels._advection import _constrain_dt_to_within_time_interval
 
 __all__ = [
     "AdvectionRK4_3D_CROCO",
@@ -15,8 +15,8 @@ def convert_z_to_sigma_croco(fieldset, time, z, y, x, particle):
     sea-surface Zeta and stretching parameters Cs_w and hc).
     See also https://croco-ocean.gitlabpages.inria.fr/croco_doc/model/model.grid.html#vertical-grid-parameters
     """
-    h = fieldset.h.eval(time, np.zeros_like(z), y, x, particles=particle, applyConversion=False)
-    zeta = fieldset.zeta.eval(time, np.zeros_like(z), y, x, particles=particle, applyConversion=False)
+    h = fieldset.h.eval(time, np.zeros_like(z), y, x, particles=particle)
+    zeta = fieldset.zeta.eval(time, np.zeros_like(z), y, x, particles=particle)
     sigma_levels = fieldset.U.grid.depth
     cs_w = fieldset.Cs_w.data[0, :, 0, 0].values
 
