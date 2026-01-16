@@ -20,9 +20,19 @@ def test_conversion_3DCROCO():
     """
     data_folder = parcels.download_example_dataset("CROCOidealized_data")
     ds_fields = xr.open_dataset(data_folder / "CROCO_idealized.nc")
-    ds_fields = ds_fields[["u", "v", "w", "h", "zeta", "Cs_w"]]
+    fields = {
+        "U": ds_fields["u"],
+        "V": ds_fields["v"],
+        "W": ds_fields["w"],
+        "h": ds_fields["h"],
+        "zeta": ds_fields["zeta"],
+        "Cs_w": ds_fields["Cs_w"],
+    }
 
-    fieldset = parcels.FieldSet.from_croco(ds_fields, mesh="flat")
+    coords = ds_fields[["x_rho", "y_rho", "s_w", "time"]]
+    ds_fset = parcels.convert.croco_to_sgrid(fields=fields, coords=coords)
+
+    fieldset = parcels.FieldSet.from_sgrid_conventions(ds_fset)
     fieldset.add_constant("hc", ds_fields.hc)
 
     s_xroms = np.array([-1.0, -0.9, -0.8, -0.7, -0.6, -0.5, -0.4, -0.3, -0.2, -0.1, 0.0], dtype=np.float32)
@@ -55,10 +65,22 @@ def test_conversion_3DCROCO():
 def test_advection_3DCROCO():
     data_folder = parcels.download_example_dataset("CROCOidealized_data")
     ds_fields = xr.open_dataset(data_folder / "CROCO_idealized.nc")
-    ds_fields = ds_fields[["u", "v", "w", "h", "zeta", "Cs_w", "omega"]]
     ds_fields.load()
 
-    fieldset = parcels.FieldSet.from_croco(ds_fields, mesh="flat")
+    fields = {
+        "U": ds_fields["u"],
+        "V": ds_fields["v"],
+        "W": ds_fields["w"],
+        "h": ds_fields["h"],
+        "zeta": ds_fields["zeta"],
+        "Cs_w": ds_fields["Cs_w"],
+        "omega": ds_fields["omega"],
+    }
+
+    coords = ds_fields[["x_rho", "y_rho", "s_w", "time"]]
+    ds_fset = parcels.convert.croco_to_sgrid(fields=fields, coords=coords)
+
+    fieldset = parcels.FieldSet.from_sgrid_conventions(ds_fset)
     fieldset.add_constant("hc", ds_fields.hc)
 
     runtime = 10_000
