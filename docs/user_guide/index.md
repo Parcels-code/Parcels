@@ -29,6 +29,7 @@ examples/tutorial_nemo_curvilinear.ipynb
 examples/tutorial_nemo_3D.ipynb
 examples/tutorial_velocityconversion.ipynb
 examples/tutorial_nestedgrids.ipynb
+examples/tutorial_summingfields.ipynb
 ```
 
 <!-- examples/documentation_indexing.ipynb -->
