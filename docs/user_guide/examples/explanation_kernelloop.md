@@ -4,9 +4,9 @@ kernelspec:
   name: python3
 ---
 
-# 📖 The Parcels Kernel loop
+# 📖 Kernel loop
 
-On this page we discuss Parcels' execution loop, and what happens under the hood when you combine multiple Kernels.
+On this page we discuss how Parcels executes the Kernel loop, and what happens under the hood when you combine multiple Kernels.
 
 This is not very relevant when you only use the built-in Advection Kernels, but can be important when you are writing and combining your own Kernels!
 
