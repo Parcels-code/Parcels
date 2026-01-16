@@ -42,6 +42,25 @@ _NEMO_VARNAMES_MAPPING = {
     "wo": "W",
 }
 
+_MITGCM_AXIS_VARNAMES = {
+    "XC": "X",
+    "XG": "X",
+    "lon": "X",
+    "YC": "Y",
+    "YG": "Y",
+    "lat": "Y",
+    "Zu": "Z",
+    "Zl": "Z",
+    "Zp1": "Z",
+    "time": "T",
+}
+
+_MITGCM_VARNAMES_MAPPING = {
+    "XG": "lon",
+    "YG": "lat",
+    "Zl": "depth",
+}
+
 _COPERNICUS_MARINE_AXIS_VARNAMES = {
     "X": "lon",
     "Y": "lat",
@@ -114,7 +133,8 @@ def _maybe_remove_depth_from_lonlat(ds):
 
 def _set_axis_attrs(ds, dim_axis):
     for dim, axis in dim_axis.items():
-        ds[dim].attrs["axis"] = axis
+        if dim in ds:
+            ds[dim].attrs["axis"] = axis
     return ds
 
 
@@ -125,6 +145,16 @@ def _ds_rename_using_standard_names(ds: xr.Dataset | ux.UxDataset, name_dict: di
         logger.info(
             f"cf_xarray found variable {name!r} with CF standard name {standard_name!r} in dataset, renamed it to {rename_to!r} for Parcels simulation."
         )
+    return ds
+
+
+def _maybe_swap_depth_direction(ds: xr.Dataset) -> xr.Dataset:
+    if ds["depth"].size > 1:
+        if ds["depth"][0] > ds["depth"][-1]:
+            logger.info(
+                "Depth dimension appears to be decreasing upward (i.e., from positive to negative values). Swapping depth dimension to be increasing upward for Parcels simulation."
+            )
+            ds = ds.reindex(depth=ds["depth"][::-1])
     return ds
 
 
@@ -263,6 +293,66 @@ def nemo_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.Da
 
     # Update to use lon and lat for internal naming
     ds = sgrid.rename(ds, {"gphif": "lat", "glamf": "lon"})  # TODO: Logging message about rename
+    return ds
+
+
+def mitgcm_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.Dataset) -> xr.Dataset:
+    """Create an sgrid-compliant xarray.Dataset from a dataset of MITgcm netcdf files.
+
+    Parameters
+    ----------
+    fields : dict[str, xr.Dataset | xr.DataArray]
+        Dictionary of xarray.DataArray objects as obtained from a set of MITgcm netcdf files.
+    coords : xarray.Dataset, optional
+        xarray.Dataset containing coordinate variables.
+
+    Returns
+    -------
+    xarray.Dataset
+        Dataset object following SGRID conventions to be (optionally) modified and passed to a FieldSet constructor.
+
+    Notes
+    -----
+    See the MITgcm tutorial for more information on how to use MITgcm model outputs in Parcels
+
+    """
+    fields = fields.copy()
+
+    for name, field_da in fields.items():
+        if isinstance(field_da, xr.Dataset):
+            field_da = field_da[name]
+            # TODO: logging message, warn if multiple fields are in this dataset
+        else:
+            field_da = field_da.rename(name)
+        fields[name] = field_da
+
+    ds = xr.merge(list(fields.values()) + [coords])
+    ds.attrs.clear()  # Clear global attributes from the merging
+
+    ds = _maybe_rename_variables(ds, _MITGCM_VARNAMES_MAPPING)
+    # ds = _set_axis_attrs(ds, _MITGCM_AXIS_VARNAMES)
+    ds = _maybe_swap_depth_direction(ds)
+
+    if "grid" in ds.cf.cf_roles:
+        raise ValueError(
+            "Dataset already has a 'grid' variable (according to cf_roles). Didn't expect there to be grid metadata on copernicusmarine datasets - please open an issue with more information about your dataset."
+        )
+
+    ds["grid"] = xr.DataArray(
+        0,
+        attrs=sgrid.Grid2DMetadata(
+            cf_role="grid_topology",
+            topology_dimension=2,
+            node_dimensions=("lon", "lat"),
+            node_coordinates=("lon", "lat"),
+            face_dimensions=(
+                sgrid.DimDimPadding("XC", "lon", sgrid.Padding.HIGH),
+                sgrid.DimDimPadding("YC", "lat", sgrid.Padding.HIGH),
+            ),
+            vertical_dimensions=(sgrid.DimDimPadding("depth", "depth", sgrid.Padding.HIGH),),
+        ).to_attrs(),
+    )
+
     return ds
 
 
