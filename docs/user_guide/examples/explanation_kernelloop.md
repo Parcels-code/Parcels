@@ -42,6 +42,10 @@ Besides having commutable Kernels, the main advantage of this implementation is 
 
 Below is a simple example of some particles at the surface of the ocean. We create an idealised zonal wind flow that will "push" a particle that is already affected by the surface currents. The Kernel loop ensures that these two forces act at the same time and location.
 
+```{note}
+Advecting particles by a combination of flow fields can be done with two separate kernels, as is shown below. However, it can also be done by summing the fields directly using `xarray` operations - provided the fields are defined on the same grid and have compatible dimensions. See the [manipulating field data tutorial](tutorial_manipulating_field_data.ipynb) for an example of that approach.
+```
+
 ```{code-cell}
 :tags: [hide-output]
 import matplotlib.pyplot as plt
@@ -68,7 +72,14 @@ ds_fields["VWind"] = xr.DataArray(
     data=np.zeros((tdim, ydim, xdim)),
     coords=[ds_fields.time, ds_fields.latitude, ds_fields.longitude])
 
-fieldset = parcels.FieldSet.from_copernicusmarine(ds_fields)
+fields = {
+    "U": ds_fields["uo"],
+    "V": ds_fields["vo"],
+    "UWind": ds_fields["UWind"],
+    "VWind": ds_fields["VWind"],
+}
+ds_fset = parcels.convert.copernicusmarine_to_sgrid(fields=fields)
+fieldset = parcels.FieldSet.from_sgrid_conventions(ds_fset)
 
 # Create a vecorfield for the wind
 windvector = parcels.VectorField(

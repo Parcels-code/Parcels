@@ -24,6 +24,7 @@ from parcels._core.particle import Particle, create_particle_data, get_default_p
 from parcels._core.utils.time import TimeInterval, timedelta_to_float
 from parcels._datasets.structured.generated import peninsula_dataset
 from parcels._datasets.structured.generic import datasets
+from parcels.convert import copernicusmarine_to_sgrid
 from parcels.interpolators import XLinear, XLinear_Velocity
 from parcels.kernels import AdvectionRK4
 from tests.common_kernels import DoNothing
@@ -443,7 +444,9 @@ def test_pset_execute_outputdt_backwards_fieldset_timevarying():
     # TODO: Not ideal using the `download_example_dataset` here, but I'm struggling to recreate this error using the test suite fieldsets we have
     example_dataset_folder = download_example_dataset("CopernicusMarine_data_for_Argo_tutorial")
     ds_in = xr.open_mfdataset(f"{example_dataset_folder}/*.nc", combine="by_coords")
-    fieldset = FieldSet.from_copernicusmarine(ds_in)
+    fields = {"U": ds_in["uo"], "V": ds_in["vo"]}
+    ds_fset = copernicusmarine_to_sgrid(fields=fields)
+    fieldset = FieldSet.from_sgrid_conventions(ds_fset)
 
     ds = setup_pset_execute(outputdt=outputdt, execute_kwargs=dict(runtime=runtime, dt=dt), fieldset=fieldset)
     file_outputdt = ds.isel(trajectory=0).time.diff(dim="obs").values
