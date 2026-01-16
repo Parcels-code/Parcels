@@ -2,12 +2,6 @@ import numpy as np
 
 from parcels.kernels._advection import _constrain_dt_to_within_time_interval
 
-__all__ = [
-    "AdvectionRK4_3D_CROCO",
-    "SampleOmegaCroco",
-    "convert_z_to_sigma_croco",
-]
-
 
 def convert_z_to_sigma_croco(fieldset, time, z, y, x, particle):
     """Calculate local sigma level of the particles, by linearly interpolating the

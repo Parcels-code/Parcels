@@ -3,8 +3,7 @@ import xarray as xr
 
 import parcels
 from parcels import Particle, ParticleSet, Variable
-from parcels.kernels import AdvectionRK4_3D_CROCO
-from parcels.kernels.sigmagrids import SampleOmegaCroco, convert_z_to_sigma_croco
+from parcels.kernels import AdvectionRK4_3D_CROCO, SampleOmegaCroco, convert_z_to_sigma_croco
 
 
 def test_conversion_3DCROCO():
