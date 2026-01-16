@@ -30,6 +30,7 @@ examples/tutorial_nemo_3D.ipynb
 examples/tutorial_croco_3D.ipynb
 examples/tutorial_velocityconversion.ipynb
 examples/tutorial_nestedgrids.ipynb
+examples/tutorial_summingfields.ipynb
 ```
 
 <!-- examples/documentation_indexing.ipynb -->
