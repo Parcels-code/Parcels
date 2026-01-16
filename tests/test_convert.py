@@ -6,6 +6,7 @@ import parcels.convert as convert
 from parcels import FieldSet
 from parcels._core.utils import sgrid
 from parcels._datasets.structured.circulation_models import datasets as datasets_circulation_models
+from parcels.interpolators._xinterpolators import _get_offsets_dictionary
 
 
 def test_nemo_to_sgrid():
@@ -37,6 +38,21 @@ def test_nemo_to_sgrid():
         meta.get_value_by_id("face_dimension1"),  # X center
         meta.get_value_by_id("node_dimension2"),  # Y edge
     }.issubset(set(ds["V"].dims))
+
+
+def test_convert_nemo_offsets():
+    data_folder = parcels.download_example_dataset("NemoCurvilinear_data")
+    U = xr.open_mfdataset(data_folder.glob("*U.nc4"))
+    V = xr.open_mfdataset(data_folder.glob("*V.nc4"))
+    coords = xr.open_dataset(data_folder / "mesh_mask.nc4")
+
+    ds = convert.nemo_to_sgrid(fields=dict(U=U, V=V), coords=coords)
+    fieldset = FieldSet.from_sgrid_conventions(ds)
+
+    offsets = _get_offsets_dictionary(fieldset.UV.grid)
+    assert offsets["X"] == 1
+    assert offsets["Y"] == 1
+    assert offsets["Z"] == 0
 
 
 _COPERNICUS_DATASETS = [
@@ -83,3 +99,16 @@ def test_convert_copernicusmarine_no_logs(ds, caplog):
     assert "V" in fieldset.fields
     assert "UV" in fieldset.fields
     assert caplog.text == ""
+
+
+def test_convert_croco_offsets():
+    ds = datasets_circulation_models["ds_CROCO_idealized"]
+    coords = ds[["x_rho", "y_rho", "s_w", "time"]]
+
+    ds = convert.croco_to_sgrid(fields={"U": ds["u"], "V": ds["v"]}, coords=coords)
+    fieldset = FieldSet.from_sgrid_conventions(ds)
+
+    offsets = _get_offsets_dictionary(fieldset.UV.grid)
+    assert offsets["X"] == 0
+    assert offsets["Y"] == 0
+    assert offsets["Z"] == 0
