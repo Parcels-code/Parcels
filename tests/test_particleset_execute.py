@@ -23,7 +23,13 @@ from parcels._core.utils.time import timedelta_to_float
 from parcels._datasets.structured.generated import simple_UV_dataset
 from parcels._datasets.structured.generic import datasets as datasets_structured
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
-from parcels.interpolators import Ux_Velocity, UxPiecewiseConstantFace, UxPiecewiseLinearNode, XLinear, XLinear_Velocity
+from parcels.interpolators import (
+    Ux_Velocity,
+    UxConstantFaceConstantZC,
+    UxLinearNodeLinearZF,
+    XLinear,
+    XLinear_Velocity,
+)
 from parcels.kernels import AdvectionEE, AdvectionRK2, AdvectionRK4, AdvectionRK4_3D, AdvectionRK45
 from tests.common_kernels import DoNothing
 from tests.utils import DEFAULT_PARTICLES
@@ -475,24 +481,24 @@ def test_execution_update_particle_in_kernel_function(fieldset, kernel_names, ex
 
 def test_uxstommelgyre_pset_execute():
     ds = datasets_unstructured["stommel_gyre_delaunay"]
-    grid = UxGrid(grid=ds.uxgrid, z=ds.coords["nz"], mesh="spherical")
+    grid = UxGrid(grid=ds.uxgrid, z=ds.coords["zf"], mesh="spherical")
     U = Field(
         name="U",
         data=ds.U,
         grid=grid,
-        interp_method=UxPiecewiseConstantFace,
+        interp_method=UxConstantFaceConstantZC,
     )
     V = Field(
         name="V",
         data=ds.V,
         grid=grid,
-        interp_method=UxPiecewiseConstantFace,
+        interp_method=UxConstantFaceConstantZC,
     )
     P = Field(
         name="P",
         data=ds.p,
         grid=grid,
-        interp_method=UxPiecewiseConstantFace,
+        interp_method=UxConstantFaceConstantZC,
     )
     UV = VectorField(name="UV", U=U, V=V, vector_interp_method=Ux_Velocity)
     fieldset = FieldSet([UV, UV.U, UV.V, P])
@@ -515,30 +521,30 @@ def test_uxstommelgyre_pset_execute():
 
 def test_uxstommelgyre_multiparticle_pset_execute():
     ds = datasets_unstructured["stommel_gyre_delaunay"]
-    grid = UxGrid(grid=ds.uxgrid, z=ds.coords["nz"], mesh="spherical")
+    grid = UxGrid(grid=ds.uxgrid, z=ds.coords["zf"], mesh="spherical")
     U = Field(
         name="U",
         data=ds.U,
         grid=grid,
-        interp_method=UxPiecewiseConstantFace,
+        interp_method=UxConstantFaceConstantZC,
     )
     V = Field(
         name="V",
         data=ds.V,
         grid=grid,
-        interp_method=UxPiecewiseConstantFace,
+        interp_method=UxConstantFaceConstantZC,
     )
     W = Field(
         name="W",
         data=ds.W,
         grid=grid,
-        interp_method=UxPiecewiseLinearNode,
+        interp_method=UxLinearNodeLinearZF,
     )
     P = Field(
         name="P",
         data=ds.p,
         grid=grid,
-        interp_method=UxPiecewiseConstantFace,
+        interp_method=UxConstantFaceConstantZC,
     )
     UVW = VectorField(name="UVW", U=U, V=V, W=W, vector_interp_method=Ux_Velocity)
     fieldset = FieldSet([UVW, UVW.U, UVW.V, UVW.W, P])
@@ -565,19 +571,19 @@ def test_uxstommelgyre_pset_execute_output():
         name="U",
         data=ds.U,
         grid=grid,
-        interp_method=UxPiecewiseConstantFace,
+        interp_method=UxConstantFaceConstantZC,
     )
     V = Field(
         name="V",
         data=ds.V,
         grid=grid,
-        interp_method=UxPiecewiseConstantFace,
+        interp_method=UxConstantFaceConstantZC,
     )
     P = Field(
         name="P",
         data=ds.p,
         grid=grid,
-        interp_method=UxPiecewiseConstantFace,
+        interp_method=UxConstantFaceConstantZC,
     )
     UV = VectorField(name="UV", U=U, V=V, vector_interp_method=Ux_Velocity)
     fieldset = FieldSet([UV, UV.U, UV.V, P])
