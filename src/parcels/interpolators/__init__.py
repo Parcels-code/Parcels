@@ -1,7 +1,9 @@
 from ._uxinterpolators import (
     Ux_Velocity,
-    UxPiecewiseConstantFace,
-    UxPiecewiseLinearNode,
+    UxConstantFaceConstantZC,
+    UxConstantFaceLinearZF,
+    UxLinearNodeConstantZC,
+    UxLinearNodeLinearZF,
 )
 from ._xinterpolators import (
     CGrid_Tracer,
@@ -31,7 +33,9 @@ __all__ = [  # noqa: RUF022
     "ZeroInterpolator",
     "ZeroInterpolator_Vector",
     # uxinterpolators
-    "UxPiecewiseConstantFace",
-    "UxPiecewiseLinearNode",
     "Ux_Velocity",
+    "UxConstantFaceConstantZC",
+    "UxConstantFaceLinearZF",
+    "UxLinearNodeConstantZC",
+    "UxLinearNodeLinearZF",
 ]
