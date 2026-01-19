@@ -508,12 +508,6 @@ def test_mitgcm():
     data_folder = parcels.download_example_dataset("MITgcm_example_data")
     ds_fields = xr.open_dataset(data_folder / "mitgcm_UV_surface_zonally_reentrant.nc")
 
-    # TODO fix cftime conversion in Parcels itself
-    t = ds_fields["time"].values
-    secs = np.array([(ti - t[0]).total_seconds() for ti in t])
-    td_ns = np.rint(secs * 1e9).astype("int64").astype("timedelta64[ns]")
-    ds_fields = ds_fields.assign_coords(time=td_ns)
-
     coords = ds_fields[["XG", "YG", "Zl", "time"]]
     ds_fset = convert.mitgcm_to_sgrid(fields={"U": ds_fields.UVEL, "V": ds_fields.VVEL}, coords=coords)
     fieldset = FieldSet.from_sgrid_conventions(ds_fset)
