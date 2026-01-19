@@ -143,7 +143,7 @@ def Age(particles, fieldset):
     particles.age += particles.dt
 
 # define all kernels to be executed on particles using an (ordered) list
-kernels = [Age, parcels.kernels.AdvectionRK4]
+kernels = [Age, parcels.kernels.AdvectionRK2]
 ```
 
 ```{note}
@@ -151,7 +151,7 @@ Every Kernel must be a function with the following (and only those) arguments: `
 ```
 
 ```{warning}
-We have to be careful with writing kernels for vector fields on Curvilinear grids. While Parcels automatically rotates the "U" and "V" field when necessary, this is not the case for other fields such as Stokes drift. [This guide](../user_guide/examples/tutorial_nemo_curvilinear.ipynb) describes how to use a curvilinear grid in Parcels.
+We have to be careful with kernels that sample velocities on "spherical" grids (so with longitude and latitude in degrees). Parcels can automatically convert velocities from m s<sup>-1</sup> to degrees s<sup>-1</sup>, but only when using `VectorFields`. [This guide](../user_guide/examples/tutorial_velocityconversion.ipynb) describes how to use velocities on a "spherical" grid in Parcels.
 ```
 
 ```{admonition} 📖 Read more about the Kernel loop
@@ -159,7 +159,7 @@ We have to be careful with writing kernels for vector fields on Curvilinear grid
 - [The Kernel loop](../user_guide/examples/explanation_kernelloop.md)
 ```
 
-```{admonition} 🖥️ Learn how to write kernels
+```{admonition} 🖥️ Learn how to write Kernels
 :class: seealso
 - [Sample fields like temperature](../user_guide/examples/tutorial_sampling.ipynb).
 - [Mimic the behaviour of ARGO floats](../user_guide/examples/tutorial_Argofloats.ipynb).

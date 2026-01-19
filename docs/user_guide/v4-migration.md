@@ -15,6 +15,7 @@ Version 4 of Parcels is unreleased at the moment. The information in this migrat
 - `math` functions should be replaced with array compatible equivalents (e.g., `math.sin` -> `np.sin`). Instead of `ParcelsRandom` you should use numpy's random functions.
 - `particle.depth` has been changed to `particles.z` to be consistent with the [CF conventions for trajectory data](https://cfconventions.org/cf-conventions/cf-conventions.html#trajectory-data), and to make Parcels also generalizable to atmospheric contexts.
 - The `InteractionKernel` class has been removed. Since normal Kernels now have access to _all_ particles, particle-particle interaction can be performed within normal Kernels.
+- We added a new AdvectionRK2 Kernel. The AdvectionRK4 kernel is still available, but RK2 is now the recommended default advection scheme as it is faster while the accuracy is comparable for most applications. See also the Choosing an integration method tutorial.
 
 ## FieldSet
 

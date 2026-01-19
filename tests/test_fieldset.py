@@ -242,8 +242,16 @@ def test_fieldset_add_field_after_pset():
     ...
 
 
+def test_fieldset_from_icon():
+    ds = datasets_unstructured["icon_square_delaunay_uniform_z_coordinate"]
+    fieldset = FieldSet.from_icon(ds)
+    assert "U" in fieldset.fields
+    assert "V" in fieldset.fields
+    assert "UVW" in fieldset.fields
+
+
 def test_fieldset_from_fesom2():
-    ds = datasets_unstructured["stommel_gyre_delaunay"]
+    ds = datasets_unstructured["fesom2_square_delaunay_uniform_z_coordinate"]
     fieldset = FieldSet.from_fesom2(ds)
     assert "U" in fieldset.fields
     assert "V" in fieldset.fields
@@ -251,7 +259,7 @@ def test_fieldset_from_fesom2():
 
 
 def test_fieldset_from_fesom2_missingUV():
-    ds = datasets_unstructured["stommel_gyre_delaunay"]
+    ds = datasets_unstructured["fesom2_square_delaunay_uniform_z_coordinate"]
     # Intentionally create a dataset that is missing the U field
     localds = ds.rename({"U": "notU"})
     with pytest.raises(ValueError) as info:
