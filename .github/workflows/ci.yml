@@ -39,6 +39,8 @@ jobs:
       - name: Set skip-ci output
         id: set-output
         run: |
+          echo 'steps.check-skip.outputs.trigger-found=${{steps.check-skip.outputs.trigger-found}}'
+          echo "github.event.pull_request.labels.*.name=${{toJson(github.event.pull_request.labels.*.name)}}"
           SKIP_CI=${{ steps.check-skip.outputs.trigger-found == 'true' || contains(github.event.pull_request.labels.*.name, 'skip-ci') }}
           echo "skip-ci=${SKIP_CI}"
           echo "skip-ci=${SKIP_CI}" >> $GITHUB_OUTPUT
