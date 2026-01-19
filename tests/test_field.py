@@ -9,7 +9,11 @@ from parcels import Field, UxGrid, VectorField, XGrid
 from parcels._datasets.structured.generic import T as T_structured
 from parcels._datasets.structured.generic import datasets as datasets_structured
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
-from parcels.interpolators import UxPiecewiseConstantFace, UxPiecewiseLinearNode, XLinear
+from parcels.interpolators import (
+    UxConstantFaceConstantZC,
+    UxLinearNodeLinearZF,
+    XLinear,
+)
 
 
 def test_field_init_param_types():
@@ -54,7 +58,7 @@ def test_field_init_param_types():
             xr.DataArray(),
             UxGrid(
                 datasets_unstructured["stommel_gyre_delaunay"].uxgrid,
-                z=datasets_unstructured["stommel_gyre_delaunay"].coords["nz"],
+                z=datasets_unstructured["stommel_gyre_delaunay"].coords["zf"],
                 mesh="flat",
             ),
             id="xarray-uxgrid",
@@ -186,18 +190,24 @@ def test_field_unstructured_z_linear():
     linear functions of the vertical coordinate. This allows for testing of exactness of the interpolation methods.
     """
     ds = datasets_unstructured["fesom2_square_delaunay_uniform_z_coordinate"].copy(deep=True)
+    ds = ds.rename(
+        {
+            "nz": "zf",  # Vertical Interface
+            "nz1": "zc",  # Vertical Center
+        }
+    ).set_index(zf="zf", zc="zc")
 
     # Change the pressure values to be linearly dependent on the vertical coordinate
-    for k, z in enumerate(ds.coords["nz1"]):
+    for k, z in enumerate(ds.coords["zc"]):
         ds["p"].values[:, k, :] = z
 
     # Change the vertical velocity values to be linearly dependent on the vertical coordinate
-    for k, z in enumerate(ds.coords["nz"]):
+    for k, z in enumerate(ds.coords["zf"]):
         ds["W"].values[:, k, :] = z
 
-    grid = UxGrid(ds.uxgrid, z=ds.coords["nz"], mesh="flat")
+    grid = UxGrid(ds.uxgrid, z=ds.coords["zf"], mesh="flat")
     # Note that the vertical coordinate is required to be the position of the layer interfaces ("nz"), not the mid-layers ("nz1")
-    P = Field(name="p", data=ds.p, grid=grid, interp_method=UxPiecewiseConstantFace)
+    P = Field(name="p", data=ds.p, grid=grid, interp_method=UxConstantFaceConstantZC)
 
     # Test above first cell center - for piecewise constant, should return the depth of the first cell center
     assert np.isclose(
@@ -215,7 +225,7 @@ def test_field_unstructured_z_linear():
         944.44445801,
     )
 
-    W = Field(name="W", data=ds.W, grid=grid, interp_method=UxPiecewiseLinearNode)
+    W = Field(name="W", data=ds.W, grid=grid, interp_method=UxLinearNodeLinearZF)
     assert np.isclose(
         W.eval(time=[0], z=[10.0], y=[30.0], x=[30.0]),
         10.0,
@@ -233,9 +243,9 @@ def test_field_unstructured_z_linear():
 def test_field_constant_in_time():
     """Tests field evaluation for a field with no time interval (i.e., constant in time)."""
     ds = datasets_unstructured["stommel_gyre_delaunay"]
-    grid = UxGrid(ds.uxgrid, z=ds.coords["nz"], mesh="flat")
+    grid = UxGrid(ds.uxgrid, z=ds.coords["zf"], mesh="flat")
     # Note that the vertical coordinate is required to be the position of the layer interfaces ("nz"), not the mid-layers ("nz1")
-    P = Field(name="p", data=ds.p, grid=grid, interp_method=UxPiecewiseConstantFace)
+    P = Field(name="p", data=ds.p, grid=grid, interp_method=UxConstantFaceConstantZC)
 
     # Assert that the field can be evaluated at any time, and returns the same value
     time = np.datetime64("2000-01-01T00:00:00")

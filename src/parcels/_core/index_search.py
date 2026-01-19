@@ -257,7 +257,7 @@ def uxgrid_point_in_cell(grid, y: np.ndarray, x: np.ndarray, yi: np.ndarray, xi:
         points = ptilde - pdotnhat[:, None] * nhat + face_vertices[:, 0, :]
 
     else:
-        nids = grid.uxgrid.face_node_connectivity[xi].values
+        nids = grid.uxgrid.face_node_connectivity[xi, :].values
         face_vertices = np.stack(
             (
                 grid.uxgrid.node_lon[nids.ravel()].values.reshape(nids.shape),
@@ -285,7 +285,7 @@ def _triangle_area(A, B, C):  # noqa: N803
     if A.shape[-1] == 2:
         # 2D case: cross product reduces to scalar z-component
         cross = d1[..., 0] * d2[..., 1] - d1[..., 1] * d2[..., 0]
-        area = 0.5 * np.abs(cross)
+        area = 0.5 * cross
     elif A.shape[-1] == 3:
         # 3D case: full vector cross product
         cross = np.cross(d1, d2)
@@ -309,8 +309,8 @@ def _barycentric_coordinates(nodes, points, min_area=1e-8):
         nodes : numpy.ndarray
             Polygon verties per query of shape (M, 3, 2/3) where M is the number of query points. The second dimension corresponds to the number
             of vertices
-            The last dimension can be either 2 or 3, where 3 corresponds to the (z, y, x) coordinates of each vertex and 2 corresponds to the
-            (lat, lon) coordinates of each vertex.
+            The last dimension can be either 2 or 3, where 3 corresponds to the (x, y, z) coordinates of each vertex and 2 corresponds to the
+            (lon, lat) coordinates of each vertex.
 
         points : numpy.ndarray
             Spherical coordinates of the point (M,2/3) where M is the number of query points.
@@ -323,24 +323,21 @@ def _barycentric_coordinates(nodes, points, min_area=1e-8):
     """
     M, K = nodes.shape[:2]
 
-    vi = np.squeeze(nodes[:, 0, :])  # (M,K,2)
-    vi1 = np.squeeze(nodes[:, 1, :])  # (M,K,2)
-    vim1 = np.squeeze(nodes[:, 2, :])  # (M,K,2)
+    vi0 = nodes[:, 0, :]  # (M,K,2)
+    vi1 = nodes[:, 1, :]  # (M,K,2)
+    vi2 = nodes[:, 2, :]  # (M,K,2)
 
-    # a0 = area(v_{i-1}, v_i, v_{i+1})
-    a0 = _triangle_area(vim1, vi, vi1)  # (M,K)
+    a = _triangle_area(vi0, vi1, vi2)  # (M,K)
 
-    # a1 = area(P, v_{i-1}, v_i); a2 = area(P, v_i, v_{i+1})
     P = points
-    a1 = _triangle_area(P, vi1, vim1)
-    a2 = _triangle_area(P, vim1, vi)
-    a3 = _triangle_area(P, vi, vi1)
+    a0 = _triangle_area(P, vi1, vi2)
+    a1 = _triangle_area(P, vi2, vi0)
+    a2 = _triangle_area(P, vi0, vi1)
 
-    # wi = a0 / (a1c * a2c)  # (M,K)
     bcoords = np.zeros((M, K))
-    bcoords[:, 0] = a1 / a0
-    bcoords[:, 1] = a2 / a0
-    bcoords[:, 2] = a3 / a0
+    bcoords[:, 0] = a0 / a
+    bcoords[:, 1] = a1 / a
+    bcoords[:, 2] = a2 / a
 
     return bcoords
 
