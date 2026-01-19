@@ -45,9 +45,11 @@ _NEMO_VARNAMES_MAPPING = {
 _MITGCM_AXIS_VARNAMES = {
     "XC": "X",
     "XG": "X",
+    "Xp1": "X",
     "lon": "X",
     "YC": "Y",
     "YG": "Y",
+    "Yp1": "Y",
     "lat": "Y",
     "Zu": "Z",
     "Zl": "Z",
@@ -330,7 +332,7 @@ def mitgcm_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.
     ds.attrs.clear()  # Clear global attributes from the merging
 
     ds = _maybe_rename_variables(ds, _MITGCM_VARNAMES_MAPPING)
-    # ds = _set_axis_attrs(ds, _MITGCM_AXIS_VARNAMES)
+    ds = _set_axis_attrs(ds, _MITGCM_AXIS_VARNAMES)
     ds = _maybe_swap_depth_direction(ds)
 
     if "grid" in ds.cf.cf_roles:

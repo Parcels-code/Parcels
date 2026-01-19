@@ -6,6 +6,7 @@ import parcels.convert as convert
 from parcels import FieldSet
 from parcels._core.utils import sgrid
 from parcels._datasets.structured.circulation_models import datasets as datasets_circulation_models
+from parcels.interpolators._xinterpolators import _get_offsets_dictionary
 
 
 def test_nemo_to_sgrid():
@@ -37,6 +38,18 @@ def test_nemo_to_sgrid():
         meta.get_value_by_id("face_dimension1"),  # X center
         meta.get_value_by_id("node_dimension2"),  # Y edge
     }.issubset(set(ds["V"].dims))
+
+
+def test_convert_mitgcm_offsets():
+    data_folder = parcels.download_example_dataset("MITgcm_example_data")
+    ds_fields = xr.open_dataset(data_folder / "mitgcm_UV_surface_zonally_reentrant.nc")
+    coords = ds_fields[["XG", "YG", "Zl", "time"]]
+    ds_fset = convert.mitgcm_to_sgrid(fields={"U": ds_fields.UVEL, "V": ds_fields.VVEL}, coords=coords)
+    fieldset = FieldSet.from_sgrid_conventions(ds_fset)
+    offsets = _get_offsets_dictionary(fieldset.UV.grid)
+    assert offsets["X"] == 0
+    assert offsets["Y"] == 0
+    assert offsets["Z"] == 0
 
 
 _COPERNICUS_DATASETS = [
