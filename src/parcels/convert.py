@@ -21,7 +21,7 @@ from parcels._core.utils import sgrid
 from parcels._logger import logger
 
 if typing.TYPE_CHECKING:
-    import uxarray as ux
+    pass
 
 _NEMO_DIMENSION_COORD_NAMES = ["x", "y", "time", "x", "x_center", "y", "y_center", "depth", "glamf", "gphif"]
 
@@ -147,39 +147,6 @@ def _set_axis_attrs(ds, dim_axis):
     return ds
 
 
-def _ds_rename_using_standard_names(ds: xr.Dataset | ux.UxDataset, name_dict: dict[str, str]) -> xr.Dataset:
-    for standard_name, rename_to in name_dict.items():
-        name = ds.cf[standard_name].name
-        ds = ds.rename({name: rename_to})
-        logger.info(
-            f"cf_xarray found variable {name!r} with CF standard name {standard_name!r} in dataset, renamed it to {rename_to!r} for Parcels simulation."
-        )
-    return ds
-
-
-def _maybe_convert_time_from_float_to_timedelta(ds: xr.Dataset) -> xr.Dataset:
-    if "time" in ds.coords:
-        if np.issubdtype(ds["time"].data.dtype, np.floating):
-            time_units = ds["time"].attrs.get("units", "").lower()
-            if "hour" in time_units:
-                factor = 3600.0 * 1e9
-            elif "day" in time_units:
-                factor = 86400.0 * 1e9
-            elif "minute" in time_units:
-                factor = 60.0 * 1e9
-            else:
-                # default to seconds if unspecified
-                factor = 1.0 * 1e9
-
-            ns_int = np.rint(ds["time"].values * factor).astype("int64")
-            try:
-                ds["time"] = ns_int.astype("timedelta64[ns]")
-                logger.info("Converted time coordinate from float to timedelta based on units.")
-            except Exception as e:
-                logger.warning(f"Failed to convert time coordinate to timedelta: {e}")
-    return ds
-
-
 def _maybe_swap_depth_direction(ds: xr.Dataset) -> xr.Dataset:
     if ds["depth"].size > 1:
         if ds["depth"][0] > ds["depth"][-1]:
@@ -187,39 +154,6 @@ def _maybe_swap_depth_direction(ds: xr.Dataset) -> xr.Dataset:
                 "Depth dimension appears to be decreasing upward (i.e., from positive to negative values). Swapping depth dimension to be increasing upward for Parcels simulation."
             )
             ds = ds.reindex(depth=ds["depth"][::-1])
-    return ds
-
-
-# TODO is this function still needed, now that we require users to provide field names explicitly?
-def _discover_U_and_V(ds: xr.Dataset, cf_standard_names_fallbacks) -> xr.Dataset:
-    # Assumes that the dataset has U and V data
-
-    if "W" not in ds:
-        for cf_standard_name_W in cf_standard_names_fallbacks["W"]:
-            if cf_standard_name_W in ds.cf.standard_names:
-                ds = _ds_rename_using_standard_names(ds, {cf_standard_name_W: "W"})
-                break
-
-    if "U" in ds and "V" in ds:
-        return ds  # U and V already present
-    elif "U" in ds or "V" in ds:
-        raise ValueError(
-            "Dataset has only one of the two variables 'U' and 'V'. Please rename the appropriate variable in your dataset to have both 'U' and 'V' for Parcels simulation."
-        )
-
-    for cf_standard_name_U, cf_standard_name_V in cf_standard_names_fallbacks["UV"]:
-        if cf_standard_name_U in ds.cf.standard_names:
-            if cf_standard_name_V not in ds.cf.standard_names:
-                raise ValueError(
-                    f"Dataset has variable with CF standard name {cf_standard_name_U!r}, "
-                    f"but not the matching variable with CF standard name {cf_standard_name_V!r}. "
-                    "Please rename the appropriate variables in your dataset to have both 'U' and 'V' for Parcels simulation."
-                )
-        else:
-            continue
-
-        ds = _ds_rename_using_standard_names(ds, {cf_standard_name_U: "U", cf_standard_name_V: "V"})
-        break
     return ds
 
 

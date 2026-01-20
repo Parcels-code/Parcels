@@ -20,7 +20,6 @@ from parcels._core.xgrid import _DEFAULT_XGCM_KWARGS, XGrid
 from parcels._logger import logger
 from parcels._reprs import fieldset_repr
 from parcels._typing import Mesh
-from parcels.convert import _ds_rename_using_standard_names
 from parcels.interpolators import (
     CGrid_Velocity,
     Ux_Velocity,
@@ -446,6 +445,16 @@ _COPERNICUS_MARINE_CF_STANDARD_NAME_FALLBACKS = {
     ],
     "W": ["upward_sea_water_velocity", "vertical_sea_water_velocity"],
 }
+
+
+def _ds_rename_using_standard_names(ds: xr.Dataset | ux.UxDataset, name_dict: dict[str, str]) -> xr.Dataset:
+    for standard_name, rename_to in name_dict.items():
+        name = ds.cf[standard_name].name
+        ds = ds.rename({name: rename_to})
+        logger.info(
+            f"cf_xarray found variable {name!r} with CF standard name {standard_name!r} in dataset, renamed it to {rename_to!r} for Parcels simulation."
+        )
+    return ds
 
 
 def _discover_ux_U_and_V(ds: ux.UxDataset) -> ux.UxDataset:
