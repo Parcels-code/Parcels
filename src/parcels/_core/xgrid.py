@@ -10,16 +10,15 @@ import xgcm
 from parcels._core.basegrid import BaseGrid
 from parcels._core.index_search import _search_1d_array, _search_indices_curvilinear_2d
 from parcels._reprs import xgrid_repr
-from parcels._typing import assert_valid_mesh
+from parcels._typing import CfAxis, assert_valid_mesh
 
 _XGRID_AXES = Literal["X", "Y", "Z"]
 _XGRID_AXES_ORDERING: Sequence[_XGRID_AXES] = "ZYX"
 
-_XGCM_AXIS_DIRECTION = Literal["X", "Y", "Z", "T"]
 _XGCM_AXIS_POSITION = Literal["center", "left", "right", "inner", "outer"]
-_XGCM_AXES = Mapping[_XGCM_AXIS_DIRECTION, xgcm.Axis]
+_XGCM_AXES = Mapping[CfAxis, xgcm.Axis]
 
-_FIELD_DATA_ORDERING: Sequence[_XGCM_AXIS_DIRECTION] = "TZYX"
+_FIELD_DATA_ORDERING: Sequence[CfAxis] = "TZYX"
 
 _DEFAULT_XGCM_KWARGS = {"periodic": False}
 
@@ -384,7 +383,7 @@ class XGrid(BaseGrid):
         return result
 
 
-def get_axis_from_dim_name(axes: _XGCM_AXES, dim: str) -> _XGCM_AXIS_DIRECTION | None:
+def get_axis_from_dim_name(axes: _XGCM_AXES, dim: str) -> CfAxis | None:
     """For a given dimension name in a grid, returns the direction axis it is on."""
     for axis_name, axis in axes.items():
         if dim in axis.coords.values():
@@ -421,7 +420,7 @@ def assert_valid_field_array(da: xr.DataArray, axes: _XGCM_AXES):
     assert_all_dimensions_correspond_with_axis(da, axes)
 
     dim_to_axis = {dim: get_axis_from_dim_name(axes, dim) for dim in da.dims}
-    dim_to_axis = cast(dict[Hashable, _XGCM_AXIS_DIRECTION], dim_to_axis)
+    dim_to_axis = cast(dict[Hashable, CfAxis], dim_to_axis)
 
     # Assert all dimensions are present
     if set(dim_to_axis.values()) != {"T", "Z", "Y", "X"}:
