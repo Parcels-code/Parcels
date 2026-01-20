@@ -55,6 +55,31 @@ def test_convert_nemo_offsets():
     assert offsets["Z"] == 0
 
 
+def test_convert_mitgcm_offsets():
+    data_folder = parcels.download_example_dataset("MITgcm_example_data")
+    ds_fields = xr.open_dataset(data_folder / "mitgcm_UV_surface_zonally_reentrant.nc")
+    coords = ds_fields[["XG", "YG", "Zl", "time"]]
+    ds_fset = convert.mitgcm_to_sgrid(fields={"U": ds_fields.UVEL, "V": ds_fields.VVEL}, coords=coords)
+    fieldset = FieldSet.from_sgrid_conventions(ds_fset)
+    offsets = _get_offsets_dictionary(fieldset.UV.grid)
+    assert offsets["X"] == 0
+    assert offsets["Y"] == 0
+    assert offsets["Z"] == 0
+
+
+def test_convert_croco_offsets():
+    ds = datasets_circulation_models["ds_CROCO_idealized"]
+    coords = ds[["x_rho", "y_rho", "s_w", "time"]]
+
+    ds = convert.croco_to_sgrid(fields={"U": ds["u"], "V": ds["v"]}, coords=coords)
+    fieldset = FieldSet.from_sgrid_conventions(ds)
+
+    offsets = _get_offsets_dictionary(fieldset.UV.grid)
+    assert offsets["X"] == 0
+    assert offsets["Y"] == 0
+    assert offsets["Z"] == 0
+
+
 _COPERNICUS_DATASETS = [
     datasets_circulation_models["ds_copernicusmarine"],
     datasets_circulation_models["ds_copernicusmarine_waves"],
@@ -99,16 +124,3 @@ def test_convert_copernicusmarine_no_logs(ds, caplog):
     assert "V" in fieldset.fields
     assert "UV" in fieldset.fields
     assert caplog.text == ""
-
-
-def test_convert_croco_offsets():
-    ds = datasets_circulation_models["ds_CROCO_idealized"]
-    coords = ds[["x_rho", "y_rho", "s_w", "time"]]
-
-    ds = convert.croco_to_sgrid(fields={"U": ds["u"], "V": ds["v"]}, coords=coords)
-    fieldset = FieldSet.from_sgrid_conventions(ds)
-
-    offsets = _get_offsets_dictionary(fieldset.UV.grid)
-    assert offsets["X"] == 0
-    assert offsets["Y"] == 0
-    assert offsets["Z"] == 0
