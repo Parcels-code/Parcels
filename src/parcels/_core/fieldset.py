@@ -154,23 +154,15 @@ class FieldSet:
         self.add_field(Field(name, ds[name], grid, interp_method=XConstantField))
 
     def add_constant(self, name, value):
-        """Add a constant to the FieldSet. Note that all constants are
-        stored as 32-bit floats.
+        """Add a constant to the FieldSet.
 
         Parameters
         ----------
         name : str
             Name of the constant
         value :
-            Value of the constant (stored as 32-bit float)
+            Value of the constant
 
-
-        Examples
-        --------
-        Tutorials using fieldset.add_constant:
-        `Analytical advection <../examples/tutorial_analyticaladvection.ipynb>`__
-        `Diffusion <../examples/tutorial_diffusion.ipynb>`__
-        `Periodic boundaries <../examples/tutorial_periodic_boundaries.ipynb>`__
         """
         _assert_str_and_python_varname(name)
 
@@ -178,7 +170,7 @@ class FieldSet:
             raise ValueError(f"FieldSet already has a constant with name '{name}'")
         if not isinstance(value, (float, np.floating, int, np.integer)):
             raise ValueError(f"FieldSet constants have to be of type float or int, got a {type(value)}")
-        self.constants[name] = np.float32(value)
+        self.constants[name] = value
 
     @property
     def gridset(self) -> list[BaseGrid]:

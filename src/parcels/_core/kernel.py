@@ -80,10 +80,6 @@ class Kernel:
         for f in pyfuncs:
             self.check_fieldsets_in_kernels(f)
 
-        # # TODO will be implemented when we support CROCO again
-        # if (pyfunc is AdvectionRK4_3D) and fieldset.U.gridindexingtype == "croco":
-        #     pyfunc = AdvectionRK4_3D_CROCO
-
         self._pyfuncs: list[Callable] = pyfuncs
 
     @property  #! Ported from v3. To be removed in v4? (/find another way to name kernels in output file)

@@ -70,6 +70,12 @@ _COPERNICUS_MARINE_AXIS_VARNAMES = {
     "T": "time",
 }
 
+_CROCO_VARNAMES_MAPPING = {
+    "x_rho": "lon",
+    "y_rho": "lat",
+    "s_w": "depth",
+}
+
 
 def _maybe_bring_UV_depths_to_depth(ds):
     if "U" in ds.variables and "depthu" in ds.U.coords and "depth" in ds.coords:
@@ -147,6 +153,29 @@ def _ds_rename_using_standard_names(ds: xr.Dataset | ux.UxDataset, name_dict: di
         logger.info(
             f"cf_xarray found variable {name!r} with CF standard name {standard_name!r} in dataset, renamed it to {rename_to!r} for Parcels simulation."
         )
+    return ds
+
+
+def _maybe_convert_time_from_float_to_timedelta(ds: xr.Dataset) -> xr.Dataset:
+    if "time" in ds.coords:
+        if np.issubdtype(ds["time"].data.dtype, np.floating):
+            time_units = ds["time"].attrs.get("units", "").lower()
+            if "hour" in time_units:
+                factor = 3600.0 * 1e9
+            elif "day" in time_units:
+                factor = 86400.0 * 1e9
+            elif "minute" in time_units:
+                factor = 60.0 * 1e9
+            else:
+                # default to seconds if unspecified
+                factor = 1.0 * 1e9
+
+            ns_int = np.rint(ds["time"].values * factor).astype("int64")
+            try:
+                ds["time"] = ns_int.astype("timedelta64[ns]")
+                logger.info("Converted time coordinate from float to timedelta based on units.")
+            except Exception as e:
+                logger.warning(f"Failed to convert time coordinate to timedelta: {e}")
     return ds
 
 
@@ -352,6 +381,65 @@ def mitgcm_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.
                 sgrid.DimDimPadding("YC", "lat", sgrid.Padding.HIGH),
             ),
             vertical_dimensions=(sgrid.DimDimPadding("depth", "depth", sgrid.Padding.HIGH),),
+        ).to_attrs(),
+    )
+
+    return ds
+
+
+def croco_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.Dataset) -> xr.Dataset:
+    """Create an sgrid-compliant xarray.Dataset from a dataset of CROCO netcdf files.
+
+    Parameters
+    ----------
+    fields : dict[str, xr.Dataset | xr.DataArray]
+        Dictionary of xarray.DataArray objects as obtained from a set of Croco netcdf files.
+    coords : xarray.Dataset, optional
+        xarray.Dataset containing coordinate variables.
+
+    Returns
+    -------
+    xarray.Dataset
+        Dataset object following SGRID conventions to be (optionally) modified and passed to a FieldSet constructor.
+
+    Notes
+    -----
+    See the CROCO 3D tutorial for more information on how to use CROCO model outputs in Parcels
+
+    """
+    fields = fields.copy()
+
+    for name, field_da in fields.items():
+        if isinstance(field_da, xr.Dataset):
+            field_da = field_da[name]
+            # TODO: logging message, warn if multiple fields are in this dataset
+        else:
+            field_da = field_da.rename(name)
+        fields[name] = field_da
+
+    ds = xr.merge(list(fields.values()) + [coords])
+    ds.attrs.clear()  # Clear global attributes from the merging
+
+    ds = _maybe_rename_variables(ds, _CROCO_VARNAMES_MAPPING)
+    ds = _maybe_convert_time_from_float_to_timedelta(ds)
+
+    if "grid" in ds.cf.cf_roles:
+        raise ValueError(
+            "Dataset already has a 'grid' variable (according to cf_roles). Didn't expect there to be grid metadata on copernicusmarine datasets - please open an issue with more information about your dataset."
+        )
+
+    ds["grid"] = xr.DataArray(
+        0,
+        attrs=sgrid.Grid2DMetadata(
+            cf_role="grid_topology",
+            topology_dimension=2,
+            node_dimensions=("lon", "lat"),
+            node_coordinates=("lon", "lat"),
+            face_dimensions=(
+                sgrid.DimDimPadding("xi_u", "xi_rho", sgrid.Padding.HIGH),
+                sgrid.DimDimPadding("eta_v", "eta_rho", sgrid.Padding.HIGH),
+            ),
+            vertical_dimensions=(sgrid.DimDimPadding("s_rho", "depth", sgrid.Padding.HIGH),),
         ).to_attrs(),
     )
 

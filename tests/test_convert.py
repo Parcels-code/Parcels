@@ -40,12 +40,40 @@ def test_nemo_to_sgrid():
     }.issubset(set(ds["V"].dims))
 
 
+def test_convert_nemo_offsets():
+    data_folder = parcels.download_example_dataset("NemoCurvilinear_data")
+    U = xr.open_mfdataset(data_folder.glob("*U.nc4"))
+    V = xr.open_mfdataset(data_folder.glob("*V.nc4"))
+    coords = xr.open_dataset(data_folder / "mesh_mask.nc4")
+
+    ds = convert.nemo_to_sgrid(fields=dict(U=U, V=V), coords=coords)
+    fieldset = FieldSet.from_sgrid_conventions(ds)
+
+    offsets = _get_offsets_dictionary(fieldset.UV.grid)
+    assert offsets["X"] == 1
+    assert offsets["Y"] == 1
+    assert offsets["Z"] == 0
+
+
 def test_convert_mitgcm_offsets():
     data_folder = parcels.download_example_dataset("MITgcm_example_data")
     ds_fields = xr.open_dataset(data_folder / "mitgcm_UV_surface_zonally_reentrant.nc")
     coords = ds_fields[["XG", "YG", "Zl", "time"]]
     ds_fset = convert.mitgcm_to_sgrid(fields={"U": ds_fields.UVEL, "V": ds_fields.VVEL}, coords=coords)
     fieldset = FieldSet.from_sgrid_conventions(ds_fset)
+    offsets = _get_offsets_dictionary(fieldset.UV.grid)
+    assert offsets["X"] == 0
+    assert offsets["Y"] == 0
+    assert offsets["Z"] == 0
+
+
+def test_convert_croco_offsets():
+    ds = datasets_circulation_models["ds_CROCO_idealized"]
+    coords = ds[["x_rho", "y_rho", "s_w", "time"]]
+
+    ds = convert.croco_to_sgrid(fields={"U": ds["u"], "V": ds["v"]}, coords=coords)
+    fieldset = FieldSet.from_sgrid_conventions(ds)
+
     offsets = _get_offsets_dictionary(fieldset.UV.grid)
     assert offsets["X"] == 0
     assert offsets["Y"] == 0
