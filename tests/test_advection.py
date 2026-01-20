@@ -3,7 +3,18 @@ import pytest
 import xarray as xr
 
 import parcels
-from parcels import Field, FieldSet, Particle, ParticleFile, ParticleSet, StatusCode, Variable, VectorField, XGrid
+from parcels import (
+    Field,
+    FieldSet,
+    Particle,
+    ParticleFile,
+    ParticleSet,
+    StatusCode,
+    Variable,
+    VectorField,
+    XGrid,
+    convert,
+)
 from parcels._core.utils.time import timedelta_to_float
 from parcels._datasets.structured.generated import (
     decaying_moving_eddy_dataset,
@@ -491,3 +502,33 @@ def test_nemo_3D_curvilinear_fieldset(kernel):
             [p.z for p in pset],
             [0.666162, 0.8667131, 0.92150104, 0.9605109, 0.9577529, 1.0041442, 1.0284728, 1.0033542, 1.2949713, 1.3928112],
         )  # fmt:skip
+
+
+def test_mitgcm():
+    data_folder = parcels.download_example_dataset("MITgcm_example_data")
+    ds_fields = xr.open_dataset(data_folder / "mitgcm_UV_surface_zonally_reentrant.nc")
+
+    coords = ds_fields[["XG", "YG", "Zl", "time"]]
+    ds_fset = convert.mitgcm_to_sgrid(fields={"U": ds_fields.UVEL, "V": ds_fields.VVEL}, coords=coords)
+    fieldset = FieldSet.from_sgrid_conventions(ds_fset)
+
+    npart = 10
+    lon = [24e3] * npart
+    lat = np.linspace(22e3, 1950e3, npart)
+
+    pset = parcels.ParticleSet(fieldset, lon=lon, lat=lat)
+    pset.execute(AdvectionRK4, runtime=np.timedelta64(5, "D"), dt=np.timedelta64(30, "m"))
+
+    lon_v3 = [
+        25334.3084714,
+        82824.04760837,
+        136410.63322281,
+        98325.83708985,
+        83152.54325753,
+        89321.35275493,
+        237376.5840757,
+        56860.97672692,
+        153947.52685014,
+        28349.16658616,
+    ]
+    np.testing.assert_allclose(pset.lon, lon_v3, atol=10)
