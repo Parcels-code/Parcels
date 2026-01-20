@@ -175,7 +175,7 @@ class Grid2DMetadata(AttrsSerializable):
             d["vertical_dimensions"] = dump_mappings(self.vertical_dimensions)
         return d
 
-    def rename(self, names_dict: dict[str, str]) -> Self:
+    def rename(self, names_dict: dict[str, str]) -> Grid2DMetadata:
         return _metadata_rename(self, names_dict)
 
     def get_value_by_id(self, id: str) -> str:
@@ -285,7 +285,7 @@ class Grid3DMetadata(AttrsSerializable):
             d["node_coordinates"] = dump_mappings(self.node_coordinates)
         return d
 
-    def rename(self, dims_dict: dict[str, str]) -> Self:
+    def rename(self, dims_dict: dict[str, str]) -> Grid3DMetadata:
         return _metadata_rename(self, dims_dict)
 
     def get_value_by_id(self, id: str) -> str:
