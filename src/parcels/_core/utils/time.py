@@ -167,8 +167,8 @@ def timedelta_to_float(dt: float | timedelta | np.timedelta64) -> float:
             return (dt / np.timedelta64(1, "s")).astype(float)
         elif np.issubdtype(dt.dtype, np.object_):  # in case of array of timedeltas
             try:
-                helper = np.vectorize(lambda x: x.total_seconds())
-                return helper(dt)
+                f = np.vectorize(lambda x: x.total_seconds())
+                return f(dt)
             except Exception as e:
                 raise ValueError(f"Expected a timedelta-like object, got {dt!r}.") from e
     return float(dt)
