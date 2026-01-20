@@ -154,8 +154,7 @@ class FieldSet:
         self.add_field(Field(name, ds[name], grid, interp_method=XConstantField))
 
     def add_constant(self, name, value):
-        """Add a constant to the FieldSet. Note that all constants are
-        stored as 32-bit floats.
+        """Add a constant to the FieldSet.
 
         Parameters
         ----------
@@ -169,8 +168,6 @@ class FieldSet:
 
         if name in self.constants:
             raise ValueError(f"FieldSet already has a constant with name '{name}'")
-        if isinstance(value, xr.DataArray):
-            value = value.item()
         if not isinstance(value, (float, np.floating, int, np.integer)):
             raise ValueError(f"FieldSet constants have to be of type float or int, got a {type(value)}")
         self.constants[name] = value
