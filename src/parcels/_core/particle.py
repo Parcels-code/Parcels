@@ -37,7 +37,7 @@ class Variable:
     def __init__(
         self,
         name,
-        dtype: type[np.float32 | np.float64 | np.int32 | np.int64] | None = np.float32,
+        dtype: type[np.float32 | np.float64 | np.int32 | np.int64] = np.float32,
         initial=0,
         to_write: bool | Literal["once"] = True,
         attrs: dict | None = None,
