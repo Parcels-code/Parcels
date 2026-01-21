@@ -60,10 +60,13 @@ class Kernel:
 
     def __init__(
         self,
+        kernels: list[types.FunctionType],
         fieldset,
         ptype,
-        kernels: list[types.FunctionType],
     ):
+        if not isinstance(kernels, list):
+            kernels = [kernels]
+
         for f in kernels:
             if not isinstance(f, types.FunctionType):
                 raise TypeError(f"Argument `kernels` should be a function or list of functions. Got {type(f)}")
@@ -174,47 +177,20 @@ class Kernel:
         assert self.ptype == kernel.ptype, "Cannot merge kernels with different particle types"
 
         return type(self)(
+            self._kernels + kernel._kernels,
             self.fieldset,
             self.ptype,
-            kernels=self._kernels + kernel._kernels,
         )
 
     def __add__(self, kernel):
         if isinstance(kernel, types.FunctionType):
-            kernel = type(self)(self.fieldset, self.ptype, kernels=[kernel])
+            kernel = type(self)([kernel], self.fieldset, self.ptype)
         return self.merge(kernel)
 
     def __radd__(self, kernel):
         if isinstance(kernel, types.FunctionType):
-            kernel = type(self)(self.fieldset, self.ptype, kernels=[kernel])
+            kernel = type(self)([kernel], self.fieldset, self.ptype)
         return kernel.merge(self)
-
-    @classmethod
-    def from_list(cls, fieldset, ptype, kernels_list):
-        """Create a combined kernel from a list of functions.
-
-        Takes a list of functions, converts them to kernels, and joins them
-        together.
-
-        Parameters
-        ----------
-        fieldset : parcels.Fieldset
-            FieldSet object providing the field information (possibly None)
-        ptype :
-            PType object for the kernel particle
-        kernels_list : list of functions
-            List of functions to be combined into a single kernel.
-        *args :
-            Additional arguments passed to first kernel during construction.
-        **kwargs :
-            Additional keyword arguments passed to first kernel during construction.
-        """
-        if not isinstance(kernels_list, list):
-            raise TypeError(f"Argument `kernels_list` should be a list of functions. Got {type(kernels_list)}")
-        if not all([isinstance(f, types.FunctionType) for f in kernels_list]):
-            raise ValueError("Argument `kernels_list` should be a list of functions.")
-
-        return cls(fieldset, ptype, kernels_list)
 
     def execute(self, pset, endtime, dt):
         """Execute this Kernel over a ParticleSet for several timesteps.

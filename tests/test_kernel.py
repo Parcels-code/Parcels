@@ -35,12 +35,12 @@ def test_unknown_var_in_kernel(fieldset):
 
 
 def test_kernel_init(fieldset):
-    Kernel(fieldset, ptype=Particle, kernels=[AdvectionRK4])
+    Kernel(kernels=[AdvectionRK4], fieldset=fieldset, ptype=Particle)
 
 
 def test_kernel_merging(fieldset):
-    k1 = Kernel(fieldset, ptype=Particle, kernels=[AdvectionRK4])
-    k2 = Kernel(fieldset, ptype=Particle, kernels=[MoveEast, MoveNorth])
+    k1 = Kernel(kernels=[AdvectionRK4], fieldset=fieldset, ptype=Particle)
+    k2 = Kernel(kernels=[MoveEast, MoveNorth], fieldset=fieldset, ptype=Particle)
 
     merged_kernel = k1 + k2
     assert merged_kernel.funcname == "AdvectionRK4MoveEastMoveNorth"
@@ -61,8 +61,8 @@ def test_kernel_from_list(fieldset):
     mixed functions and kernel objects.
     """
     pset = ParticleSet(fieldset, lon=[0.5], lat=[0.5])
-    kernels_single = pset.Kernel([AdvectionRK4])
-    kernels_functions = pset.Kernel([AdvectionRK4, MoveEast, MoveNorth])
+    kernels_single = Kernel(kernels=[AdvectionRK4], fieldset=fieldset, ptype=pset._ptype)
+    kernels_functions = Kernel(kernels=[AdvectionRK4, MoveEast, MoveNorth], fieldset=fieldset, ptype=pset._ptype)
 
     # Check if the kernels were combined correctly
     assert kernels_single.funcname == "AdvectionRK4"
@@ -78,13 +78,17 @@ def test_kernel_from_list_error_checking(fieldset):
     pset = ParticleSet(fieldset, lon=[0.5], lat=[0.5])
 
     with pytest.raises(ValueError, match="List of `kernels` should have at least one function."):
-        pset.Kernel([])
+        Kernel(kernels=[], fieldset=fieldset, ptype=pset._ptype)
 
-    with pytest.raises(ValueError, match="Argument `kernels_list` should be a list of functions."):
-        pset.Kernel([AdvectionRK4, "something else"])
+    with pytest.raises(TypeError, match=r"Argument `kernels` should be a function or list of functions.*"):
+        Kernel(kernels=[AdvectionRK4, "something else"], fieldset=fieldset, ptype=pset._ptype)
 
-    with pytest.raises(ValueError, match="Argument `kernels_list` should be a list of functions."):
-        kernels_mixed = pset.Kernel([pset.Kernel(AdvectionRK4), MoveEast, MoveNorth])
+    with pytest.raises(TypeError, match=r"Argument `kernels` should be a function or list of functions.*"):
+        kernels_mixed = Kernel(
+            kernels=[Kernel(kernels=[AdvectionRK4], fieldset=fieldset, ptype=pset._ptype), MoveEast, MoveNorth],
+            fieldset=fieldset,
+            ptype=pset._ptype,
+        )
         assert kernels_mixed.funcname == "AdvectionRK4MoveEastMoveNorth"
 
 
@@ -93,7 +97,7 @@ def test_RK45Kernel_error_no_next_dt(fieldset):
     pset = ParticleSet(fieldset, lon=[0.5], lat=[0.5])
 
     with pytest.raises(ValueError, match='ParticleClass requires a "next_dt" for AdvectionRK45 Kernel.'):
-        pset.Kernel(AdvectionRK45)
+        Kernel(kernels=AdvectionRK45, fieldset=fieldset, ptype=pset._ptype)
 
 
 def test_kernel_signature(fieldset):
@@ -114,23 +118,23 @@ def test_kernel_signature(fieldset):
     def kernel_with_forced_kwarg(particles, *, fieldset=0):
         pass
 
-    pset.Kernel(good_kernel)
+    Kernel(kernels=good_kernel, fieldset=fieldset, ptype=pset._ptype)
 
     with pytest.raises(ValueError, match="Kernel function must have 2 parameters, got 3"):
-        pset.Kernel(version_3_kernel)
+        Kernel(kernels=version_3_kernel, fieldset=fieldset, ptype=pset._ptype)
 
     with pytest.raises(
         ValueError, match="Parameter 'particle' has incorrect name. Expected 'particles', got 'particle'"
     ):
-        pset.Kernel(version_3_kernel_without_time)
+        Kernel(kernels=version_3_kernel_without_time, fieldset=fieldset, ptype=pset._ptype)
 
     with pytest.raises(
         ValueError, match="Parameter 'fieldset' has incorrect name. Expected 'particles', got 'fieldset'"
     ):
-        pset.Kernel(kernel_switched_args)
+        Kernel(kernels=kernel_switched_args, fieldset=fieldset, ptype=pset._ptype)
 
     with pytest.raises(
         ValueError,
         match="Parameter 'fieldset' has incorrect parameter kind. Expected POSITIONAL_OR_KEYWORD, got KEYWORD_ONLY",
     ):
-        pset.Kernel(kernel_with_forced_kwarg)
+        Kernel(kernels=kernel_with_forced_kwarg, fieldset=fieldset, ptype=pset._ptype)

@@ -9,6 +9,7 @@ from parcels import (
     FieldInterpolationError,
     FieldOutOfBoundError,
     FieldSet,
+    Kernel,
     OutsideTimeInterval,
     Particle,
     ParticleFile,
@@ -224,7 +225,7 @@ def test_pset_remove_particle_in_kernel(fieldset):
     def DeleteKernel(particles, fieldset):  # pragma: no cover
         particles.state = np.where((particles.lon >= 0.4) & (particles.lon <= 0.6), StatusCode.Delete, particles.state)
 
-    pset.execute(pset.Kernel(DeleteKernel), runtime=np.timedelta64(1, "s"), dt=np.timedelta64(1, "s"))
+    pset.execute(DeleteKernel, runtime=np.timedelta64(1, "s"), dt=np.timedelta64(1, "s"))
     indices = [i for i in range(npart) if not (40 <= i < 60)]
     assert [p.trajectory for p in pset] == indices
     assert pset[70].trajectory == 90
@@ -250,7 +251,7 @@ def test_pset_multi_execute(fieldset, with_delete, npart=10, n=5):
     def AddLat(particles, fieldset):  # pragma: no cover
         particles.dlat += 0.1
 
-    k_add = pset.Kernel(AddLat)
+    k_add = Kernel(kernels=AddLat, fieldset=fieldset, ptype=pset._ptype)
     for _ in range(n):
         pset.execute(k_add, runtime=np.timedelta64(1, "s"), dt=np.timedelta64(1, "s"))
         if with_delete:

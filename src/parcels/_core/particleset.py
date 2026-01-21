@@ -290,29 +290,6 @@ class ParticleSet:
             "ParticleSet.from_particlefile is not yet implemented in v4."
         )  # TODO implement this when ParticleFile is implemented in v4
 
-    def Kernel(self, kernels):
-        """Wrapper method to convert a kernel or list of kernels into a :class:`parcels.kernel.Kernel` object.
-
-        Conversion is based on `fieldset` and `ptype` of the ParticleSet.
-
-        Parameters
-        ----------
-        kernels : kernel function or list of kernels functions
-            Python function to convert into kernel. If a list of functions is provided,
-            the functions will be converted to kernels and combined into a single kernel.
-        """
-        if isinstance(kernels, list):
-            return Kernel.from_list(
-                self.fieldset,
-                self._ptype,
-                kernels,
-            )
-        return Kernel(
-            self.fieldset,
-            self._ptype,
-            kernels=[kernels],
-        )
-
     def data_indices(self, variable_name, compare_values, invert=False):
         """Get the indices of all particles where the value of `variable_name` equals (one of) `compare_values`.
 
@@ -417,8 +394,7 @@ class ParticleSet:
             return
 
         if not isinstance(kernels, Kernel):
-            kernels = self.Kernel(kernels)
-
+            kernels = Kernel(kernels, self.fieldset, self._ptype)
         self._kernel = kernels
 
         if output_file is not None:
