@@ -26,8 +26,6 @@ jobs:
     if: |
       github.repository == 'Parcels-code/Parcels'
       && (github.event_name == 'push' || github.event_name == 'pull_request')
-    outputs:
-      value: ${{ steps.set-output.outputs.skip-ci }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -36,14 +34,11 @@ jobs:
         id: check-skip
         with:
           keyword: "[skip-ci]"
-      - name: Set skip-ci output
-        id: set-output
+      - name: Fail if skip-ci
+        if: steps.check-skip.outputs.trigger-found == 'true' || contains(github.event.pull_request.labels.*.name, 'skip-ci')
         run: |
-          echo 'steps.check-skip.outputs.trigger-found=${{steps.check-skip.outputs.trigger-found}}'
-          echo "github.event.pull_request.labels.*.name=${{toJson(github.event.pull_request.labels.*.name)}}"
-          SKIP_CI=${{ steps.check-skip.outputs.trigger-found == 'true' || contains(github.event.pull_request.labels.*.name, 'skip-ci') }}
-          echo "skip-ci=${SKIP_CI}"
-          echo "skip-ci=${SKIP_CI}" >> $GITHUB_OUTPUT
+          echo "Skipping CI due to [skip-ci] keyword or skip-ci label"
+          exit 1
 
   cache-pixi-lock:
     runs-on: ubuntu-latest
