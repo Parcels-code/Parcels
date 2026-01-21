@@ -37,7 +37,7 @@ jobs:
       - name: Decide if we skip CI
         if: steps.check-skip.outputs.trigger-found == 'true' || contains(github.event.pull_request.labels.*.name, 'skip-ci')
         run: |
-          echo "Skipping CI due to [skip-ci] keyword or skip-ci label"
+          echo "Skipping CI."
           exit 1
 
   cache-pixi-lock:
