@@ -49,8 +49,8 @@ class Kernel:
         FieldSet object providing the field information (possibly None)
     ptype :
         PType object for the kernel particle
-    pyfunc :
-        (aggregated) Kernel function
+    kernels :
+        list of Kernel functions
 
     Notes
     -----
@@ -62,30 +62,30 @@ class Kernel:
         self,
         fieldset,
         ptype,
-        pyfuncs: list[types.FunctionType],
+        kernels: list[types.FunctionType],
     ):
-        for f in pyfuncs:
+        for f in kernels:
             if not isinstance(f, types.FunctionType):
-                raise TypeError(f"Argument pyfunc should be a function or list of functions. Got {type(f)}")
+                raise TypeError(f"Argument `kernels` should be a function or list of functions. Got {type(f)}")
             assert_same_function_signature(f, ref=AdvectionRK4, context="Kernel")
 
-        if len(pyfuncs) == 0:
-            raise ValueError("List of `pyfuncs` should have at least one function.")
+        if len(kernels) == 0:
+            raise ValueError("List of `kernels` should have at least one function.")
 
         self._fieldset = fieldset
         self._ptype = ptype
 
         self._positionupdate_kernel_added = False
 
-        for f in pyfuncs:
+        for f in kernels:
             self.check_fieldsets_in_kernels(f)
 
-        self._pyfuncs: list[Callable] = pyfuncs
+        self._kernels: list[Callable] = kernels
 
     @property  #! Ported from v3. To be removed in v4? (/find another way to name kernels in output file)
     def funcname(self):
         ret = ""
-        for f in self._pyfuncs:
+        for f in self._kernels:
             ret += f.__name__
         return ret
 
@@ -123,21 +123,21 @@ class Kernel:
                 # Update dt in case it's increased in RK45 kernel
                 particles.dt = particles.next_dt
 
-        self._pyfuncs = (PositionUpdate + self)._pyfuncs
+        self._kernels = (PositionUpdate + self)._kernels
 
-    def check_fieldsets_in_kernels(self, pyfunc):  # TODO v4: this can go into another method? assert_is_compatible()?
+    def check_fieldsets_in_kernels(self, kernel):  # TODO v4: this can go into another method? assert_is_compatible()?
         """
         Checks the integrity of the fieldset with the kernels.
 
-        This function is to be called from the derived class when setting up the 'pyfunc'.
+        This function is to be called from the derived class when setting up the 'kernel'.
         """
         if self.fieldset is not None:
-            if pyfunc is AdvectionAnalytical:
+            if kernel is AdvectionAnalytical:
                 if self._fieldset.U.interp_method != "cgrid_velocity":
                     raise NotImplementedError("Analytical Advection only works with C-grids")
                 if self._fieldset.U.grid._gtype not in [GridType.CurvilinearZGrid, GridType.RectilinearZGrid]:
                     raise NotImplementedError("Analytical Advection only works with Z-grids in the vertical")
-            elif pyfunc is AdvectionRK45:
+            elif kernel is AdvectionRK45:
                 if "next_dt" not in [v.name for v in self.ptype.variables]:
                     raise ValueError('ParticleClass requires a "next_dt" for AdvectionRK45 Kernel.')
                 if not hasattr(self.fieldset, "RK45_tol"):
@@ -176,21 +176,21 @@ class Kernel:
         return type(self)(
             self.fieldset,
             self.ptype,
-            pyfuncs=self._pyfuncs + kernel._pyfuncs,
+            kernels=self._kernels + kernel._kernels,
         )
 
     def __add__(self, kernel):
         if isinstance(kernel, types.FunctionType):
-            kernel = type(self)(self.fieldset, self.ptype, pyfuncs=[kernel])
+            kernel = type(self)(self.fieldset, self.ptype, kernels=[kernel])
         return self.merge(kernel)
 
     def __radd__(self, kernel):
         if isinstance(kernel, types.FunctionType):
-            kernel = type(self)(self.fieldset, self.ptype, pyfuncs=[kernel])
+            kernel = type(self)(self.fieldset, self.ptype, kernels=[kernel])
         return kernel.merge(self)
 
     @classmethod
-    def from_list(cls, fieldset, ptype, pyfunc_list):
+    def from_list(cls, fieldset, ptype, kernels_list):
         """Create a combined kernel from a list of functions.
 
         Takes a list of functions, converts them to kernels, and joins them
@@ -202,19 +202,19 @@ class Kernel:
             FieldSet object providing the field information (possibly None)
         ptype :
             PType object for the kernel particle
-        pyfunc_list : list of functions
+        kernels_list : list of functions
             List of functions to be combined into a single kernel.
         *args :
             Additional arguments passed to first kernel during construction.
         **kwargs :
             Additional keyword arguments passed to first kernel during construction.
         """
-        if not isinstance(pyfunc_list, list):
-            raise TypeError(f"Argument `pyfunc_list` should be a list of functions. Got {type(pyfunc_list)}")
-        if not all([isinstance(f, types.FunctionType) for f in pyfunc_list]):
-            raise ValueError("Argument `pyfunc_list` should be a list of functions.")
+        if not isinstance(kernels_list, list):
+            raise TypeError(f"Argument `kernels_list` should be a list of functions. Got {type(kernels_list)}")
+        if not all([isinstance(f, types.FunctionType) for f in kernels_list]):
+            raise ValueError("Argument `kernels_list` should be a list of functions.")
 
-        return cls(fieldset, ptype, pyfunc_list)
+        return cls(fieldset, ptype, kernels_list)
 
     def execute(self, pset, endtime, dt):
         """Execute this Kernel over a ParticleSet for several timesteps.
@@ -248,7 +248,7 @@ class Kernel:
                 pset.dt = np.minimum(np.maximum(pset.dt, -time_to_endtime), 0)
 
             # run kernels for all particles that need to be evaluated
-            for f in self._pyfuncs:
+            for f in self._kernels:
                 f(pset[evaluate_particles], self._fieldset)
 
                 # check for particles that have to be repeated

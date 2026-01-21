@@ -127,7 +127,7 @@ def test_pset_execute_invalid_arguments(fieldset, fieldset_no_time_interval):
 def test_particleset_runtime_type(fieldset, runtime, expectation):
     pset = ParticleSet(fieldset, lon=[0.2], lat=[5.0], z=[50.0], pclass=Particle)
     with expectation:
-        pset.execute(runtime=runtime, dt=np.timedelta64(10, "s"), pyfunc=DoNothing)
+        pset.execute(runtime=runtime, dt=np.timedelta64(10, "s"), kernels=DoNothing)
 
 
 @pytest.mark.parametrize(
@@ -143,7 +143,7 @@ def test_particleset_runtime_type(fieldset, runtime, expectation):
 def test_particleset_endtime_type(fieldset, endtime, expectation):
     pset = ParticleSet(fieldset, lon=[0.2], lat=[5.0], z=[50.0], pclass=Particle)
     with expectation:
-        pset.execute(endtime=endtime, dt=np.timedelta64(10, "m"), pyfunc=DoNothing)
+        pset.execute(endtime=endtime, dt=np.timedelta64(10, "m"), kernels=DoNothing)
 
 
 def test_particleset_run_to_endtime(fieldset):
@@ -559,7 +559,7 @@ def test_uxstommelgyre_multiparticle_pset_execute():
     pset.execute(
         runtime=np.timedelta64(10, "m"),
         dt=np.timedelta64(60, "s"),
-        pyfunc=AdvectionRK4_3D,
+        kernels=AdvectionRK4_3D,
     )
 
 
@@ -600,5 +600,5 @@ def test_uxstommelgyre_pset_execute_output():
         outputdt=np.timedelta64(5, "m"),  # the time step of the outputs
     )
     pset.execute(
-        runtime=np.timedelta64(10, "m"), dt=np.timedelta64(60, "s"), pyfunc=AdvectionEE, output_file=output_file
+        runtime=np.timedelta64(10, "m"), dt=np.timedelta64(60, "s"), kernels=AdvectionEE, output_file=output_file
     )

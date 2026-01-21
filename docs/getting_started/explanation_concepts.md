@@ -181,7 +181,7 @@ dt = np.timedelta64(5, "m")
 runtime = np.timedelta64(1, "D")
 
 # Run the simulation
-pset.execute(pyfunc=kernels, dt=dt, runtime=runtime)
+pset.execute(kernels=kernels, dt=dt, runtime=runtime)
 ```
 
 ### Output
