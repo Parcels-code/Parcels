@@ -448,6 +448,8 @@ _COPERNICUS_MARINE_CF_STANDARD_NAME_FALLBACKS = {
 }
 
 
+# TODO v4: This function (i.e., discovering U and V from standard names) will be removed in future
+# https://github.com/Parcels-code/Parcels/pull/2422#discussion_r2708467046
 def _ds_rename_using_standard_names(ds: xr.Dataset | ux.UxDataset, name_dict: dict[str, str]) -> xr.Dataset:
     for standard_name, rename_to in name_dict.items():
         name = ds.cf[standard_name].name
