@@ -22,7 +22,7 @@ env:
 jobs:
   should-run-ci:
     name: should run ci
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     if: |
       github.repository == 'Parcels-code/Parcels'
       && (github.event_name == 'push' || github.event_name == 'pull_request')
@@ -41,7 +41,7 @@ jobs:
           exit 1
 
   cache-pixi-lock:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
     needs: [should-run-ci]
     outputs:
       cache-key: ${{ steps.pixi-lock.outputs.cache-key }}
