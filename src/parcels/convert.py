@@ -23,6 +23,8 @@ from parcels._logger import logger
 if typing.TYPE_CHECKING:
     import uxarray as ux
 
+_NEMO_EXPECTED_COORDS = ["glamf", "gphif"]
+
 _NEMO_DIMENSION_COORD_NAMES = ["x", "y", "time", "x", "x_center", "y", "y_center", "depth", "glamf", "gphif"]
 
 _NEMO_AXIS_VARNAMES = {
@@ -257,7 +259,7 @@ def nemo_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.Da
 
     """
     fields = fields.copy()
-    coords = coords[["gphif", "glamf"]]
+    coords = _pick_expected_coords(coords, _NEMO_EXPECTED_COORDS)
 
     for name, field_da in fields.items():
         if isinstance(field_da, xr.Dataset):
