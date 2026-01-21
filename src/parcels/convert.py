@@ -70,11 +70,23 @@ _COPERNICUS_MARINE_AXIS_VARNAMES = {
     "T": "time",
 }
 
+_CROCO_EXPECTED_COORDS = ["x_rho", "y_rho", "s_w", "time"]
+
 _CROCO_VARNAMES_MAPPING = {
     "x_rho": "lon",
     "y_rho": "lat",
     "s_w": "depth",
 }
+
+
+def _pick_expected_coords(coords: xr.Dataset, expected_coord_names: list[str]) -> xr.Dataset:
+    coords_to_use = {}
+    for name in expected_coord_names:
+        if name in coords:
+            coords_to_use[name] = coords[name]
+        else:
+            raise ValueError(f"Expected coordinate '{name}' not found in provided coords dataset.")
+    return xr.Dataset(coords_to_use)
 
 
 def _maybe_bring_UV_depths_to_depth(ds):
@@ -416,6 +428,8 @@ def croco_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.D
         else:
             field_da = field_da.rename(name)
         fields[name] = field_da
+
+    coords = _pick_expected_coords(coords, _CROCO_EXPECTED_COORDS)
 
     ds = xr.merge(list(fields.values()) + [coords])
     ds.attrs.clear()  # Clear global attributes from the merging
