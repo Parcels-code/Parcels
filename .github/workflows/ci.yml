@@ -52,6 +52,11 @@ jobs:
         id: pixi-lock
         with:
           pixi-version: ${{env.PIXI_VERSION}}
+      - uses: actions/upload-artifact@v6
+        with:
+          name: pixi-lock
+          path: pixi.lock
+
   unit-test:
     name: "Unit tests: ${{ matrix.os }} | pixi run -e ${{ matrix.pixi-environment }} tests"
     runs-on: ${{ matrix.os }}-latest
