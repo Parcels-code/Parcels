@@ -20,8 +20,8 @@ env:
   PIXI_VERSION: "v0.63.0"
 
 jobs:
-  should-skip-ci:
-    name: should skip ci
+  should-run-ci:
+    name: should run ci
     runs-on: ubuntu-latest
     if: |
       github.repository == 'Parcels-code/Parcels'
@@ -34,7 +34,7 @@ jobs:
         id: check-skip
         with:
           keyword: "[skip-ci]"
-      - name: Fail if skip-ci
+      - name: Decide if we skip CI
         if: steps.check-skip.outputs.trigger-found == 'true' || contains(github.event.pull_request.labels.*.name, 'skip-ci')
         run: |
           echo "Skipping CI due to [skip-ci] keyword or skip-ci label"
@@ -42,7 +42,7 @@ jobs:
 
   cache-pixi-lock:
     runs-on: ubuntu-latest
-    needs: [should-skip-ci]
+    needs: [should-run-ci]
     outputs:
       cache-key: ${{ steps.pixi-lock.outputs.cache-key }}
       pixi-version: ${{ steps.pixi-lock.outputs.pixi-version }}
