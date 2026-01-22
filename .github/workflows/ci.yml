@@ -20,14 +20,12 @@ env:
   PIXI_VERSION: "v0.63.0"
 
 jobs:
-  should-skip-ci:
-    name: should skip ci
-    runs-on: ubuntu-latest
+  should-run-ci:
+    name: should run ci
+    runs-on: ubuntu-slim
     if: |
       github.repository == 'Parcels-code/Parcels'
       && (github.event_name == 'push' || github.event_name == 'pull_request')
-    outputs:
-      value: ${{ steps.set-output.outputs.skip-ci }}
     steps:
       - uses: actions/checkout@v5
         with:
@@ -36,17 +34,15 @@ jobs:
         id: check-skip
         with:
           keyword: "[skip-ci]"
-      - name: Set skip-ci output
-        id: set-output
+      - name: Decide if we skip CI
+        if: steps.check-skip.outputs.trigger-found == 'true' || contains(github.event.pull_request.labels.*.name, 'skip-ci')
         run: |
-          echo 'steps.check-skip.outputs.trigger-found=${{steps.check-skip.outputs.trigger-found}}'
-          echo "github.event.pull_request.labels.*.name=${{toJson(github.event.pull_request.labels.*.name)}}"
-          SKIP_CI=${{ steps.check-skip.outputs.trigger-found == 'true' || contains(github.event.pull_request.labels.*.name, 'skip-ci') }}
-          echo "skip-ci=${SKIP_CI}"
-          echo "skip-ci=${SKIP_CI}" >> $GITHUB_OUTPUT
+          echo "Skipping CI."
+          exit 1
 
   cache-pixi-lock:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-slim
+    needs: [should-run-ci]
     outputs:
       cache-key: ${{ steps.pixi-lock.outputs.cache-key }}
       pixi-version: ${{ steps.pixi-lock.outputs.pixi-version }}
@@ -56,11 +52,15 @@ jobs:
         id: pixi-lock
         with:
           pixi-version: ${{env.PIXI_VERSION}}
+      - uses: actions/upload-artifact@v6
+        with:
+          name: pixi-lock
+          path: pixi.lock
+
   unit-test:
     name: "Unit tests: ${{ matrix.os }} | pixi run -e ${{ matrix.pixi-environment }} tests"
     runs-on: ${{ matrix.os }}-latest
-    needs: [should-skip-ci, cache-pixi-lock]
-    if: needs.should-skip-ci.outputs.value == 'false'
+    needs: [cache-pixi-lock]
     env:
       COVERAGE_REPORT: "${{ matrix.os }}_${{ matrix.pixi-environment }}_unit_test_report.html"
     strategy:
@@ -122,9 +122,8 @@ jobs:
   integration-test:
     name: "Integration: ${{ matrix.os }} | pixi run -e ${{ matrix.pixi-environment }} tests-notebooks"
     runs-on: ${{ matrix.os }}-latest
-    needs: [should-skip-ci, cache-pixi-lock]
+    needs: [cache-pixi-lock]
     # TODO v4: Re-enable the workflow once development has stabilized and we want to run integration tests again
-    # needs.should-skip-ci.outputs.value == 'false'
     if: false
     env:
       COVERAGE_REPORT: "${{ matrix.os }}_${{ matrix.pixi-environment }}_integration_test_report.html"
@@ -177,9 +176,8 @@ jobs:
   typechecking:
     name: "TypeChecking: pixi run typing"
     runs-on: ubuntu-latest
-    needs: [should-skip-ci, cache-pixi-lock]
+    needs: [cache-pixi-lock]
     # TODO v4: Enable typechecking again
-    # needs.should-skip-ci.outputs.value == 'false'
     if: false
     steps:
       - name: Checkout
