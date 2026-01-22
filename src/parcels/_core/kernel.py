@@ -128,7 +128,7 @@ class Kernel:
                 # Update dt in case it's increased in RK45 kernel
                 particles.dt = particles.next_dt
 
-        self._kernels = (PositionUpdate + self)._kernels
+        self._kernels = [PositionUpdate] + self._kernels
 
     def check_fieldsets_in_kernels(self, kernel):  # TODO v4: this can go into another method? assert_is_compatible()?
         """
@@ -183,16 +183,6 @@ class Kernel:
             self.fieldset,
             self.ptype,
         )
-
-    def __add__(self, kernel):
-        if isinstance(kernel, types.FunctionType):
-            kernel = type(self)([kernel], self.fieldset, self.ptype)
-        return self.merge(kernel)
-
-    def __radd__(self, kernel):
-        if isinstance(kernel, types.FunctionType):
-            kernel = type(self)([kernel], self.fieldset, self.ptype)
-        return kernel.merge(self)
 
     def execute(self, pset, endtime, dt):
         """Execute this Kernel over a ParticleSet for several timesteps.

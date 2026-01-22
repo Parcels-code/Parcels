@@ -39,15 +39,12 @@ def test_kernel_init(fieldset):
 
 
 def test_kernel_merging(fieldset):
-    k1 = Kernel(kernels=[AdvectionRK4], fieldset=fieldset, ptype=Particle)
-    k2 = Kernel(kernels=[MoveEast, MoveNorth], fieldset=fieldset, ptype=Particle)
-
-    merged_kernel = k1 + k2
+    merged_kernel = Kernel(kernels=[AdvectionRK4, MoveEast, MoveNorth], fieldset=fieldset, ptype=Particle)
     assert merged_kernel.funcname == "AdvectionRK4MoveEastMoveNorth"
     assert len(merged_kernel._kernels) == 3
     assert merged_kernel._kernels == [AdvectionRK4, MoveEast, MoveNorth]
 
-    merged_kernel = k2 + k1
+    merged_kernel = Kernel(kernels=[MoveEast, MoveNorth, AdvectionRK4], fieldset=fieldset, ptype=Particle)
     assert merged_kernel.funcname == "MoveEastMoveNorthAdvectionRK4"
     assert len(merged_kernel._kernels) == 3
     assert merged_kernel._kernels == [MoveEast, MoveNorth, AdvectionRK4]
