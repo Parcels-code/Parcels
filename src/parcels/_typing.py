@@ -14,6 +14,8 @@ from typing import Any, Literal, get_args
 import numpy as np
 from cftime import datetime as cftime_datetime
 
+CfAxis = Literal["X", "Y", "Z", "T"]
+
 InterpMethodOption = Literal[
     "linear",
     "nearest",

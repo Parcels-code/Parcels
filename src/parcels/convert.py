@@ -12,20 +12,16 @@ be determined before they pass it to the FieldSet constructor.
 
 from __future__ import annotations
 
-import typing
-
 import numpy as np
 import xarray as xr
 
 from parcels._core.utils import sgrid
 from parcels._logger import logger
+from parcels._typing import CfAxis
 
-if typing.TYPE_CHECKING:
-    import uxarray as ux
+_NEMO_DIMENSION_COORD_NAMES: list[str] = ["x", "y", "time", "x", "x_center", "y", "y_center", "depth", "glamf", "gphif"]
 
-_NEMO_DIMENSION_COORD_NAMES = ["x", "y", "time", "x", "x_center", "y", "y_center", "depth", "glamf", "gphif"]
-
-_NEMO_AXIS_VARNAMES = {
+_NEMO_AXIS_VARNAMES: dict[str, CfAxis] = {
     "x": "X",
     "x_center": "X",
     "y": "Y",
@@ -34,7 +30,7 @@ _NEMO_AXIS_VARNAMES = {
     "time": "T",
 }
 
-_NEMO_VARNAMES_MAPPING = {
+_NEMO_VARNAMES_MAPPING: dict[str, str] = {
     "time_counter": "time",
     "depthw": "depth",
     "uo": "U",
@@ -42,7 +38,7 @@ _NEMO_VARNAMES_MAPPING = {
     "wo": "W",
 }
 
-_MITGCM_AXIS_VARNAMES = {
+_MITGCM_AXIS_VARNAMES: dict[str, CfAxis] = {
     "XC": "X",
     "XG": "X",
     "Xp1": "X",
@@ -57,13 +53,13 @@ _MITGCM_AXIS_VARNAMES = {
     "time": "T",
 }
 
-_MITGCM_VARNAMES_MAPPING = {
+_MITGCM_VARNAMES_MAPPING: dict[str, str] = {
     "XG": "lon",
     "YG": "lat",
     "Zl": "depth",
 }
 
-_COPERNICUS_MARINE_AXIS_VARNAMES = {
+_COPERNICUS_MARINE_AXIS_VARNAMES: dict[CfAxis, str] = {
     "X": "lon",
     "Y": "lat",
     "Z": "depth",
@@ -77,7 +73,7 @@ _CROCO_VARNAMES_MAPPING = {
 }
 
 
-def _maybe_bring_other_depths_to_depth(ds):
+def _maybe_bring_other_depths_to_depth(ds: xr.Dataset):
     if "depth" in ds.coords:
         for var in ds.data_vars:
             for old_depth in ["depthu", "depthv", "deptht", "depthw"]:
@@ -86,14 +82,14 @@ def _maybe_bring_other_depths_to_depth(ds):
     return ds
 
 
-def _maybe_create_depth_dim(ds):
+def _maybe_create_depth_dim(ds: xr.Dataset):
     if "depth" not in ds.dims:
         ds = ds.expand_dims({"depth": [0]})
         ds["depth"] = xr.DataArray([0], dims=["depth"])
     return ds
 
 
-def _maybe_rename_coords(ds, axis_varnames):
+def _maybe_rename_coords(ds: xr.Dataset, axis_varnames: dict[CfAxis, str]):
     try:
         for axis, [coord] in ds.cf.axes.items():
             ds = ds.rename({coord: axis_varnames[axis]})
@@ -102,81 +98,48 @@ def _maybe_rename_coords(ds, axis_varnames):
     return ds
 
 
-def _maybe_rename_variables(ds, varnames_mapping):
+def _maybe_rename_variables(ds: xr.Dataset, varnames_mapping: dict[str, str]):
     rename_dict = {old: new for old, new in varnames_mapping.items() if (old in ds.data_vars) or (old in ds.coords)}
     if rename_dict:
         ds = ds.rename(rename_dict)
     return ds
 
 
-def _assign_dims_as_coords(ds, dimension_names):
+def _assign_dims_as_coords(ds: xr.Dataset, dimension_names: list[str]):
     for axis in dimension_names:
         if axis in ds.dims and axis not in ds.coords:
             ds = ds.assign_coords({axis: np.arange(ds.sizes[axis])})
     return ds
 
 
-def _drop_unused_dimensions_and_coords(ds, dimension_and_coord_names):
+def _drop_unused_dimensions_and_coords(ds: xr.Dataset, dimension_and_coord_names: list[str]):
     for dim in ds.dims:
         if dim not in dimension_and_coord_names:
-            ds = ds.drop_dims(dim, errors="ignore")
+            ds = ds.drop_dims([dim], errors="ignore")
     for coord in ds.coords:
         if coord not in dimension_and_coord_names:
-            ds = ds.drop_vars(coord, errors="ignore")
+            ds = ds.drop_vars([coord], errors="ignore")
     return ds
 
 
-def _set_coords(ds, dimension_names):
+def _set_coords(ds: xr.Dataset, dimension_names):
     for varname in dimension_names:
         if varname in ds and varname not in ds.coords:
             ds = ds.set_coords([varname])
     return ds
 
 
-def _maybe_remove_depth_from_lonlat(ds):
+def _maybe_remove_depth_from_lonlat(ds: xr.Dataset):
     for coord in ["glamf", "gphif"]:
         if coord in ds.coords and "depth" in ds[coord].dims:
             ds[coord] = ds[coord].squeeze("depth", drop=True)
     return ds
 
 
-def _set_axis_attrs(ds, dim_axis):
+def _set_axis_attrs(ds: xr.Dataset, dim_axis: dict[str, CfAxis]):
     for dim, axis in dim_axis.items():
         if dim in ds:
             ds[dim].attrs["axis"] = axis
-    return ds
-
-
-def _ds_rename_using_standard_names(ds: xr.Dataset | ux.UxDataset, name_dict: dict[str, str]) -> xr.Dataset:
-    for standard_name, rename_to in name_dict.items():
-        name = ds.cf[standard_name].name
-        ds = ds.rename({name: rename_to})
-        logger.info(
-            f"cf_xarray found variable {name!r} with CF standard name {standard_name!r} in dataset, renamed it to {rename_to!r} for Parcels simulation."
-        )
-    return ds
-
-
-def _maybe_convert_time_from_float_to_timedelta(ds: xr.Dataset) -> xr.Dataset:
-    if "time" in ds.coords:
-        if np.issubdtype(ds["time"].data.dtype, np.floating):
-            time_units = ds["time"].attrs.get("units", "").lower()
-            if "hour" in time_units:
-                factor = 3600.0 * 1e9
-            elif "day" in time_units:
-                factor = 86400.0 * 1e9
-            elif "minute" in time_units:
-                factor = 60.0 * 1e9
-            else:
-                # default to seconds if unspecified
-                factor = 1.0 * 1e9
-
-            ns_int = np.rint(ds["time"].values * factor).astype("int64")
-            try:
-                ds["time"] = ns_int.astype("timedelta64[ns]")
-                logger.info("Converted time coordinate from float to timedelta based on units.")
-            except Exception as e:
-                logger.warning(f"Failed to convert time coordinate to timedelta: {e}")
     return ds
 
 
@@ -187,39 +150,6 @@ def _maybe_swap_depth_direction(ds: xr.Dataset) -> xr.Dataset:
                 "Depth dimension appears to be decreasing upward (i.e., from positive to negative values). Swapping depth dimension to be increasing upward for Parcels simulation."
             )
             ds = ds.reindex(depth=ds["depth"][::-1])
-    return ds
-
-
-# TODO is this function still needed, now that we require users to provide field names explicitly?
-def _discover_U_and_V(ds: xr.Dataset, cf_standard_names_fallbacks) -> xr.Dataset:
-    # Assumes that the dataset has U and V data
-
-    if "W" not in ds:
-        for cf_standard_name_W in cf_standard_names_fallbacks["W"]:
-            if cf_standard_name_W in ds.cf.standard_names:
-                ds = _ds_rename_using_standard_names(ds, {cf_standard_name_W: "W"})
-                break
-
-    if "U" in ds and "V" in ds:
-        return ds  # U and V already present
-    elif "U" in ds or "V" in ds:
-        raise ValueError(
-            "Dataset has only one of the two variables 'U' and 'V'. Please rename the appropriate variable in your dataset to have both 'U' and 'V' for Parcels simulation."
-        )
-
-    for cf_standard_name_U, cf_standard_name_V in cf_standard_names_fallbacks["UV"]:
-        if cf_standard_name_U in ds.cf.standard_names:
-            if cf_standard_name_V not in ds.cf.standard_names:
-                raise ValueError(
-                    f"Dataset has variable with CF standard name {cf_standard_name_U!r}, "
-                    f"but not the matching variable with CF standard name {cf_standard_name_V!r}. "
-                    "Please rename the appropriate variables in your dataset to have both 'U' and 'V' for Parcels simulation."
-                )
-        else:
-            continue
-
-        ds = _ds_rename_using_standard_names(ds, {cf_standard_name_U: "U", cf_standard_name_V: "V"})
-        break
     return ds
 
 

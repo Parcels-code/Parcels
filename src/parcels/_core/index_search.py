@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-from datetime import datetime
 from typing import TYPE_CHECKING
 
 import numpy as np
@@ -9,8 +8,8 @@ from parcels._core.statuscodes import _raise_outside_time_interval_error
 from parcels._core.utils.time import timedelta_to_float
 
 if TYPE_CHECKING:
+    from parcels import XGrid
     from parcels._core.field import Field
-    from parcels.xgrid import XGrid
 
 
 GRID_SEARCH_ERROR = -3
@@ -21,7 +20,7 @@ RIGHT_OUT_OF_BOUNDS = -1
 def _search_1d_array(
     arr: np.array,
     x: float,
-) -> tuple[int, int]:
+) -> tuple[np.array[int], np.array[float]]:
     """
     Searches for particle locations in a 1D array and returns barycentric coordinate along dimension.
 
@@ -63,14 +62,14 @@ def _search_1d_array(
     return np.atleast_1d(index), np.atleast_1d(bcoord)
 
 
-def _search_time_index(field: Field, time: datetime):
+def _search_time_index(field: Field, time: float):
     """Find and return the index and relative coordinate in the time array associated with a given time.
 
     Parameters
     ----------
     field: Field
 
-    time: datetime
+    time: float
         This is the amount of time, in seconds (time_delta), in unix epoch
     Note that we normalize to either the first or the last index
     if the sampled value is outside the time value range.
@@ -174,6 +173,8 @@ def _search_indices_curvilinear_2d(
     """
     if np.any(xi):
         # If an initial guess is provided, we first perform a point in cell check for all guessed indices
+        assert xi is not None
+        assert yi is not None
         is_in_cell, coords = curvilinear_point_in_cell(grid, y, x, yi, xi)
         y_check = y[is_in_cell == 0]
         x_check = x[is_in_cell == 0]

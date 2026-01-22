@@ -18,7 +18,7 @@ class UxGrid(BaseGrid):
     for interpolation on unstructured grids.
     """
 
-    def __init__(self, grid: ux.grid.Grid, z: ux.UxDataArray, mesh) -> UxGrid:
+    def __init__(self, grid: ux.grid.Grid, z: ux.UxDataArray, mesh):
         """
         Initializes the UxGrid with a uxarray grid and vertical coordinate array.
 

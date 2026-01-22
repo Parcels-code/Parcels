@@ -20,7 +20,6 @@ from parcels._core.xgrid import _DEFAULT_XGCM_KWARGS, XGrid
 from parcels._logger import logger
 from parcels._reprs import fieldset_repr
 from parcels._typing import Mesh
-from parcels.convert import _ds_rename_using_standard_names
 from parcels.interpolators import (
     CGrid_Velocity,
     Ux_Velocity,
@@ -174,7 +173,7 @@ class FieldSet:
 
     @property
     def gridset(self) -> list[BaseGrid]:
-        grids = []
+        grids: list[BaseGrid] = []
         for field in self.fields.values():
             if field.grid not in grids:
                 grids.append(field.grid)
@@ -408,7 +407,8 @@ def _datetime_to_msg(example_datetime: TimeLike) -> str:
     return msg
 
 
-def _format_calendar_error_message(field: Field, reference_datetime: TimeLike) -> str:
+def _format_calendar_error_message(field: Field | VectorField, reference_datetime: TimeLike) -> str:
+    assert field.time_interval is not None
     return f"Expected field {field.name!r} to have calendar compatible with datetime object {_datetime_to_msg(reference_datetime)}. Got field with calendar {_datetime_to_msg(field.time_interval.left)}. Have you considered using xarray to update the time dimension of the dataset to have a compatible calendar?"
 
 
@@ -446,6 +446,18 @@ _COPERNICUS_MARINE_CF_STANDARD_NAME_FALLBACKS = {
     ],
     "W": ["upward_sea_water_velocity", "vertical_sea_water_velocity"],
 }
+
+
+# TODO v4: This function (i.e., discovering U and V from standard names) will be removed in future
+# https://github.com/Parcels-code/Parcels/pull/2422#discussion_r2708467046
+def _ds_rename_using_standard_names(ds: xr.Dataset | ux.UxDataset, name_dict: dict[str, str]) -> xr.Dataset:
+    for standard_name, rename_to in name_dict.items():
+        name = ds.cf[standard_name].name
+        ds = ds.rename({name: rename_to})
+        logger.info(
+            f"cf_xarray found variable {name!r} with CF standard name {standard_name!r} in dataset, renamed it to {rename_to!r} for Parcels simulation."
+        )
+    return ds
 
 
 def _discover_ux_U_and_V(ds: ux.UxDataset) -> ux.UxDataset:

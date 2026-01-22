@@ -160,12 +160,13 @@ known-first-party = ["parcels"]
 
 [tool.mypy]
 files = [
-  "parcels/_typing.py",
-  "parcels/tools/*.py",
-  "parcels/grid.py",
-  "parcels/field.py",
-  "parcels/fieldset.py",
+  "src/parcels/_typing.py",
+  "src/parcels/_core/xgrid.py",
+  "src/parcels/_core/uxgrid.py",
+  "src/parcels/_core/field.py",
+  "src/parcels/_core/fieldset.py",
 ]
+disable_error_code = "attr-defined,assignment,operator,call-overload,index,valid-type,override,misc,union-attr"
 
 [[tool.mypy.overrides]]
 module = [
@@ -174,9 +175,16 @@ module = [
   "scipy.spatial",
   "sklearn.cluster",
   "zarr",
+  "zarr.storage",
+  "uxarray",
+  "xgcm",
   "cftime",
   "pykdtree.kdtree",
   "netCDF4",
   "pooch",
 ]
 ignore_missing_imports = true
+
+[[tool.mypy.overrides]] # TODO: This module should stabilize before release of v4
+module = "parcels.interpolators"
+ignore_errors = true

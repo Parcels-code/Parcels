@@ -259,9 +259,9 @@ class VectorField:
         self.igrid = U.igrid
 
         if W is None:
-            _assert_same_time_interval((U, V))
+            _assert_same_time_interval([U, V])
         else:
-            _assert_same_time_interval((U, V, W))
+            _assert_same_time_interval([U, V, W])
 
         self.time_interval = U.time_interval
 

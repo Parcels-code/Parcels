@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import types
 import warnings
-from typing import TYPE_CHECKING
 
 import numpy as np
 
@@ -23,9 +22,6 @@ from parcels.kernels import (
     AdvectionRK4,
     AdvectionRK45,
 )
-
-if TYPE_CHECKING:
-    from collections.abc import Callable
 
 __all__ = ["Kernel"]
 
@@ -80,7 +76,7 @@ class Kernel:
         for f in pyfuncs:
             self.check_fieldsets_in_kernels(f)
 
-        self._pyfuncs: list[Callable] = pyfuncs
+        self._pyfuncs: list[types.FunctionType] = pyfuncs
 
     @property  #! Ported from v3. To be removed in v4? (/find another way to name kernels in output file)
     def funcname(self):

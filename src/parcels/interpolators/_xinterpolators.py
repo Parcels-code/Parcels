@@ -19,7 +19,7 @@ def ZeroInterpolator(
     particle_positions: dict[str, float | np.ndarray],
     grid_positions: dict[_XGRID_AXES, dict[str, int | float | np.ndarray]],
     field: Field,
-) -> np.float32 | np.float64:
+) -> float:
     """Template function used for the signature check of the lateral interpolation methods."""
     return 0.0
 
@@ -28,7 +28,7 @@ def ZeroInterpolator_Vector(
     particle_positions: dict[str, float | np.ndarray],
     grid_positions: dict[_XGRID_AXES, dict[str, int | float | np.ndarray]],
     vectorfield: VectorField,
-) -> np.float32 | np.float64:
+) -> float:
     """Template function used for the signature check of the interpolation methods for velocity fields."""
     return 0.0
 
@@ -392,8 +392,8 @@ def _Spatialslip(
     particle_positions: dict[str, float | np.ndarray],
     grid_positions: dict[_XGRID_AXES, dict[str, int | float | np.ndarray]],
     vectorfield: VectorField,
-    a: np.float32,
-    b: np.float32,
+    a: float,
+    b: float,
 ):
     """Helper function for spatial boundary condition interpolation for velocity fields."""
     xi, xsi = grid_positions["X"]["index"], grid_positions["X"]["bcoord"]
