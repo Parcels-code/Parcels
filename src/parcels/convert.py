@@ -77,11 +77,12 @@ _CROCO_VARNAMES_MAPPING = {
 }
 
 
-def _maybe_bring_UV_depths_to_depth(ds):
-    if "U" in ds.variables and "depthu" in ds.U.coords and "depth" in ds.coords:
-        ds["U"] = ds["U"].assign_coords(depthu=ds["depth"].values).rename({"depthu": "depth"})
-    if "V" in ds.variables and "depthv" in ds.V.coords and "depth" in ds.coords:
-        ds["V"] = ds["V"].assign_coords(depthv=ds["depth"].values).rename({"depthv": "depth"})
+def _maybe_bring_other_depths_to_depth(ds):
+    if "depth" in ds.coords:
+        for var in ds.data_vars:
+            for old_depth in ["depthu", "depthv", "deptht", "depthw"]:
+                if old_depth in ds[var].dims:
+                    ds[var] = ds[var].assign_coords(**{old_depth: ds["depth"].values}).rename({old_depth: "depth"})
     return ds
 
 
@@ -279,7 +280,7 @@ def nemo_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.Da
     ds = xr.merge(list(fields.values()) + [coords])
     ds = _maybe_rename_variables(ds, _NEMO_VARNAMES_MAPPING)
     ds = _maybe_create_depth_dim(ds)
-    ds = _maybe_bring_UV_depths_to_depth(ds)
+    ds = _maybe_bring_other_depths_to_depth(ds)
     ds = _drop_unused_dimensions_and_coords(ds, _NEMO_DIMENSION_COORD_NAMES)
     ds = _assign_dims_as_coords(ds, _NEMO_DIMENSION_COORD_NAMES)
     ds = _set_coords(ds, _NEMO_DIMENSION_COORD_NAMES)
