@@ -83,7 +83,7 @@ def test_kernel_from_list_error_checking(fieldset):
     with pytest.raises(TypeError, match=r"Argument `kernels` should be a function or list of functions.*"):
         Kernel(kernels=[AdvectionRK4, "something else"], fieldset=fieldset, ptype=pset._ptype)
 
-    with pytest.raises(TypeError, match=r"Argument `kernels` should be a function or list of functions.*"):
+    with pytest.raises(TypeError, match=r".*is not a callable object"):
         kernels_mixed = Kernel(
             kernels=[Kernel(kernels=[AdvectionRK4], fieldset=fieldset, ptype=pset._ptype), MoveEast, MoveNorth],
             fieldset=fieldset,
@@ -97,7 +97,7 @@ def test_RK45Kernel_error_no_next_dt(fieldset):
     pset = ParticleSet(fieldset, lon=[0.5], lat=[0.5])
 
     with pytest.raises(ValueError, match='ParticleClass requires a "next_dt" for AdvectionRK45 Kernel.'):
-        Kernel(kernels=AdvectionRK45, fieldset=fieldset, ptype=pset._ptype)
+        Kernel(kernels=[AdvectionRK45], fieldset=fieldset, ptype=pset._ptype)
 
 
 def test_kernel_signature(fieldset):
@@ -118,23 +118,23 @@ def test_kernel_signature(fieldset):
     def kernel_with_forced_kwarg(particles, *, fieldset=0):
         pass
 
-    Kernel(kernels=good_kernel, fieldset=fieldset, ptype=pset._ptype)
+    Kernel(kernels=[good_kernel], fieldset=fieldset, ptype=pset._ptype)
 
     with pytest.raises(ValueError, match="Kernel function must have 2 parameters, got 3"):
-        Kernel(kernels=version_3_kernel, fieldset=fieldset, ptype=pset._ptype)
+        Kernel(kernels=[version_3_kernel], fieldset=fieldset, ptype=pset._ptype)
 
     with pytest.raises(
         ValueError, match="Parameter 'particle' has incorrect name. Expected 'particles', got 'particle'"
     ):
-        Kernel(kernels=version_3_kernel_without_time, fieldset=fieldset, ptype=pset._ptype)
+        Kernel(kernels=[version_3_kernel_without_time], fieldset=fieldset, ptype=pset._ptype)
 
     with pytest.raises(
         ValueError, match="Parameter 'fieldset' has incorrect name. Expected 'particles', got 'fieldset'"
     ):
-        Kernel(kernels=kernel_switched_args, fieldset=fieldset, ptype=pset._ptype)
+        Kernel(kernels=[kernel_switched_args], fieldset=fieldset, ptype=pset._ptype)
 
     with pytest.raises(
         ValueError,
         match="Parameter 'fieldset' has incorrect parameter kind. Expected POSITIONAL_OR_KEYWORD, got KEYWORD_ONLY",
     ):
-        Kernel(kernels=kernel_with_forced_kwarg, fieldset=fieldset, ptype=pset._ptype)
+        Kernel(kernels=[kernel_with_forced_kwarg], fieldset=fieldset, ptype=pset._ptype)

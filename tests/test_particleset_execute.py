@@ -251,7 +251,7 @@ def test_pset_multi_execute(fieldset, with_delete, npart=10, n=5):
     def AddLat(particles, fieldset):  # pragma: no cover
         particles.dlat += 0.1
 
-    k_add = Kernel(kernels=AddLat, fieldset=fieldset, ptype=pset._ptype)
+    k_add = Kernel(kernels=[AddLat], fieldset=fieldset, ptype=pset._ptype)
     for _ in range(n):
         pset.execute(k_add, runtime=np.timedelta64(1, "s"), dt=np.timedelta64(1, "s"))
         if with_delete:

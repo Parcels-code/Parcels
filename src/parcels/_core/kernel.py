@@ -45,12 +45,12 @@ class Kernel:
 
     Parameters
     ----------
+    kernels :
+        list of Kernel functions
     fieldset : parcels.Fieldset
         FieldSet object providing the field information (possibly None)
     ptype :
         PType object for the kernel particle
-    kernels :
-        list of Kernel functions
 
     Notes
     -----
@@ -65,10 +65,12 @@ class Kernel:
         ptype,
     ):
         if not isinstance(kernels, list):
-            kernels = [kernels]
+            raise ValueError(f"kernels must be a list. Got {kernels=!r}")
 
         for f in kernels:
-            if not isinstance(f, types.FunctionType):
+            if isinstance(f, Kernel):
+                f = f._kernels  # unwrap
+            elif not isinstance(f, types.FunctionType):
                 raise TypeError(f"Argument `kernels` should be a function or list of functions. Got {type(f)}")
             assert_same_function_signature(f, ref=AdvectionRK4, context="Kernel")
 
