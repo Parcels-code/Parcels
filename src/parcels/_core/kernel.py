@@ -27,8 +27,6 @@ from parcels.kernels import (
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-__all__ = ["Kernel"]
-
 
 ErrorsToThrow = {
     StatusCode.ErrorOutsideTimeInterval: _raise_outside_time_interval_error,

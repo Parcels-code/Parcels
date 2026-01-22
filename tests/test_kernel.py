@@ -4,11 +4,11 @@ import pytest
 from parcels import (
     Field,
     FieldSet,
-    Kernel,
     Particle,
     ParticleSet,
     XGrid,
 )
+from parcels._core.kernel import Kernel
 from parcels._datasets.structured.generic import datasets as datasets_structured
 from parcels.interpolators import XLinear
 from parcels.kernels import AdvectionRK4, AdvectionRK45

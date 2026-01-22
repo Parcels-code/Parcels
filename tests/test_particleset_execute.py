@@ -9,7 +9,6 @@ from parcels import (
     FieldInterpolationError,
     FieldOutOfBoundError,
     FieldSet,
-    Kernel,
     OutsideTimeInterval,
     Particle,
     ParticleFile,
@@ -20,6 +19,7 @@ from parcels import (
     VectorField,
     XGrid,
 )
+from parcels._core.kernel import Kernel
 from parcels._core.utils.time import timedelta_to_float
 from parcels._datasets.structured.generated import simple_UV_dataset
 from parcels._datasets.structured.generic import datasets as datasets_structured
