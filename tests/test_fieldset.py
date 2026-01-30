@@ -36,22 +36,6 @@ def test_fieldset_init_wrong_types():
         FieldSet([1.0, 2.0, 3.0])
 
 
-def test_fieldset_add_constant(fieldset):
-    fieldset.add_constant("test_constant", 1.0)
-    assert fieldset.test_constant == 1.0
-
-
-def test_fieldset_add_constant_int_name(fieldset):
-    with pytest.raises(TypeError, match="Expected a string for variable name, got int instead."):
-        fieldset.add_constant(123, 1.0)
-
-
-@pytest.mark.parametrize("name", ["a b", "123", "while"])
-def test_fieldset_add_constant_invalid_name(fieldset, name):
-    with pytest.raises(ValueError, match=r"Received invalid Python variable name.*"):
-        fieldset.add_constant(name, 1.0)
-
-
 def test_fieldset_add_constant_field(fieldset):
     fieldset.add_constant_field("test_constant_field", 1.0)
 

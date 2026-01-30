@@ -142,29 +142,29 @@ class Kernel:
                     raise ValueError('ParticleClass requires a "next_dt" for AdvectionRK45 Kernel.')
                 if not hasattr(self.fieldset, "RK45_tol"):
                     warnings.warn(
-                        "Setting RK45 tolerance to 10 m. Use fieldset.add_constant('RK45_tol', [distance]) to change.",
+                        "Setting RK45 tolerance to 10 m. Set fieldset.constants['RK45_tol'] = [distance] to change.",
                         KernelWarning,
                         stacklevel=2,
                     )
-                    self.fieldset.add_constant("RK45_tol", 10)
+                    self.fieldset.constants["RK45_tol"] = 10
                 if self.fieldset.U.grid._mesh == "spherical":
                     self.fieldset.RK45_tol /= (
                         1852 * 60
                     )  # TODO does not account for zonal variation in meter -> degree conversion
                 if not hasattr(self.fieldset, "RK45_min_dt"):
                     warnings.warn(
-                        "Setting RK45 minimum timestep to 1 s. Use fieldset.add_constant('RK45_min_dt', [timestep]) to change.",
+                        "Setting RK45 minimum timestep to 1 s. Set fieldset.constants['RK45_min_dt'] = [timestep] to change.",
                         KernelWarning,
                         stacklevel=2,
                     )
-                    self.fieldset.add_constant("RK45_min_dt", 1)
+                    self.fieldset.constants["RK45_min_dt"] = 1
                 if not hasattr(self.fieldset, "RK45_max_dt"):
                     warnings.warn(
-                        "Setting RK45 maximum timestep to 1 day. Use fieldset.add_constant('RK45_max_dt', [timestep]) to change.",
+                        "Setting RK45 maximum timestep to 1 day. Set fieldset.constants['RK45_max_dt'] = [timestep] to change.",
                         KernelWarning,
                         stacklevel=2,
                     )
-                    self.fieldset.add_constant("RK45_max_dt", 60 * 60 * 24)
+                    self.fieldset.constants["RK45_max_dt"] = 60 * 60 * 24
 
     def merge(self, kernel):
         if not isinstance(kernel, type(self)):
