@@ -6,7 +6,7 @@ import numpy as np
 import pytest
 import xarray as xr
 
-from parcels import Field, ParticleFile, ParticleSet, VectorField, XGrid
+from parcels import Field, ParticleFile, ParticleSet, VectorField, XGrid, convert
 from parcels._core.fieldset import CalendarError, FieldSet, _datetime_to_msg
 from parcels._datasets.structured.generic import T as T_structured
 from parcels._datasets.structured.generic import datasets as datasets_structured
@@ -243,33 +243,33 @@ def test_fieldset_add_field_after_pset():
 
 
 def test_fieldset_from_icon():
-    ds = datasets_unstructured["icon_square_delaunay_uniform_z_coordinate"]
-    fieldset = FieldSet.from_icon(ds)
+    ds = convert.icon_to_ugrid(datasets_unstructured["icon_square_delaunay_uniform_z_coordinate"])
+    fieldset = FieldSet.from_ugrid_conventions(ds)
     assert "U" in fieldset.fields
     assert "V" in fieldset.fields
     assert "UVW" in fieldset.fields
 
 
 def test_fieldset_from_fesom2():
-    ds = datasets_unstructured["fesom2_square_delaunay_uniform_z_coordinate"]
-    fieldset = FieldSet.from_fesom2(ds)
+    ds = convert.fesom_to_ugrid(datasets_unstructured["fesom2_square_delaunay_uniform_z_coordinate"])
+    fieldset = FieldSet.from_ugrid_conventions(ds)
     assert "U" in fieldset.fields
     assert "V" in fieldset.fields
     assert "UVW" in fieldset.fields
 
 
 def test_fieldset_from_fesom2_missingUV():
-    ds = datasets_unstructured["fesom2_square_delaunay_uniform_z_coordinate"]
+    ds = convert.fesom_to_ugrid(datasets_unstructured["fesom2_square_delaunay_uniform_z_coordinate"])
     # Intentionally create a dataset that is missing the U field
     localds = ds.rename({"U": "notU"})
     with pytest.raises(ValueError) as info:
-        _ = FieldSet.from_fesom2(localds)
+        _ = FieldSet.from_ugrid_conventions(localds)
     assert "Dataset has only one of the two variables 'U' and 'V'" in str(info)
 
     # Intentionally create a dataset that is missing the V field
     localds = ds.rename({"V": "notV"})
     with pytest.raises(ValueError) as info:
-        _ = FieldSet.from_fesom2(localds)
+        _ = FieldSet.from_ugrid_conventions(localds)
     assert "Dataset has only one of the two variables 'U' and 'V'" in str(info)
 
 
