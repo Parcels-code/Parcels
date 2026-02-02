@@ -12,6 +12,7 @@ from parcels import (
     download_example_dataset,
 )
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
+from parcels.convert import fesom_to_ugrid, icon_to_ugrid
 from parcels.interpolators import (
     Ux_Velocity,
     UxConstantFaceConstantZC,
@@ -29,12 +30,7 @@ def ds_fesom_channel() -> ux.UxDataset:
         f"{fesom_path}/w.fesom_channel.nc",
     ]
     ds = ux.open_mfdataset(grid_path, data_path).rename_vars({"u": "U", "v": "V", "w": "W"})
-    ds = ds.rename(
-        {
-            "nz": "zf",  # Vertical Interface
-            "nz1": "zc",  # Vertical Center
-        }
-    ).set_index(zf="zf", zc="zc")
+    ds = fesom_to_ugrid(ds)
     return ds
 
 
@@ -121,12 +117,7 @@ def test_fesom2_square_delaunay_uniform_z_coordinate_eval():
     Since the underlying data is constant, we can check that the values are as expected.
     """
     ds = datasets_unstructured["fesom2_square_delaunay_uniform_z_coordinate"]
-    ds = ds.rename(
-        {
-            "nz": "zf",  # Vertical Interface
-            "nz1": "zc",  # Vertical Center
-        }
-    ).set_index(zf="zf", zc="zc")
+    ds = fesom_to_ugrid(ds)
     grid = UxGrid(ds.uxgrid, z=ds.coords["zf"], mesh="flat")
     UVW = VectorField(
         name="UVW",
@@ -174,12 +165,7 @@ def test_fesom2_square_delaunay_antimeridian_eval():
     Since the underlying data is constant, we can check that the values are as expected.
     """
     ds = datasets_unstructured["fesom2_square_delaunay_antimeridian"]
-    ds = ds.rename(
-        {
-            "nz": "zf",  # Vertical Interface
-            "nz1": "zc",  # Vertical Center
-        }
-    ).set_index(zf="zf", zc="zc")
+    ds = fesom_to_ugrid(ds)
     P = Field(
         name="p",
         data=ds.p,
@@ -196,7 +182,8 @@ def test_fesom2_square_delaunay_antimeridian_eval():
 
 def test_icon_evals():
     ds = datasets_unstructured["icon_square_delaunay_uniform_z_coordinate"].copy(deep=True)
-    fieldset = FieldSet.from_icon(ds, mesh="flat")
+    ds = icon_to_ugrid(ds)
+    fieldset = FieldSet.from_ugrid_conventions(ds, mesh="flat")
 
     # Query points, are chosen to be just a fraction off from the center of a cell for testing
     # This generic dataset has an effective lateral grid-spacing of 3 degrees and vertical grid
@@ -204,7 +191,7 @@ def test_icon_evals():
     # within the cell and make for easy exactness checking of constant and linear interpolation
     xc = ds.uxgrid.face_lon.values
     yc = ds.uxgrid.face_lat.values
-    zc = 0.0 * xc + ds.depth.values[1]  # Make zc the same length as xc
+    zc = 0.0 * xc + ds.zc.values[1]  # Make zc the same length as xc
 
     tq = 0.0 * xc
     xq = xc + 0.1
