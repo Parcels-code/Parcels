@@ -163,6 +163,9 @@ class FieldSet:
     @classmethod
     def from_ugrid_conventions(cls, ds: ux.UxDataset, mesh: str = "spherical"):
         """Create a FieldSet from a Parcels compliant uxarray.UxDataset.
+
+        This is the primary ingestion method in Parcels for structured grid datasets.
+
         The main requirements for a uxDataset are naming conventions for vertical grid dimensions & coordinates
 
           zf - Name for coordinate and dimension for vertical positions at layer interfaces
@@ -204,63 +207,6 @@ class FieldSet:
             fields[varname] = Field(varname, ds[varname], grid, _select_uxinterpolator(ds[varname]))
 
         return cls(list(fields.values()))
-
-    @classmethod
-    def from_fesom2(cls, ds: ux.UxDataset, mesh: str = "spherical"):
-        """Create a FieldSet from a FESOM2 uxarray.UxDataset.
-
-        Parameters
-        ----------
-        ds : uxarray.UxDataset
-            uxarray.UxDataset as obtained from the uxarray package.
-
-        Returns
-        -------
-        FieldSet
-            FieldSet object containing the fields from the dataset that can be used for a Parcels simulation.
-        """
-        ds = ds.copy()
-        ds_dims = list(ds.dims)
-        if not all(dim in ds_dims for dim in ["time", "nz", "nz1"]):
-            raise ValueError(
-                f"Dataset missing one of the required dimensions 'time', 'nz', or 'nz1' for FESOM data. Found dimensions {ds_dims}"
-            )
-        ds = ds.rename(
-            {
-                "nz": "zf",  # Vertical Interface
-                "nz1": "zc",  # Vertical Center
-            }
-        ).set_index(zf="zf", zc="zc")
-
-        return FieldSet.from_ugrid_conventions(ds, mesh=mesh)
-
-    @classmethod
-    def from_icon(cls, ds: ux.UxDataset, mesh: str = "spherical"):
-        """Create a FieldSet from a ICON uxarray.UxDataset.
-
-        Parameters
-        ----------
-        ds : uxarray.UxDataset
-            uxarray.UxDataset as obtained from the uxarray package.
-
-        Returns
-        -------
-        FieldSet
-            FieldSet object containing the fields from the dataset that can be used for a Parcels simulation.
-        """
-        ds = ds.copy()
-        ds_dims = list(ds.dims)
-        if not all(dim in ds_dims for dim in ["time", "depth", "depth_2"]):
-            raise ValueError(
-                f"Dataset missing one of the required dimensions 'time', 'depth', or 'depth_2' for ICON data. Found dimensions {ds_dims}"
-            )
-        ds = ds.rename(
-            {
-                "depth_2": "zf",  # Vertical Interface
-                "depth": "zc",  # Vertical Center
-            }
-        ).set_index(zf="zf", zc="zc")
-        return FieldSet.from_ugrid_conventions(ds, mesh=mesh)
 
     @classmethod
     def from_sgrid_conventions(
