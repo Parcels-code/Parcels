@@ -1,5 +1,6 @@
 import datetime
 import sys
+import types
 import warnings
 from collections.abc import Iterable
 from typing import Literal
@@ -396,7 +397,7 @@ class ParticleSet:
         if isinstance(kernels, Kernel):
             self._kernel = kernels
         else:
-            if not isinstance(kernels, list):
+            if isinstance(kernels, types.FunctionType):
                 kernels = [kernels]
             self._kernel = Kernel(kernels, self.fieldset, self._ptype)
 
