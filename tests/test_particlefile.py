@@ -189,7 +189,7 @@ def test_variable_written_once():
 def test_pset_repeated_release_delayed_adding_deleting(fieldset, tmp_zarrfile, dt, maxvar):
     """Tests that if particles are released and deleted based on age that resulting output file is correct."""
     npart = 10
-    fieldset.add_constant("maxvar", maxvar)
+    fieldset.constants["maxvar"] = maxvar
 
     MyParticle = Particle.add_variable(
         [Variable("sample_var", initial=0.0), Variable("v_once", dtype=np.float64, initial=0.0, to_write="once")]
