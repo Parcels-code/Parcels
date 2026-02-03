@@ -19,7 +19,6 @@ from parcels import (
     VectorField,
     XGrid,
 )
-from parcels._core.kernel import Kernel
 from parcels._core.utils.time import timedelta_to_float
 from parcels._datasets.structured.generated import simple_UV_dataset
 from parcels._datasets.structured.generic import datasets as datasets_structured
@@ -174,6 +173,8 @@ def test_particleset_run_RK_to_endtime_fwd_bwd(fieldset, kernel, dt):
     pset.execute(kernel, endtime=endtime, dt=dt)
     assert pset[0].time == fieldset.time_interval.time_length_as_flt
 
+    pset._positionupdate_kernel_added = False  # Reset positionupdate_kernel use for backward
+
     pset.execute(kernel, endtime=starttime, dt=-dt)
     assert pset[0].time == 0.0
 
@@ -251,9 +252,8 @@ def test_pset_multi_execute(fieldset, with_delete, npart=10, n=5):
     def AddLat(particles, fieldset):  # pragma: no cover
         particles.dlat += 0.1
 
-    k_add = Kernel(kernels=[AddLat], fieldset=fieldset, ptype=pset._ptype)
     for _ in range(n):
-        pset.execute(k_add, runtime=np.timedelta64(1, "s"), dt=np.timedelta64(1, "s"))
+        pset.execute(AddLat, runtime=np.timedelta64(1, "s"), dt=np.timedelta64(1, "s"))
         if with_delete:
             pset.remove_indices(len(pset) - 1)
     if with_delete:

@@ -59,8 +59,7 @@ class Kernel:
     def __init__(
         self,
         kernels: list[types.FunctionType],
-        fieldset,
-        ptype,
+        pset,
     ):
         if not isinstance(kernels, list):
             raise ValueError(f"kernels must be a list. Got {kernels=!r}")
@@ -75,15 +74,16 @@ class Kernel:
         if len(kernels) == 0:
             raise ValueError("List of `kernels` should have at least one function.")
 
-        self._fieldset = fieldset
-        self._ptype = ptype
-
-        self._positionupdate_kernel_added = False
+        self._fieldset = pset.fieldset
+        self._ptype = pset._ptype
 
         for f in kernels:
             self.check_fieldsets_in_kernels(f)
 
         self._kernels: list[Callable] = kernels
+
+        if pset._positionupdate_kernel_added:
+            self.add_positionupdate_kernel()
 
     @property  #! Ported from v3. To be removed in v4? (/find another way to name kernels in output file)
     def funcname(self):
@@ -247,8 +247,8 @@ class Kernel:
                         error_func(pset[inds].z, pset[inds].lat, pset[inds].lon)
 
             # Only add PositionUpdate kernel at the end of the first execute call to avoid adding dt to time too early
-            if not self._positionupdate_kernel_added:
+            if not pset._positionupdate_kernel_added:
                 self.add_positionupdate_kernel()
-                self._positionupdate_kernel_added = True
+                pset._positionupdate_kernel_added = True
 
         return pset

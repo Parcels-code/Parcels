@@ -135,6 +135,7 @@ class ParticleSet:
             self._data[kwvar][:] = kwval
 
         self._kernel = None
+        self._positionupdate_kernel_added = False
 
     def __del__(self):
         if self._data is not None and isinstance(self._data, xr.Dataset):
@@ -399,7 +400,7 @@ class ParticleSet:
         else:
             if isinstance(kernels, types.FunctionType):
                 kernels = [kernels]
-            self._kernel = Kernel(kernels, self.fieldset, self._ptype)
+            self._kernel = Kernel(kernels, self)
 
         if output_file is not None:
             output_file.set_metadata(self.fieldset.gridset[0]._mesh)
