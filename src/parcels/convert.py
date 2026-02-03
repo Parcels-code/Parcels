@@ -23,6 +23,8 @@ from parcels._logger import logger
 if typing.TYPE_CHECKING:
     import uxarray as ux
 
+_NEMO_EXPECTED_COORDS = ["glamf", "gphif"]
+
 _NEMO_DIMENSION_COORD_NAMES = ["x", "y", "time", "x", "x_center", "y", "y_center", "depth", "glamf", "gphif"]
 
 _NEMO_AXIS_VARNAMES = {
@@ -41,6 +43,8 @@ _NEMO_VARNAMES_MAPPING = {
     "vo": "V",
     "wo": "W",
 }
+
+_MITGCM_EXPECTED_COORDS = ["XG", "YG", "Zl"]
 
 _MITGCM_AXIS_VARNAMES = {
     "XC": "X",
@@ -70,11 +74,23 @@ _COPERNICUS_MARINE_AXIS_VARNAMES = {
     "T": "time",
 }
 
+_CROCO_EXPECTED_COORDS = ["x_rho", "y_rho", "s_w", "time"]
+
 _CROCO_VARNAMES_MAPPING = {
     "x_rho": "lon",
     "y_rho": "lat",
     "s_w": "depth",
 }
+
+
+def _pick_expected_coords(coords: xr.Dataset, expected_coord_names: list[str]) -> xr.Dataset:
+    coords_to_use = {}
+    for name in expected_coord_names:
+        if name in coords:
+            coords_to_use[name] = coords[name]
+        else:
+            raise ValueError(f"Expected coordinate '{name}' not found in provided coords dataset.")
+    return xr.Dataset(coords_to_use)
 
 
 def _maybe_bring_other_depths_to_depth(ds):
@@ -246,7 +262,7 @@ def nemo_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.Da
 
     """
     fields = fields.copy()
-    coords = coords[["gphif", "glamf"]]
+    coords = _pick_expected_coords(coords, _NEMO_EXPECTED_COORDS)
 
     for name, field_da in fields.items():
         if isinstance(field_da, xr.Dataset):
@@ -358,6 +374,8 @@ def mitgcm_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.
             field_da = field_da.rename(name)
         fields[name] = field_da
 
+    coords = _pick_expected_coords(coords, _MITGCM_EXPECTED_COORDS)
+
     ds = xr.merge(list(fields.values()) + [coords])
     ds.attrs.clear()  # Clear global attributes from the merging
 
@@ -417,6 +435,8 @@ def croco_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.D
         else:
             field_da = field_da.rename(name)
         fields[name] = field_da
+
+    coords = _pick_expected_coords(coords, _CROCO_EXPECTED_COORDS)
 
     ds = xr.merge(list(fields.values()) + [coords])
     ds.attrs.clear()  # Clear global attributes from the merging
@@ -509,3 +529,192 @@ def copernicusmarine_to_sgrid(
     )
 
     return ds
+
+
+# Known vertical dimension mappings by model
+_FESOM2_VERTICAL_DIMS = {"interface": "nz", "center": "nz1"}
+_ICON_VERTICAL_DIMS = {"interface": "depth_2", "center": "depth"}
+
+
+def _detect_vertical_coordinates(
+    ds: ux.UxDataset,
+    known_mappings: dict[str, str] | None = None,
+) -> tuple[str, str]:
+    """Detect vertical coordinate dimensions for faces (zf) and centers (zc).
+
+    Detection strategy (with fallback):
+    1. Use known_mappings if provided and dimensions exist
+    2. Look for CF convention axis='Z' metadata
+    3. Find dimension pairs where sizes differ by exactly 1
+
+    Parameters
+    ----------
+    ds : ux.UxDataset
+        UxDataset to analyze for vertical coordinates.
+    known_mappings : dict[str, str] | None
+        Optional mapping with keys "interface" and "center" specifying
+        the dimension names for layer interfaces (zf) and centers (zc).
+
+    Returns
+    -------
+    tuple[str, str]
+        Tuple of (interface_dim_name, center_dim_name).
+
+    Raises
+    ------
+    ValueError
+        If vertical coordinates cannot be detected.
+    """
+    ds_dims = set(ds.dims)
+
+    # Strategy 1: Use known mappings if provided and dimensions exist
+    if known_mappings is not None:
+        interface_dim = known_mappings.get("interface")
+        center_dim = known_mappings.get("center")
+        if interface_dim in ds_dims and center_dim in ds_dims:
+            logger.info(
+                f"Using known vertical dimension mapping: {interface_dim!r} (interfaces) and {center_dim!r} (centers)."
+            )
+            return interface_dim, center_dim
+        logger.debug(f"Known mappings {known_mappings} not found in dataset dimensions {ds_dims}. Trying CF metadata.")
+
+    # Strategy 2: Look for CF convention axis='Z' metadata
+    z_dims = []
+    for dim in ds_dims:
+        if dim in ds.coords:
+            coord = ds.coords[dim]
+            if coord.attrs.get("axis") == "Z":
+                z_dims.append(dim)
+            elif coord.attrs.get("positive") in ("up", "down"):
+                z_dims.append(dim)
+            elif "depth" in coord.attrs.get("standard_name", "").lower():
+                z_dims.append(dim)
+
+    if len(z_dims) == 2:
+        # Sort by size - interface has n+1 values, center has n
+        z_dims_sorted = sorted(z_dims, key=lambda d: ds.sizes[d], reverse=True)
+        interface_dim, center_dim = z_dims_sorted
+        if ds.sizes[interface_dim] == ds.sizes[center_dim] + 1:
+            logger.info(
+                f"Detected vertical dimensions from CF metadata: {interface_dim!r} (interfaces) and {center_dim!r} (centers)."
+            )
+            return interface_dim, center_dim
+
+    # Strategy 3: Find dimension pairs where sizes differ by exactly 1
+    # Skip known non-vertical dimensions
+    skip_dims = {"time", "n_face", "n_node", "n_edge", "n_max_face_nodes"}
+    candidate_dims = [d for d in ds_dims if d not in skip_dims]
+
+    for dim1 in candidate_dims:
+        for dim2 in candidate_dims:
+            if dim1 != dim2:
+                size1, size2 = ds.sizes[dim1], ds.sizes[dim2]
+                if size1 == size2 + 1:
+                    logger.info(
+                        f"Auto-detected vertical dimensions by size difference: {dim1!r} (interfaces, size={size1}) "
+                        f"and {dim2!r} (centers, size={size2})."
+                    )
+                    return dim1, dim2
+
+    raise ValueError(
+        f"Could not detect vertical coordinate dimensions in dataset with dims {list(ds_dims)}. "
+        "Please ensure the dataset has vertical layer interface and center dimensions, "
+        "or rename them manually to 'zf' (interfaces) and 'zc' (centers)."
+    )
+
+
+def _rename_vertical_dims(
+    ds: ux.UxDataset,
+    interface_dim: str,
+    center_dim: str,
+) -> ux.UxDataset:
+    """Rename vertical dimensions to zf (interfaces) and zc (centers).
+
+    Parameters
+    ----------
+    ds : ux.UxDataset
+        UxDataset with vertical dimensions to rename.
+    interface_dim : str
+        Current name of the interface dimension.
+    center_dim : str
+        Current name of the center dimension.
+
+    Returns
+    -------
+    ux.UxDataset
+        Dataset with renamed dimensions and indexed coordinates.
+    """
+    rename_dict = {}
+    if interface_dim != "zf":
+        rename_dict[interface_dim] = "zf"
+    if center_dim != "zc":
+        rename_dict[center_dim] = "zc"
+
+    if rename_dict:
+        logger.info(f"Renaming vertical dimensions: {rename_dict}")
+        ds = ds.rename(rename_dict)
+
+    ds = ds.set_index(zf="zf", zc="zc")
+    return ds
+
+
+def fesom_to_ugrid(ds: ux.UxDataset) -> ux.UxDataset:
+    """Convert FESOM2 UxDataset to Parcels UGRID-compliant format.
+
+    Renames vertical dimensions:
+    - nz -> zf (vertical layer faces/interfaces)
+    - nz1 -> zc (vertical layer centers)
+
+    Parameters
+    ----------
+    ds : ux.UxDataset
+        FESOM2 UxDataset as obtained from uxarray.
+
+    Returns
+    -------
+    ux.UxDataset
+        UGRID-compliant dataset ready for FieldSet.from_ugrid_conventions().
+
+    Examples
+    --------
+    >>> import uxarray as ux
+    >>> from parcels import FieldSet
+    >>> from parcels.convert import fesom_to_ugrid
+    >>> ds = ux.open_mfdataset(grid_path, data_path)
+    >>> ds_ugrid = fesom_to_ugrid(ds)
+    >>> fieldset = FieldSet.from_ugrid_conventions(ds_ugrid, mesh="flat")
+    """
+    ds = ds.copy()
+    interface_dim, center_dim = _detect_vertical_coordinates(ds, _FESOM2_VERTICAL_DIMS)
+    return _rename_vertical_dims(ds, interface_dim, center_dim)
+
+
+def icon_to_ugrid(ds: ux.UxDataset) -> ux.UxDataset:
+    """Convert ICON UxDataset to Parcels UGRID-compliant format.
+
+    Renames vertical dimensions:
+    - depth_2 -> zf (vertical layer faces/interfaces)
+    - depth -> zc (vertical layer centers)
+
+    Parameters
+    ----------
+    ds : ux.UxDataset
+        ICON UxDataset as obtained from uxarray.
+
+    Returns
+    -------
+    ux.UxDataset
+        UGRID-compliant dataset ready for FieldSet.from_ugrid_conventions().
+
+    Examples
+    --------
+    >>> import uxarray as ux
+    >>> from parcels import FieldSet
+    >>> from parcels.convert import icon_to_ugrid
+    >>> ds = ux.open_mfdataset(grid_path, data_path)
+    >>> ds_ugrid = icon_to_ugrid(ds)
+    >>> fieldset = FieldSet.from_ugrid_conventions(ds_ugrid, mesh="flat")
+    """
+    ds = ds.copy()
+    interface_dim, center_dim = _detect_vertical_coordinates(ds, _ICON_VERTICAL_DIMS)
+    return _rename_vertical_dims(ds, interface_dim, center_dim)
