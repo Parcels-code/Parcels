@@ -395,12 +395,9 @@ class ParticleSet:
         if len(self) == 0:
             return
 
-        if isinstance(kernels, Kernel):
-            self._kernel = kernels
-        else:
-            if isinstance(kernels, types.FunctionType):
-                kernels = [kernels]
-            self._kernel = Kernel(kernels, self)
+        if isinstance(kernels, types.FunctionType):
+            kernels = [kernels]
+        self._kernel = Kernel(kernels, self)
 
         if output_file is not None:
             output_file.set_metadata(self.fieldset.gridset[0]._mesh)

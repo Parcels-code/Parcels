@@ -81,7 +81,7 @@ def test_kernel_from_list_error_checking(fieldset):
     with pytest.raises(TypeError, match=r"Argument `kernels` should be a function or list of functions.*"):
         Kernel(kernels=[AdvectionRK4, "something else"], pset=pset)
 
-    with pytest.raises(TypeError, match=r".*is not a callable object"):
+    with pytest.raises(TypeError, match=r".* should be a function or list of functions.*"):
         kernels_mixed = Kernel(kernels=[Kernel(kernels=[AdvectionRK4], pset=pset), MoveEast, MoveNorth], pset=pset)
         assert kernels_mixed.funcname == "AdvectionRK4MoveEastMoveNorth"
 
