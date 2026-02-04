@@ -35,7 +35,10 @@ jobs:
     name: Create issue on failure
     runs-on: ubuntu-latest
     needs: [min-version-policy, linkcheck]
-    if: failure() && github.event_name == 'schedule'
+    if: |
+      always() &&
+      (needs.min-version-policy.result == 'failure' || needs.linkcheck.result == 'failure') &&
+      github.event_name == 'schedule'
     permissions:
       issues: write
     steps:
