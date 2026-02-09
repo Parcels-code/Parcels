@@ -200,6 +200,9 @@ class FieldSet:
                 fields["UVW"] = VectorField(
                     "UVW", fields["U"], fields["V"], fields["W"], vector_interp_method=Ux_Velocity
                 )
+                fields["UV"] = VectorField(
+                    "UV", fields["U"], fields["V"], vector_interp_method=Ux_Velocity
+                )
             else:
                 fields["UV"] = VectorField("UV", fields["U"], fields["V"], vector_interp_method=Ux_Velocity)
 
