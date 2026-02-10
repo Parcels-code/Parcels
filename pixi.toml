@@ -35,6 +35,9 @@ py-triangle = ">=20250106,<20250107"
 [dependencies]
 parcels = { path = "." }
 
+[tasks]
+get-parcels-alpha-version = { cmd = "python tools/get-parcels-alpha-version.py", default-environment = "default" }
+
 [feature.minimum.dependencies]
 python = "3.11.*"
 netcdf4 = "1.6.*"

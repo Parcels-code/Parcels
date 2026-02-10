@@ -195,12 +195,23 @@ jobs:
           name: Mypy report
           path: mypy-report
   build-and-upload-nightly-parcels: # for alpha testing
+    needs: [cache-pixi-lock]
     permissions:
       contents: read
       id-token: write
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+      - name: Restore cached pixi lockfile
+        uses: Parcels-code/pixi-lock/restore@2b823a4a804631370fbde7e6088ee5db71a26c60 # TODO: Update to action in prefix-dev once available
+        with:
+          cache-key: ${{ needs.cache-pixi-lock.outputs.cache-key }}
+      - uses: prefix-dev/setup-pixi@v0.9.0
+        with:
+          pixi-version: ${{ needs.cache-pixi-lock.outputs.pixi-version }}
+          cache: true
+          cache-write: ${{ github.event_name == 'push' && github.ref_name == 'v4-dev' }} # TODO: Update v4-dev to main when v4 is released
+      - run: pixi run get-parcels-alpha-version >> $GITHUB_ENV
       - name: Build conda package
         uses: prefix-dev/rattler-build-action@v0.2.34
         with:
