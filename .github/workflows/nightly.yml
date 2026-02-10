@@ -3,12 +3,11 @@ name: Publish alpha version of Parcels
 on:
   workflow_dispatch:
 
-permissions:
-  contents: read
-  id-token: write
-
 jobs:
   build-nightly-parcels:
+    permissions:
+      contents: read
+      id-token: write
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
