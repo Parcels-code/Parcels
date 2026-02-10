@@ -16,9 +16,6 @@ defaults:
   run:
     shell: bash -el {0}
 
-env:
-  PIXI_VERSION: "v0.63.0"
-
 jobs:
   should-run-ci:
     name: should run ci
@@ -48,10 +45,8 @@ jobs:
       pixi-version: ${{ steps.pixi-lock.outputs.pixi-version }}
     steps:
       - uses: actions/checkout@v4
-      - uses: Parcels-code/pixi-lock/create-and-cache@2b823a4a804631370fbde7e6088ee5db71a26c60 # TODO: Update to action in prefix-dev once available
+      - uses: Parcels-code/pixi-lock/create-and-cache@2b823a4a804631370fbde7e6088ee5db71a26c60
         id: pixi-lock
-        with:
-          pixi-version: ${{env.PIXI_VERSION}}
       - uses: actions/upload-artifact@v6
         with:
           name: pixi-lock

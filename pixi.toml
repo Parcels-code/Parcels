@@ -3,6 +3,7 @@ name = "Parcels"
 preview = ["pixi-build"]
 channels = ["conda-forge"]
 platforms = ["win-64", "linux-64", "osx-64", "osx-arm64"]
+requires-pixi = ">=0.63.0"
 
 [package]
 name = "parcels"
