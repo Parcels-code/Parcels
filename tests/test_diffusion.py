@@ -64,7 +64,7 @@ def test_fieldKh_SpatiallyVaryingDiffusion(mesh, kernel):
     ds["Kh_zonal"] = (["time", "depth", "YG", "XG"], np.full((2, 1, ydim, xdim), Kh))
     ds["Kh_meridional"] = (["time", "depth", "YG", "XG"], np.full((2, 1, ydim, xdim), Kh))
     fieldset = FieldSet.from_sgrid_conventions(ds, mesh=mesh)
-    fieldset.constants["dres"] = float(ds["lon"][1] - ds["lon"][0])
+    fieldset.add_constant("dres", float(ds["lon"][1] - ds["lon"][0]))
 
     npart = 10000
 
@@ -84,7 +84,7 @@ def test_randomexponential(lambd):
     npart = 1000
 
     # Rate parameter for random.expovariate
-    fieldset.constants["lambd"] = lambd
+    fieldset.add_constant("lambd", lambd)
 
     # Set random seed
     np.random.seed(1234)

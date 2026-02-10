@@ -12,6 +12,7 @@ import xgcm
 
 from parcels._core.field import Field, VectorField
 from parcels._core.utils import sgrid
+from parcels._core.utils.string import _assert_str_and_python_varname
 from parcels._core.utils.time import get_datetime_type_calendar
 from parcels._core.utils.time import is_compatible as datetime_is_compatible
 from parcels._core.uxgrid import UxGrid
@@ -151,6 +152,25 @@ class FieldSet:
         )
         grid = XGrid(xgrid, mesh=mesh)
         self.add_field(Field(name, ds[name], grid, interp_method=XConstantField))
+
+    def add_constant(self, name, value):
+        """Add a constant to the FieldSet.
+
+        Parameters
+        ----------
+        name : str
+            Name of the constant
+        value :
+            Value of the constant
+
+        """
+        _assert_str_and_python_varname(name)
+
+        if name in self.constants:
+            raise ValueError(f"FieldSet already has a constant with name '{name}'")
+        if not isinstance(value, (float, np.floating, int, np.integer)):
+            raise ValueError(f"FieldSet constants have to be of type float or int, got a {type(value)}")
+        self.constants[name] = value
 
     @property
     def gridset(self) -> list[BaseGrid]:

@@ -31,7 +31,7 @@ def test_conversion_3DCROCO():
     ds_fset = parcels.convert.croco_to_sgrid(fields=fields, coords=ds_fields)
 
     fieldset = parcels.FieldSet.from_sgrid_conventions(ds_fset)
-    fieldset.constants["hc"] = ds_fields.hc.item()
+    fieldset.add_constant("hc", ds_fields.hc.item())
 
     s_xroms = np.array([-1.0, -0.9, -0.8, -0.7, -0.6, -0.5, -0.4, -0.3, -0.2, -0.1, 0.0], dtype=np.float32)
     z_xroms = np.array([-1.26000000e02, -1.10585846e02, -9.60985413e01, -8.24131317e01, -6.94126511e01, -5.69870148e01, -4.50318756e01, -3.34476166e01, -2.21383114e01, -1.10107975e01, 2.62768921e-02,], dtype=np.float32,)  # fmt: skip
@@ -63,7 +63,7 @@ def test_advection_3DCROCO():
     ds_fset = parcels.convert.croco_to_sgrid(fields=fields, coords=ds_fields)
 
     fieldset = parcels.FieldSet.from_sgrid_conventions(ds_fset)
-    fieldset.constants["hc"] = ds_fields.hc.item()
+    fieldset.add_constant("hc", ds_fields.hc.item())
 
     runtime = 10_000
     X, Z = np.meshgrid([40e3, 80e3, 120e3], [-10, -130])

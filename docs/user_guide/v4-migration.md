@@ -21,7 +21,6 @@ Version 4 of Parcels is unreleased at the moment. The information in this migrat
 ## FieldSet
 
 - `interp_method` has to be an Interpolation function, instead of a string.
-- `add_constant` has been removed as a method. Instead, use direct dictionary assignment (`fieldset.constants[key] = value`)
 
 ## Particle
 
