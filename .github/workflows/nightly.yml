@@ -8,7 +8,7 @@ permissions:
   id-token: write
 
 jobs:
-  build:
+  build-nightly-parcels:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
