@@ -207,7 +207,8 @@ jobs:
         uses: prefix-dev/rattler-build-action@v0.2.34
         with:
           recipe-path: .github/ci/recipe.yaml
-      - run: |
+      - if: github.ref == 'refs/heads/v4-dev'
+        run: |
           for pkg in $(find output -type f \( -name "*.conda" -o -name "*.tar.bz2" \) ); do
             echo "Uploading ${pkg}"
             rattler-build upload prefix -c parcels "${pkg}"
