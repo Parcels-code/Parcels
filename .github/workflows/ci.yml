@@ -214,6 +214,7 @@ jobs:
           cache: true
           cache-write: ${{ github.event_name == 'push' && github.ref_name == 'v4-dev' }} # TODO: Update v4-dev to main when v4 is released
       - run: pixi run get-parcels-alpha-version >> $GITHUB_ENV
+      - run: echo "PARCELS_ALPHA_VERSION is $PARCELS_ALPHA_VERSION"
       - name: Build conda package
         uses: prefix-dev/rattler-build-action@v0.2.34
         with:
