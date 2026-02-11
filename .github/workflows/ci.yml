@@ -75,7 +75,7 @@ jobs:
         uses: Parcels-code/pixi-lock/restore@2b823a4a804631370fbde7e6088ee5db71a26c60 # TODO: Update to action in prefix-dev once available
         with:
           cache-key: ${{ needs.cache-pixi-lock.outputs.cache-key }}
-      - uses: prefix-dev/setup-pixi@v0.9.0
+      - uses: prefix-dev/setup-pixi@v0.9.4
         with:
           pixi-version: ${{ needs.cache-pixi-lock.outputs.pixi-version }}
           cache: true
@@ -135,7 +135,7 @@ jobs:
         uses: Parcels-code/pixi-lock/restore@2b823a4a804631370fbde7e6088ee5db71a26c60 # TODO: Update to action in prefix-dev once available
         with:
           cache-key: ${{ needs.cache-pixi-lock.outputs.cache-key }}
-      - uses: prefix-dev/setup-pixi@v0.9.0
+      - uses: prefix-dev/setup-pixi@v0.9.4
         with:
           pixi-version: ${{ needs.cache-pixi-lock.outputs.pixi-version }}
           cache: true
@@ -180,7 +180,7 @@ jobs:
         uses: Parcels-code/pixi-lock/restore@2b823a4a804631370fbde7e6088ee5db71a26c60 # TODO: Update to action in prefix-dev once available
         with:
           cache-key: ${{ needs.cache-pixi-lock.outputs.cache-key }}
-      - uses: prefix-dev/setup-pixi@v0.9.0
+      - uses: prefix-dev/setup-pixi@v0.9.4
         with:
           pixi-version: ${{ needs.cache-pixi-lock.outputs.pixi-version }}
           cache: true
@@ -208,7 +208,7 @@ jobs:
         uses: Parcels-code/pixi-lock/restore@2b823a4a804631370fbde7e6088ee5db71a26c60 # TODO: Update to action in prefix-dev once available
         with:
           cache-key: ${{ needs.cache-pixi-lock.outputs.cache-key }}
-      - uses: prefix-dev/setup-pixi@v0.9.0
+      - uses: prefix-dev/setup-pixi@v0.9.4
         with:
           pixi-version: ${{ needs.cache-pixi-lock.outputs.pixi-version }}
           cache: true
