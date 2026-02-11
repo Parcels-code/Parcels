@@ -37,7 +37,7 @@ jobs:
           exit 1
 
   cache-pixi-lock:
-    runs-on: ubuntu-slim
+    runs-on: ubuntu-latest
     needs: [should-run-ci]
     outputs:
       cache-key: ${{ steps.pixi-lock.outputs.cache-key }}
