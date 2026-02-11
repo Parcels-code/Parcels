@@ -202,6 +202,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v5
+        with:
+          fetch-depth: 0
       - name: Restore cached pixi lockfile
         uses: Parcels-code/pixi-lock/restore@2b823a4a804631370fbde7e6088ee5db71a26c60 # TODO: Update to action in prefix-dev once available
         with:
