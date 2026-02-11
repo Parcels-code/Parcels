@@ -35,6 +35,12 @@ py-triangle = ">=20250106,<20250107"
 [dependencies]
 parcels = { path = "." }
 
+[feature.alpha-parcels.dependencies]
+git = "*"
+
+[feature.alpha-parcels.tasks]
+get-parcels-alpha-version = { cmd = "python tools/get-parcels-alpha-version.py" }
+
 [feature.minimum.dependencies]
 python = "3.11.*"
 netcdf4 = "1.6.*"
@@ -127,3 +133,4 @@ test-py313 = { features = ["test", "py313"] }
 test-notebooks = { features = ["test", "notebooks"], solve-group = "main" }
 docs = { features = ["docs", "notebooks"], solve-group = "docs" }
 typing = { features = ["typing"], solve-group = "main" }
+alpha-parcels = { features = ["alpha-parcels"] }
