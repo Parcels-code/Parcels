@@ -109,7 +109,7 @@ jobs:
           flags: unit-tests
       - name: Upload test results
         if: ${{ always() }} # Always run this step, even if tests fail
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: Unittest report ${{ matrix.os }}-${{ matrix.pixi-environment }}
           path: ${{ env.COVERAGE_REPORT }}
@@ -151,7 +151,7 @@ jobs:
           flags: integration-tests
       - name: Upload test results
         if: ${{ always() }} # Always run this step, even if tests fail
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: Integration test report ${{ matrix.os }}-${{ matrix.pixi-environment }}
           path: ${{ env.COVERAGE_REPORT }}
@@ -163,7 +163,7 @@ jobs:
       - typechecking
     steps:
       - name: Merge Artifacts
-        uses: actions/upload-artifact/merge@v5
+        uses: actions/upload-artifact/merge@v6
         with:
           name: Testing reports
           pattern: "* report *"
@@ -190,7 +190,7 @@ jobs:
           pixi run typing --non-interactive --html-report mypy-report
       - name: Upload test results
         if: ${{ always() }} # Upload even on mypy error
-        uses: actions/upload-artifact@v5
+        uses: actions/upload-artifact@v6
         with:
           name: Mypy report
           path: mypy-report
