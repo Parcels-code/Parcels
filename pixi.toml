@@ -3,11 +3,11 @@ name = "Parcels"
 preview = ["pixi-build"]
 channels = ["conda-forge"]
 platforms = ["win-64", "linux-64", "osx-64", "osx-arm64"]
+requires-pixi = ">=0.63.0"
 
 [package]
 name = "parcels"
 version = "dynamic" # dynamic versioning needs better support in pixi https://github.com/prefix-dev/pixi/issues/2923#issuecomment-2598460666 . Putting `version = "dynamic"` here for now until pixi recommends something else.
-license = "MIT" # can remove this once https://github.com/prefix-dev/pixi-build-backends/issues/397 is resolved
 
 [package.build]
 backend = { name = "pixi-build-python", version = "0.4.*" }
@@ -34,6 +34,12 @@ py-triangle = ">=20250106,<20250107"
 
 [dependencies]
 parcels = { path = "." }
+
+[feature.alpha-parcels.dependencies]
+git = "*"
+
+[feature.alpha-parcels.tasks]
+get-parcels-alpha-version = { cmd = "python tools/get-parcels-alpha-version.py" }
 
 [feature.minimum.dependencies]
 python = "3.11.*"
@@ -63,8 +69,8 @@ pytest-html = "*"
 pytest-cov = "*"
 
 [feature.test.tasks]
-tests = "pytest"
-tests-notebooks = "pytest --nbval-lax docs/user_guide/examples"
+tests = { cmd = "pytest", description = "Run the test suite." }
+tests-notebooks = { cmd = "pytest --nbval-lax docs/user_guide/examples", description = "Run the user guide example notebooks as tests." }
 
 
 [feature.notebooks.dependencies]
@@ -87,21 +93,21 @@ sphinx-design = "*"
 sphinx-autoapi = "*"
 
 [feature.docs.tasks]
-docs = "sphinx-build docs docs/_build"
-docs-watch = 'sphinx-autobuild docs docs/_build'
-docs-linkcheck = "sphinx-build -b linkcheck docs/ docs/_build/linkcheck"
+docs = { cmd = "sphinx-build docs docs/_build", description = "Build the documentation." }
+docs-watch = { cmd = "sphinx-autobuild docs docs/_build", description = "Build and auto-rebuild the documentation on changes." }
+docs-linkcheck = { cmd = "sphinx-build -b linkcheck docs/ docs/_build/linkcheck", description = "Verify all links in documentation don't 404." }
 
 [feature.pre-commit.dependencies]
 pre_commit = "*"
 
 [feature.pre-commit.tasks]
-lint = "pre-commit run --all-files"
+lint = { cmd = "pre-commit run --all-files", description = "Run all pre-commit linting hooks." }
 
 [feature.numpydoc.dependencies]
 numpydoc = "*"
 
 [feature.numpydoc.tasks]
-numpydoc-lint = "python tools/numpydoc-public-api.py"
+numpydoc-lint = { cmd = "python tools/numpydoc-public-api.py", description = "Lint public API docstrings with numpydoc." }
 
 [feature.typing.dependencies]
 mypy = "*"
@@ -109,7 +115,7 @@ lxml = "*" # in CI
 types-tqdm = "*"
 
 [feature.typing.tasks]
-typing = "mypy src/parcels --install-types"
+typing = { cmd = "mypy src/parcels --install-types", description = "Run static type checking with mypy." }
 
 
 [environments]
@@ -127,3 +133,4 @@ test-py313 = { features = ["test", "py313"] }
 test-notebooks = { features = ["test", "notebooks"], solve-group = "main" }
 docs = { features = ["docs", "notebooks"], solve-group = "docs" }
 typing = { features = ["typing"], solve-group = "main" }
+alpha-parcels = { features = ["alpha-parcels"] }
