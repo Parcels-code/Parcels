@@ -173,7 +173,7 @@ def test_particleset_run_RK_to_endtime_fwd_bwd(fieldset, kernel, dt):
     pset.execute(kernel, endtime=endtime, dt=dt)
     assert pset[0].time == fieldset.time_interval.time_length_as_flt
 
-    pset._positionupdate_kernel_added = False  # Reset positionupdate_kernel use for backward
+    pset._requires_prepended_positionupdate_kernel = False  # Reset positionupdate_kernel use for backward
 
     pset.execute(kernel, endtime=starttime, dt=-dt)
     assert pset[0].time == 0.0

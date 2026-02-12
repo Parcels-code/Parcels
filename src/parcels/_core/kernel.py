@@ -80,8 +80,8 @@ class Kernel:
 
         self._kernels: list[Callable] = kernels
 
-        if pset._positionupdate_kernel_added:
-            self.add_positionupdate_kernel()
+        if pset._requires_prepended_positionupdate_kernel:
+            self.prepend_positionupdate_kernel()
 
     @property  #! Ported from v3. To be removed in v4? (/find another way to name kernels in output file)
     def funcname(self):
@@ -108,7 +108,7 @@ class Kernel:
         if len(indices) > 0:
             pset.remove_indices(indices)
 
-    def add_positionupdate_kernel(self):
+    def prepend_positionupdate_kernel(self):
         # Adding kernels that set and update the coordinate changes
         def PositionUpdate(particles, fieldset):  # pragma: no cover
             particles.lon += particles.dlon
@@ -244,9 +244,9 @@ class Kernel:
                     else:
                         error_func(pset[inds].z, pset[inds].lat, pset[inds].lon)
 
-            # Only add PositionUpdate kernel at the end of the first execute call to avoid adding dt to time too early
-            if not pset._positionupdate_kernel_added:
-                self.add_positionupdate_kernel()
-                pset._positionupdate_kernel_added = True
+            # Only prepend PositionUpdate kernel at the end of the first execute call to avoid adding dt to time too early
+            if not pset._requires_prepended_positionupdate_kernel:
+                self.prepend_positionupdate_kernel()
+                pset._requires_prepended_positionupdate_kernel = True
 
         return pset

@@ -135,7 +135,7 @@ class ParticleSet:
             self._data[kwvar][:] = kwval
 
         self._kernel = None
-        self._positionupdate_kernel_added = False
+        self._requires_prepended_positionupdate_kernel = False
 
     def __del__(self):
         if self._data is not None and isinstance(self._data, xr.Dataset):
