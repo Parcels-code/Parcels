@@ -356,7 +356,7 @@ def test_reset_dt(fieldset, tmp_zarrfile):
     particle = get_default_particle(np.float64)
     pset = ParticleSet(fieldset, pclass=particle, lon=[0], lat=[0])
     ofile = ParticleFile(tmp_zarrfile, outputdt=np.timedelta64(50, "s"))
-    pset.execute(pset.Kernel(Update_lon), runtime=5 * dt, dt=dt, output_file=ofile)
+    pset.execute(Update_lon, runtime=5 * dt, dt=dt, output_file=ofile)
 
     assert np.allclose(pset.lon, 0.6)
 
@@ -370,7 +370,7 @@ def test_correct_misaligned_outputdt_dt(fieldset, tmp_zarrfile):
     particle = get_default_particle(np.float64)
     pset = ParticleSet(fieldset, pclass=particle, lon=[0], lat=[0])
     ofile = ParticleFile(tmp_zarrfile, outputdt=np.timedelta64(3, "s"))
-    pset.execute(pset.Kernel(Update_lon), runtime=np.timedelta64(11, "s"), dt=np.timedelta64(2, "s"), output_file=ofile)
+    pset.execute(Update_lon, runtime=np.timedelta64(11, "s"), dt=np.timedelta64(2, "s"), output_file=ofile)
 
     ds = xr.open_zarr(tmp_zarrfile)
     assert np.allclose(ds.lon.values, [0, 3, 6, 9])

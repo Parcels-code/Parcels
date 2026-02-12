@@ -27,8 +27,6 @@ from parcels.kernels import (
 if TYPE_CHECKING:
     from collections.abc import Callable
 
-__all__ = ["Kernel"]
-
 
 ErrorsToThrow = {
     StatusCode.ErrorOutsideTimeInterval: _raise_outside_time_interval_error,
@@ -45,12 +43,12 @@ class Kernel:
 
     Parameters
     ----------
+    kernels :
+        list of Kernel functions
     fieldset : parcels.Fieldset
         FieldSet object providing the field information (possibly None)
     ptype :
         PType object for the kernel particle
-    pyfunc :
-        (aggregated) Kernel function
 
     Notes
     -----
@@ -60,32 +58,35 @@ class Kernel:
 
     def __init__(
         self,
-        fieldset,
-        ptype,
-        pyfuncs: list[types.FunctionType],
+        kernels: list[types.FunctionType],
+        pset,
     ):
-        for f in pyfuncs:
+        if not isinstance(kernels, list):
+            raise ValueError(f"kernels must be a list. Got {kernels=!r}")
+
+        for f in kernels:
             if not isinstance(f, types.FunctionType):
-                raise TypeError(f"Argument pyfunc should be a function or list of functions. Got {type(f)}")
+                raise TypeError(f"Argument `kernels` should be a function or list of functions. Got {type(f)}")
             assert_same_function_signature(f, ref=AdvectionRK4, context="Kernel")
 
-        if len(pyfuncs) == 0:
-            raise ValueError("List of `pyfuncs` should have at least one function.")
+        if len(kernels) == 0:
+            raise ValueError("List of `kernels` should have at least one function.")
 
-        self._fieldset = fieldset
-        self._ptype = ptype
+        self._fieldset = pset.fieldset
+        self._ptype = pset._ptype
 
-        self._positionupdate_kernel_added = False
-
-        for f in pyfuncs:
+        for f in kernels:
             self.check_fieldsets_in_kernels(f)
 
-        self._pyfuncs: list[Callable] = pyfuncs
+        self._kernels: list[Callable] = kernels
+
+        if pset._requires_prepended_positionupdate_kernel:
+            self.prepend_positionupdate_kernel()
 
     @property  #! Ported from v3. To be removed in v4? (/find another way to name kernels in output file)
     def funcname(self):
         ret = ""
-        for f in self._pyfuncs:
+        for f in self._kernels:
             ret += f.__name__
         return ret
 
@@ -107,7 +108,7 @@ class Kernel:
         if len(indices) > 0:
             pset.remove_indices(indices)
 
-    def add_positionupdate_kernel(self):
+    def prepend_positionupdate_kernel(self):
         # Adding kernels that set and update the coordinate changes
         def PositionUpdate(particles, fieldset):  # pragma: no cover
             particles.lon += particles.dlon
@@ -123,21 +124,21 @@ class Kernel:
                 # Update dt in case it's increased in RK45 kernel
                 particles.dt = particles.next_dt
 
-        self._pyfuncs = (PositionUpdate + self)._pyfuncs
+        self._kernels = [PositionUpdate] + self._kernels
 
-    def check_fieldsets_in_kernels(self, pyfunc):  # TODO v4: this can go into another method? assert_is_compatible()?
+    def check_fieldsets_in_kernels(self, kernel):  # TODO v4: this can go into another method? assert_is_compatible()?
         """
         Checks the integrity of the fieldset with the kernels.
 
-        This function is to be called from the derived class when setting up the 'pyfunc'.
+        This function is to be called from the derived class when setting up the 'kernel'.
         """
         if self.fieldset is not None:
-            if pyfunc is AdvectionAnalytical:
+            if kernel is AdvectionAnalytical:
                 if self._fieldset.U.interp_method != "cgrid_velocity":
                     raise NotImplementedError("Analytical Advection only works with C-grids")
                 if self._fieldset.U.grid._gtype not in [GridType.CurvilinearZGrid, GridType.RectilinearZGrid]:
                     raise NotImplementedError("Analytical Advection only works with Z-grids in the vertical")
-            elif pyfunc is AdvectionRK45:
+            elif kernel is AdvectionRK45:
                 if "next_dt" not in [v.name for v in self.ptype.variables]:
                     raise ValueError('ParticleClass requires a "next_dt" for AdvectionRK45 Kernel.')
                 if not hasattr(self.fieldset, "RK45_tol"):
@@ -174,47 +175,10 @@ class Kernel:
         assert self.ptype == kernel.ptype, "Cannot merge kernels with different particle types"
 
         return type(self)(
+            self._kernels + kernel._kernels,
             self.fieldset,
             self.ptype,
-            pyfuncs=self._pyfuncs + kernel._pyfuncs,
         )
-
-    def __add__(self, kernel):
-        if isinstance(kernel, types.FunctionType):
-            kernel = type(self)(self.fieldset, self.ptype, pyfuncs=[kernel])
-        return self.merge(kernel)
-
-    def __radd__(self, kernel):
-        if isinstance(kernel, types.FunctionType):
-            kernel = type(self)(self.fieldset, self.ptype, pyfuncs=[kernel])
-        return kernel.merge(self)
-
-    @classmethod
-    def from_list(cls, fieldset, ptype, pyfunc_list):
-        """Create a combined kernel from a list of functions.
-
-        Takes a list of functions, converts them to kernels, and joins them
-        together.
-
-        Parameters
-        ----------
-        fieldset : parcels.Fieldset
-            FieldSet object providing the field information (possibly None)
-        ptype :
-            PType object for the kernel particle
-        pyfunc_list : list of functions
-            List of functions to be combined into a single kernel.
-        *args :
-            Additional arguments passed to first kernel during construction.
-        **kwargs :
-            Additional keyword arguments passed to first kernel during construction.
-        """
-        if not isinstance(pyfunc_list, list):
-            raise TypeError(f"Argument `pyfunc_list` should be a list of functions. Got {type(pyfunc_list)}")
-        if not all([isinstance(f, types.FunctionType) for f in pyfunc_list]):
-            raise ValueError("Argument `pyfunc_list` should be a list of functions.")
-
-        return cls(fieldset, ptype, pyfunc_list)
 
     def execute(self, pset, endtime, dt):
         """Execute this Kernel over a ParticleSet for several timesteps.
@@ -248,7 +212,7 @@ class Kernel:
                 pset.dt = np.minimum(np.maximum(pset.dt, -time_to_endtime), 0)
 
             # run kernels for all particles that need to be evaluated
-            for f in self._pyfuncs:
+            for f in self._kernels:
                 f(pset[evaluate_particles], self._fieldset)
 
                 # check for particles that have to be repeated
@@ -280,9 +244,9 @@ class Kernel:
                     else:
                         error_func(pset[inds].z, pset[inds].lat, pset[inds].lon)
 
-            # Only add PositionUpdate kernel at the end of the first execute call to avoid adding dt to time too early
-            if not self._positionupdate_kernel_added:
-                self.add_positionupdate_kernel()
-                self._positionupdate_kernel_added = True
+            # Only prepend PositionUpdate kernel at the end of the first execute call to avoid adding dt to time too early
+            if not pset._requires_prepended_positionupdate_kernel:
+                self.prepend_positionupdate_kernel()
+                pset._requires_prepended_positionupdate_kernel = True
 
         return pset

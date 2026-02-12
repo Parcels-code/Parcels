@@ -1,5 +1,6 @@
 import datetime
 import sys
+import types
 import warnings
 from collections.abc import Iterable
 from typing import Literal
@@ -134,6 +135,7 @@ class ParticleSet:
             self._data[kwvar][:] = kwval
 
         self._kernel = None
+        self._requires_prepended_positionupdate_kernel = False
 
     def __del__(self):
         if self._data is not None and isinstance(self._data, xr.Dataset):
@@ -290,29 +292,6 @@ class ParticleSet:
             "ParticleSet.from_particlefile is not yet implemented in v4."
         )  # TODO implement this when ParticleFile is implemented in v4
 
-    def Kernel(self, pyfunc):
-        """Wrapper method to convert a `pyfunc` into a :class:`parcels.kernel.Kernel` object.
-
-        Conversion is based on `fieldset` and `ptype` of the ParticleSet.
-
-        Parameters
-        ----------
-        pyfunc : function or list of functions
-            Python function to convert into kernel. If a list of functions is provided,
-            the functions will be converted to kernels and combined into a single kernel.
-        """
-        if isinstance(pyfunc, list):
-            return Kernel.from_list(
-                self.fieldset,
-                self._ptype,
-                pyfunc,
-            )
-        return Kernel(
-            self.fieldset,
-            self._ptype,
-            pyfuncs=[pyfunc],
-        )
-
     def data_indices(self, variable_name, compare_values, invert=False):
         """Get the indices of all particles where the value of `variable_name` equals (one of) `compare_values`.
 
@@ -376,7 +355,7 @@ class ParticleSet:
 
     def execute(
         self,
-        pyfunc,
+        kernels,
         dt: datetime.timedelta | np.timedelta64 | float,
         endtime: np.timedelta64 | np.datetime64 | None = None,
         runtime: datetime.timedelta | np.timedelta64 | float | None = None,
@@ -390,10 +369,9 @@ class ParticleSet:
 
         Parameters
         ----------
-        pyfunc :
-            Kernel function to execute. This can be the name of a
+        kernels :
+            List of Kernel functions to execute. This can be the name of a
             defined Python function or a :class:`parcels.kernel.Kernel` object.
-            Kernels can be concatenated using the + operator.
         dt (np.timedelta64 or float):
             Timestep interval (as a np.timedelta64 object of float in seconds) to be passed to the kernel.
             Use a negative value for a backward-in-time simulation.
@@ -417,10 +395,9 @@ class ParticleSet:
         if len(self) == 0:
             return
 
-        if not isinstance(pyfunc, Kernel):
-            pyfunc = self.Kernel(pyfunc)
-
-        self._kernel = pyfunc
+        if isinstance(kernels, types.FunctionType):
+            kernels = [kernels]
+        self._kernel = Kernel(kernels, self)
 
         if output_file is not None:
             output_file.set_metadata(self.fieldset.gridset[0]._mesh)
