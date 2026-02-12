@@ -17,7 +17,7 @@ body:
   - type: "textarea"
     attributes:
       label: "Code sample"
-      description: "If relevant, please provide a code example where this bug is shown as well as any error message. A [minimal, reproducible example](https://stackoverflow.com/help/minimal-reproducible-example) is preffered as it makes it much easier for developers to identify the cause of the bug. This also allows them quickly determine whether the problem is with your code or with Parcels itself."
+      description: "If relevant, please provide a code example where this bug is shown as well as any error message. A [minimal, reproducible example](https://stackoverflow.com/help/minimal-reproducible-example) is preffered as it makes it much easier for developers to identify the cause of the bug. This also allows them quickly determine whether the problem is with your code or with Parcels itself. If you want support on a specific dataset, please [follow our instructions on how to share dataset metadata](https://docs.oceanparcels.org/en/v4-dev/development/posting-issues.html)"
       value: |
         ```python
         # Paste your code within this block
