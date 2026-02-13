@@ -22,7 +22,7 @@ body:
         - "I'm trying to simulate particle behavior with [specific physics], but Parcels doesn't support..."
         - "When working with [specific data format/kernel], I find it difficult to..."
 
-        If you would like to see Parcels work with a specific dataset, please also [follow our instructions on how to share dataset metadata](https://docs.oceanparcels.org/en/v4-dev/development/posting-issues.html).
+        If you would like to see Parcels work with a specific dataset, please also [follow our instructions on how to share dataset metadata](https://docs.parcels-code.org/en/v4-dev/development/posting-issues.html).
     validations:
       required: true
   - type: textarea
