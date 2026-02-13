@@ -12,7 +12,7 @@ In open source projects, getting feedback from users is hard - you posting
 issues and participating in the issue tracker is really useful for us and
 helps future development and squash bugs.
 
-Parcels provides issue templates for when posting issues.
+Parcels provides issue templates that you can use when posting issues.
 Following these templates provides structure and ensures that we have all the necessary information we need to help you.
 
 ## "Parcels doesn't work with my input dataset"
