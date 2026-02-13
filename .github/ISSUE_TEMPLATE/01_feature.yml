@@ -1,0 +1,61 @@
+name: 🔼 Parcels feature requests, and other enhancements
+description: Suggest an improvement to the Parcels codebase
+labels: ["needs-triage"]
+body:
+  - type: input
+    id: version
+    attributes:
+      label: What version of Parcels are you running?
+      description: |
+        Please specify the version of Parcels you're currently using (e.g., v3.1.4, main branch, or commit hash). Put "N/A" if not applicable (e.g., for a documentation suggestion).
+      placeholder: e.g., v3.1.4
+    validations:
+      required: true
+  - type: textarea
+    id: problem
+    attributes:
+      label: Is your feature request related to a problem?
+      description: |
+        Please do a quick search of existing issues to make sure that this feature request has not been asked before.
+
+        Provide a clear and concise description of what the problem is. For example:
+        - "I'm trying to simulate particle behavior with [specific physics], but Parcels doesn't support..."
+        - "When working with [specific data format/kernel], I find it difficult to..."
+
+        If you would like to see Parcels work with a specific dataset, please also [follow our instructions on how to share dataset metadata](https://docs.parcels-code.org/en/v4-dev/development/posting-issues.html).
+    validations:
+      required: true
+  - type: textarea
+    id: solution
+    attributes:
+      label: Describe the solution you'd like
+      description: |
+        A clear and concise description of what you want to happen. Include details about:
+        - How you envision using this feature in your Parcels simulations
+        - What the API or interface might look like
+        - Any specific use cases or scientific applications this would enable
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Describe alternatives you've considered
+      description: |
+        A clear and concise description of any alternative solutions or features you've considered. For example:
+        - Workarounds you're currently using
+        - Other ocean/particle modeling tools that have this feature
+        - Different approaches to solving the same problem
+    validations:
+      required: false
+  - type: textarea
+    id: additional-context
+    attributes:
+      label: Additional context
+      description: |
+        Add any other context about the feature request here. This might include:
+        - Links to relevant scientific papers or methods
+        - Example code snippets showing how you'd like to use this feature
+        - Screenshots or diagrams illustrating the concept
+        - Information about your use case or research domain
+    validations:
+      required: false
