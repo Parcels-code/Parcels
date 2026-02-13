@@ -53,7 +53,7 @@ with open(output_file, "w") as f:
     json.dump(ds.to_dict(data=False), f)  # write your dataset to a JSON excluding array data
 ```
 
-Then attach the produced JSON file alongside your issue
+Then attach the JSON file written above alongside your issue
 
 ### Step 2. Maintainers and developers
 
