@@ -24,7 +24,7 @@ that only occur with specific datasets, having the dataset metadata is very valu
 
 This metadata could include information such as:
 
-- CF compliant metadata
+- the nature of the array variables (e.g., via CF compliant metadata)
 - descriptions about the origin of the dataset, or additional comments
 - the shapes and data types of the arrays
 
