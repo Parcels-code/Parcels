@@ -214,16 +214,6 @@ class FieldSet:
         if "U" in ds.data_vars and "V" in ds.data_vars:
             fields["U"] = Field("U", ds["U"], grid, _select_uxinterpolator(ds["U"]))
             fields["V"] = Field("V", ds["V"], grid, _select_uxinterpolator(ds["V"]))
-
-            if "W" in ds.data_vars:
-                fields["W"] = Field("W", ds["W"], grid, _select_uxinterpolator(ds["W"]))
-                fields["UVW"] = VectorField(
-                    "UVW", fields["U"], fields["V"], fields["W"], vector_interp_method=Ux_Velocity
-                )
-                fields["UV"] = VectorField(
-                    "UV", fields["U"], fields["V"], vector_interp_method=Ux_Velocity
-                )
-            else:
             fields["UV"] = VectorField("UV", fields["U"], fields["V"], vector_interp_method=Ux_Velocity)
 
             if "W" in ds.data_vars:
