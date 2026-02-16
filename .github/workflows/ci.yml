@@ -2,11 +2,11 @@ name: ci
 on:
   push:
     branches:
-      - "main"
-      - "test-me/*"
+      - "v3-support"
+      - "test-v3-support/*"
   pull_request:
-  schedule:
-    - cron: "0 7 * * 1" # Run every Monday at 7:00 UTC
+    branches:
+      - "v3-support"
 
 concurrency:
   group: branch-${{ github.head_ref }}
