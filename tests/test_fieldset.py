@@ -255,6 +255,7 @@ def test_fieldset_from_fesom2():
     fieldset = FieldSet.from_ugrid_conventions(ds)
     assert "U" in fieldset.fields
     assert "V" in fieldset.fields
+    assert "UV" in fieldset.fields
     assert "UVW" in fieldset.fields
 
 
