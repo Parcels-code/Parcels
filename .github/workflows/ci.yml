@@ -3,7 +3,6 @@ on:
   push:
     branches:
       - "main"
-      - "v4-dev"
       - "test-me/*"
   pull_request:
 
@@ -79,7 +78,7 @@ jobs:
         with:
           pixi-version: ${{ needs.cache-pixi-lock.outputs.pixi-version }}
           cache: true
-          cache-write: ${{ github.event_name == 'push' && github.ref_name == 'v4-dev' }} # TODO: Update v4-dev to main when v4 is released
+          cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
       # https://github.com/actions/cache/blob/main/tips-and-workarounds.md#update-a-cache
       - name: Restore cached hypothesis directory
         id: restore-hypothesis-cache
@@ -139,7 +138,7 @@ jobs:
         with:
           pixi-version: ${{ needs.cache-pixi-lock.outputs.pixi-version }}
           cache: true
-          cache-write: ${{ github.event_name == 'push' && github.ref_name == 'v4-dev' }} # TODO: Update v4-dev to main when v4 is released
+          cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
       - name: Integration test
         run: |
           pixi run test-notebooks -v -s --html="${{ env.COVERAGE_REPORT }}" --self-contained-html --cov=parcels --cov-report=xml
@@ -184,7 +183,7 @@ jobs:
         with:
           pixi-version: ${{ needs.cache-pixi-lock.outputs.pixi-version }}
           cache: true
-          cache-write: ${{ github.event_name == 'push' && github.ref_name == 'v4-dev' }} # TODO: Update v4-dev to main when v4 is released
+          cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
       - name: Typechecking
         run: |
           pixi run typing --non-interactive --html-report mypy-report
@@ -212,14 +211,14 @@ jobs:
         with:
           pixi-version: ${{ needs.cache-pixi-lock.outputs.pixi-version }}
           cache: true
-          cache-write: ${{ github.event_name == 'push' && github.ref_name == 'v4-dev' }} # TODO: Update v4-dev to main when v4 is released
+          cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
       - run: pixi run get-parcels-alpha-version >> $GITHUB_ENV
       - run: echo "PARCELS_ALPHA_VERSION is $PARCELS_ALPHA_VERSION"
       - name: Build conda package
         uses: prefix-dev/rattler-build-action@v0.2.34
         with:
           recipe-path: .github/ci/recipe.yaml
-      - if: github.ref == 'refs/heads/v4-dev'
+      - if: github.ref == 'refs/heads/main'
         run: |
           for pkg in $(find output -type f \( -name "*.conda" -o -name "*.tar.bz2" \) ); do
             echo "Uploading ${pkg}"

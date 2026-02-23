@@ -15,11 +15,11 @@
 [![LinkedIn](https://custom-icon-badges.demolab.com/badge/LinkedIn-0A66C2?logo=linkedin-white&logoColor=fff)](https://www.linkedin.com/company/parcelscode/)
 
 > [!WARNING]
-> This branch is `v4-dev` - version 4 of Parcels which is in active development. See `main` (or the tags) to browse stable versions of Parcels.
+> This branch contains version 4 of Parcels which is in active development. See `v3-support` to see v3 or the tags to browse stable versions of Parcels.
 
 **Parcels** provides a set of Python classes and methods to create customisable particle tracking simulations using gridded output from (ocean) circulation models. Parcels can be used to track passive and active particulates such as water, plankton, [plastic](http://www.topios.org/) and [fish](https://github.com/Jacketless/IKAMOANA).
 
-![Arctic-SO-medusaParticles](https://github.com/Parcels-code/oceanparcels_website/blob/main/images/homepage.gif)
+![Arctic-SO-medusaParticles](https://github.com/Parcels-code/Parcels/blob/main/docs/_static/homepage.gif?raw=true)
 
 _Animation of virtual particles carried by ocean surface flow in the global oceans. The particles are advected with [Parcels](http://parcels-code.org/) in data from the [NEMO Ocean Model](https://www.nemo-ocean.eu/)._
 
