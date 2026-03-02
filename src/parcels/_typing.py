@@ -51,9 +51,8 @@ def _validate_against_pure_literal(value, typing_literal):
 
     Can't be used with ``Literal[...] | None`` etc. as its not a pure literal.
     """
-    if _is_xarray_object(
-        value
-    ):  # Xarray objects don't work normally in `in` statements due to https://github.com/pydata/xarray/issues/11209
+    # TODO remove once https://github.com/pydata/xarray/issues/11209 is resolved - Xarray objects don't work normally in `in` statements
+    if _is_xarray_object(value):
         raise ValueError(f"Invalid input type {type(value)}")
 
     if value not in get_args(typing_literal):
