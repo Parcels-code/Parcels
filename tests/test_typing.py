@@ -1,31 +1,20 @@
+import numpy as np
 import pytest
+import xarray as xr
 
 from parcels._typing import (
-    assert_valid_gridindexingtype,
-    assert_valid_interp_method,
     assert_valid_mesh,
 )
 
-validators = (
-    assert_valid_interp_method,
-    assert_valid_mesh,
-    assert_valid_gridindexingtype,
-)
+
+def test_invalid_assert_valid_mesh():
+    with pytest.raises(ValueError, match="Invalid value"):
+        assert_valid_mesh("invalid option")
+
+    ds = xr.Dataset({"A": (("a", "b"), np.arange(20).reshape(4, 5))})
+    with pytest.raises(ValueError, match="Invalid input type"):
+        assert_valid_mesh(ds)
 
 
-@pytest.mark.parametrize("validator", validators)
-def test_invalid_option(validator):
-    with pytest.raises(ValueError):
-        validator("invalid option")
-
-
-validation_mapping = [
-    (assert_valid_interp_method, "nearest"),
-    (assert_valid_mesh, "spherical"),
-    (assert_valid_gridindexingtype, "pop"),
-]
-
-
-@pytest.mark.parametrize("validator, value", validation_mapping)
-def test_valid_option(validator, value):
-    validator(value)
+def test_assert_valid_mesh():
+    assert_valid_mesh("spherical")
