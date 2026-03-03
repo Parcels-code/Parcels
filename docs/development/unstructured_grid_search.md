@@ -161,9 +161,9 @@ Given arrays of particle latitudes `y` and longitudes `x`:
 
 3. **Binary search.** Use `np.searchsorted(keys, query_codes)` to find the position of each query code in the sorted unique-codes array. Queries whose code does not appear exactly in `keys` return no candidates (the hash cell the particle falls in has no registered faces).
 
-4. **Gather candidates.** For each query with a valid hit, use `starts[pos]` and `counts[pos]` to gather the candidate face indices `(j_all, i_all)` from the sorted arrays. This is done fully vectorised using a CSR traversal with `np.repeat` and cumulative sums.
+4. **Gather candidates.** For each query with a valid hit, use `starts[pos]` and `counts[pos]` to gather the candidate face indices `(j_all, i_all)` from the sorted arrays. This is done fully vectorised using a CSR traversal with `np.repeat` and cumulative sums. At the end of this stage, there are potentially multiple faces to check with a point-in-cell test.
 
-5. **Point-in-cell test.** Call `self._point_in_cell` (either `curvilinear_point_in_cell` or `uxgrid_point_in_cell`) on all candidates simultaneously. The first candidate per query that passes is taken as the result.
+5. **Point-in-cell test.** Call `self._point_in_cell` (either `curvilinear_point_in_cell` or `uxgrid_point_in_cell`) on all candidates simultaneously. The provided point-in-cell tests for both unstructured and structured grids guarantee that at most candidate cell is found containing each particle.
 
 6. **Return.** Returns `(j_best, i_best, coords_best)`. For particles with no containing face found, `j_best` and `i_best` are `GRID_SEARCH_ERROR = -3`, and `coords_best` is `(-1, -1)`.
 
