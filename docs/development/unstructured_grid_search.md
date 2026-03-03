@@ -49,7 +49,7 @@ The hash grid is three-dimensional regardless of the source grid:
 | `UxGrid`    | spherical  | Cartesian unit cube                         |
 | `UxGrid`    | flat       | 2-D lon/lat bounding box                    |
 
-For spherical grids, node coordinates are converted from degrees to radians and then to Cartesian (x, y, z) on the unit sphere using `_latlon_rad_to_xyz` (`index_search.py:345`):
+For spherical grids, node coordinates are converted from degrees to radians and then to Cartesian (x, y, z) on the unit sphere using `parcels._core.index_search._latlon_rad_to_xyz`:
 
 ```
 x = cos(lon) * cos(lat)
@@ -71,7 +71,7 @@ The process has three steps, all implemented in `spatialhash.py`.
 
 ### Step 1: Quantization
 
-**Function:** `quantize_coordinates` (`spatialhash.py:486`)
+**Function:** `parcels._core.spatialhash.quantize_coordinates`
 
 Each coordinate axis is mapped from its floating-point range `[min, max]` to an integer in `[0, bitwidth]` by:
 
@@ -87,7 +87,7 @@ With `bitwidth = 1023` (the default), each axis gets 1024 distinct integer level
 
 ### Step 2: Bit Dilation
 
-**Function:** `_dilate_bits` (`spatialhash.py:440`)
+**Function:** `parcels._core.spatialhash._dilate_bits`
 
 Before interleaving, each 10-bit integer is "dilated" so that its bits are spread out with two zero bits between each active bit:
 
@@ -110,7 +110,7 @@ Each stage moves bits further apart. After five stages the 10 active bits are ea
 
 ### Step 3: Bit Interleaving
 
-**Function:** `_encode_quantized_morton3d` (`spatialhash.py:532`)
+**Function:** `parcels._core.spatialhash._encode_quantized_morton3d`
 
 Once all three axes are dilated, the Morton code is formed by OR-ing the shifted dilated values:
 
@@ -118,19 +118,19 @@ Once all three axes are dilated, the Morton code is formed by OR-ing the shifted
 code = (dz << 2) | (dy << 1) | dx
 ```
 
-The resulting bit layout (from LSB) is:
+The resulting bit layout (relative to the least significant bit) is:
 
 ```
 x0, y0, z0, x1, y1, z1, ..., x9, y9, z9
 ```
 
-The combined encode function `_encode_morton3d` (`spatialhash.py:553`) chains all three steps (quantize → dilate → interleave) and is the function used during queries.
+The combined encode function `parcels._core.spatialhash._encode_morton3d` chains all three steps (quantize → dilate → interleave) and is the function used during queries.
 
 ---
 
 ## Hash Table Construction
 
-**Method:** `SpatialHash._initialize_hash_table` (`spatialhash.py:179`)
+**Method:** `parcels._core.spatialhash.SpatialHash._initialize_hash_table`
 The hash table is built by iterating over every face in the source grid:
 
 1. **Compute bounding boxes.** For each face, find the min and max of its node coordinates along each axis. For `XGrid`, this uses the four corner nodes at `[j,i]`, `[j,i+1]`, `[j+1,i+1]`, `[j+1,i]`. For `UxGrid`, it uses the nodes listed in `face_node_connectivity`.
@@ -152,7 +152,7 @@ This CSR layout enables O(1) hash table lookup via binary search on `keys`.
 
 ## Querying the Hash Table
 
-**Method:** `SpatialHash.query` (`spatialhash.py:300`)
+**Method:** `parcels._core.spatialhash.SpatialHash.query`
 
 Given arrays of particle latitudes `y` and longitudes `x`:
 
@@ -174,7 +174,7 @@ Given arrays of particle latitudes `y` and longitudes `x`:
 
 ### Curvilinear grids (`XGrid`)
 
-**Function:** `curvilinear_point_in_cell` (`index_search.py:95`)
+**Function:** `parcels._core.index_search.curvilinear_point_in_cell`
 
 Each quadrilateral cell is parameterised by bilinear mapping from the unit square `[0,1]²` (computational coordinates `xsi`, `eta`) to physical space. The test solves the resulting quadratic equation:
 
@@ -188,11 +188,11 @@ The particle is inside the cell if `0 ≤ xsi ≤ 1` and `0 ≤ eta ≤ 1`.
 
 ### Unstructured grids (`UxGrid`)
 
-**Function:** `uxgrid_point_in_cell` (`index_search.py:204`)
+**Function:** `parcels._core.index_search.uxgrid_point_in_cell`
 
 For triangular UxGrid faces, the test uses **barycentric coordinates**. For spherical geometry, the particle and face vertices are first converted to Cartesian coordinates, and the particle is projected onto the plane of the face (by removing its normal component) before computing barycentric coordinates. This makes the test valid for any triangular face on the sphere.
 
-Barycentric coordinates are computed via **area ratios** in `_barycentric_coordinates` (`index_search.py:299`):
+Barycentric coordinates are computed via **area ratios** in `parcels._core.index_search._barycentric_coordinates`:
 
 ```
 λ₀ = area(P, v₁, v₂) / area(v₀, v₁, v₂)
@@ -212,7 +212,7 @@ noted as a TODO in `_barycentric_coordinates`.
 
 ## Integration with the Index Search
 
-**Function:** `_search_indices_curvilinear_2d` (`index_search.py:148`)
+**Function:** `parcels._core.index_search._search_indices_curvilinear_2d`
 
 The `SpatialHash` sits inside the broader index search used every time fields are interpolated onto particle positions. The flow is:
 
