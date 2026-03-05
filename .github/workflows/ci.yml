@@ -212,12 +212,10 @@ jobs:
           pixi-version: ${{ needs.cache-pixi-lock.outputs.pixi-version }}
           cache: true
           cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
-      - run: pixi run get-parcels-alpha-version >> $GITHUB_ENV
-      - run: echo "PARCELS_ALPHA_VERSION is $PARCELS_ALPHA_VERSION"
-      - name: Build conda package
-        uses: prefix-dev/rattler-build-action@v0.2.34
-        with:
-          recipe-path: .github/ci/recipe.yaml
+      - name: Find the alpha version of Parcels
+        run: pixi run get-parcels-alpha-version >> $GITHUB_ENV
+      - name: Build Parcels conda package
+        run: pixi run build-parcels
       - if: github.ref == 'refs/heads/main'
         run: |
           for pkg in $(find output -type f \( -name "*.conda" -o -name "*.tar.bz2" \) ); do
