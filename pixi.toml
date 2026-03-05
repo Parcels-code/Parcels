@@ -35,11 +35,14 @@ py-triangle = ">=20250106,<20250107"
 [dependencies]
 parcels = { path = "." }
 
-[feature.alpha-parcels.dependencies]
+[feature.rattler-build.dependencies]
+python = "*"
 git = "*"
+rattler-build = "*"
 
-[feature.alpha-parcels.tasks]
+[feature.rattler-build.tasks]
 get-parcels-alpha-version = { cmd = "python tools/get-parcels-alpha-version.py" }
+build-parcels = { cmd = "rattler-build build --recipe .github/ci/recipe.yaml", description = "Build the Parcels conda package" }
 
 [feature.minimum.dependencies]
 python = "3.11.*"
@@ -133,4 +136,4 @@ test-py313 = { features = ["test", "py313"] }
 test-notebooks = { features = ["test", "notebooks"], solve-group = "main" }
 docs = { features = ["docs", "notebooks"], solve-group = "docs" }
 typing = { features = ["typing"], solve-group = "main" }
-alpha-parcels = { features = ["alpha-parcels"] }
+build = { features = ["rattler-build"] }
