@@ -104,8 +104,10 @@ docs-watch = { cmd = "sphinx-autobuild docs docs/_build", depends-on = [
 docs-linkcheck = { cmd = "sphinx-build -b linkcheck docs/ docs/_build/linkcheck", depends-on = [
   'docs-diagrams',
 ], description = "Verify all links in documentation don't 404." }
-docs-diagrams = { cmd = "python docs/diagrams/main.py", description = "Build diagrams using Kroki.", outputs = [
-  "docs/diagrams/build",
+docs-diagrams = { cmd = "python docs/diagrams/main.py", description = "Build diagrams using Kroki.", inputs = [
+  "docs/diagrams/src/*",
+], outputs = [
+  "docs/diagrams/build/*",
 ] }
 
 [feature.pre-commit.dependencies]
