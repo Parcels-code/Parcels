@@ -4,6 +4,7 @@ docs/_downloads
 docs/jupyter_execute/*
 docs/.jupyter_cache/*
 docs/reference
+docs/diagrams/build
 output
 
 *.log
