@@ -82,6 +82,16 @@ trajan = "*"
 matplotlib-base = ">=2.0.2"
 gsw = "*"
 
+[feature.devtools.dependencies]
+pdbpp = "*"
+line_profiler = "*"
+memory_profiler = "*"
+# memray = "*" # only available on windows
+snakeviz = "*"
+icecream = "*"
+ipykernel = "*"
+snoop = "*"
+
 [feature.docs.dependencies]
 parcels = { path = "." }
 numpydoc = "*"
@@ -128,6 +138,7 @@ default = { features = [
   "typing",
   "pre-commit",
   "numpydoc",
+  "devtools",
 ], solve-group = "main" }
 test = { features = ["test"], solve-group = "main" }
 test-minimum = { features = ["test", "minimum"] }
