@@ -86,11 +86,19 @@ gsw = "*"
 pdbpp = "*"
 line_profiler = "*"
 memory_profiler = "*"
-# memray = "*" # only available on windows
 snakeviz = "*"
 icecream = "*"
 ipykernel = "*"
 snoop = "*"
+
+[feature.devtools.target.linux-64.dependencies]
+memray = "*"
+
+[feature.devtools.target.osx-64.dependencies]
+memray = "*"
+
+[feature.devtools.target.osx-arm64.dependencies]
+memray = "*"
 
 [feature.docs.dependencies]
 parcels = { path = "." }
