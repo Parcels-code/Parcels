@@ -14,8 +14,6 @@ from parcels._reprs import particleclass_repr, variable_repr
 __all__ = ["Particle", "ParticleClass", "Variable"]
 _TO_WRITE_OPTIONS = [True, False, "once"]
 
-_FLOAT32 = np.dtype(np.float32)
-
 
 class Variable:
     """Descriptor class that delegates data access to particle data.
@@ -39,7 +37,7 @@ class Variable:
     def __init__(
         self,
         name,
-        dtype: np.dtype[Any] | type[np.generic] = _FLOAT32,
+        dtype: np.dtype[Any] | type[np.generic] = np.float32,
         initial=0,
         to_write: bool | Literal["once"] = True,
         attrs: dict | None = None,
