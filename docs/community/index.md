@@ -67,26 +67,6 @@ Curious to see if someone has already written the custom `Kernel` you are thinki
 Share custom Parcels code
 ```
 ````
-````{grid-item-card} Lagrangian Diagnostics
-:img-top: ../_static/LAdiag-logo.svg
-:shadow: md
-
-Are you interested in advanced analysis and diagnostics of Parcels output or Lagrangian trajectories in general? The Lagrangian Diagnostics project provides code and descriptions of different analyses.
-
-```{image} https://img.shields.io/badge/maintainer_needed-red
-:width: 40%
-```
-
-+++
-
-```{button-link} https://lagrangian-diags.readthedocs.io/en/latest/
-:click-parent:
-:color: secondary
-:expand:
-
-Visit Lagrangian Diagnostics
-```
-````
 `````
 
 (analysis-code)=
@@ -130,6 +110,26 @@ A Python package providing a suite of tools for working with Lagrangian trajecto
 :expand:
 
 Visit LT Toolbox
+```
+````
+````{grid-item-card} Lagrangian Diagnostics
+:img-top: ../_static/LAdiag-logo.svg
+:shadow: md
+
+Are you interested in advanced analysis and diagnostics of Parcels output or Lagrangian trajectories in general? The Lagrangian Diagnostics project provides code and descriptions of different analyses.
+
+```{image} https://img.shields.io/badge/maintainer_needed-red
+:width: 40%
+```
+
++++
+
+```{button-link} https://lagrangian-diags.readthedocs.io/en/latest/
+:click-parent:
+:color: secondary
+:expand:
+
+Visit Lagrangian Diagnostics
 ```
 ````
 `````
