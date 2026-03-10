@@ -1,3 +1,7 @@
+---
+html_theme.sidebar_secondary.remove: true
+---
+
 # Community
 
 Parcels users and developers interact in a vibrant community on a few different platforms. Check out the cards below to see how you can interact with us.
