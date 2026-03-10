@@ -9,6 +9,7 @@ import xarray as xr
 from dask import is_dask_collection
 
 import parcels._core.utils.interpolation as i_u
+import parcels._typing as ptyping
 
 if TYPE_CHECKING:
     from parcels._core.field import Field, VectorField
@@ -42,7 +43,7 @@ def _get_corner_data_Agrid(
     lenT: int,  # noqa: N803
     lenZ: int,  # noqa: N803
     npart: int,
-    axis_dim: dict[str, str],
+    axis_dim: dict[ptyping.XgridAxis, str],
 ) -> np.ndarray:
     """Helper function to get the corner data for a given A-grid field and position."""
     # Time coordinates: 8 points at ti, then 8 points at ti+1
