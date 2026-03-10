@@ -159,3 +159,6 @@ known-first-party = ["parcels"]
 
 [tool.ty.src]
 include = ["./src/"]
+exclude = [
+  "./src/parcels/interpolators/", # ignore for now
+]
