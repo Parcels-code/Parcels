@@ -169,7 +169,6 @@ jobs:
   typechecking:
     name: "TypeChecking: pixi run typing"
     runs-on: ubuntu-latest
-    continue-on-error: true # TODO: Remove once typing is stable
     needs: [cache-pixi-lock]
     steps:
       - name: Checkout
@@ -184,8 +183,8 @@ jobs:
           cache: true
           cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
       - name: Typechecking
-        run: |
-          pixi run typing --output-format github
+        run: | # TODO: Remove `|| true` once typechecking is stable
+          pixi run typing --output-format github || true
   build-and-upload-nightly-parcels: # for alpha testing
     needs: [cache-pixi-lock]
     permissions:
