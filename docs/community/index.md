@@ -80,7 +80,7 @@ Tools for analysing Lagrangian trajectory output.
 :padding: 2 2 0 0
 :class-container: sd-text-center
 
-````{grid-item-card} Trajan
+````{grid-item-card} TrajAn
 :shadow: md
 
 A Python package for analysing and plotting ocean drifter and trajectory data stored, developed as part of the OpenDrift project. This library assumes trajectories are stored as CF-compliant Netcdf/Zarr output.
@@ -92,15 +92,13 @@ A Python package for analysing and plotting ocean drifter and trajectory data st
 :color: secondary
 :expand:
 
-Visit Trajan
+Visit TrajAn
 ```
 ````
 ````{grid-item-card} Lagrangian Trajectories Toolbox
 :shadow: md
 
 A Python library dedicated to the post-processing, visualisation and analysis of Lagrangian particle trajectories. This library assumes trajectories are stored as tabular output (e..g, Parquet or CSV).
-
-A Python package providing a suite of tools for working with Lagrangian trajectory data stored in NetCDF and Zarr formats.
 
 +++
 
