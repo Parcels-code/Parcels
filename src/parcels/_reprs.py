@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 import textwrap
-from typing import TYPE_CHECKING, Any
+from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 import xarray as xr
@@ -11,12 +11,18 @@ from zarr.storage import DirectoryStore
 
 if TYPE_CHECKING:
     from parcels import Field, FieldSet, ParticleSet
+    from parcels._core.field import VectorField
 
 
 def fieldset_repr(fieldset: FieldSet) -> str:
     """Return a pretty repr for FieldSet"""
-    fields = [f for f in fieldset.fields.values() if getattr(f.__class__, "__name__", "") == "Field"]
-    vfields = [f for f in fieldset.fields.values() if getattr(f.__class__, "__name__", "") == "VectorField"]
+    fields = cast(
+        "list[Field]", [f for f in fieldset.fields.values() if getattr(f.__class__, "__name__", "") == "Field"]
+    )
+    vfields = cast(
+        "list[VectorField]",
+        [f for f in fieldset.fields.values() if getattr(f.__class__, "__name__", "") == "VectorField"],
+    )
 
     fields_repr = "\n".join([repr(f) for f in fields])
     vfields_repr = "\n".join([vectorfield_repr(vf, from_fieldset_repr=True) for vf in vfields])
@@ -47,16 +53,16 @@ def field_repr(field: Field, level: int = 0) -> str:
     return textwrap.indent(out, " " * level * 4).strip()
 
 
-def vectorfield_repr(fieldset: FieldSet, from_fieldset_repr=False) -> str:
+def vectorfield_repr(vector_field: VectorField, from_fieldset_repr=False) -> str:
     """Return a pretty repr for VectorField"""
-    out = f"""<{type(fieldset).__name__} {fieldset.name!r}>
+    out = f"""<{type(vector_field).__name__} {vector_field.name!r}>
     Parcels attributes:
-        name                  : {fieldset.name!r}
-        vector_interp_method  : {fieldset.vector_interp_method!r}
-        vector_type           : {fieldset.vector_type!r}
-    {field_repr(fieldset.U, level=1) if not from_fieldset_repr else ""}
-    {field_repr(fieldset.V, level=1) if not from_fieldset_repr else ""}
-    {field_repr(fieldset.W, level=1) if not from_fieldset_repr and fieldset.W else ""}"""
+        name                  : {vector_field.name!r}
+        vector_interp_method  : {vector_field.vector_interp_method!r}
+        vector_type           : {vector_field.vector_type!r}
+    {field_repr(vector_field.U, level=1) if not from_fieldset_repr else ""}
+    {field_repr(vector_field.V, level=1) if not from_fieldset_repr else ""}
+    {field_repr(vector_field.W, level=1) if not from_fieldset_repr and vector_field.W else ""}"""
     return out
 
 
