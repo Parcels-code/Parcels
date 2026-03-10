@@ -188,7 +188,7 @@ pset.execute(kernels=kernels, dt=dt, runtime=runtime)
 
 To analyse the particle data generated in the simulation, we need to define a `parcels.ParticleFile` and add it as an argument to `parcels.ParticleSet.execute()`. The output will be written in a [zarr format](https://zarr.readthedocs.io/en/stable/), which can be opened as an `xarray.Dataset`. The dataset will contain the particle data with at least `time`, `z`, `lat` and `lon`, for each particle at timesteps defined by the `outputdt` argument.
 
-There are many ways to analyze particle output, and although we provide [a short tutorial to get started](./tutorial_output.ipynb), we recommend writing your own analysis code and checking out other projects such as [trajan](https://opendrift.github.io/trajan/index.html) and [Lagrangian Diagnostics](https://lagrangian-diags.readthedocs.io/en/latest/).
+There are many ways to analyze particle output, and although we provide [a short tutorial to get started](./tutorial_output.ipynb), we recommend writing your own analysis code and checking out [related Lagrangian analysis projects in our community page](../community/index.md#analysis-code).
 
 ```{admonition} 🖥️ Learn how to run a simulation
 :class: seealso
