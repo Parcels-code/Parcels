@@ -169,9 +169,8 @@ jobs:
   typechecking:
     name: "TypeChecking: pixi run typing"
     runs-on: ubuntu-latest
+    continue-on-error: true # TODO: Remove once typing is stable
     needs: [cache-pixi-lock]
-    # TODO v4: Enable typechecking again
-    if: false
     steps:
       - name: Checkout
         uses: actions/checkout@v5
@@ -186,13 +185,7 @@ jobs:
           cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
       - name: Typechecking
         run: |
-          pixi run typing --non-interactive --html-report mypy-report
-      - name: Upload test results
-        if: ${{ always() }} # Upload even on mypy error
-        uses: actions/upload-artifact@v7
-        with:
-          name: Mypy report
-          path: mypy-report
+          pixi run typing --output-format github
   build-and-upload-nightly-parcels: # for alpha testing
     needs: [cache-pixi-lock]
     permissions:
