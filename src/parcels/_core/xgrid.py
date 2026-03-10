@@ -1,6 +1,6 @@
 from collections.abc import Hashable, Mapping, Sequence
 from functools import cached_property
-from typing import Literal, cast
+from typing import Any, Literal, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -21,7 +21,7 @@ _XGCM_AXES = Mapping[_XGCM_AXIS_DIRECTION, xgcm.Axis]
 
 _FIELD_DATA_ORDERING: Sequence[_XGCM_AXIS_DIRECTION] = "TZYX"
 
-_DEFAULT_XGCM_KWARGS = {"periodic": False}
+_DEFAULT_XGCM_KWARGS: dict[str, Any] = {"periodic": False}
 
 
 def get_cell_count_along_dim(ds: xr.Dataset, axis: xgcm.Axis) -> int:
@@ -384,7 +384,7 @@ class XGrid(BaseGrid):
         return result
 
 
-def get_axis_from_dim_name(axes: _XGCM_AXES, dim: str) -> _XGCM_AXIS_DIRECTION | None:
+def get_axis_from_dim_name(axes: _XGCM_AXES, dim: Hashable) -> _XGCM_AXIS_DIRECTION | None:
     """For a given dimension name in a grid, returns the direction axis it is on."""
     for axis_name, axis in axes.items():
         if dim in axis.coords.values():
