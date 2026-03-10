@@ -166,6 +166,29 @@ def _set_axis_attrs(ds: xr.Dataset, dim_axis: dict[str, CfAxis]):
     return ds
 
 
+def _maybe_convert_time_from_float_to_timedelta(ds: xr.Dataset) -> xr.Dataset:
+    if "time" in ds.coords:
+        if np.issubdtype(ds["time"].data.dtype, np.floating):
+            time_units = ds["time"].attrs.get("units", "").lower()
+            if "hour" in time_units:
+                factor = 3600.0 * 1e9
+            elif "day" in time_units:
+                factor = 86400.0 * 1e9
+            elif "minute" in time_units:
+                factor = 60.0 * 1e9
+            else:
+                # default to seconds if unspecified
+                factor = 1.0 * 1e9
+
+            ns_int = np.rint(ds["time"].values * factor).astype("int64")
+            try:
+                ds["time"] = ns_int.astype("timedelta64[ns]")
+                logger.info("Converted time coordinate from float to timedelta based on units.")
+            except Exception as e:
+                logger.warning(f"Failed to convert time coordinate to timedelta: {e}")
+    return ds
+
+
 def _maybe_swap_depth_direction(ds: xr.Dataset) -> xr.Dataset:
     if ds["depth"].size > 1:
         if ds["depth"][0] > ds["depth"][-1]:
