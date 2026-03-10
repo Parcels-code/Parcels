@@ -43,6 +43,7 @@ KernelFunction = Callable[..., None]
 
 XgridAxis = Literal["X", "Y", "Z"]
 XgcmAxisDirection = Literal["X", "Y", "Z", "T"]
+CfAxis = XgcmAxisDirection
 XgcmAxisPosition = Literal["center", "left", "right", "inner", "outer"]
 XgcmAxes = Mapping[XgcmAxisDirection, "xgcm.Axis"]
 
