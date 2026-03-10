@@ -142,8 +142,6 @@ The following is an alphabetically sorted list of projects that use Parcels:
 - [VirtualFleet](https://github.com/euroargodev/VirtualFleet): Make and analyse simulations of virtual Argo float trajectories
 - [VirtualShip](https://virtualship.parcels-code.org/): A framework to plan and conduct a virtual research expedition, receiving measurements as if they were coming from actual oceanographic instruments.
 
-(other-lagrangian-software)=
-
 ## Other Lagrangian software
 
 The following is an alphabetically sorted list of other Lagrangian ocean modelling and analysis software:
