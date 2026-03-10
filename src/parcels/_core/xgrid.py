@@ -347,7 +347,7 @@ class XGrid(BaseGrid):
 
         return axis_position_mapping
 
-    def get_axis_dim_mapping(self, dims: list[str]) -> dict[ptyping.XgridAxis, str]:
+    def get_axis_dim_mapping(self, dims: Sequence[Hashable]) -> dict[ptyping.XgridAxis, str]:
         """
         Maps xarray dimension names to their corresponding axis (X, Y, Z).
 
@@ -355,8 +355,8 @@ class XGrid(BaseGrid):
 
         Parameters
         ----------
-        dims : list[str]
-            List of xarray dimension names
+        dims : Sequence[Hashable]
+            Sequence of xarray dimension names
 
         Returns
         -------
