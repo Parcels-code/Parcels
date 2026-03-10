@@ -132,6 +132,16 @@ Visit Lagrangian Diagnostics
 ````
 `````
 
+## Projects that use Parcels
+
+The following is a list of projects that use Parcels:
+
+- [LOCATE](https://github.com/UPC-LOCATE/LOCATE/): A collection of numerical tools developed within LOCATE ESA-funded project to build simulations of plastic particle dispersion in nearshore water.
+- [PlasticParcels](https://github.com/Parcels-code/plasticparcels): A tool - based on Parcels - providing a modular and customisable collection of methods, notebooks, and tutorials for advecting virtual plastic particles with a wide range of physical properties.
+- [pyPlume](https://codeocean.com/capsule/9735287/tree/v1): A collection of notebooks and methods made unifying the process of loading two-dimensional oceanic current vector fields from models and observations, simulating trajectory models, and analyzing and visualizing particle trajectories.
+- [VirtualFleet](https://github.com/euroargodev/VirtualFleet): Make and analyse simulations of virtual Argo float trajectories
+- [VirtualShip](https://virtualship.parcels-code.org/): A framework to plan and conduct a virtual research expedition, receiving measurements as if they were coming from actual oceanographic instruments.
+
 (other-lagrangian-software)=
 
 ## Other Lagrangian software
