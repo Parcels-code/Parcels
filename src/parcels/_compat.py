@@ -8,7 +8,7 @@ MPI: Any | None = None
 KMeans: Any | None = None
 
 try:
-    from mpi4py import MPI
+    from mpi4py import MPI  # type: ignore[import-untyped,no-redef]
 except ModuleNotFoundError:
     pass
 
