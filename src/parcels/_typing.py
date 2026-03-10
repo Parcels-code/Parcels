@@ -44,7 +44,7 @@ KernelFunction = Callable[..., None]
 XgridAxis = Literal["X", "Y", "Z"]
 XgcmAxisDirection = Literal["X", "Y", "Z", "T"]
 XgcmAxisPosition = Literal["center", "left", "right", "inner", "outer"]
-XgcmAxes = Mapping[XgcmAxisDirection, xgcm.Axis]
+XgcmAxes = Mapping[XgcmAxisDirection, "xgcm.Axis"]
 
 
 def _is_xarray_object(obj):  # with no imports
