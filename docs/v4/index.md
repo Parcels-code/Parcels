@@ -18,7 +18,6 @@ The pages below provide further background on the development of Parcels v4. You
 
 ```{toctree}
 installation
-api
 nojit
 TODO
 Parcels v4 Project Board <https://github.com/orgs/Parcels-code/projects/5>

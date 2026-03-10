@@ -508,8 +508,7 @@ def test_mitgcm():
     data_folder = parcels.download_example_dataset("MITgcm_example_data")
     ds_fields = xr.open_dataset(data_folder / "mitgcm_UV_surface_zonally_reentrant.nc")
 
-    coords = ds_fields[["XG", "YG", "Zl", "time"]]
-    ds_fset = convert.mitgcm_to_sgrid(fields={"U": ds_fields.UVEL, "V": ds_fields.VVEL}, coords=coords)
+    ds_fset = convert.mitgcm_to_sgrid(fields={"U": ds_fields.UVEL, "V": ds_fields.VVEL}, coords=ds_fields)
     fieldset = FieldSet.from_sgrid_conventions(ds_fset)
 
     npart = 10

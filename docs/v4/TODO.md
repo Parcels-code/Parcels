@@ -1,6 +1,6 @@
 # TODO
 
-List of tasks that are important to do before the release of version 4 (but can't be done now via code changes in `v4-dev`).
+List of tasks that are important to do before the release of version 4.
 
 - [ ] Make migration guide for v3 to v4
 - [ ] Just prior to release: Update conda feedstock recipe dependencies (Python 3.11+, remove cgen and compiler dependencies, add pooch as dependency and remove platformdirs). Make sure that recipe is up-to-date.

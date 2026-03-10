@@ -28,8 +28,7 @@ def test_conversion_3DCROCO():
         "Cs_w": ds_fields["Cs_w"],
     }
 
-    coords = ds_fields[["x_rho", "y_rho", "s_w", "time"]]
-    ds_fset = parcels.convert.croco_to_sgrid(fields=fields, coords=coords)
+    ds_fset = parcels.convert.croco_to_sgrid(fields=fields, coords=ds_fields)
 
     fieldset = parcels.FieldSet.from_sgrid_conventions(ds_fset)
     fieldset.add_constant("hc", ds_fields.hc.item())
@@ -61,8 +60,7 @@ def test_advection_3DCROCO():
         "omega": ds_fields["omega"],
     }
 
-    coords = ds_fields[["x_rho", "y_rho", "s_w", "time"]]
-    ds_fset = parcels.convert.croco_to_sgrid(fields=fields, coords=coords)
+    ds_fset = parcels.convert.croco_to_sgrid(fields=fields, coords=ds_fields)
 
     fieldset = parcels.FieldSet.from_sgrid_conventions(ds_fset)
     fieldset.add_constant("hc", ds_fields.hc.item())

@@ -127,7 +127,7 @@ def test_pset_execute_invalid_arguments(fieldset, fieldset_no_time_interval):
 def test_particleset_runtime_type(fieldset, runtime, expectation):
     pset = ParticleSet(fieldset, lon=[0.2], lat=[5.0], z=[50.0], pclass=Particle)
     with expectation:
-        pset.execute(runtime=runtime, dt=np.timedelta64(10, "s"), pyfunc=DoNothing)
+        pset.execute(runtime=runtime, dt=np.timedelta64(10, "s"), kernels=DoNothing)
 
 
 @pytest.mark.parametrize(
@@ -143,7 +143,7 @@ def test_particleset_runtime_type(fieldset, runtime, expectation):
 def test_particleset_endtime_type(fieldset, endtime, expectation):
     pset = ParticleSet(fieldset, lon=[0.2], lat=[5.0], z=[50.0], pclass=Particle)
     with expectation:
-        pset.execute(endtime=endtime, dt=np.timedelta64(10, "m"), pyfunc=DoNothing)
+        pset.execute(endtime=endtime, dt=np.timedelta64(10, "m"), kernels=DoNothing)
 
 
 def test_particleset_run_to_endtime(fieldset):
@@ -172,6 +172,8 @@ def test_particleset_run_RK_to_endtime_fwd_bwd(fieldset, kernel, dt):
     pset = ParticleSet(fieldset, pclass=DEFAULT_PARTICLES[kernel], lon=[0.2], lat=[5.0], time=[starttime])
     pset.execute(kernel, endtime=endtime, dt=dt)
     assert pset[0].time == fieldset.time_interval.time_length_as_flt
+
+    pset._requires_prepended_positionupdate_kernel = False  # Reset positionupdate_kernel use for backward
 
     pset.execute(kernel, endtime=starttime, dt=-dt)
     assert pset[0].time == 0.0
@@ -224,7 +226,7 @@ def test_pset_remove_particle_in_kernel(fieldset):
     def DeleteKernel(particles, fieldset):  # pragma: no cover
         particles.state = np.where((particles.lon >= 0.4) & (particles.lon <= 0.6), StatusCode.Delete, particles.state)
 
-    pset.execute(pset.Kernel(DeleteKernel), runtime=np.timedelta64(1, "s"), dt=np.timedelta64(1, "s"))
+    pset.execute(DeleteKernel, runtime=np.timedelta64(1, "s"), dt=np.timedelta64(1, "s"))
     indices = [i for i in range(npart) if not (40 <= i < 60)]
     assert [p.trajectory for p in pset] == indices
     assert pset[70].trajectory == 90
@@ -250,9 +252,8 @@ def test_pset_multi_execute(fieldset, with_delete, npart=10, n=5):
     def AddLat(particles, fieldset):  # pragma: no cover
         particles.dlat += 0.1
 
-    k_add = pset.Kernel(AddLat)
     for _ in range(n):
-        pset.execute(k_add, runtime=np.timedelta64(1, "s"), dt=np.timedelta64(1, "s"))
+        pset.execute(AddLat, runtime=np.timedelta64(1, "s"), dt=np.timedelta64(1, "s"))
         if with_delete:
             pset.remove_indices(len(pset) - 1)
     if with_delete:
@@ -559,7 +560,7 @@ def test_uxstommelgyre_multiparticle_pset_execute():
     pset.execute(
         runtime=np.timedelta64(10, "m"),
         dt=np.timedelta64(60, "s"),
-        pyfunc=AdvectionRK4_3D,
+        kernels=AdvectionRK4_3D,
     )
 
 
@@ -600,5 +601,5 @@ def test_uxstommelgyre_pset_execute_output():
         outputdt=np.timedelta64(5, "m"),  # the time step of the outputs
     )
     pset.execute(
-        runtime=np.timedelta64(10, "m"), dt=np.timedelta64(60, "s"), pyfunc=AdvectionEE, output_file=output_file
+        runtime=np.timedelta64(10, "m"), dt=np.timedelta64(60, "s"), kernels=AdvectionEE, output_file=output_file
     )

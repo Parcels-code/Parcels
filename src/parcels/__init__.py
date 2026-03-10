@@ -11,7 +11,6 @@ import warnings as _stdlib_warnings
 
 from parcels._core.fieldset import FieldSet
 from parcels._core.particleset import ParticleSet
-from parcels._core.kernel import Kernel
 from parcels._core.particlefile import ParticleFile
 from parcels._core.particle import (
     Variable,
@@ -45,7 +44,6 @@ __all__ = [  # noqa: RUF022
     # Core classes
     "FieldSet",
     "ParticleSet",
-    "Kernel",
     "ParticleFile",
     "Variable",
     "Particle",

@@ -41,24 +41,27 @@ TimeLike = datetime | cftime_datetime | np.datetime64
 KernelFunction = Callable[..., None]
 
 
+def _is_xarray_object(obj):  # with no imports
+    try:
+        return "xarray.core" in obj.__module__
+    except AttributeError:
+        return False
+
+
 def _validate_against_pure_literal(value, typing_literal):
     """Uses a Literal type alias to validate.
 
     Can't be used with ``Literal[...] | None`` etc. as its not a pure literal.
     """
+    # TODO remove once https://github.com/pydata/xarray/issues/11209 is resolved - Xarray objects don't work normally in `in` statements
+    if _is_xarray_object(value):
+        raise ValueError(f"Invalid input type {type(value)}")
+
     if value not in get_args(typing_literal):
         msg = f"Invalid value {value!r}. Valid options are {get_args(typing_literal)!r}"
         raise ValueError(msg)
 
 
 # Assertion functions to clean user input
-def assert_valid_interp_method(value: Any):
-    _validate_against_pure_literal(value, InterpMethodOption)
-
-
 def assert_valid_mesh(value: Any):
     _validate_against_pure_literal(value, Mesh)
-
-
-def assert_valid_gridindexingtype(value: Any):
-    _validate_against_pure_literal(value, GridIndexingType)

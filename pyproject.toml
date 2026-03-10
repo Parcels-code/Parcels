@@ -26,7 +26,6 @@ dependencies = [
   "netCDF4 >=1.7.2",
   "zarr >=2.15.0,!=2.18.0,<3",
   "tqdm >=4.50.0",
-  "pytest",
   "xarray >=2024.5.0",
   "uxarray >=2025.3.0",
   "pooch >=1.8.0",

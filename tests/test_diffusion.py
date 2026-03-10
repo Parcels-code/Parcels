@@ -34,7 +34,7 @@ def test_fieldKh_Brownian(mesh):
 
     np.random.seed(1234)
     pset = ParticleSet(fieldset=fieldset, lon=np.zeros(npart), lat=np.zeros(npart))
-    pset.execute(pset.Kernel(DiffusionUniformKh), runtime=runtime, dt=np.timedelta64(1, "h"))
+    pset.execute(DiffusionUniformKh, runtime=runtime, dt=np.timedelta64(1, "h"))
 
     expected_std_lon = np.sqrt(2 * kh_zonal * mesh_conversion**2 * timedelta_to_float(runtime))
     expected_std_lat = np.sqrt(2 * kh_meridional * mesh_conversion**2 * timedelta_to_float(runtime))
@@ -70,7 +70,7 @@ def test_fieldKh_SpatiallyVaryingDiffusion(mesh, kernel):
 
     np.random.seed(1636)
     pset = ParticleSet(fieldset=fieldset, lon=np.zeros(npart), lat=np.zeros(npart))
-    pset.execute(pset.Kernel(kernel), runtime=np.timedelta64(3, "h"), dt=np.timedelta64(1, "h"))
+    pset.execute(kernel, runtime=np.timedelta64(3, "h"), dt=np.timedelta64(1, "h"))
 
     tol = 2000 * mesh_conversion  # effectively 2000 m errors (because of low numbers of particles)
     assert np.allclose(np.mean(pset.lon), 0, atol=tol)
