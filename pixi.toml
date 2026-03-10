@@ -90,6 +90,7 @@ snakeviz = "*"
 icecream = "*"
 ipykernel = "*"
 snoop = "*"
+pyinstrument = "*"
 
 [feature.devtools.target.linux-64.dependencies]
 memray = "*"
