@@ -134,7 +134,7 @@ Visit Lagrangian Diagnostics
 
 ## Projects that use Parcels
 
-The following is a list of projects that use Parcels:
+The following is an alphabetically sorted list of projects that use Parcels:
 
 - [LOCATE](https://github.com/UPC-LOCATE/LOCATE/): A collection of numerical tools developed within LOCATE ESA-funded project to build simulations of plastic particle dispersion in nearshore water.
 - [PlasticParcels](https://github.com/Parcels-code/plasticparcels): A tool - based on Parcels - providing a modular and customisable collection of methods, notebooks, and tutorials for advecting virtual plastic particles with a wide range of physical properties.
@@ -146,7 +146,7 @@ The following is a list of projects that use Parcels:
 
 ## Other Lagrangian software
 
-The following is a list of other Lagrangian ocean modelling and analysis software:
+The following is an alphabetically sorted list of other Lagrangian ocean modelling and analysis software:
 
 - [connectivity-modeling-system (CMS)](https://github.com/beatrixparis/connectivity-modeling-system)
 - [Drifters.jl](https://github.com/JuliaClimate/Drifters.jl)
