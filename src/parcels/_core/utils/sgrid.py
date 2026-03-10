@@ -15,7 +15,7 @@ import enum
 import re
 from collections.abc import Hashable, Iterable
 from dataclasses import dataclass
-from typing import Any, Literal, Protocol, Self, overload
+from typing import Any, Literal, Protocol, Self, cast, overload
 
 import xarray as xr
 
@@ -154,8 +154,8 @@ class Grid2DMetadata(AttrsSerializable):
             return cls(
                 cf_role=attrs["cf_role"],
                 topology_dimension=attrs["topology_dimension"],
-                node_dimensions=load_mappings(attrs["node_dimensions"]),
-                face_dimensions=load_mappings(attrs["face_dimensions"]),
+                node_dimensions=cast(tuple[Dim, Dim], load_mappings(attrs["node_dimensions"])),
+                face_dimensions=cast(tuple[DimDimPadding, DimDimPadding], load_mappings(attrs["face_dimensions"])),
                 node_coordinates=maybe_load_mappings(attrs.get("node_coordinates")),
                 vertical_dimensions=maybe_load_mappings(attrs.get("vertical_dimensions")),
             )
@@ -267,8 +267,10 @@ class Grid3DMetadata(AttrsSerializable):
             return cls(
                 cf_role=attrs["cf_role"],
                 topology_dimension=attrs["topology_dimension"],
-                node_dimensions=load_mappings(attrs["node_dimensions"]),
-                volume_dimensions=load_mappings(attrs["volume_dimensions"]),
+                node_dimensions=cast(tuple[Dim, Dim, Dim], load_mappings(attrs["node_dimensions"])),
+                volume_dimensions=cast(
+                    tuple[DimDimPadding, DimDimPadding, DimDimPadding], load_mappings(attrs["volume_dimensions"])
+                ),
                 node_coordinates=maybe_load_mappings(attrs.get("node_coordinates")),
             )
         except Exception as e:
