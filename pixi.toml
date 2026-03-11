@@ -132,12 +132,10 @@ numpydoc = "*"
 numpydoc-lint = { cmd = "python tools/numpydoc-public-api.py", description = "Lint public API docstrings with numpydoc." }
 
 [feature.typing.dependencies]
-mypy = "*"
-lxml = "*" # in CI
-types-tqdm = "*"
+ty = "*"
 
 [feature.typing.tasks]
-typing = { cmd = "mypy src/parcels --install-types", description = "Run static type checking with mypy." }
+typing = { cmd = "ty check", description = "Run static type checking with ty." }
 
 
 [environments]

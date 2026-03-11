@@ -5,7 +5,7 @@ import numpy as np
 
 from parcels._typing import Mesh
 
-__all__ = []  # type: ignore
+__all__ = []
 
 
 def phi1D_lin(xsi: float) -> list[float]:

@@ -132,8 +132,8 @@ See below for more Pixi commands relevant to development.
 
 **Code quality**
 
-- `pixi run lint` - Run pre-commit hooks on all files (includes formatting, linting, and other code quality checks)
-- `pixi run typing` - Run mypy type checking on the codebase
+- `pixi run lint` - Run [pre-commit](https://pre-commit.com/) hooks on all files (includes formatting, linting, and other code quality checks)
+- `pixi run typing` - Run [ty](https://docs.astral.sh/ty/) type checking on the codebase
 
 **Different environments**
 
