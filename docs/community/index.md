@@ -73,64 +73,11 @@ Share custom Parcels code
 
 ## Analysis code
 
-Tools for analysing Lagrangian trajectory output.
+The following is an alphabetically sorted list of tools for analysing Lagrangian trajectory output:
 
-`````{grid} 1 2 2 2
-:gutter: 4
-:padding: 2 2 0 0
-:class-container: sd-text-center
-
-````{grid-item-card} TrajAn
-:shadow: md
-
-A Python package for analysing and plotting ocean drifter and trajectory data stored, developed as part of the OpenDrift project. This library assumes trajectories are stored as CF-compliant Netcdf/Zarr output.
-
-+++
-
-```{button-link} https://github.com/OpenDrift/trajan
-:click-parent:
-:color: secondary
-:expand:
-
-Visit TrajAn
-```
-````
-````{grid-item-card} Lagrangian Trajectories Toolbox
-:shadow: md
-
-A Python library dedicated to the post-processing, visualisation and analysis of Lagrangian particle trajectories. This library assumes trajectories are stored as tabular output (e..g, Parquet or CSV).
-
-+++
-
-```{button-link} https://github.com/oj-tooth/lt_toolbox
-:click-parent:
-:color: secondary
-:expand:
-
-Visit LT Toolbox
-```
-````
-````{grid-item-card} Lagrangian Diagnostics
-:img-top: ../_static/LAdiag-logo.svg
-:shadow: md
-
-Are you interested in advanced analysis and diagnostics of Parcels output or Lagrangian trajectories in general? The Lagrangian Diagnostics project provides code and descriptions of different analyses.
-
-```{image} https://img.shields.io/badge/maintainer_needed-red
-:width: 40%
-```
-
-+++
-
-```{button-link} https://lagrangian-diags.readthedocs.io/en/latest/
-:click-parent:
-:color: secondary
-:expand:
-
-Visit Lagrangian Diagnostics
-```
-````
-`````
+- [Lagrangian Diagnostics](https://lagrangian-diags.readthedocs.io/en/latest/) (![maintainer needed](https://img.shields.io/badge/maintainer_needed-red)): Are you interested in advanced analysis and diagnostics of Parcels output or Lagrangian trajectories in general? The Lagrangian Diagnostics project provides code and descriptions of different analyses.
+- [Lagrangian Trajectories Toolbox](https://github.com/oj-tooth/lt_toolbox): A Python library dedicated to the post-processing, visualisation and analysis of Lagrangian particle trajectories. This library assumes trajectories are stored as tabular output (e..g, Parquet or CSV).
+- [TrajAn](https://github.com/OpenDrift/trajan): A Python package for analysing and plotting ocean drifter and trajectory data stored, developed as part of the OpenDrift project. This library assumes trajectories are stored as CF-compliant Netcdf/Zarr output.
 
 ## Projects that use Parcels
 
