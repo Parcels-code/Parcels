@@ -82,6 +82,25 @@ trajan = "*"
 matplotlib-base = ">=2.0.2"
 gsw = "*"
 
+[feature.devtools.dependencies]
+pdbpp = "*"
+line_profiler = "*"
+memory_profiler = "*"
+snakeviz = "*"
+icecream = "*"
+ipykernel = "*"
+snoop = "*"
+pyinstrument = "*"
+
+[feature.devtools.target.linux-64.dependencies]
+memray = "*"
+
+[feature.devtools.target.osx-64.dependencies]
+memray = "*"
+
+[feature.devtools.target.osx-arm64.dependencies]
+memray = "*"
+
 [feature.docs.dependencies]
 parcels = { path = "." }
 numpydoc = "*"
@@ -113,12 +132,10 @@ numpydoc = "*"
 numpydoc-lint = { cmd = "python tools/numpydoc-public-api.py", description = "Lint public API docstrings with numpydoc." }
 
 [feature.typing.dependencies]
-mypy = "*"
-lxml = "*" # in CI
-types-tqdm = "*"
+ty = "*"
 
 [feature.typing.tasks]
-typing = { cmd = "mypy src/parcels --install-types", description = "Run static type checking with mypy." }
+typing = { cmd = "ty check", description = "Run static type checking with ty." }
 
 
 [environments]
@@ -128,6 +145,7 @@ default = { features = [
   "typing",
   "pre-commit",
   "numpydoc",
+  "devtools",
 ], solve-group = "main" }
 test = { features = ["test"], solve-group = "main" }
 test-minimum = { features = ["test", "minimum"] }

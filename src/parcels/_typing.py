@@ -7,12 +7,15 @@ used for runtime parameter validation (to ensure users are only using the right 
 """
 
 import os
-from collections.abc import Callable
+from collections.abc import Callable, Mapping
 from datetime import datetime
-from typing import Any, Literal, get_args
+from typing import TYPE_CHECKING, Any, Literal, get_args
 
 import numpy as np
 from cftime import datetime as cftime_datetime
+
+if TYPE_CHECKING:
+    import xgcm
 
 InterpMethodOption = Literal[
     "linear",
@@ -37,6 +40,12 @@ NetcdfEngine = Literal["netcdf4", "xarray", "scipy"]
 TimeLike = datetime | cftime_datetime | np.datetime64
 
 KernelFunction = Callable[..., None]
+
+XgridAxis = Literal["X", "Y", "Z"]
+XgcmAxisDirection = Literal["X", "Y", "Z", "T"]
+CfAxis = XgcmAxisDirection
+XgcmAxisPosition = Literal["center", "left", "right", "inner", "outer"]
+XgcmAxes = Mapping[XgcmAxisDirection, "xgcm.Axis"]
 
 
 def _is_xarray_object(obj):  # with no imports

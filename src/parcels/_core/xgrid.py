@@ -1,27 +1,21 @@
-from collections.abc import Hashable, Mapping, Sequence
+from collections.abc import Hashable, Sequence
 from functools import cached_property
-from typing import Literal, cast
+from typing import Any, Literal, cast
 
 import numpy as np
 import numpy.typing as npt
 import xarray as xr
 import xgcm
 
+import parcels._typing as ptyping
 from parcels._core.basegrid import BaseGrid
 from parcels._core.index_search import _search_1d_array, _search_indices_curvilinear_2d
 from parcels._reprs import xgrid_repr
-from parcels._typing import assert_valid_mesh
 
-_XGRID_AXES = Literal["X", "Y", "Z"]
-_XGRID_AXES_ORDERING: Sequence[_XGRID_AXES] = "ZYX"
+_FIELD_DATA_ORDERING: Sequence[ptyping.XgcmAxisDirection] = "TZYX"
+_XGRID_AXES_ORDERING: Sequence[ptyping.XgridAxis] = "ZYX"
 
-_XGCM_AXIS_DIRECTION = Literal["X", "Y", "Z", "T"]
-_XGCM_AXIS_POSITION = Literal["center", "left", "right", "inner", "outer"]
-_XGCM_AXES = Mapping[_XGCM_AXIS_DIRECTION, xgcm.Axis]
-
-_FIELD_DATA_ORDERING: Sequence[_XGCM_AXIS_DIRECTION] = "TZYX"
-
-_DEFAULT_XGCM_KWARGS = {"periodic": False}
+_DEFAULT_XGCM_KWARGS: dict[str, Any] = {"periodic": False}
 
 
 def get_cell_count_along_dim(ds: xr.Dataset, axis: xgcm.Axis) -> int:
@@ -35,7 +29,7 @@ def get_time(ds: xr.Dataset, axis: xgcm.Axis) -> npt.NDArray:
     return ds[axis.coords["center"]].values
 
 
-def _get_xgrid_axes(grid: xgcm.Grid) -> list[_XGRID_AXES]:
+def _get_xgrid_axes(grid: xgcm.Grid) -> list[ptyping.XgridAxis]:
     spatial_axes = [a for a in grid.axes.keys() if a in ["X", "Y", "Z"]]
     return sorted(spatial_axes, key=_XGRID_AXES_ORDERING.index)
 
@@ -121,7 +115,7 @@ class XGrid(BaseGrid):
         if "Z" in grid.axes:
             assert_valid_depth(ds["depth"])
 
-        assert_valid_mesh(mesh)
+        ptyping.assert_valid_mesh(mesh)
         self._ds = ds
 
     @classmethod
@@ -140,7 +134,7 @@ class XGrid(BaseGrid):
         return xgrid_repr(self)
 
     @property
-    def axes(self) -> list[_XGRID_AXES]:
+    def axes(self) -> list[ptyping.XgridAxis]:
         return _get_xgrid_axes(self.xgcm_grid)
 
     @property
@@ -209,13 +203,15 @@ class XGrid(BaseGrid):
     def zdim(self) -> int:
         return self.get_axis_dim("Z")
 
-    def get_axis_dim(self, axis: _XGRID_AXES) -> int:
+    def get_axis_dim(self, axis: ptyping.XgridAxis) -> int:
         if axis not in self.axes:
             raise ValueError(f"Axis {axis!r} is not part of this grid. Available axes: {self.axes}")
 
         return get_cell_count_along_dim(self._ds, self.xgcm_grid.axes[axis])
 
-    def localize(self, position: dict[_XGRID_AXES, tuple[int, float]], dims: list[str]) -> dict[str, tuple[int, float]]:
+    def localize(
+        self, position: dict[ptyping.XgridAxis, tuple[int, float]], dims: list[str]
+    ) -> dict[str, tuple[int, float]]:
         """
         Uses the grid context (i.e., the staggering of the grid) to convert a position relative
         to the F-points in the grid to a position relative to the staggered grid the array
@@ -282,7 +278,7 @@ class XGrid(BaseGrid):
 
         TODO: Remove
         """
-        from parcels.grid import GridType
+        from parcels._core.basegrid import GridType
 
         if len(self.lon.shape) <= 1:
             if self.depth is None or len(self.depth.shape) <= 1:
@@ -351,7 +347,7 @@ class XGrid(BaseGrid):
 
         return axis_position_mapping
 
-    def get_axis_dim_mapping(self, dims: list[str]) -> dict[_XGRID_AXES, str]:
+    def get_axis_dim_mapping(self, dims: Sequence[Hashable]) -> dict[ptyping.XgridAxis, str]:
         """
         Maps xarray dimension names to their corresponding axis (X, Y, Z).
 
@@ -359,8 +355,8 @@ class XGrid(BaseGrid):
 
         Parameters
         ----------
-        dims : list[str]
-            List of xarray dimension names
+        dims : Sequence[Hashable]
+            Sequence of xarray dimension names
 
         Returns
         -------
@@ -380,11 +376,11 @@ class XGrid(BaseGrid):
         for dim in dims:
             axis = get_axis_from_dim_name(self.xgcm_grid.axes, dim)
             if axis in self.axes:  # Only include spatial axes (X, Y, Z)
-                result[cast(_XGRID_AXES, axis)] = dim
+                result[cast(ptyping.XgridAxis, axis)] = dim
         return result
 
 
-def get_axis_from_dim_name(axes: _XGCM_AXES, dim: str) -> _XGCM_AXIS_DIRECTION | None:
+def get_axis_from_dim_name(axes: ptyping.XgcmAxes, dim: Hashable) -> ptyping.XgcmAxisDirection | None:
     """For a given dimension name in a grid, returns the direction axis it is on."""
     for axis_name, axis in axes.items():
         if dim in axis.coords.values():
@@ -392,7 +388,7 @@ def get_axis_from_dim_name(axes: _XGCM_AXES, dim: str) -> _XGCM_AXIS_DIRECTION |
     return None
 
 
-def get_xgcm_position_from_dim_name(axes: _XGCM_AXES, dim: str) -> _XGCM_AXIS_POSITION | None:
+def get_xgcm_position_from_dim_name(axes: ptyping.XgcmAxes, dim: str) -> ptyping.XgcmAxisPosition | None:
     """For a given dimension, returns the position of the variable in the grid."""
     for axis in axes.values():
         var_to_position = {var: position for position, var in axis.coords.items()}
@@ -402,7 +398,7 @@ def get_xgcm_position_from_dim_name(axes: _XGCM_AXES, dim: str) -> _XGCM_AXIS_PO
     return None
 
 
-def assert_all_dimensions_correspond_with_axis(da: xr.DataArray, axes: _XGCM_AXES) -> None:
+def assert_all_dimensions_correspond_with_axis(da: xr.DataArray, axes: ptyping.XgcmAxes) -> None:
     dim_to_axis = {dim: get_axis_from_dim_name(axes, dim) for dim in da.dims}
 
     for dim, direction in dim_to_axis.items():
@@ -412,7 +408,7 @@ def assert_all_dimensions_correspond_with_axis(da: xr.DataArray, axes: _XGCM_AXE
             )
 
 
-def assert_valid_field_array(da: xr.DataArray, axes: _XGCM_AXES):
+def assert_valid_field_array(da: xr.DataArray, axes: ptyping.XgcmAxes):
     """
     Asserts that for a data array:
     - All dimensions are associated with a direction on the grid
@@ -421,7 +417,7 @@ def assert_valid_field_array(da: xr.DataArray, axes: _XGCM_AXES):
     assert_all_dimensions_correspond_with_axis(da, axes)
 
     dim_to_axis = {dim: get_axis_from_dim_name(axes, dim) for dim in da.dims}
-    dim_to_axis = cast(dict[Hashable, _XGCM_AXIS_DIRECTION], dim_to_axis)
+    dim_to_axis = cast(dict[Hashable, ptyping.XgcmAxisDirection], dim_to_axis)
 
     # Assert all dimensions are present
     if set(dim_to_axis.values()) != {"T", "Z", "Y", "X"}:
@@ -437,7 +433,7 @@ def assert_valid_field_array(da: xr.DataArray, axes: _XGCM_AXES):
         )
 
 
-def assert_valid_lat_lon(da_lat, da_lon, axes: _XGCM_AXES):
+def assert_valid_lat_lon(da_lat, da_lon, axes: ptyping.XgcmAxes):
     """
     Asserts that the provided longitude and latitude DataArrays are defined appropriately
     on the F points to match the internal representation in Parcels.
@@ -516,7 +512,11 @@ def assert_valid_depth(da_depth):
 
 
 def _convert_center_pos_to_fpoint(
-    *, index: int, bcoord: float, xgcm_position: _XGCM_AXIS_POSITION, f_points_xgcm_position: _XGCM_AXIS_POSITION
+    *,
+    index: int,
+    bcoord: float,
+    xgcm_position: ptyping.XgcmAxisPosition,
+    f_points_xgcm_position: ptyping.XgcmAxisPosition,
 ) -> tuple[int, float]:
     """Converts a physical position relative to the cell edges defined in the grid to be relative to the center point.
 

@@ -196,10 +196,10 @@ class ParticleFile:
         if self.create_new_zarrfile:
             if self.chunks is None:
                 self._chunks = (nparticles, 1)
-            if (self._maxids > len(ids)) or (self._maxids > self.chunks[0]):  # type: ignore[index]
-                arrsize = (self._maxids, self.chunks[1])  # type: ignore[index]
+            if (self._maxids > len(ids)) or (self._maxids > self.chunks[0]):
+                arrsize = (self._maxids, self.chunks[1])
             else:
-                arrsize = (len(ids), self.chunks[1])  # type: ignore[index]
+                arrsize = (len(ids), self.chunks[1])
             ds = xr.Dataset(
                 attrs=self.metadata,
                 coords={"trajectory": ("trajectory", pids), "obs": ("obs", np.arange(arrsize[1], dtype=np.int32))},
@@ -221,7 +221,7 @@ class ParticleFile:
                         data[ids, 0] = particle_data[var.name][indices_to_write]
                         dims = ["trajectory", "obs"]
                     ds[var.name] = xr.DataArray(data=data, dims=dims, attrs=attrs[var.name])
-                    ds[var.name].encoding["chunks"] = self.chunks[0] if var.to_write == "once" else self.chunks  # type: ignore[index]
+                    ds[var.name].encoding["chunks"] = self.chunks[0] if var.to_write == "once" else self.chunks
             ds.to_zarr(store, mode="w")
             self._create_new_zarrfile = False
         else:
@@ -234,7 +234,7 @@ class ParticleFile:
                     if len(once_ids) > 0:
                         Z[var.name].vindex[ids_once] = particle_data[var.name][indices_to_write_once]
                 else:
-                    if max(obs) >= Z[var.name].shape[1]:  # type: ignore[type-var]
+                    if max(obs) >= Z[var.name].shape[1]:
                         self._extend_zarr_dims(Z[var.name], store, dtype=var.dtype, axis=1)
                     Z[var.name].vindex[ids, obs] = particle_data[var.name][indices_to_write]
 

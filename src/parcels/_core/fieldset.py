@@ -223,7 +223,7 @@ class FieldSet:
                 )
 
         for varname in set(ds.data_vars) - set(fields.keys()):
-            fields[varname] = Field(varname, ds[varname], grid, _select_uxinterpolator(ds[varname]))
+            fields[varname] = Field(str(varname), ds[varname], grid, _select_uxinterpolator(ds[varname]))
 
         return cls(list(fields.values()))
 
@@ -319,7 +319,7 @@ class FieldSet:
                 )
 
         for varname in set(ds.data_vars) - set(fields.keys()) - skip_vars:
-            fields[varname] = Field(varname, ds[varname], grid, XLinear)
+            fields[varname] = Field(str(varname), ds[varname], grid, XLinear)
 
         return cls(list(fields.values()))
 
@@ -353,7 +353,7 @@ def _datetime_to_msg(example_datetime: TimeLike) -> str:
     return msg
 
 
-def _format_calendar_error_message(field: Field, reference_datetime: TimeLike) -> str:
+def _format_calendar_error_message(field: Field | VectorField, reference_datetime: TimeLike) -> str:
     return f"Expected field {field.name!r} to have calendar compatible with datetime object {_datetime_to_msg(reference_datetime)}. Got field with calendar {_datetime_to_msg(field.time_interval.left)}. Have you considered using xarray to update the time dimension of the dataset to have a compatible calendar?"
 
 
