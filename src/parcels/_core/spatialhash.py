@@ -497,7 +497,7 @@ def _dilate_bits(n):
 
 def _find_degenerate_xgrid_faces(x, y, z, threshold_factor=10):
     """Identify faces in structured grids that potentially span large portions of
-    the underlying hash grid. Such degenerate faces can result in high memory requirements
+    the underlying hash grid (e.g., due to the mesh being incomplete, with 0.0 stored in missing lon/lat points). Such degenerate faces can result in high memory requirements
     for the hash table.
 
     Detection is based on the maximum great-circle edge length of each cell.  A cell
