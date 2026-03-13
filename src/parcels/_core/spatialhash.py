@@ -100,7 +100,6 @@ class SpatialHash:
                         stacklevel=2,
                     )
 
-
             else:
                 # Boundaries of the hash grid are the bounding box of the source grid
                 self._xmin = self._source_grid.lon.min()
@@ -503,7 +502,7 @@ def _find_degenerate_xgrid_faces(x, y, z, threshold_factor=10):
 
     Detection is based on the maximum great-circle edge length of each cell.  A cell
     is flagged as degenerate when its longest edge exceeds ``threshold_factor`` multiplied by
-    the 99th percentile of all edge lengths.  
+    the 99th percentile of all edge lengths.
 
     Parameters
     ----------
@@ -518,20 +517,26 @@ def _find_degenerate_xgrid_faces(x, y, z, threshold_factor=10):
     degenerate : ndarray of bool, shape (ny-1, nx-1)
         True for each cell whose maximum edge length exceeds the threshold.
     """
+
     # Chord length between two sets of points on the unit sphere, shape (ny-1, nx-1)
     def _chord(p1, p2):
         return np.sqrt(((p1 - p2) ** 2).sum(axis=-1))
 
     pts = np.stack([x, y, z], axis=-1)
     c00, c01 = pts[:-1, :-1], pts[:-1, 1:]
-    c10, c11 = pts[1:,  :-1], pts[1:,  1:]
+    c10, c11 = pts[1:, :-1], pts[1:, 1:]
 
     # Maximum chord across all four edges and both diagonals
-    max_chord = np.maximum.reduce([
-        _chord(c00, c01), _chord(c10, c11),
-        _chord(c00, c10), _chord(c01, c11),
-        _chord(c00, c11), _chord(c01, c10),
-    ])
+    max_chord = np.maximum.reduce(
+        [
+            _chord(c00, c01),
+            _chord(c10, c11),
+            _chord(c00, c10),
+            _chord(c01, c11),
+            _chord(c00, c11),
+            _chord(c01, c10),
+        ]
+    )
 
     threshold = threshold_factor * np.percentile(max_chord, 99)
     return max_chord > threshold
