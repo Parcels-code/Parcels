@@ -82,6 +82,25 @@ trajan = "*"
 matplotlib-base = ">=2.0.2"
 gsw = "*"
 
+[feature.devtools.dependencies]
+pdbpp = "*"
+line_profiler = "*"
+memory_profiler = "*"
+snakeviz = "*"
+icecream = "*"
+ipykernel = "*"
+snoop = "*"
+pyinstrument = "*"
+
+[feature.devtools.target.linux-64.dependencies]
+memray = "*"
+
+[feature.devtools.target.osx-64.dependencies]
+memray = "*"
+
+[feature.devtools.target.osx-arm64.dependencies]
+memray = "*"
+
 [feature.docs.dependencies]
 parcels = { path = "." }
 numpydoc = "*"
@@ -126,6 +145,7 @@ default = { features = [
   "typing",
   "pre-commit",
   "numpydoc",
+  "devtools",
 ], solve-group = "main" }
 test = { features = ["test"], solve-group = "main" }
 test-minimum = { features = ["test", "minimum"] }
