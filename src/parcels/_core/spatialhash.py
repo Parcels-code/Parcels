@@ -95,7 +95,9 @@ class SpatialHash:
                 if degeneracy_count > 0:
                     warnings.warn(
                         f"Grid contains {degeneracy_count} degenerate faces that span a large portion of the "
-                        "hash grid. This may result in high memory usage for the hash table.",
+                        "hash grid. This is most likely due to a mesh that isn't fully defined (e.g., cells corresponding to land areas aren't defined in the mesh).
+                        If particles are tried to be advected in these undefined regions, you may experience runtime
+                        crashes due to high memory usage in the hash table.",
                         FieldSetWarning,
                         stacklevel=2,
                     )
