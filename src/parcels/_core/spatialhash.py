@@ -91,13 +91,19 @@ class SpatialHash:
                 self._zlow = np.min(_zbound, axis=-1)
                 self._zhigh = np.max(_zbound, axis=-1)
 
-                degeneracy_count = np.sum(_find_degenerate_xgrid_faces(x, y, z))
+                degenerate_mask = _find_degenerate_xgrid_faces(x, y, z)
+                degeneracy_count = np.sum(degenerate_mask)
                 if degeneracy_count > 0:
+                    degen_locs = np.argwhere(degenerate_mask)  # shape (N, 2), columns are (j, i)
+                    max_shown = np.min([degeneracy_count,5])
+                    shown = degen_locs[:max_shown]
+                    loc_str = ", ".join(f"(j={loc[0]}, i={loc[1]})" for loc in shown)
                     warnings.warn(
                         f"Grid contains {degeneracy_count} degenerate faces that span a large portion of the "
-                        "hash grid. This is most likely due to a mesh that isn't fully defined (e.g., cells corresponding to land areas aren't defined in the mesh).
-                        If particles are tried to be advected in these undefined regions, you may experience runtime
-                        crashes due to high memory usage in the hash table.",
+                        "hash grid. This is most likely due to a mesh that isn't fully defined (e.g., points corresponding to land with lat/lon masked to 0). "
+                        "You may experience runtime crashes due to high memory usage in the hash table or cell lookup failures for particles"
+                        "in the vicinity of these degenerate cells."
+                        f"First degenerate face location(s): {loc_str}.",
                         FieldSetWarning,
                         stacklevel=2,
                     )
