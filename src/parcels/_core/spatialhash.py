@@ -95,7 +95,7 @@ class SpatialHash:
                 degeneracy_count = np.sum(degenerate_mask)
                 if degeneracy_count > 0:
                     degen_locs = np.argwhere(degenerate_mask)  # shape (N, 2), columns are (j, i)
-                    max_shown = np.min([degeneracy_count,5])
+                    max_shown = np.min([degeneracy_count, 5])
                     shown = degen_locs[:max_shown]
                     loc_str = ", ".join(f"(j={loc[0]}, i={loc[1]})" for loc in shown)
                     warnings.warn(
