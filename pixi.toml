@@ -23,6 +23,7 @@ netcdf4 = ">=1.6.0"
 numpy = ">=2.1.0"
 tqdm = ">=4.50.0"
 xarray = ">=2024.5.0"
+holoviews = ">=1.22.0" # https://github.com/prefix-dev/rattler-build/issues/2326
 uxarray = ">=2025.3.0"
 dask = ">=2024.5.1"
 zarr = ">=2.15.0,!=2.18.0,<3"
