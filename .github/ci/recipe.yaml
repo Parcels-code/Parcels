@@ -5,6 +5,7 @@
 context:
   name: parcels
   version: ${{ env.get('PARCELS_ALPHA_VERSION', default='0.1.0dev') }}
+  python_min: "3.11"
 
 package:
   name: ${{ name|lower }}
@@ -21,14 +22,14 @@ build:
 
 requirements:
   host:
-    - python 3.11.*
+    - python {{python_min}}.*
     - pip
     - setuptools
     - setuptools_scm
     - setuptools_scm_git_archive
     - wheel
   run:
-    - python >=3.11
+    - python >={{ python_min }}
     - cftime >=1.6.3
     - dask >=2024.5.1
     - netcdf4 >=1.7.2
