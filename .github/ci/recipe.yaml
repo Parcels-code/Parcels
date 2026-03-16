@@ -22,14 +22,14 @@ build:
 
 requirements:
   host:
-    - python {{python_min}}.*
+    - python ${{python_min}}.*
     - pip
     - setuptools
     - setuptools_scm
     - setuptools_scm_git_archive
     - wheel
   run:
-    - python >={{ python_min }}
+    - python >=${{ python_min }}
     - cftime >=1.6.3
     - dask >=2024.5.1
     - netcdf4 >=1.7.2
