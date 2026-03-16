@@ -8,13 +8,13 @@ MPI: Any | None = None
 KMeans: Any | None = None
 
 try:
-    from mpi4py import MPI  # type: ignore[no-redef]
+    from mpi4py import MPI  # type: ignore[import-untyped,no-redef]
 except ModuleNotFoundError:
     pass
 
 # KMeans is used in MPI. sklearn not installed by default
 try:
-    from sklearn.cluster import KMeans  # type: ignore[no-redef]
+    from sklearn.cluster import KMeans
 except ModuleNotFoundError:
     pass
 

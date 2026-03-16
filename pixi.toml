@@ -23,6 +23,7 @@ netcdf4 = ">=1.6.0"
 numpy = ">=2.1.0"
 tqdm = ">=4.50.0"
 xarray = ">=2024.5.0"
+holoviews = ">=1.22.0" # https://github.com/prefix-dev/rattler-build/issues/2326
 uxarray = ">=2025.3.0"
 dask = ">=2024.5.1"
 zarr = ">=2.15.0,!=2.18.0,<3"
@@ -35,11 +36,14 @@ py-triangle = ">=20250106,<20250107"
 [dependencies]
 parcels = { path = "." }
 
-[feature.alpha-parcels.dependencies]
+[feature.rattler-build.dependencies]
+python = "*"
 git = "*"
+rattler-build = "*"
 
-[feature.alpha-parcels.tasks]
+[feature.rattler-build.tasks]
 get-parcels-alpha-version = { cmd = "python tools/get-parcels-alpha-version.py" }
+build-parcels = { cmd = "rattler-build build --recipe .github/ci/recipe.yaml", description = "Build the Parcels conda package" }
 
 [feature.minimum.dependencies]
 python = "3.11.*"
@@ -78,6 +82,25 @@ jupyter = "*"
 trajan = "*"
 matplotlib-base = ">=2.0.2"
 gsw = "*"
+
+[feature.devtools.dependencies]
+pdbpp = "*"
+line_profiler = "*"
+memory_profiler = "*"
+snakeviz = "*"
+icecream = "*"
+ipykernel = "*"
+snoop = "*"
+pyinstrument = "*"
+
+[feature.devtools.target.linux-64.dependencies]
+memray = "*"
+
+[feature.devtools.target.osx-64.dependencies]
+memray = "*"
+
+[feature.devtools.target.osx-arm64.dependencies]
+memray = "*"
 
 [feature.docs.dependencies]
 parcels = { path = "." }
@@ -123,12 +146,10 @@ numpydoc = "*"
 numpydoc-lint = { cmd = "python tools/numpydoc-public-api.py", description = "Lint public API docstrings with numpydoc." }
 
 [feature.typing.dependencies]
-mypy = "*"
-lxml = "*" # in CI
-types-tqdm = "*"
+ty = "*"
 
 [feature.typing.tasks]
-typing = { cmd = "mypy src/parcels --install-types", description = "Run static type checking with mypy." }
+typing = { cmd = "ty check", description = "Run static type checking with ty." }
 
 
 [environments]
@@ -138,6 +159,7 @@ default = { features = [
   "typing",
   "pre-commit",
   "numpydoc",
+  "devtools",
 ], solve-group = "main" }
 test = { features = ["test"], solve-group = "main" }
 test-minimum = { features = ["test", "minimum"] }
@@ -146,4 +168,4 @@ test-py313 = { features = ["test", "py313"] }
 test-notebooks = { features = ["test", "notebooks"], solve-group = "main" }
 docs = { features = ["docs", "notebooks"], solve-group = "docs" }
 typing = { features = ["typing"], solve-group = "main" }
-alpha-parcels = { features = ["alpha-parcels"] }
+build = { features = ["rattler-build"] }

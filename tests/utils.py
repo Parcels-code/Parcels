@@ -143,7 +143,7 @@ def round_and_hash_float_array(arr, decimals=6):
 
     # Adapted from https://cs.stackexchange.com/a/37965
     h = 1
-    for f in arr:
+    for f in arr.flat:
         # Mimic Float.floatToIntBits: converts float to 4-byte binary, then interprets as int
         float_as_int = struct.unpack("!i", struct.pack("!f", f))[0]
         h = 31 * h + float_as_int

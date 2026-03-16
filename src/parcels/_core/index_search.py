@@ -10,7 +10,7 @@ from parcels._core.utils.time import timedelta_to_float
 
 if TYPE_CHECKING:
     from parcels._core.field import Field
-    from parcels.xgrid import XGrid
+    from parcels._core.xgrid import XGrid
 
 
 GRID_SEARCH_ERROR = -3
@@ -19,7 +19,7 @@ RIGHT_OUT_OF_BOUNDS = -1
 
 
 def _search_1d_array(
-    arr: np.array,
+    arr: np.ndarray,
     x: float,
 ) -> tuple[int, int]:
     """

@@ -4,7 +4,8 @@
 # Adapted from the conda forge recipe
 context:
   name: parcels
-  version: ${{ env.get('PARCELS_ALPHA_VERSION') }}
+  version: ${{ env.get('PARCELS_ALPHA_VERSION', default='0.1.0dev') }}
+  python_min: "3.11"
 
 package:
   name: ${{ name|lower }}
@@ -21,14 +22,14 @@ build:
 
 requirements:
   host:
-    - python 3.11.*
+    - python ${{python_min}}.*
     - pip
     - setuptools
     - setuptools_scm
     - setuptools_scm_git_archive
     - wheel
   run:
-    - python >=3.11
+    - python >=${{ python_min }}
     - cftime >=1.6.3
     - dask >=2024.5.1
     - netcdf4 >=1.7.2
@@ -40,6 +41,7 @@ requirements:
     - zarr >=2.15.0,!=2.18.0,<3
     - uxarray>=2025.3.0
     - pyogrio # needed for geopandas (uxarray -> geoviews -> geopandas -> pyogrio, but for some reason conda doesn't pick it up automatically)
+    - holoviews >= 1.22.0 # https://github.com/prefix-dev/rattler-build/issues/2326
     - pooch >=1.8.0
 
 tests:

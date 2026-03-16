@@ -15,7 +15,7 @@ import enum
 import re
 from collections.abc import Hashable, Iterable
 from dataclasses import dataclass
-from typing import Any, Literal, Protocol, Self, overload
+from typing import Any, Literal, Protocol, Self, cast, overload
 
 import xarray as xr
 
@@ -149,13 +149,13 @@ class Grid2DMetadata(AttrsSerializable):
         return self.to_attrs() == other.to_attrs()
 
     @classmethod
-    def from_attrs(cls, attrs):
+    def from_attrs(cls, attrs):  # type: ignore[override]
         try:
             return cls(
                 cf_role=attrs["cf_role"],
                 topology_dimension=attrs["topology_dimension"],
-                node_dimensions=load_mappings(attrs["node_dimensions"]),
-                face_dimensions=load_mappings(attrs["face_dimensions"]),
+                node_dimensions=cast(tuple[Dim, Dim], load_mappings(attrs["node_dimensions"])),
+                face_dimensions=cast(tuple[DimDimPadding, DimDimPadding], load_mappings(attrs["face_dimensions"])),
                 node_coordinates=maybe_load_mappings(attrs.get("node_coordinates")),
                 vertical_dimensions=maybe_load_mappings(attrs.get("vertical_dimensions")),
             )
@@ -176,7 +176,7 @@ class Grid2DMetadata(AttrsSerializable):
         return d
 
     def rename(self, names_dict: dict[str, str]) -> Self:
-        return _metadata_rename(self, names_dict)
+        return cast(Self, _metadata_rename(self, names_dict))
 
     def get_value_by_id(self, id: str) -> str:
         """In the SGRID specification for 2D grids, different parts of the spec are identified by different "ID"s.
@@ -262,13 +262,15 @@ class Grid3DMetadata(AttrsSerializable):
         return self.to_attrs() == other.to_attrs()
 
     @classmethod
-    def from_attrs(cls, attrs):
+    def from_attrs(cls, attrs):  # type: ignore[override]
         try:
             return cls(
                 cf_role=attrs["cf_role"],
                 topology_dimension=attrs["topology_dimension"],
-                node_dimensions=load_mappings(attrs["node_dimensions"]),
-                volume_dimensions=load_mappings(attrs["volume_dimensions"]),
+                node_dimensions=cast(tuple[Dim, Dim, Dim], load_mappings(attrs["node_dimensions"])),
+                volume_dimensions=cast(
+                    tuple[DimDimPadding, DimDimPadding, DimDimPadding], load_mappings(attrs["volume_dimensions"])
+                ),
                 node_coordinates=maybe_load_mappings(attrs.get("node_coordinates")),
             )
         except Exception as e:
@@ -286,7 +288,7 @@ class Grid3DMetadata(AttrsSerializable):
         return d
 
     def rename(self, dims_dict: dict[str, str]) -> Self:
-        return _metadata_rename(self, dims_dict)
+        return cast(Self, _metadata_rename(self, dims_dict))
 
     def get_value_by_id(self, id: str) -> str:
         """In the SGRID specification for 3D grids, different parts of the spec are identified by different "ID"s.

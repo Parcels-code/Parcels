@@ -157,25 +157,8 @@ convention = "numpy"
 [tool.ruff.lint.isort]
 known-first-party = ["parcels"]
 
-[tool.mypy]
-files = [
-  "parcels/_typing.py",
-  "parcels/tools/*.py",
-  "parcels/grid.py",
-  "parcels/field.py",
-  "parcels/fieldset.py",
+[tool.ty.src]
+include = ["./src/"]
+exclude = [
+  "./src/parcels/interpolators/", # ignore for now
 ]
-
-[[tool.mypy.overrides]]
-module = [
-  "parcels._version_setup",
-  "mpi4py",
-  "scipy.spatial",
-  "sklearn.cluster",
-  "zarr",
-  "cftime",
-  "pykdtree.kdtree",
-  "netCDF4",
-  "pooch",
-]
-ignore_missing_imports = true
