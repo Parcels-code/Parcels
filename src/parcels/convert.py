@@ -25,7 +25,7 @@ if typing.TYPE_CHECKING:
 
 _NEMO_EXPECTED_COORDS = ["glamf", "gphif"]
 
-_NEMO_DIMENSION_COORD_NAMES = ["x", "y", "time", "x", "x_center", "y", "y_center", "depth", "glamf", "gphif"]
+_NEMO_DIMENSION_COORD_NAMES = ["x", "y", "time", "x", "x_center", "y", "y_center", "depth", "depth_center", "glamf", "gphif"]
 
 _NEMO_AXIS_VARNAMES = {
     "x": "X",
@@ -33,6 +33,7 @@ _NEMO_AXIS_VARNAMES = {
     "y": "Y",
     "y_center": "Y",
     "depth": "Z",
+    "depth_center": "Z",
     "time": "T",
 }
 
@@ -297,7 +298,6 @@ def nemo_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.Da
                 coords = coords.isel({dim: 0})
     if len(coords.dims) != 2:
         raise ValueError("Expected coordsinates to be 2 dimensional")
-
     ds = xr.merge(list(fields.values()) + [coords])
     ds = _maybe_rename_variables(ds, _NEMO_VARNAMES_MAPPING)
     ds = _maybe_create_depth_dim(ds)
@@ -336,7 +336,7 @@ def nemo_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.Da
                 sgrid.DimDimPadding("x_center", "x", sgrid.Padding.LOW),
                 sgrid.DimDimPadding("y_center", "y", sgrid.Padding.LOW),
             ),
-            vertical_dimensions=(sgrid.DimDimPadding("z_center", "depth", sgrid.Padding.HIGH),),
+            vertical_dimensions=(sgrid.DimDimPadding("depth_center", "depth", sgrid.Padding.HIGH),),
         ).to_attrs(),
     )
 
