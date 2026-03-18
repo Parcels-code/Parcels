@@ -9,8 +9,8 @@ emit verbose messaging so that the user is kept in the loop. The returned output
 Xarray dataset so that users can further provide any missing metadata that was unable to
 be determined before they pass it to the FieldSet constructor.
 """
-
 from __future__ import annotations
+import warnings
 
 import typing
 
@@ -23,7 +23,7 @@ from parcels._logger import logger
 if typing.TYPE_CHECKING:
     import uxarray as ux
 
-_NEMO_EXPECTED_COORDS = ["glamf", "gphif"]
+_NEMO_EXPECTED_COORDS = ["glamf", "gphif", "depthw"]
 
 _NEMO_DIMENSION_COORD_NAMES = ["x", "y", "time", "x", "x_center", "y", "y_center", "depth", "depth_center", "glamf", "gphif"]
 
@@ -95,25 +95,22 @@ def _pick_expected_coords(coords: xr.Dataset, expected_coord_names: list[str]) -
 
 
 def _maybe_bring_other_depths_to_depth(ds):
-    if "depth" in ds.coords:
-        for var in ds.data_vars:
-            for old_depth, target in [
-                ("depthu", "depth_center"),
-                ("depthv", "depth_center"),
-                ("deptht", "depth_center"),
-                ("depthw", "depth"),
-            ]:
-                if old_depth in ds[var].dims:
-                    ds[var] = ds[var].rename({old_depth: target})
-    return ds
-
-
-def _maybe_create_depth_dim(ds):
+    for var in ds.data_vars:
+        for old_depth, target in [
+            ("depthu", "depth_center"),
+            ("depthv", "depth_center"),
+            ("deptht", "depth_center"),
+            ("depthw", "depth"),
+        ]:
+            if old_depth in ds[var].dims:
+                ds[var] = ds[var].rename({old_depth: target})
+    
     if "depth" not in ds.dims:
+        warnings.warn("No depth dimension found in your dataset. Assuming no depth (i.e., surface data).", stacklevel=1)
         ds = ds.expand_dims({"depth": [0]})
         ds["depth"] = xr.DataArray([0], dims=["depth"])
     return ds
-
+    
 
 def _maybe_rename_coords(ds, axis_varnames):
     try:
@@ -291,16 +288,16 @@ def nemo_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.Da
         if coords.sizes["time"] != 1:
             raise ValueError("Time dimension in coords must be length 1 (i.e., no time-varying grid).")
         coords = coords.isel(time=0).drop("time")
-    if len(coords.dims) == 3:
+        
+    if len(coords.dims) == 3: #! This should really be looking at the dimensionality of the lons and lats arrays. Currently having 2D lon lat and 1D depth triggers this `if` clause
         for dim, len_ in coords.sizes.items():
             if len_ == 1:
                 # TODO: log statement about selecting along z dim of 1
                 coords = coords.isel({dim: 0})
-    if len(coords.dims) != 2:
-        raise ValueError("Expected coordsinates to be 2 dimensional")
+    # if len(coords.dims) != 2: #! This should really be looking at the dimensionality of the lons and lats arrays. Currently having 2D lon lat and 1D depth triggers this `if` clause
+    #     raise ValueError("Expected coordinates to be 2 dimensional")
     ds = xr.merge(list(fields.values()) + [coords])
     ds = _maybe_rename_variables(ds, _NEMO_VARNAMES_MAPPING)
-    ds = _maybe_create_depth_dim(ds)
     ds = _maybe_bring_other_depths_to_depth(ds)
     ds = _drop_unused_dimensions_and_coords(ds, _NEMO_DIMENSION_COORD_NAMES)
     ds = _assign_dims_as_coords(ds, _NEMO_DIMENSION_COORD_NAMES)
