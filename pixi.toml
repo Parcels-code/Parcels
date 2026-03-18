@@ -102,6 +102,9 @@ memray = "*"
 [feature.devtools.target.osx-arm64.dependencies]
 memray = "*"
 
+[feature.devtools.pypi-dependencies]
+tuna = ">=0.5.11"
+
 [feature.docs.dependencies]
 parcels = { path = "." }
 numpydoc = "*"
