@@ -96,9 +96,14 @@ def _pick_expected_coords(coords: xr.Dataset, expected_coord_names: list[str]) -
 def _maybe_bring_other_depths_to_depth(ds):
     if "depth" in ds.coords:
         for var in ds.data_vars:
-            for old_depth in ["depthu", "depthv", "deptht", "depthw"]:
+            for old_depth, target in [
+                ("depthu", "depth_center"),
+                ("depthv", "depth_center"),
+                ("deptht", "depth_center"),
+                ("depthw", "depth"),
+            ]:
                 if old_depth in ds[var].dims:
-                    ds[var] = ds[var].assign_coords(**{old_depth: ds["depth"].values}).rename({old_depth: "depth"})
+                    ds[var] = ds[var].rename({old_depth: target})
     return ds
 
 
