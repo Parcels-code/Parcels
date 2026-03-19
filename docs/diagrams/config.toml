@@ -1,0 +1,14 @@
+# Configuration file for diagram generation using Kroki
+# Each [[diagram]] entry represents a diagram to be generated
+
+# Example Excalidraw diagram configuration
+# [[diagram]]
+# file_src = "src/example.excalidraw"
+# output_name = "example"
+# format = "svg"
+
+# Add your diagram configurations below
+[[diagram]]
+file_src = "src/indexing-parcels.excalidraw"
+output_name = "indexing-parcels"
+format = "svg"

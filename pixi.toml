@@ -1,7 +1,7 @@
 [workspace]
 name = "Parcels"
 preview = ["pixi-build"]
-channels = ["conda-forge"]
+channels = ["conda-forge", "https://prefix.dev/github-releases"]
 platforms = ["win-64", "linux-64", "osx-64", "osx-arm64"]
 requires-pixi = ">=0.63.0"
 
@@ -117,11 +117,24 @@ sphinx-autobuild = "*"
 sphinxcontrib-mermaid = "*"
 sphinx-design = "*"
 sphinx-autoapi = "*"
+pydantic = "*"
+kroki-cli = { version = "*", channel = "https://prefix.dev/github-releases" }
 
 [feature.docs.tasks]
-docs = { cmd = "sphinx-build docs docs/_build", description = "Build the documentation." }
-docs-watch = { cmd = "sphinx-autobuild docs docs/_build", description = "Build and auto-rebuild the documentation on changes." }
-docs-linkcheck = { cmd = "sphinx-build -b linkcheck docs/ docs/_build/linkcheck", description = "Verify all links in documentation don't 404." }
+docs = { cmd = "sphinx-build docs docs/_build", depends-on = [
+  'docs-diagrams',
+], description = "Build the documentation." }
+docs-watch = { cmd = "sphinx-autobuild docs docs/_build", depends-on = [
+  'docs-diagrams',
+], description = "Build and auto-rebuild the documentation on changes." }
+docs-linkcheck = { cmd = "sphinx-build -b linkcheck docs/ docs/_build/linkcheck", depends-on = [
+  'docs-diagrams',
+], description = "Verify all links in documentation don't 404." }
+docs-diagrams = { cmd = "python docs/diagrams/main.py", description = "Build diagrams using Kroki.", inputs = [
+  "docs/diagrams/src/*",
+], outputs = [
+  "docs/diagrams/build/*",
+] }
 
 [feature.pre-commit.dependencies]
 pre_commit = "*"
