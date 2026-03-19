@@ -51,8 +51,6 @@ class ParticleSet:
         Optional interval on which to repeat the release of the ParticleSet. Either timedelta object, or float in seconds.
     trajectory_ids :
         Optional list of "trajectory" values (integers) for the particle IDs
-    partition_function :
-        Function to use for partitioning particles over processors. Default is to use kMeans
 
         Other Variables can be initialised using further arguments (e.g. v=... for a Variable named 'v')
     """
@@ -106,11 +104,8 @@ class ParticleSet:
             _warn_particle_times_outside_fieldset_time_bounds(time, fieldset.time_interval)
 
         for kwvar in kwargs:
-            if kwvar not in ["partition_function"]:
-                kwargs[kwvar] = np.array(kwargs[kwvar]).flatten()
-                assert lon.size == kwargs[kwvar].size, (
-                    f"{kwvar} and positions (lon, lat, z) don't have the same lengths."
-                )
+            kwargs[kwvar] = np.array(kwargs[kwvar]).flatten()
+            assert lon.size == kwargs[kwvar].size, f"{kwvar} and positions (lon, lat, z) don't have the same lengths."
 
         self._data = create_particle_data(
             pclass=pclass,
