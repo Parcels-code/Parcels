@@ -27,7 +27,7 @@ holoviews = ">=1.22.0" # https://github.com/prefix-dev/rattler-build/issues/2326
 uxarray = ">=2025.3.0"
 dask = ">=2024.5.1"
 zarr = ">=2.15.0,!=2.18.0,<3"
-xgcm = { git = "https://github.com/veckoTheGecko/xgcm", rev = "import" } # TODO Switch to main when import improvements are merged
+xgcm = { git = "https://github.com/xgcm/xgcm", rev = "master" } # TODO: Switch to release version after release is cut
 cf_xarray = ">=0.8.6"
 cftime = ">=1.6.3"
 pooch = ">=1.8.0"
