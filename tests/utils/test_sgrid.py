@@ -1,4 +1,3 @@
-import difflib
 import itertools
 
 import numpy as np
@@ -354,24 +353,171 @@ def test_rename_dataset(ds):
 @pytest.mark.parametrize(
     ("metadata, expected"),
     [
-        (create_example_grid2dmetadata(with_vertical_dimensions=False, with_node_coordinates=False), ""),
-        (create_example_grid2dmetadata(with_vertical_dimensions=True, with_node_coordinates=True), ""),
-        (create_example_grid3dmetadata(with_node_coordinates=False), ""),
-        (create_example_grid3dmetadata(with_node_coordinates=True), ""),
+        (
+            create_example_grid2dmetadata(with_vertical_dimensions=False, with_node_coordinates=False),
+            """Grid2DMetadata
+  X-axis:  face='face_dimension1'  node='node_dimension1'  padding=low
+  Y-axis:  face='face_dimension2'  node='node_dimension2'  padding=low
+
+  Staggered grid layout (symbolic 3x3 nodes):
+
+    ↑ Y
+    |
+    n --u-- n --u-- n
+    |       |       |
+    v   ·   v   ·   v
+    |       |       |
+    n --u-- n --u-- n
+    |       |       |
+    v   ·   v   ·   v
+    |       |       |
+    n --u-- n --u-- n --→ X
+
+  n = node  (node_dimension1, node_dimension2)
+  u = x-face  (face_dimension1)
+  v = y-face  (face_dimension2)
+  · = cell centre
+
+  Axis padding:
+
+  face_dimension1:node_dimension1 (padding:low)
+    ─────●─────●─────●─────●─────●
+      1  1  2  2  3  3  4  4  5  5
+
+  face_dimension2:node_dimension2 (padding:low)
+    ─────●─────●─────●─────●─────●
+      1  1  2  2  3  3  4  4  5  5""",
+        ),
+        (
+            create_example_grid2dmetadata(with_vertical_dimensions=True, with_node_coordinates=True),
+            """Grid2DMetadata
+  X-axis:  face='face_dimension1'  node='node_dimension1'  padding=low
+  Y-axis:  face='face_dimension2'  node='node_dimension2'  padding=low
+  Z-axis:  face='vertical_dimensions_dim1'  node='vertical_dimensions_dim2'  padding=low
+  Coordinates: node_coordinates_var1, node_coordinates_var2
+
+  Staggered grid layout (symbolic 3x3 nodes):
+
+    ↑ Y                     ↑ Z
+    |                       |
+    n --u-- n --u-- n       w
+    |       |       |       |
+    v   ·   v   ·   v       ·
+    |       |       |       |
+    n --u-- n --u-- n       w
+    |       |       |       |
+    v   ·   v   ·   v       ·
+    |       |       |       |
+    n --u-- n --u-- n --→ X w
+
+  n = node  (node_dimension1, node_dimension2)
+  u = x-face  (face_dimension1)
+  v = y-face  (face_dimension2)
+  w = z-node  (vertical_dimensions_dim2)
+  · = cell centre
+
+  Axis padding:
+
+  face_dimension1:node_dimension1 (padding:low)
+    ─────●─────●─────●─────●─────●
+      1  1  2  2  3  3  4  4  5  5
+
+  face_dimension2:node_dimension2 (padding:low)
+    ─────●─────●─────●─────●─────●
+      1  1  2  2  3  3  4  4  5  5
+
+  vertical_dimensions_dim1:vertical_dimensions_dim2 (padding:low)
+    ─────●─────●─────●─────●─────●
+      1  1  2  2  3  3  4  4  5  5""",
+        ),
+        (
+            create_example_grid3dmetadata(with_node_coordinates=False),
+            """Grid3DMetadata
+  X-axis:  face='face_dimension1'  node='node_dimension1'  padding=low
+  Y-axis:  face='face_dimension2'  node='node_dimension2'  padding=low
+  Z-axis:  face='face_dimension3'  node='node_dimension3'  padding=low
+
+  Staggered grid layout (XY cross-section; Z-faces not shown):
+
+    ↑ Y
+    |
+    n --u-- n --u-- n
+    |       |       |
+    v   ·   v   ·   v
+    |       |       |
+    n --u-- n --u-- n
+    |       |       |
+    v   ·   v   ·   v
+    |       |       |
+    n --u-- n --u-- n --→ X
+
+  n = node  (node_dimension1, node_dimension2, node_dimension3)
+  u = x-face  (face_dimension1)
+  v = y-face  (face_dimension2)
+  w = z-face  (face_dimension3)  [not shown in cross-section]
+  · = cell centre
+
+  Axis padding:
+
+  face_dimension1:node_dimension1 (padding:low)
+    ─────●─────●─────●─────●─────●
+      1  1  2  2  3  3  4  4  5  5
+
+  face_dimension2:node_dimension2 (padding:low)
+    ─────●─────●─────●─────●─────●
+      1  1  2  2  3  3  4  4  5  5
+
+  face_dimension3:node_dimension3 (padding:low)
+    ─────●─────●─────●─────●─────●
+      1  1  2  2  3  3  4  4  5  5""",
+        ),
+        (
+            create_example_grid3dmetadata(with_node_coordinates=True),
+            """Grid3DMetadata
+  X-axis:  face='face_dimension1'  node='node_dimension1'  padding=low
+  Y-axis:  face='face_dimension2'  node='node_dimension2'  padding=low
+  Z-axis:  face='face_dimension3'  node='node_dimension3'  padding=low
+  Coordinates: node_coordinates_var1, node_coordinates_var2, node_coordinates_dim3
+
+  Staggered grid layout (XY cross-section; Z-faces not shown):
+
+    ↑ Y
+    |
+    n --u-- n --u-- n
+    |       |       |
+    v   ·   v   ·   v
+    |       |       |
+    n --u-- n --u-- n
+    |       |       |
+    v   ·   v   ·   v
+    |       |       |
+    n --u-- n --u-- n --→ X
+
+  n = node  (node_dimension1, node_dimension2, node_dimension3)
+  u = x-face  (face_dimension1)
+  v = y-face  (face_dimension2)
+  w = z-face  (face_dimension3)  [not shown in cross-section]
+  · = cell centre
+
+  Axis padding:
+
+  face_dimension1:node_dimension1 (padding:low)
+    ─────●─────●─────●─────●─────●
+      1  1  2  2  3  3  4  4  5  5
+
+  face_dimension2:node_dimension2 (padding:low)
+    ─────●─────●─────●─────●─────●
+      1  1  2  2  3  3  4  4  5  5
+
+  face_dimension3:node_dimension3 (padding:low)
+    ─────●─────●─────●─────●─────●
+      1  1  2  2  3  3  4  4  5  5""",
+        ),
     ],
 )
 def test_grid_str(metadata, expected):
     actual = str(metadata)
-    if actual != expected:
-        diff = "\n".join(
-            difflib.unified_diff(
-                expected.splitlines(keepends=True),
-                actual.splitlines(keepends=True),
-                fromfile="expected",
-                tofile="actual",
-            )
-        )
-        pytest.fail(f"grid_text_repr output differs:\n{diff}")
+    assert actual == expected
 
 
 @pytest.mark.parametrize(
