@@ -394,7 +394,7 @@ def get_xgcm_position_from_dim_name(axes: ptyping.XgcmAxes, dim: str) -> ptyping
         var_to_position = {var: position for position, var in axis.coords.items()}
 
         if dim in var_to_position:
-            return var_to_position[dim]
+            return var_to_position[dim]  # type: ignore[invalid-return-type] # due to mistyping in xgcm
     return None
 
 

@@ -13,6 +13,7 @@ be determined before they pass it to the FieldSet constructor.
 from __future__ import annotations
 
 import typing
+from typing import cast
 
 import numpy as np
 import xarray as xr
@@ -565,7 +566,7 @@ def _detect_vertical_coordinates(
     ValueError
         If vertical coordinates cannot be detected.
     """
-    ds_dims = set(ds.dims)
+    ds_dims = cast(set[str], set(ds.dims))
 
     # Strategy 1: Use known mappings if provided and dimensions exist
     if known_mappings is not None:
