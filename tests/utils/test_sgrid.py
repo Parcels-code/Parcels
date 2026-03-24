@@ -521,42 +521,43 @@ def test_grid_str(metadata, expected):
 
 
 @pytest.mark.parametrize(
-    ("face_node_padding", "expected"),
+    ("face_node_padding", "expected_lines"),
     [
         (
             sgrid.DimDimPadding("face", "node", sgrid.Padding.LOW),
             [
-                "  face:node (padding:low)",
-                "    ─────●─────●─────●─────●─────●",
-                "      1  1  2  2  3  3  4  4  5  5",
+                "face:node (padding:low)",
+                "  ─────●─────●─────●─────●─────●",
+                "    1  1  2  2  3  3  4  4  5  5",
             ],
         ),
         (
             sgrid.DimDimPadding("face", "node", sgrid.Padding.HIGH),
             [
-                "  face:node (padding:high)",
-                "    ●─────●─────●─────●─────●─────",
-                "    1  1  2  2  3  3  4  4  5  5",
+                "face:node (padding:high)",
+                "  ●─────●─────●─────●─────●─────",
+                "  1  1  2  2  3  3  4  4  5  5",
             ],
         ),
         (
             sgrid.DimDimPadding("face", "node", sgrid.Padding.BOTH),
             [
-                "  face:node (padding:both)",
-                "    ─────●─────●─────●─────●─────●─────",
-                "      1  1  2  2  3  3  4  4  5  5  6",
+                "face:node (padding:both)",
+                "  ─────●─────●─────●─────●─────●─────",
+                "    1  1  2  2  3  3  4  4  5  5  6",
             ],
         ),
         (
             sgrid.DimDimPadding("face", "node", sgrid.Padding.NONE),
             [
-                "  face:node (padding:none)",
-                "    ●─────●─────●─────●─────●",
-                "    1  1  2  2  3  3  4  4  5",
+                "face:node (padding:none)",
+                "  ●─────●─────●─────●─────●",
+                "  1  1  2  2  3  3  4  4  5",
             ],
         ),
     ],
 )
-def test_face_node_padding_to_diagram(face_node_padding: sgrid.DimDimPadding, expected: str):
+def test_face_node_padding_to_diagram(face_node_padding: sgrid.DimDimPadding, expected_lines: list[str]):
     actual = face_node_padding.to_diagram()
-    assert actual == expected
+    lines = actual.split("\n")
+    assert lines == expected_lines

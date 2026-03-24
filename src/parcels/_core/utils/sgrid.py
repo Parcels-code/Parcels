@@ -26,6 +26,10 @@ RE_DIM_DIM_PADDING = r"(\w+):(\w+)\s*\(padding:\s*(\w+)\)"
 Dim = str
 
 
+def indent_lines(lst: list[str], indent: int = 2):
+    return [indent * " " + line for line in lst]
+
+
 class Padding(enum.Enum):
     NONE = "none"
     LOW = "low"
@@ -340,7 +344,7 @@ class DimDimPadding:
         return cls(dim1, dim2, padding)
 
     def to_diagram(self) -> str:
-        return _face_node_padding_to_text(self)
+        return "\n".join(_face_node_padding_to_text(self))
 
 
 def dump_mappings(parts: Iterable[DimDimPadding | Dim]) -> str:
@@ -561,9 +565,9 @@ def _face_node_padding_to_text(obj: DimDimPadding) -> list[str]:
             label += str(face_count).center(FACE_WIDTH)
 
     return [
-        f"  {obj.dim1}:{obj.dim2} (padding:{padding.value})",
-        f"    {bar_rendered}",
-        f"    {label.rstrip()}",
+        f"{obj.dim1}:{obj.dim2} (padding:{padding.value})",
+        f"  {bar_rendered}",
+        f"  {label.rstrip()}",
     ]
 
 
@@ -631,12 +635,12 @@ def _grid2d_to_ascii(grid: Grid2DMetadata) -> str:
             "  · = cell centre",
         ]
     lines += ["", "  Axis padding:", ""]
-    lines += _face_node_padding_to_text(fd[0])
+    lines += indent_lines(_face_node_padding_to_text(fd[0]))
     lines += [""]
-    lines += _face_node_padding_to_text(fd[1])
+    lines += indent_lines(_face_node_padding_to_text(fd[1]))
     if grid.vertical_dimensions:
         lines += [""]
-        lines += _face_node_padding_to_text(grid.vertical_dimensions[0])
+        lines += indent_lines(_face_node_padding_to_text(grid.vertical_dimensions[0]))
     return "\n".join(lines)
 
 
@@ -674,11 +678,11 @@ def _grid3d_to_ascii(grid: Grid3DMetadata) -> str:
         "  · = cell centre",
     ]
     lines += ["", "  Axis padding:", ""]
-    lines += _face_node_padding_to_text(vd[0])
+    lines += indent_lines(_face_node_padding_to_text(vd[0]))
     lines += [""]
-    lines += _face_node_padding_to_text(vd[1])
+    lines += indent_lines(_face_node_padding_to_text(vd[1]))
     lines += [""]
-    lines += _face_node_padding_to_text(vd[2])
+    lines += indent_lines(_face_node_padding_to_text(vd[2]))
     return "\n".join(lines)
 
 
