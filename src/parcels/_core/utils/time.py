@@ -58,7 +58,7 @@ class TimeInterval:
     def __contains__(self, item: T) -> bool:
         return self.left <= item <= self.right
 
-    def is_all_time_in_interval(self, time: float):
+    def is_all_time_in_interval(self, time: float | np.ndarray):
         item = np.atleast_1d(time)
         return (0 <= item).all() and (item <= self.time_length_as_flt).all()
 

@@ -206,7 +206,7 @@ def from_xarray_dataset_dict(d) -> xr.Dataset:
 def _fill_with_dummy_data(d: dict[str, dict]):
     assert isinstance(d, dict)
     if "dtype" in d:
-        d["data"] = np.zeros(d["shape"], dtype=d["dtype"])
+        d["data"] = np.zeros(d["shape"], dtype=d["dtype"])  # type:ignore[no-matching-overload] # loading from unsanitized data
         del d["dtype"]
         del d["shape"]
 

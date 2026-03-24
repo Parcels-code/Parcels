@@ -161,4 +161,5 @@ known-first-party = ["parcels"]
 include = ["./src/"]
 exclude = [
   "./src/parcels/interpolators/", # ignore for now
+  "./src/parcels/kernels/_advection.py",
 ]
