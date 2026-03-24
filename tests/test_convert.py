@@ -67,6 +67,15 @@ def test_convert_mitgcm_offsets():
     assert offsets["Z"] == 0
 
 
+def test_convert_mitgcm_netcdf_circulation_model_to_fieldset():
+    """Regression for #2484: C-grid dims Xp1/Yp1 must appear on the xgcm axes after convert."""
+    ds = datasets_circulation_models["ds_MITgcm_netcdf"]
+    ds = ds.rename({"X": "XG", "Y": "YG", "Z": "depth", "T": "time"})
+    coords = ds[["XG", "YG", "depth", "time"]]
+    ds_fset = convert.mitgcm_to_sgrid(fields={"U": ds["U"], "V": ds["V"]}, coords=coords)
+    FieldSet.from_sgrid_conventions(ds_fset)
+
+
 def test_convert_croco_offsets():
     ds = datasets_circulation_models["ds_CROCO_idealized"]
     coords = ds[["x_rho", "y_rho", "s_w", "time"]]

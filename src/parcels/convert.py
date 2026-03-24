@@ -58,6 +58,7 @@ _MITGCM_AXIS_VARNAMES = {
     "Zu": "Z",
     "Zl": "Z",
     "Zp1": "Z",
+    "depth": "Z",
     "time": "T",
 }
 
@@ -374,7 +375,14 @@ def mitgcm_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.
             field_da = field_da.rename(name)
         fields[name] = field_da
 
-    coords = _pick_expected_coords(coords, _MITGCM_EXPECTED_COORDS)
+    # MITgcm tracer vertical coord is usually Zl; some datasets only provide cell-center Z (often
+    # user-renamed to `depth`). Accept either so netCDF-style grids match the tutorial workflow.
+    mitgcm_vertical = next((n for n in ("Zl", "depth") if n in coords), None)
+    if mitgcm_vertical is None:
+        raise ValueError(
+            "Expected coordinate 'Zl' or 'depth' (MITgcm cell-center vertical) in provided coords dataset."
+        )
+    coords = _pick_expected_coords(coords, ["XG", "YG", mitgcm_vertical, "time"])
 
     ds = xr.merge(list(fields.values()) + [coords])
     ds.attrs.clear()  # Clear global attributes from the merging
@@ -382,11 +390,31 @@ def mitgcm_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.
     ds = _maybe_rename_variables(ds, _MITGCM_VARNAMES_MAPPING)
     ds = _set_axis_attrs(ds, _MITGCM_AXIS_VARNAMES)
     ds = _maybe_swap_depth_direction(ds)
+    ds = _maybe_convert_time_from_float_to_timedelta(ds)
 
     if "grid" in ds.cf.cf_roles:
         raise ValueError(
             "Dataset already has a 'grid' variable (according to cf_roles). Didn't expect there to be grid metadata on copernicusmarine datasets - please open an issue with more information about your dataset."
         )
+
+    # MITgcm netCDF often uses Xp1 / Yp1 for C-grid staggered dims. After renaming XG→lon and
+    # YG→lat, parse_sgrid must register those dims on the xgcm axes (see FieldSet.from_sgrid).
+    # Older metadata used XC/YC as face centers, but those dim names are absent in typical
+    # netCDF output, so only `lon` was wired to the X axis and Xp1 stayed unknown (#2484).
+    #
+    # Use LOW padding so xgcm assigns `lon`/`lat` to the non-center side (required by
+    # XGrid.assert_valid_lat_lon); with HIGH+("lon","Xp1"), `lon` became `center` and broke
+    # ingestion. Here `Xp1`/`Yp1` are the staggered (center) dims and `lon`/`lat` the nodes.
+    x_face = (
+        sgrid.DimDimPadding("Xp1", "lon", sgrid.Padding.LOW)
+        if "Xp1" in ds.dims
+        else sgrid.DimDimPadding("XC", "lon", sgrid.Padding.HIGH)
+    )
+    y_face = (
+        sgrid.DimDimPadding("Yp1", "lat", sgrid.Padding.LOW)
+        if "Yp1" in ds.dims
+        else sgrid.DimDimPadding("YC", "lat", sgrid.Padding.HIGH)
+    )
 
     ds["grid"] = xr.DataArray(
         0,
@@ -395,10 +423,7 @@ def mitgcm_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.
             topology_dimension=2,
             node_dimensions=("lon", "lat"),
             node_coordinates=("lon", "lat"),
-            face_dimensions=(
-                sgrid.DimDimPadding("XC", "lon", sgrid.Padding.HIGH),
-                sgrid.DimDimPadding("YC", "lat", sgrid.Padding.HIGH),
-            ),
+            face_dimensions=(x_face, y_face),
             vertical_dimensions=(sgrid.DimDimPadding("depth", "depth", sgrid.Padding.HIGH),),
         ).to_attrs(),
     )
