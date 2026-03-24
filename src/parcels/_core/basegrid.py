@@ -113,7 +113,7 @@ class BaseGrid(ABC):
         indices = np.array([axis_indices[axis] for axis in self.axes], dtype=int)
         return _ravel(dims, indices)
 
-    def unravel_index(self, ei: int) -> dict[str, int]:
+    def unravel_index(self, ei: int) -> dict[str, np.ndarray]:
         """
         Convert a single encoded index (ei) back to a dictionary of axis indices.
 
