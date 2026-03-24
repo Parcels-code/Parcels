@@ -339,6 +339,9 @@ class DimDimPadding:
         padding = Padding(match.group(3).lower())
         return cls(dim1, dim2, padding)
 
+    def to_diagram(self) -> str:
+        return _face_node_padding_to_text(self)
+
 
 def dump_mappings(parts: Iterable[DimDimPadding | Dim]) -> str:
     """Takes in a list of edge-node-padding tuples and serializes them into a string
@@ -536,52 +539,31 @@ def _face_node_padding_to_text(obj: DimDimPadding) -> list[str]:
     FACE_WIDTH = 5  # dashes per face segment
     padding = obj.padding
 
-    layouts = {
+    bars = {
         Padding.NONE: "x-x-x-x-x",
         Padding.LOW: "-x-x-x-x-x",
         Padding.HIGH: "x-x-x-x-x-",
         Padding.BOTH: "-x-x-x-x-x-",
     }
-
-    # Build an ordered sequence of ('n', index) / ('f', index) elements
-    seq_str = layouts[obj.padding]
-    seq: list[tuple[Literal["n", "f"], int]] = []
+    bar = bars[obj.padding]
     node_count = 0
     face_count = 0
-    for char in seq_str:
+    bar_rendered = ""
+    label = ""
+    for char in bar:
         if char == "x":
             node_count += 1
-            seq.append(("n", node_count))
+            bar_rendered += "●"
+            label += str(node_count)
         elif char == "-":
             face_count += 1
-            seq.append(("f", face_count))
-
-    bar_parts: list[str] = []
-    label_positions: dict[int, str] = {}
-    pos = 0
-    for typ, idx in seq:
-        if typ == "n":
-            bar_parts.append("●")
-            label_positions[pos] = str(idx)
-            pos += 1
-        else:
-            bar_parts.append("─" * FACE_WIDTH)
-            label_positions[pos + FACE_WIDTH // 2] = str(idx)
-            pos += FACE_WIDTH
-
-    bar = "".join(bar_parts)
-
-    max_pos = max(p + len(lbl) for p, lbl in label_positions.items())
-    label_chars = [" "] * max_pos
-    for p, lbl in label_positions.items():
-        for i, c in enumerate(lbl):
-            label_chars[p + i] = c
-    label = "".join(label_chars).rstrip()
+            bar_rendered += "─" * FACE_WIDTH
+            label += str(face_count).center(FACE_WIDTH)
 
     return [
         f"  {obj.dim1}:{obj.dim2} (padding:{padding.value})",
-        f"    {bar}",
-        f"    {label}",
+        f"    {bar_rendered}",
+        f"    {label.rstrip()}",
     ]
 
 

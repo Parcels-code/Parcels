@@ -557,6 +557,6 @@ def test_grid_str(metadata, expected):
         ),
     ],
 )
-def test_face_node_padding_ascii(face_node_padding: sgrid.DimDimPadding, expected: str):
-    actual = sgrid._face_node_padding_to_text(face_node_padding)
+def test_face_node_padding_to_diagram(face_node_padding: sgrid.DimDimPadding, expected: str):
+    actual = face_node_padding.to_diagram()
     assert actual == expected
