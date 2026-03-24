@@ -372,3 +372,45 @@ def test_grid_text_repr(metadata, expected):
             )
         )
         pytest.fail(f"grid_text_repr output differs:\n{diff}")
+
+
+@pytest.mark.parametrize(
+    ("face_node_padding", "expected"),
+    [
+        (
+            sgrid.DimDimPadding("face", "node", sgrid.Padding.LOW),
+            [
+                "  face:node (padding:low)",
+                "    ─────●─────●─────●─────●─────●",
+                "      1  1  2  2  3  3  4  4  5  5",
+            ],
+        ),
+        (
+            sgrid.DimDimPadding("face", "node", sgrid.Padding.HIGH),
+            [
+                "  face:node (padding:high)",
+                "    ●─────●─────●─────●─────●─────",
+                "    1  1  2  2  3  3  4  4  5  5",
+            ],
+        ),
+        (
+            sgrid.DimDimPadding("face", "node", sgrid.Padding.BOTH),
+            [
+                "  face:node (padding:both)",
+                "    ─────●─────●─────●─────●─────●─────",
+                "      1  1  2  2  3  3  4  4  5  5  6",
+            ],
+        ),
+        (
+            sgrid.DimDimPadding("face", "node", sgrid.Padding.NONE),
+            [
+                "  face:node (padding:none)",
+                "    ●─────●─────●─────●─────●",
+                "    1  1  2  2  3  3  4  4  5",
+            ],
+        ),
+    ],
+)
+def test_face_node_padding_ascii(face_node_padding: sgrid.DimDimPadding, expected: str):
+    actual = sgrid._face_node_padding_ascii(face_node_padding)
+    assert actual == expected

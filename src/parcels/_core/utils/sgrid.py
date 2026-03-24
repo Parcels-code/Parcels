@@ -542,6 +542,80 @@ def grid_plot(grid: Grid2DMetadata | Grid3DMetadata):
     return _grid3d_plot(grid)
 
 
+def _face_node_padding_ascii(obj: DimDimPadding) -> list[str]:
+    """Return ASCII diagram lines showing a face-node padding relationship.
+
+    Produces a symbolic 5-node diagram like the image below, matching the
+    four padding modes::
+
+        face:node (padding:none)
+            ●─────●─────●─────●─────●
+            1  1  2  2  3  3  4  4  5
+
+        face:node (padding:low)
+            ─────●─────●─────●─────●─────●
+              1  1  2  2  3  3  4  4  5  5
+
+        face:node (padding:high)
+            ●─────●─────●─────●─────●─────
+            1  1  2  2  3  3  4  4  5  5
+
+        face:node (padding:both)
+            ─────●─────●─────●─────●─────●─────
+              1  1  2  2  3  3  4  4  5  5  6
+    """
+    FACE_WIDTH = 5  # dashes per face segment
+    padding = obj.padding
+
+    layouts = {
+        Padding.NONE: "x-x-x-x-x",
+        Padding.LOW: "-x-x-x-x-x",
+        Padding.HIGH: "x-x-x-x-x-",
+        Padding.BOTH: "-x-x-x-x-x-",
+    }
+
+    # Build an ordered sequence of ('n', index) / ('f', index) elements
+    seq_str = layouts[obj.padding]
+    seq: list[tuple[Literal["n", "f"], int]] = []
+    node_count = 0
+    face_count = 0
+    for char in seq_str:
+        if char == "x":
+            node_count += 1
+            seq.append(("n", node_count))
+        elif char == "-":
+            face_count += 1
+            seq.append(("f", face_count))
+
+    bar_parts: list[str] = []
+    label_positions: dict[int, str] = {}
+    pos = 0
+    for typ, idx in seq:
+        if typ == "n":
+            bar_parts.append("●")
+            label_positions[pos] = str(idx)
+            pos += 1
+        else:
+            bar_parts.append("─" * FACE_WIDTH)
+            label_positions[pos + FACE_WIDTH // 2] = str(idx)
+            pos += FACE_WIDTH
+
+    bar = "".join(bar_parts)
+
+    max_pos = max(p + len(lbl) for p, lbl in label_positions.items())
+    label_chars = [" "] * max_pos
+    for p, lbl in label_positions.items():
+        for i, c in enumerate(lbl):
+            label_chars[p + i] = c
+    label = "".join(label_chars).rstrip()
+
+    return [
+        f"  {obj.dim1}:{obj.dim2} (padding:{padding.value})",
+        f"    {bar}",
+        f"    {label}",
+    ]
+
+
 def _grid2d_to_ascii(grid: Grid2DMetadata) -> str:
     fd = grid.face_dimensions
     nd = grid.node_dimensions
@@ -605,6 +679,13 @@ def _grid2d_to_ascii(grid: Grid2DMetadata) -> str:
             f"  v = y-face  ({fd[1].dim1})",
             "  · = cell centre",
         ]
+    lines += ["", "  Axis padding:", ""]
+    lines += _face_node_padding_ascii(fd[0])
+    lines += [""]
+    lines += _face_node_padding_ascii(fd[1])
+    if grid.vertical_dimensions:
+        lines += [""]
+        lines += _face_node_padding_ascii(grid.vertical_dimensions[0])
     return "\n".join(lines)
 
 
@@ -641,6 +722,12 @@ def _grid3d_to_ascii(grid: Grid3DMetadata) -> str:
         f"  w = z-face  ({vd[2].dim1})  [not shown in cross-section]",
         "  · = cell centre",
     ]
+    lines += ["", "  Axis padding:", ""]
+    lines += _face_node_padding_ascii(vd[0])
+    lines += [""]
+    lines += _face_node_padding_ascii(vd[1])
+    lines += [""]
+    lines += _face_node_padding_ascii(vd[2])
     return "\n".join(lines)
 
 
