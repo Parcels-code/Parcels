@@ -143,6 +143,9 @@ class Grid2DMetadata(AttrsSerializable):
     def __repr__(self) -> str:
         return repr_from_dunder_dict(self)
 
+    def __str__(self) -> str:
+        return _grid2d_to_ascii(self)
+
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, Grid2DMetadata):
             return NotImplemented
@@ -255,6 +258,9 @@ class Grid3DMetadata(AttrsSerializable):
 
     def __repr__(self) -> str:
         return repr_from_dunder_dict(self)
+
+    def __str__(self) -> str:
+        return _grid3d_to_ascii(self)
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, Grid3DMetadata):
@@ -505,44 +511,7 @@ def get_unique_names(grid: Grid2DMetadata | Grid3DMetadata) -> set[str]:
     return dims
 
 
-def to_ascii(grid: Grid2DMetadata | Grid3DMetadata) -> str:
-    """Return an ASCII diagram of the staggered grid structure.
-
-    Parameters
-    ----------
-    grid : Grid2DMetadata | Grid3DMetadata
-
-    Returns
-    -------
-    str
-    """
-    if isinstance(grid, Grid2DMetadata):
-        return _grid2d_to_ascii(grid)
-    return _grid3d_to_ascii(grid)
-
-
-def grid_plot(grid: Grid2DMetadata | Grid3DMetadata):
-    """Return a matplotlib Figure showing the staggered grid point positions.
-
-    For 2D grids, a single panel is produced.  For 3D grids, three panels
-    show the XY, XZ, and YZ cross-sections.
-
-    Requires ``matplotlib`` to be installed.
-
-    Parameters
-    ----------
-    grid : Grid2DMetadata | Grid3DMetadata
-
-    Returns
-    -------
-    matplotlib.figure.Figure
-    """
-    if isinstance(grid, Grid2DMetadata):
-        return _grid2d_plot(grid)
-    return _grid3d_plot(grid)
-
-
-def _face_node_padding_ascii(obj: DimDimPadding) -> list[str]:
+def _face_node_padding_to_text(obj: DimDimPadding) -> list[str]:
     """Return ASCII diagram lines showing a face-node padding relationship.
 
     Produces a symbolic 5-node diagram like the image below, matching the
@@ -680,12 +649,12 @@ def _grid2d_to_ascii(grid: Grid2DMetadata) -> str:
             "  · = cell centre",
         ]
     lines += ["", "  Axis padding:", ""]
-    lines += _face_node_padding_ascii(fd[0])
+    lines += _face_node_padding_to_text(fd[0])
     lines += [""]
-    lines += _face_node_padding_ascii(fd[1])
+    lines += _face_node_padding_to_text(fd[1])
     if grid.vertical_dimensions:
         lines += [""]
-        lines += _face_node_padding_ascii(grid.vertical_dimensions[0])
+        lines += _face_node_padding_to_text(grid.vertical_dimensions[0])
     return "\n".join(lines)
 
 
@@ -723,149 +692,12 @@ def _grid3d_to_ascii(grid: Grid3DMetadata) -> str:
         "  · = cell centre",
     ]
     lines += ["", "  Axis padding:", ""]
-    lines += _face_node_padding_ascii(vd[0])
+    lines += _face_node_padding_to_text(vd[0])
     lines += [""]
-    lines += _face_node_padding_ascii(vd[1])
+    lines += _face_node_padding_to_text(vd[1])
     lines += [""]
-    lines += _face_node_padding_ascii(vd[2])
+    lines += _face_node_padding_to_text(vd[2])
     return "\n".join(lines)
-
-
-def _face_positions(padding: Padding, n_nodes: int):
-    import numpy as np
-
-    if padding in (Padding.LOW, Padding.HIGH):
-        return np.arange(n_nodes - 1) + 0.5
-    elif padding == Padding.BOTH:
-        return np.arange(1, n_nodes - 1, dtype=float)
-    else:  # Padding.NONE / outer
-        return np.arange(n_nodes, dtype=float)
-
-
-def _grid2d_plot(grid: Grid2DMetadata):
-    import matplotlib.pyplot as plt
-    import numpy as np
-
-    fd = grid.face_dimensions
-    nd = grid.node_dimensions
-    N = 4  # illustrative node count per axis
-
-    node_x = np.arange(N, dtype=float)
-    node_y = np.arange(N, dtype=float)
-    xface_x = _face_positions(fd[0].padding, N)
-    yface_y = _face_positions(fd[1].padding, N)
-
-    fig, ax = plt.subplots(figsize=(6, 6))
-    ax.set_aspect("equal")
-
-    for x in node_x:
-        ax.axvline(x, color="lightgray", lw=0.7, zorder=0)
-    for y in node_y:
-        ax.axhline(y, color="lightgray", lw=0.7, zorder=0)
-
-    nx, ny = np.meshgrid(node_x, node_y)
-    ax.scatter(nx.ravel(), ny.ravel(), s=70, color="steelblue", zorder=3, label=f"node ({nd[0]}, {nd[1]})", marker="o")
-
-    fxx, fxy = np.meshgrid(xface_x, node_y)
-    ax.scatter(fxx.ravel(), fxy.ravel(), s=70, color="firebrick", zorder=3, label=f"x-face ({fd[0].dim1})", marker=">")
-
-    fyx, fyy = np.meshgrid(node_x, yface_y)
-    ax.scatter(
-        fyx.ravel(), fyy.ravel(), s=70, color="forestgreen", zorder=3, label=f"y-face ({fd[1].dim1})", marker="^"
-    )
-
-    ax.set_xlabel(nd[0])
-    ax.set_ylabel(nd[1])
-    ax.set_title(
-        f"Grid2DMetadata — staggered positions\nX padding: {fd[0].padding.value}  |  Y padding: {fd[1].padding.value}"
-    )
-    ax.legend(loc="upper right", fontsize=8)
-    fig.tight_layout()
-    return fig
-
-
-def _grid3d_plot(grid: Grid3DMetadata):
-    import matplotlib.pyplot as plt
-    import numpy as np
-
-    vd = grid.volume_dimensions
-    nd = grid.node_dimensions
-    N = 4
-
-    node = [np.arange(N, dtype=float) for _ in range(3)]
-    face = [_face_positions(vd[i].padding, N) for i in range(3)]
-
-    fig, axes = plt.subplots(1, 3, figsize=(15, 5))
-
-    panels = [
-        (
-            "XY",
-            axes[0],
-            node[0],
-            node[1],
-            face[0],
-            face[1],
-            nd[0],
-            nd[1],
-            vd[0].dim1,
-            vd[1].dim1,
-            vd[0].padding,
-            vd[1].padding,
-        ),
-        (
-            "XZ",
-            axes[1],
-            node[0],
-            node[2],
-            face[0],
-            face[2],
-            nd[0],
-            nd[2],
-            vd[0].dim1,
-            vd[2].dim1,
-            vd[0].padding,
-            vd[2].padding,
-        ),
-        (
-            "YZ",
-            axes[2],
-            node[1],
-            node[2],
-            face[1],
-            face[2],
-            nd[1],
-            nd[2],
-            vd[1].dim1,
-            vd[2].dim1,
-            vd[1].padding,
-            vd[2].padding,
-        ),
-    ]
-
-    for label, ax, n_h, n_v, f_h, f_v, dim_h, dim_v, face_h, face_v, pad_h, pad_v in panels:
-        for x in n_h:
-            ax.axvline(x, color="lightgray", lw=0.7, zorder=0)
-        for y in n_v:
-            ax.axhline(y, color="lightgray", lw=0.7, zorder=0)
-
-        nh, nv = np.meshgrid(n_h, n_v)
-        ax.scatter(nh.ravel(), nv.ravel(), s=50, color="steelblue", zorder=3, marker="o", label="node")
-
-        fhh, fhv = np.meshgrid(f_h, n_v)
-        ax.scatter(fhh.ravel(), fhv.ravel(), s=50, color="firebrick", zorder=3, marker=">", label=f"{face_h}-face")
-
-        fvh, fvv = np.meshgrid(n_h, f_v)
-        ax.scatter(fvh.ravel(), fvv.ravel(), s=50, color="forestgreen", zorder=3, marker="^", label=f"{face_v}-face")
-
-        ax.set_xlabel(dim_h)
-        ax.set_ylabel(dim_v)
-        ax.set_title(f"{label} cross-section\npad: {pad_h.value} / {pad_v.value}")
-        ax.set_aspect("equal")
-        ax.legend(fontsize=7)
-
-    fig.suptitle("Grid3DMetadata — staggered positions", fontsize=12)
-    fig.tight_layout()
-    return fig
 
 
 def _attach_sgrid_metadata(ds, grid: Grid2DMetadata | Grid3DMetadata):

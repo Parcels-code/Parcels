@@ -360,8 +360,8 @@ def test_rename_dataset(ds):
         (create_example_grid3dmetadata(with_node_coordinates=True), ""),
     ],
 )
-def test_grid_text_repr(metadata, expected):
-    actual = sgrid.to_ascii(metadata)
+def test_grid_str(metadata, expected):
+    actual = str(metadata)
     if actual != expected:
         diff = "\n".join(
             difflib.unified_diff(
@@ -412,5 +412,5 @@ def test_grid_text_repr(metadata, expected):
     ],
 )
 def test_face_node_padding_ascii(face_node_padding: sgrid.DimDimPadding, expected: str):
-    actual = sgrid._face_node_padding_ascii(face_node_padding)
+    actual = sgrid._face_node_padding_to_text(face_node_padding)
     assert actual == expected
