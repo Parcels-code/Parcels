@@ -26,7 +26,7 @@ RE_DIM_DIM_PADDING = r"(\w+):(\w+)\s*\(padding:\s*(\w+)\)"
 Dim = str
 
 
-def indent_lines(lst: list[str], indent: int = 2):
+def _indent_lines(lst: list[str], indent: int = 2):
     return [indent * " " + line for line in lst]
 
 
@@ -635,12 +635,12 @@ def _grid2d_to_ascii(grid: Grid2DMetadata) -> str:
             "  · = cell centre",
         ]
     lines += ["", "  Axis padding:", ""]
-    lines += indent_lines(_face_node_padding_to_text(fd[0]))
+    lines += _indent_lines(_face_node_padding_to_text(fd[0]))
     lines += [""]
-    lines += indent_lines(_face_node_padding_to_text(fd[1]))
+    lines += _indent_lines(_face_node_padding_to_text(fd[1]))
     if grid.vertical_dimensions:
         lines += [""]
-        lines += indent_lines(_face_node_padding_to_text(grid.vertical_dimensions[0]))
+        lines += _indent_lines(_face_node_padding_to_text(grid.vertical_dimensions[0]))
     return "\n".join(lines)
 
 
@@ -678,11 +678,11 @@ def _grid3d_to_ascii(grid: Grid3DMetadata) -> str:
         "  · = cell centre",
     ]
     lines += ["", "  Axis padding:", ""]
-    lines += indent_lines(_face_node_padding_to_text(vd[0]))
+    lines += _indent_lines(_face_node_padding_to_text(vd[0]))
     lines += [""]
-    lines += indent_lines(_face_node_padding_to_text(vd[1]))
+    lines += _indent_lines(_face_node_padding_to_text(vd[1]))
     lines += [""]
-    lines += indent_lines(_face_node_padding_to_text(vd[2]))
+    lines += _indent_lines(_face_node_padding_to_text(vd[2]))
     return "\n".join(lines)
 
 
