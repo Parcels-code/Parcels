@@ -1,3 +1,4 @@
+import difflib
 import itertools
 
 import numpy as np
@@ -348,3 +349,26 @@ def test_rename_dataset(ds):
     assert "XC_updated" in ds_new.dims
     assert "XC" not in ds_new.dims
     assert "XC_updated" == grid_new.face_dimensions[0].dim1
+
+
+@pytest.mark.parametrize(
+    ("metadata, expected"),
+    [
+        (create_example_grid2dmetadata(with_vertical_dimensions=False, with_node_coordinates=False), ""),
+        (create_example_grid2dmetadata(with_vertical_dimensions=True, with_node_coordinates=True), ""),
+        (create_example_grid3dmetadata(with_node_coordinates=False), ""),
+        (create_example_grid3dmetadata(with_node_coordinates=True), ""),
+    ],
+)
+def test_grid_text_repr(metadata, expected):
+    actual = sgrid.to_ascii(metadata)
+    if actual != expected:
+        diff = "\n".join(
+            difflib.unified_diff(
+                expected.splitlines(keepends=True),
+                actual.splitlines(keepends=True),
+                fromfile="expected",
+                tofile="actual",
+            )
+        )
+        pytest.fail(f"grid_text_repr output differs:\n{diff}")
