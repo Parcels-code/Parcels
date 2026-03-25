@@ -348,3 +348,216 @@ def test_rename_dataset(ds):
     assert "XC_updated" in ds_new.dims
     assert "XC" not in ds_new.dims
     assert "XC_updated" == grid_new.face_dimensions[0].dim1
+
+
+@pytest.mark.parametrize(
+    ("metadata, expected"),
+    [
+        (
+            create_example_grid2dmetadata(with_vertical_dimensions=False, with_node_coordinates=False),
+            """Grid2DMetadata
+  X-axis:  face='face_dimension1'  node='node_dimension1'  padding=low
+  Y-axis:  face='face_dimension2'  node='node_dimension2'  padding=low
+
+  Staggered grid layout (symbolic 3x3 nodes):
+
+    ↑ Y
+    |
+    n --u-- n --u-- n
+    |       |       |
+    v   ·   v   ·   v
+    |       |       |
+    n --u-- n --u-- n
+    |       |       |
+    v   ·   v   ·   v
+    |       |       |
+    n --u-- n --u-- n --→ X
+
+    n = node  (node_dimension1, node_dimension2)
+    u = x-face  (face_dimension1)
+    v = y-face  (face_dimension2)
+    · = cell centre
+
+  Axis padding:
+
+  face_dimension1:node_dimension1 (padding:low)
+    ─────●─────●─────●─────●─────●
+      0  0  1  1  2  2  3  3  4  4
+
+  face_dimension2:node_dimension2 (padding:low)
+    ─────●─────●─────●─────●─────●
+      0  0  1  1  2  2  3  3  4  4""",
+        ),
+        (
+            create_example_grid2dmetadata(with_vertical_dimensions=True, with_node_coordinates=True),
+            """Grid2DMetadata
+  X-axis:  face='face_dimension1'  node='node_dimension1'  padding=low
+  Y-axis:  face='face_dimension2'  node='node_dimension2'  padding=low
+  Z-axis:  face='vertical_dimensions_dim1'  node='vertical_dimensions_dim2'  padding=low
+  Coordinates: node_coordinates_var1, node_coordinates_var2
+
+  Staggered grid layout (symbolic 3x3 nodes):
+
+    ↑ Y                     ↑ Z
+    |                       |
+    n --u-- n --u-- n       w
+    |       |       |       |
+    v   ·   v   ·   v       ·
+    |       |       |       |
+    n --u-- n --u-- n       w
+    |       |       |       |
+    v   ·   v   ·   v       ·
+    |       |       |       |
+    n --u-- n --u-- n --→ X w
+
+    n = node  (node_dimension1, node_dimension2)
+    u = x-face  (face_dimension1)
+    v = y-face  (face_dimension2)
+    w = z-node  (vertical_dimensions_dim2)
+    · = cell centre
+
+  Axis padding:
+
+  face_dimension1:node_dimension1 (padding:low)
+    ─────●─────●─────●─────●─────●
+      0  0  1  1  2  2  3  3  4  4
+
+  face_dimension2:node_dimension2 (padding:low)
+    ─────●─────●─────●─────●─────●
+      0  0  1  1  2  2  3  3  4  4
+
+  vertical_dimensions_dim1:vertical_dimensions_dim2 (padding:low)
+    ─────●─────●─────●─────●─────●
+      0  0  1  1  2  2  3  3  4  4""",
+        ),
+        (
+            create_example_grid3dmetadata(with_node_coordinates=False),
+            """Grid3DMetadata
+  X-axis:  face='face_dimension1'  node='node_dimension1'  padding=low
+  Y-axis:  face='face_dimension2'  node='node_dimension2'  padding=low
+  Z-axis:  face='face_dimension3'  node='node_dimension3'  padding=low
+
+  Staggered grid layout (XY cross-section; Z-faces not shown):
+
+    ↑ Y
+    |
+    n --u-- n --u-- n
+    |       |       |
+    v   ·   v   ·   v
+    |       |       |
+    n --u-- n --u-- n
+    |       |       |
+    v   ·   v   ·   v
+    |       |       |
+    n --u-- n --u-- n --→ X
+
+    n = node  (node_dimension1, node_dimension2, node_dimension3)
+    u = x-face  (face_dimension1)
+    v = y-face  (face_dimension2)
+    w = z-face  (face_dimension3)  [not shown in cross-section]
+    · = cell centre
+
+  Axis padding:
+
+  face_dimension1:node_dimension1 (padding:low)
+    ─────●─────●─────●─────●─────●
+      0  0  1  1  2  2  3  3  4  4
+
+  face_dimension2:node_dimension2 (padding:low)
+    ─────●─────●─────●─────●─────●
+      0  0  1  1  2  2  3  3  4  4
+
+  face_dimension3:node_dimension3 (padding:low)
+    ─────●─────●─────●─────●─────●
+      0  0  1  1  2  2  3  3  4  4""",
+        ),
+        (
+            create_example_grid3dmetadata(with_node_coordinates=True),
+            """Grid3DMetadata
+  X-axis:  face='face_dimension1'  node='node_dimension1'  padding=low
+  Y-axis:  face='face_dimension2'  node='node_dimension2'  padding=low
+  Z-axis:  face='face_dimension3'  node='node_dimension3'  padding=low
+  Coordinates: node_coordinates_var1, node_coordinates_var2, node_coordinates_dim3
+
+  Staggered grid layout (XY cross-section; Z-faces not shown):
+
+    ↑ Y
+    |
+    n --u-- n --u-- n
+    |       |       |
+    v   ·   v   ·   v
+    |       |       |
+    n --u-- n --u-- n
+    |       |       |
+    v   ·   v   ·   v
+    |       |       |
+    n --u-- n --u-- n --→ X
+
+    n = node  (node_dimension1, node_dimension2, node_dimension3)
+    u = x-face  (face_dimension1)
+    v = y-face  (face_dimension2)
+    w = z-face  (face_dimension3)  [not shown in cross-section]
+    · = cell centre
+
+  Axis padding:
+
+  face_dimension1:node_dimension1 (padding:low)
+    ─────●─────●─────●─────●─────●
+      0  0  1  1  2  2  3  3  4  4
+
+  face_dimension2:node_dimension2 (padding:low)
+    ─────●─────●─────●─────●─────●
+      0  0  1  1  2  2  3  3  4  4
+
+  face_dimension3:node_dimension3 (padding:low)
+    ─────●─────●─────●─────●─────●
+      0  0  1  1  2  2  3  3  4  4""",
+        ),
+    ],
+)
+def test_grid_str(metadata, expected):
+    actual = str(metadata)
+    assert actual == expected
+
+
+@pytest.mark.parametrize(
+    ("face_node_padding", "expected_lines"),
+    [
+        (
+            sgrid.DimDimPadding("face", "node", sgrid.Padding.LOW),
+            [
+                "face:node (padding:low)",
+                "  ─────●─────●─────●─────●─────●",
+                "    0  0  1  1  2  2  3  3  4  4",
+            ],
+        ),
+        (
+            sgrid.DimDimPadding("face", "node", sgrid.Padding.HIGH),
+            [
+                "face:node (padding:high)",
+                "  ●─────●─────●─────●─────●─────",
+                "  0  0  1  1  2  2  3  3  4  4",
+            ],
+        ),
+        (
+            sgrid.DimDimPadding("face", "node", sgrid.Padding.BOTH),
+            [
+                "face:node (padding:both)",
+                "  ─────●─────●─────●─────●─────●─────",
+                "    0  0  1  1  2  2  3  3  4  4  5",
+            ],
+        ),
+        (
+            sgrid.DimDimPadding("face", "node", sgrid.Padding.NONE),
+            [
+                "face:node (padding:none)",
+                "  ●─────●─────●─────●─────●",
+                "  0  0  1  1  2  2  3  3  4",
+            ],
+        ),
+    ],
+)
+def test_face_node_padding_to_diagram(face_node_padding: sgrid.DimDimPadding, expected_lines: list[str]):
+    actual = face_node_padding.to_diagram()
+    lines = actual.split("\n")
+    assert lines == expected_lines

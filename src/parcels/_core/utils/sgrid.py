@@ -15,6 +15,7 @@ import enum
 import re
 from collections.abc import Hashable, Iterable
 from dataclasses import dataclass
+from textwrap import indent
 from typing import Any, Literal, Protocol, Self, cast, overload
 
 import xarray as xr
@@ -24,6 +25,10 @@ from parcels._python import repr_from_dunder_dict
 RE_DIM_DIM_PADDING = r"(\w+):(\w+)\s*\(padding:\s*(\w+)\)"
 
 Dim = str
+
+
+def _indent_lines(lst: list[str], indent: int = 2):
+    return [indent * " " + line for line in lst]
 
 
 class Padding(enum.Enum):
@@ -143,6 +148,9 @@ class Grid2DMetadata(AttrsSerializable):
     def __repr__(self) -> str:
         return repr_from_dunder_dict(self)
 
+    def __str__(self) -> str:
+        return _grid2d_to_ascii(self)
+
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, Grid2DMetadata):
             return NotImplemented
@@ -256,6 +264,9 @@ class Grid3DMetadata(AttrsSerializable):
     def __repr__(self) -> str:
         return repr_from_dunder_dict(self)
 
+    def __str__(self) -> str:
+        return _grid3d_to_ascii(self)
+
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, Grid3DMetadata):
             return NotImplemented
@@ -332,6 +343,9 @@ class DimDimPadding:
         dim2 = match.group(2)
         padding = Padding(match.group(3).lower())
         return cls(dim1, dim2, padding)
+
+    def to_diagram(self) -> str:
+        return "\n".join(_face_node_padding_to_text(self))
 
 
 def dump_mappings(parts: Iterable[DimDimPadding | Dim]) -> str:
@@ -503,6 +517,181 @@ def get_unique_names(grid: Grid2DMetadata | Grid3DMetadata) -> set[str]:
                 assert isinstance(item, str)
                 dims.add(item)
     return dims
+
+
+def _face_node_padding_to_text(obj: DimDimPadding) -> list[str]:
+    """Return ASCII diagram lines showing a face-node padding relationship.
+
+    Produces a symbolic 5-node diagram like the image below, matching the
+    four padding modes::
+
+        face:node (padding:none)
+            ●─────●─────●─────●─────●
+            1  1  2  2  3  3  4  4  5
+
+        face:node (padding:low)
+            ─────●─────●─────●─────●─────●
+              1  1  2  2  3  3  4  4  5  5
+
+        face:node (padding:high)
+            ●─────●─────●─────●─────●─────
+            1  1  2  2  3  3  4  4  5  5
+
+        face:node (padding:both)
+            ─────●─────●─────●─────●─────●─────
+              1  1  2  2  3  3  4  4  5  5  6
+    """
+    FACE_WIDTH = 5  # dashes per face segment
+    padding = obj.padding
+
+    bars = {
+        Padding.NONE: "x-x-x-x-x",
+        Padding.LOW: "-x-x-x-x-x",
+        Padding.HIGH: "x-x-x-x-x-",
+        Padding.BOTH: "-x-x-x-x-x-",
+    }
+    bar = bars[obj.padding]
+    node_count = 0
+    face_count = 0
+    bar_rendered = ""
+    label = ""
+    for char in bar:
+        if char == "x":
+            bar_rendered += "●"
+            label += str(node_count)
+            node_count += 1
+        elif char == "-":
+            bar_rendered += "─" * FACE_WIDTH
+            label += str(face_count).center(FACE_WIDTH)
+            face_count += 1
+
+    return [
+        f"{obj.dim1}:{obj.dim2} (padding:{padding.value})",
+        f"  {bar_rendered}",
+        f"  {label.rstrip()}",
+    ]
+
+
+_TEXT_GRID2D_WITHOUT_Z = """
+Staggered grid layout (symbolic 3x3 nodes):
+
+  ↑ Y
+  |
+  n --u-- n --u-- n
+  |       |       |
+  v   ·   v   ·   v
+  |       |       |
+  n --u-- n --u-- n
+  |       |       |
+  v   ·   v   ·   v
+  |       |       |
+  n --u-- n --u-- n --→ X
+
+  n = node  ({n1}, {n2})
+  u = x-face  ({u})
+  v = y-face  ({v})
+  · = cell centre"""
+
+_TEXT_GRID2D_WITH_Z = """
+Staggered grid layout (symbolic 3x3 nodes):
+
+  ↑ Y                     ↑ Z
+  |                       |
+  n --u-- n --u-- n       w
+  |       |       |       |
+  v   ·   v   ·   v       ·
+  |       |       |       |
+  n --u-- n --u-- n       w
+  |       |       |       |
+  v   ·   v   ·   v       ·
+  |       |       |       |
+  n --u-- n --u-- n --→ X w
+
+  n = node  ({n1}, {n2})
+  u = x-face  ({u})
+  v = y-face  ({v})
+  w = z-node  ({w})
+  · = cell centre"""
+
+_TEXT_GRID3D = """
+Staggered grid layout (XY cross-section; Z-faces not shown):
+
+  ↑ Y
+  |
+  n --u-- n --u-- n
+  |       |       |
+  v   ·   v   ·   v
+  |       |       |
+  n --u-- n --u-- n
+  |       |       |
+  v   ·   v   ·   v
+  |       |       |
+  n --u-- n --u-- n --→ X
+
+  n = node  ({n1}, {n2}, {n3})
+  u = x-face  ({u})
+  v = y-face  ({v})
+  w = z-face  ({w})  [not shown in cross-section]
+  · = cell centre"""
+
+
+def _grid2d_to_ascii(grid: Grid2DMetadata) -> str:
+    fd = grid.face_dimensions
+    nd = grid.node_dimensions
+    lines = [
+        "Grid2DMetadata",
+        f"  X-axis:  face={fd[0].dim1!r}  node={nd[0]!r}  padding={fd[0].padding.value}",
+        f"  Y-axis:  face={fd[1].dim1!r}  node={nd[1]!r}  padding={fd[1].padding.value}",
+    ]
+    if grid.vertical_dimensions:
+        vd = grid.vertical_dimensions[0]
+        lines.append(f"  Z-axis:  face={vd.dim1!r}  node={vd.dim2!r}  padding={vd.padding.value}")
+    if grid.node_coordinates:
+        lines.append(f"  Coordinates: {grid.node_coordinates[0]}, {grid.node_coordinates[1]}")
+
+    format_kwargs = dict(n1=nd[0], n2=nd[1], u=fd[0].dim1, v=fd[1].dim1)
+
+    if grid.vertical_dimensions:
+        format_kwargs["w"] = grid.vertical_dimensions[0].dim2
+        lines += indent(_TEXT_GRID2D_WITH_Z, "  ").format(**format_kwargs).split("\n")
+    else:
+        lines += indent(_TEXT_GRID2D_WITHOUT_Z, "  ").format(**format_kwargs).split("\n")
+
+    lines += ["", "  Axis padding:", ""]
+    lines += _indent_lines(_face_node_padding_to_text(fd[0]))
+    lines += [""]
+    lines += _indent_lines(_face_node_padding_to_text(fd[1]))
+    if grid.vertical_dimensions:
+        lines += [""]
+        lines += _indent_lines(_face_node_padding_to_text(grid.vertical_dimensions[0]))
+    return "\n".join(lines)
+
+
+def _grid3d_to_ascii(grid: Grid3DMetadata) -> str:
+    vd = grid.volume_dimensions
+    nd = grid.node_dimensions
+    lines = [
+        "Grid3DMetadata",
+        f"  X-axis:  face={vd[0].dim1!r}  node={nd[0]!r}  padding={vd[0].padding.value}",
+        f"  Y-axis:  face={vd[1].dim1!r}  node={nd[1]!r}  padding={vd[1].padding.value}",
+        f"  Z-axis:  face={vd[2].dim1!r}  node={nd[2]!r}  padding={vd[2].padding.value}",
+    ]
+    if grid.node_coordinates:
+        lines.append(f"  Coordinates: {', '.join(grid.node_coordinates)}")
+
+    lines += (
+        indent(_TEXT_GRID3D, "  ")
+        .format(n1=nd[0], n2=nd[1], n3=nd[2], u=vd[0].dim1, v=vd[1].dim1, w=vd[2].dim1)
+        .split("\n")
+    )
+
+    lines += ["", "  Axis padding:", ""]
+    lines += _indent_lines(_face_node_padding_to_text(vd[0]))
+    lines += [""]
+    lines += _indent_lines(_face_node_padding_to_text(vd[1]))
+    lines += [""]
+    lines += _indent_lines(_face_node_padding_to_text(vd[2]))
+    return "\n".join(lines)
 
 
 def _attach_sgrid_metadata(ds, grid: Grid2DMetadata | Grid3DMetadata):
