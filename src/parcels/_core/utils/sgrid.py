@@ -556,13 +556,13 @@ def _face_node_padding_to_text(obj: DimDimPadding) -> list[str]:
     label = ""
     for char in bar:
         if char == "x":
-            node_count += 1
             bar_rendered += "●"
             label += str(node_count)
+            node_count += 1
         elif char == "-":
-            face_count += 1
             bar_rendered += "─" * FACE_WIDTH
             label += str(face_count).center(FACE_WIDTH)
+            face_count += 1
 
     return [
         f"{obj.dim1}:{obj.dim2} (padding:{padding.value})",
