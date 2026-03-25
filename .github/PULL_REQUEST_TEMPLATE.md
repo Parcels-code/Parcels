@@ -2,6 +2,7 @@
 
 - [ ] Closes #xxxx
 - [ ] Tests added
+- [ ] This PR targets the correct branch (`main` for normal development, `v3-support` for v3 support)
 
 ### AI Disclosure
 
