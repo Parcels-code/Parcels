@@ -15,6 +15,7 @@ import enum
 import re
 from collections.abc import Hashable, Iterable
 from dataclasses import dataclass
+from textwrap import indent
 from typing import Any, Literal, Protocol, Self, cast, overload
 
 import xarray as xr
@@ -571,6 +572,69 @@ def _face_node_padding_to_text(obj: DimDimPadding) -> list[str]:
     ]
 
 
+TEXT_GRID2D_WITHOUT_Z = """
+Staggered grid layout (symbolic 3x3 nodes):
+
+  ↑ Y
+  |
+  n --u-- n --u-- n
+  |       |       |
+  v   ·   v   ·   v
+  |       |       |
+  n --u-- n --u-- n
+  |       |       |
+  v   ·   v   ·   v
+  |       |       |
+  n --u-- n --u-- n --→ X
+
+  n = node  ({n1}, {n2})
+  u = x-face  ({u})
+  v = y-face  ({v})
+  · = cell centre"""
+
+TEXT_GRID2D_WITH_Z = """
+Staggered grid layout (symbolic 3x3 nodes):
+
+  ↑ Y                     ↑ Z
+  |                       |
+  n --u-- n --u-- n       w
+  |       |       |       |
+  v   ·   v   ·   v       ·
+  |       |       |       |
+  n --u-- n --u-- n       w
+  |       |       |       |
+  v   ·   v   ·   v       ·
+  |       |       |       |
+  n --u-- n --u-- n --→ X w
+
+  n = node  ({n1}, {n2})
+  u = x-face  ({u})
+  v = y-face  ({v})
+  w = z-node  ({w})
+  · = cell centre"""
+
+TEXT_GRID3D = """
+Staggered grid layout (XY cross-section; Z-faces not shown):
+
+  ↑ Y
+  |
+  n --u-- n --u-- n
+  |       |       |
+  v   ·   v   ·   v
+  |       |       |
+  n --u-- n --u-- n
+  |       |       |
+  v   ·   v   ·   v
+  |       |       |
+  n --u-- n --u-- n --→ X
+
+  n = node  ({n1}, {n2}, {n3})
+  u = x-face  ({u})
+  v = y-face  ({v})
+  w = z-face  ({w})  [not shown in cross-section]
+  · = cell centre"""
+
+
 def _grid2d_to_ascii(grid: Grid2DMetadata) -> str:
     fd = grid.face_dimensions
     nd = grid.node_dimensions
@@ -584,56 +648,15 @@ def _grid2d_to_ascii(grid: Grid2DMetadata) -> str:
         lines.append(f"  Z-axis:  face={vd.dim1!r}  node={vd.dim2!r}  padding={vd.padding.value}")
     if grid.node_coordinates:
         lines.append(f"  Coordinates: {grid.node_coordinates[0]}, {grid.node_coordinates[1]}")
+
+    format_kwargs = dict(n1=nd[0], n2=nd[1], u=fd[0].dim1, v=fd[1].dim1)
+
     if grid.vertical_dimensions:
-        vd = grid.vertical_dimensions[0]
-
-        def _z(base: str, sym: str) -> str:
-            return base.ljust(28) + sym
-
-        lines += [
-            "",
-            "  Staggered grid layout (symbolic 3x3 nodes):",
-            "",
-            _z("    ↑ Y", "↑ Z"),
-            _z("    |", "|"),
-            _z("    n --u-- n --u-- n", "w"),
-            _z("    |       |       |", "|"),
-            _z("    v   ·   v   ·   v", "·"),
-            _z("    |       |       |", "|"),
-            _z("    n --u-- n --u-- n", "w"),
-            _z("    |       |       |", "|"),
-            _z("    v   ·   v   ·   v", "·"),
-            _z("    |       |       |", "|"),
-            "    n --u-- n --u-- n --→ X w",
-            "",
-            f"    n = node  ({nd[0]}, {nd[1]})",
-            f"    u = x-face  ({fd[0].dim1})",
-            f"    v = y-face  ({fd[1].dim1})",
-            f"    w = z-node  ({vd.dim2})",
-            "    · = cell centre",
-        ]
+        format_kwargs["w"] = grid.vertical_dimensions[0].dim2
+        lines += indent(TEXT_GRID2D_WITH_Z, "  ").format(**format_kwargs).split("\n")
     else:
-        lines += [
-            "",
-            "  Staggered grid layout (symbolic 3x3 nodes):",
-            "",
-            "    ↑ Y",
-            "    |",
-            "    n --u-- n --u-- n",
-            "    |       |       |",
-            "    v   ·   v   ·   v",
-            "    |       |       |",
-            "    n --u-- n --u-- n",
-            "    |       |       |",
-            "    v   ·   v   ·   v",
-            "    |       |       |",
-            "    n --u-- n --u-- n --→ X",
-            "",
-            f"    n = node  ({nd[0]}, {nd[1]})",
-            f"    u = x-face  ({fd[0].dim1})",
-            f"    v = y-face  ({fd[1].dim1})",
-            "    · = cell centre",
-        ]
+        lines += indent(TEXT_GRID2D_WITHOUT_Z, "  ").format(**format_kwargs).split("\n")
+
     lines += ["", "  Axis padding:", ""]
     lines += _indent_lines(_face_node_padding_to_text(fd[0]))
     lines += [""]
@@ -655,28 +678,13 @@ def _grid3d_to_ascii(grid: Grid3DMetadata) -> str:
     ]
     if grid.node_coordinates:
         lines.append(f"  Coordinates: {', '.join(grid.node_coordinates)}")
-    lines += [
-        "",
-        "  Staggered grid layout (XY cross-section; Z-faces not shown):",
-        "",
-        "    ↑ Y",
-        "    |",
-        "    n --u-- n --u-- n",
-        "    |       |       |",
-        "    v   ·   v   ·   v",
-        "    |       |       |",
-        "    n --u-- n --u-- n",
-        "    |       |       |",
-        "    v   ·   v   ·   v",
-        "    |       |       |",
-        "    n --u-- n --u-- n --→ X",
-        "",
-        f"    n = node  ({nd[0]}, {nd[1]}, {nd[2]})",
-        f"    u = x-face  ({vd[0].dim1})",
-        f"    v = y-face  ({vd[1].dim1})",
-        f"    w = z-face  ({vd[2].dim1})  [not shown in cross-section]",
-        "    · = cell centre",
-    ]
+
+    lines += (
+        indent(TEXT_GRID3D, "  ")
+        .format(n1=nd[0], n2=nd[1], n3=nd[2], u=vd[0].dim1, v=vd[1].dim1, w=vd[2].dim1)
+        .split("\n")
+    )
+
     lines += ["", "  Axis padding:", ""]
     lines += _indent_lines(_face_node_padding_to_text(vd[0]))
     lines += [""]
