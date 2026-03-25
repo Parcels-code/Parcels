@@ -12,7 +12,7 @@ from tests.strategies import sgrid as sgrid_strategies
 
 def create_example_grid2dmetadata(with_vertical_dimensions: bool, with_node_coordinates: bool):
     vertical_dimensions = (
-        (sgrid.DimDimPadding("vertical_dimensions_dim1", "vertical_dimensions_dim2", sgrid.Padding.LOW),)
+        (sgrid.FaceNodePadding("vertical_dimensions_dim1", "vertical_dimensions_dim2", sgrid.Padding.LOW),)
         if with_vertical_dimensions
         else None
     )
@@ -23,8 +23,8 @@ def create_example_grid2dmetadata(with_vertical_dimensions: bool, with_node_coor
         topology_dimension=2,
         node_dimensions=("node_dimension1", "node_dimension2"),
         face_dimensions=(
-            sgrid.DimDimPadding("face_dimension1", "node_dimension1", sgrid.Padding.LOW),
-            sgrid.DimDimPadding("face_dimension2", "node_dimension2", sgrid.Padding.LOW),
+            sgrid.FaceNodePadding("face_dimension1", "node_dimension1", sgrid.Padding.LOW),
+            sgrid.FaceNodePadding("face_dimension2", "node_dimension2", sgrid.Padding.LOW),
         ),
         node_coordinates=node_coordinates,
         vertical_dimensions=vertical_dimensions,
@@ -40,9 +40,9 @@ def create_example_grid3dmetadata(with_node_coordinates: bool):
         topology_dimension=3,
         node_dimensions=("node_dimension1", "node_dimension2", "node_dimension3"),
         volume_dimensions=(
-            sgrid.DimDimPadding("face_dimension1", "node_dimension1", sgrid.Padding.LOW),
-            sgrid.DimDimPadding("face_dimension2", "node_dimension2", sgrid.Padding.LOW),
-            sgrid.DimDimPadding("face_dimension3", "node_dimension3", sgrid.Padding.LOW),
+            sgrid.FaceNodePadding("face_dimension1", "node_dimension1", sgrid.Padding.LOW),
+            sgrid.FaceNodePadding("face_dimension2", "node_dimension2", sgrid.Padding.LOW),
+            sgrid.FaceNodePadding("face_dimension3", "node_dimension3", sgrid.Padding.LOW),
         ),
         node_coordinates=node_coordinates,
     )
@@ -95,13 +95,13 @@ def dummy_sgrid_2d_ds(grid: sgrid.Grid2DMetadata) -> xr.Dataset:
     if grid.vertical_dimensions is None:
         ds = ds.isel(ZC=0, ZG=0)
     else:
-        renamings.update({"ZC": grid.vertical_dimensions[0].dim2, "ZG": grid.vertical_dimensions[0].dim1})
+        renamings.update({"ZC": grid.vertical_dimensions[0].face, "ZG": grid.vertical_dimensions[0].node})
 
     for old, new in zip(["XG", "YG"], grid.node_dimensions, strict=True):
         renamings[old] = new
 
-    for old, dim_dim_padding in zip(["XC", "YC"], grid.face_dimensions, strict=True):
-        renamings[old] = dim_dim_padding.dim1
+    for old, face_node_padding in zip(["XC", "YC"], grid.face_dimensions, strict=True):
+        renamings[old] = face_node_padding.face
 
     ds = ds.rename_dims(renamings)
 
@@ -120,8 +120,8 @@ def dummy_sgrid_3d_ds(grid: sgrid.Grid3DMetadata) -> xr.Dataset:
     for old, new in zip(["XG", "YG", "ZG"], grid.node_dimensions, strict=True):
         renamings[old] = new
 
-    for old, dim_dim_padding in zip(["XC", "YC", "ZC"], grid.volume_dimensions, strict=True):
-        renamings[old] = dim_dim_padding.dim1
+    for old, face_node_padding in zip(["XC", "YC", "ZC"], grid.volume_dimensions, strict=True):
+        renamings[old] = face_node_padding.face
 
     ds = ds.rename_dims(renamings)
 
@@ -179,8 +179,8 @@ def dummy_comodo_3d_ds() -> xr.Dataset:
 
 @example(
     edge_node_padding=(
-        sgrid.DimDimPadding("edge1", "node1", sgrid.Padding.NONE),
-        sgrid.DimDimPadding("edge2", "node2", sgrid.Padding.LOW),
+        sgrid.FaceNodePadding("edge1", "node1", sgrid.Padding.NONE),
+        sgrid.FaceNodePadding("edge2", "node2", sgrid.Padding.LOW),
     )
 )
 @given(sgrid_strategies.mappings)
@@ -195,7 +195,7 @@ def test_edge_node_mapping_metadata_roundtrip(edge_node_padding):
     [
         (
             "edge1: node1(padding: none)",
-            (sgrid.DimDimPadding("edge1", "node1", sgrid.Padding.NONE),),
+            (sgrid.FaceNodePadding("edge1", "node1", sgrid.Padding.NONE),),
         ),
     ],
 )
@@ -235,20 +235,18 @@ def test_parse_sgrid_2d(grid_metadata: sgrid.Grid2DMetadata):
     _, xgcm_kwargs = sgrid.parse_sgrid(ds)
     grid = xgcm.Grid(ds, autoparse_metadata=False, **xgcm_kwargs)
 
-    for ddp, axis in zip(grid_metadata.face_dimensions, ["X", "Y"], strict=True):
-        dim_edge, dim_node, padding = ddp.dim1, ddp.dim2, ddp.padding
+    for obj, axis in zip(grid_metadata.face_dimensions, ["X", "Y"], strict=True):
         coords = grid.axes[axis].coords
-        assert coords["center"] == dim_edge
-        assert coords[sgrid.SGRID_PADDING_TO_XGCM_POSITION[padding]] == dim_node
+        assert coords["center"] == obj.face
+        assert coords[sgrid.SGRID_PADDING_TO_XGCM_POSITION[obj.padding]] == obj.node
 
     if grid_metadata.vertical_dimensions is None:
         assert "Z" not in grid.axes
     else:
-        ddp = grid_metadata.vertical_dimensions[0]
-        dim_edge, dim_node, padding = ddp.dim1, ddp.dim2, ddp.padding
+        obj = grid_metadata.vertical_dimensions[0]
         coords = grid.axes["Z"].coords
-        assert coords["center"] == dim_edge
-        assert coords[sgrid.SGRID_PADDING_TO_XGCM_POSITION[padding]] == dim_node
+        assert coords["center"] == obj.face
+        assert coords[sgrid.SGRID_PADDING_TO_XGCM_POSITION[obj.padding]] == obj.node
 
 
 @given(sgrid_strategies.grid3Dmetadata())
@@ -259,11 +257,10 @@ def test_parse_sgrid_3d(grid_metadata: sgrid.Grid3DMetadata):
     ds, xgcm_kwargs = sgrid.parse_sgrid(ds)
     grid = xgcm.Grid(ds, autoparse_metadata=False, **xgcm_kwargs)
 
-    for ddp, axis in zip(grid_metadata.volume_dimensions, ["X", "Y", "Z"], strict=True):
-        dim_edge, dim_node, padding = ddp.dim1, ddp.dim2, ddp.padding
+    for obj, axis in zip(grid_metadata.volume_dimensions, ["X", "Y", "Z"], strict=True):
         coords = grid.axes[axis].coords
-        assert coords["center"] == dim_edge
-        assert coords[sgrid.SGRID_PADDING_TO_XGCM_POSITION[padding]] == dim_node
+        assert coords["center"] == obj.face
+        assert coords[sgrid.SGRID_PADDING_TO_XGCM_POSITION[obj.padding]] == obj.node
 
 
 @pytest.mark.parametrize(
@@ -318,10 +315,10 @@ def test_rename_errors():
                         topology_dimension=2,
                         node_dimensions=("XG", "YG"),
                         face_dimensions=(
-                            sgrid.DimDimPadding("XC", "XG", sgrid.Padding.HIGH),
-                            sgrid.DimDimPadding("YC", "YG", sgrid.Padding.HIGH),
+                            sgrid.FaceNodePadding("XC", "XG", sgrid.Padding.HIGH),
+                            sgrid.FaceNodePadding("YC", "YG", sgrid.Padding.HIGH),
                         ),
-                        vertical_dimensions=(sgrid.DimDimPadding("ZC", "ZG", sgrid.Padding.HIGH),),
+                        vertical_dimensions=(sgrid.FaceNodePadding("ZC", "ZG", sgrid.Padding.HIGH),),
                         node_coordinates=("lon", "lat"),
                     ).to_attrs(),
                 ),
@@ -347,7 +344,7 @@ def test_rename_dataset(ds):
     grid_new = sgrid.parse_grid_attrs(ds_new["grid"].attrs)
     assert "XC_updated" in ds_new.dims
     assert "XC" not in ds_new.dims
-    assert "XC_updated" == grid_new.face_dimensions[0].dim1
+    assert "XC_updated" == grid_new.face_dimensions[0].face
 
 
 @pytest.mark.parametrize(
@@ -524,7 +521,7 @@ def test_grid_str(metadata, expected):
     ("face_node_padding", "expected_lines"),
     [
         (
-            sgrid.DimDimPadding("face", "node", sgrid.Padding.LOW),
+            sgrid.FaceNodePadding("face", "node", sgrid.Padding.LOW),
             [
                 "face:node (padding:low)",
                 "  ─────●─────●─────●─────●─────●",
@@ -532,7 +529,7 @@ def test_grid_str(metadata, expected):
             ],
         ),
         (
-            sgrid.DimDimPadding("face", "node", sgrid.Padding.HIGH),
+            sgrid.FaceNodePadding("face", "node", sgrid.Padding.HIGH),
             [
                 "face:node (padding:high)",
                 "  ●─────●─────●─────●─────●─────",
@@ -540,7 +537,7 @@ def test_grid_str(metadata, expected):
             ],
         ),
         (
-            sgrid.DimDimPadding("face", "node", sgrid.Padding.BOTH),
+            sgrid.FaceNodePadding("face", "node", sgrid.Padding.BOTH),
             [
                 "face:node (padding:both)",
                 "  ─────●─────●─────●─────●─────●─────",
@@ -548,7 +545,7 @@ def test_grid_str(metadata, expected):
             ],
         ),
         (
-            sgrid.DimDimPadding("face", "node", sgrid.Padding.NONE),
+            sgrid.FaceNodePadding("face", "node", sgrid.Padding.NONE),
             [
                 "face:node (padding:none)",
                 "  ●─────●─────●─────●─────●",
@@ -557,7 +554,7 @@ def test_grid_str(metadata, expected):
         ),
     ],
 )
-def test_face_node_padding_to_diagram(face_node_padding: sgrid.DimDimPadding, expected_lines: list[str]):
+def test_face_node_padding_to_diagram(face_node_padding: sgrid.FaceNodePadding, expected_lines: list[str]):
     actual = face_node_padding.to_diagram()
     lines = actual.split("\n")
     assert lines == expected_lines

@@ -20,7 +20,7 @@ dimension_name = xr_st.names().filter(
 dim_dim_padding = (
     st.tuples(dimension_name, dimension_name, padding)
     .filter(lambda t: t[0] != t[1])
-    .map(lambda t: sgrid.DimDimPadding(*t))
+    .map(lambda t: sgrid.FaceNodePadding(*t))
 )
 
 mappings = st.lists(dim_dim_padding | dimension_name).map(tuple)
@@ -45,8 +45,8 @@ def grid2Dmetadata(draw) -> sgrid.Grid2DMetadata:
     node_coordinates_var2 = names[5]
     has_node_coordinates = draw(st.booleans())
 
-    vertical_dimensions_dim1 = names[6]
-    vertical_dimensions_dim2 = names[7]
+    vertical_dimensions_face = names[6]
+    vertical_dimensions_node = names[7]
     vertical_dimensions_padding = draw(padding)
     has_vertical_dimensions = draw(st.booleans())
 
@@ -57,7 +57,7 @@ def grid2Dmetadata(draw) -> sgrid.Grid2DMetadata:
 
     if has_vertical_dimensions:
         vertical_dimensions = (
-            sgrid.DimDimPadding(vertical_dimensions_dim1, vertical_dimensions_dim2, vertical_dimensions_padding),
+            sgrid.FaceNodePadding(vertical_dimensions_face, vertical_dimensions_node, vertical_dimensions_padding),
         )
     else:
         vertical_dimensions = None
@@ -67,8 +67,8 @@ def grid2Dmetadata(draw) -> sgrid.Grid2DMetadata:
         topology_dimension=2,
         node_dimensions=(node_dimension1, node_dimension2),
         face_dimensions=(
-            sgrid.DimDimPadding(face_dimension1, node_dimension1, padding_type1),
-            sgrid.DimDimPadding(face_dimension2, node_dimension2, padding_type2),
+            sgrid.FaceNodePadding(face_dimension1, node_dimension1, padding_type1),
+            sgrid.FaceNodePadding(face_dimension2, node_dimension2, padding_type2),
         ),
         node_coordinates=node_coordinates,
         vertical_dimensions=vertical_dimensions,
@@ -108,9 +108,9 @@ def grid3Dmetadata(draw) -> sgrid.Grid3DMetadata:
         topology_dimension=3,
         node_dimensions=(node_dimension1, node_dimension2, node_dimension3),
         volume_dimensions=(
-            sgrid.DimDimPadding(face_dimension1, node_dimension1, padding_type1),
-            sgrid.DimDimPadding(face_dimension2, node_dimension2, padding_type2),
-            sgrid.DimDimPadding(face_dimension3, node_dimension3, padding_type3),
+            sgrid.FaceNodePadding(face_dimension1, node_dimension1, padding_type1),
+            sgrid.FaceNodePadding(face_dimension2, node_dimension2, padding_type2),
+            sgrid.FaceNodePadding(face_dimension3, node_dimension3, padding_type3),
         ),
         node_coordinates=node_coordinates,
     )
