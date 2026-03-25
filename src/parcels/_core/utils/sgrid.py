@@ -572,7 +572,7 @@ def _face_node_padding_to_text(obj: DimDimPadding) -> list[str]:
     ]
 
 
-TEXT_GRID2D_WITHOUT_Z = """
+_TEXT_GRID2D_WITHOUT_Z = """
 Staggered grid layout (symbolic 3x3 nodes):
 
   ↑ Y
@@ -592,7 +592,7 @@ Staggered grid layout (symbolic 3x3 nodes):
   v = y-face  ({v})
   · = cell centre"""
 
-TEXT_GRID2D_WITH_Z = """
+_TEXT_GRID2D_WITH_Z = """
 Staggered grid layout (symbolic 3x3 nodes):
 
   ↑ Y                     ↑ Z
@@ -613,7 +613,7 @@ Staggered grid layout (symbolic 3x3 nodes):
   w = z-node  ({w})
   · = cell centre"""
 
-TEXT_GRID3D = """
+_TEXT_GRID3D = """
 Staggered grid layout (XY cross-section; Z-faces not shown):
 
   ↑ Y
@@ -653,9 +653,9 @@ def _grid2d_to_ascii(grid: Grid2DMetadata) -> str:
 
     if grid.vertical_dimensions:
         format_kwargs["w"] = grid.vertical_dimensions[0].dim2
-        lines += indent(TEXT_GRID2D_WITH_Z, "  ").format(**format_kwargs).split("\n")
+        lines += indent(_TEXT_GRID2D_WITH_Z, "  ").format(**format_kwargs).split("\n")
     else:
-        lines += indent(TEXT_GRID2D_WITHOUT_Z, "  ").format(**format_kwargs).split("\n")
+        lines += indent(_TEXT_GRID2D_WITHOUT_Z, "  ").format(**format_kwargs).split("\n")
 
     lines += ["", "  Axis padding:", ""]
     lines += _indent_lines(_face_node_padding_to_text(fd[0]))
@@ -680,7 +680,7 @@ def _grid3d_to_ascii(grid: Grid3DMetadata) -> str:
         lines.append(f"  Coordinates: {', '.join(grid.node_coordinates)}")
 
     lines += (
-        indent(TEXT_GRID3D, "  ")
+        indent(_TEXT_GRID3D, "  ")
         .format(n1=nd[0], n2=nd[1], n3=nd[2], u=vd[0].dim1, v=vd[1].dim1, w=vd[2].dim1)
         .split("\n")
     )
