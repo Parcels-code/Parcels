@@ -95,9 +95,7 @@ def dummy_sgrid_2d_ds(grid: sgrid.Grid2DMetadata) -> xr.Dataset:
     if grid.vertical_dimensions is None:
         ds = ds.isel(ZC=0, ZG=0)
     else:
-        renamings.update(
-            {"ZC": grid.vertical_dimensions[0].node, "ZG": grid.vertical_dimensions[0].face}
-        )  # TODO(vecko): This is the wrong way around!
+        renamings.update({"ZC": grid.vertical_dimensions[0].face, "ZG": grid.vertical_dimensions[0].node})
 
     for old, new in zip(["XG", "YG"], grid.node_dimensions, strict=True):
         renamings[old] = new
