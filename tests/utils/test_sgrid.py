@@ -373,10 +373,10 @@ def test_rename_dataset(ds):
     |       |       |
     n --u-- n --u-- n --→ X
 
-  n = node  (node_dimension1, node_dimension2)
-  u = x-face  (face_dimension1)
-  v = y-face  (face_dimension2)
-  · = cell centre
+    n = node  (node_dimension1, node_dimension2)
+    u = x-face  (face_dimension1)
+    v = y-face  (face_dimension2)
+    · = cell centre
 
   Axis padding:
 
@@ -410,11 +410,11 @@ def test_rename_dataset(ds):
     |       |       |       |
     n --u-- n --u-- n --→ X w
 
-  n = node  (node_dimension1, node_dimension2)
-  u = x-face  (face_dimension1)
-  v = y-face  (face_dimension2)
-  w = z-node  (vertical_dimensions_dim2)
-  · = cell centre
+    n = node  (node_dimension1, node_dimension2)
+    u = x-face  (face_dimension1)
+    v = y-face  (face_dimension2)
+    w = z-node  (vertical_dimensions_dim2)
+    · = cell centre
 
   Axis padding:
 
@@ -451,11 +451,11 @@ def test_rename_dataset(ds):
     |       |       |
     n --u-- n --u-- n --→ X
 
-  n = node  (node_dimension1, node_dimension2, node_dimension3)
-  u = x-face  (face_dimension1)
-  v = y-face  (face_dimension2)
-  w = z-face  (face_dimension3)  [not shown in cross-section]
-  · = cell centre
+    n = node  (node_dimension1, node_dimension2, node_dimension3)
+    u = x-face  (face_dimension1)
+    v = y-face  (face_dimension2)
+    w = z-face  (face_dimension3)  [not shown in cross-section]
+    · = cell centre
 
   Axis padding:
 
@@ -493,11 +493,11 @@ def test_rename_dataset(ds):
     |       |       |
     n --u-- n --u-- n --→ X
 
-  n = node  (node_dimension1, node_dimension2, node_dimension3)
-  u = x-face  (face_dimension1)
-  v = y-face  (face_dimension2)
-  w = z-face  (face_dimension3)  [not shown in cross-section]
-  · = cell centre
+    n = node  (node_dimension1, node_dimension2, node_dimension3)
+    u = x-face  (face_dimension1)
+    v = y-face  (face_dimension2)
+    w = z-face  (face_dimension3)  [not shown in cross-section]
+    · = cell centre
 
   Axis padding:
 

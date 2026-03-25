@@ -606,11 +606,11 @@ def _grid2d_to_ascii(grid: Grid2DMetadata) -> str:
             _z("    |       |       |", "|"),
             "    n --u-- n --u-- n --→ X w",
             "",
-            f"  n = node  ({nd[0]}, {nd[1]})",
-            f"  u = x-face  ({fd[0].dim1})",
-            f"  v = y-face  ({fd[1].dim1})",
-            f"  w = z-node  ({vd.dim2})",
-            "  · = cell centre",
+            f"    n = node  ({nd[0]}, {nd[1]})",
+            f"    u = x-face  ({fd[0].dim1})",
+            f"    v = y-face  ({fd[1].dim1})",
+            f"    w = z-node  ({vd.dim2})",
+            "    · = cell centre",
         ]
     else:
         lines += [
@@ -629,10 +629,10 @@ def _grid2d_to_ascii(grid: Grid2DMetadata) -> str:
             "    |       |       |",
             "    n --u-- n --u-- n --→ X",
             "",
-            f"  n = node  ({nd[0]}, {nd[1]})",
-            f"  u = x-face  ({fd[0].dim1})",
-            f"  v = y-face  ({fd[1].dim1})",
-            "  · = cell centre",
+            f"    n = node  ({nd[0]}, {nd[1]})",
+            f"    u = x-face  ({fd[0].dim1})",
+            f"    v = y-face  ({fd[1].dim1})",
+            "    · = cell centre",
         ]
     lines += ["", "  Axis padding:", ""]
     lines += _indent_lines(_face_node_padding_to_text(fd[0]))
@@ -671,11 +671,11 @@ def _grid3d_to_ascii(grid: Grid3DMetadata) -> str:
         "    |       |       |",
         "    n --u-- n --u-- n --→ X",
         "",
-        f"  n = node  ({nd[0]}, {nd[1]}, {nd[2]})",
-        f"  u = x-face  ({vd[0].dim1})",
-        f"  v = y-face  ({vd[1].dim1})",
-        f"  w = z-face  ({vd[2].dim1})  [not shown in cross-section]",
-        "  · = cell centre",
+        f"    n = node  ({nd[0]}, {nd[1]}, {nd[2]})",
+        f"    u = x-face  ({vd[0].dim1})",
+        f"    v = y-face  ({vd[1].dim1})",
+        f"    w = z-face  ({vd[2].dim1})  [not shown in cross-section]",
+        "    · = cell centre",
     ]
     lines += ["", "  Axis padding:", ""]
     lines += _indent_lines(_face_node_padding_to_text(vd[0]))
