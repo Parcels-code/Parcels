@@ -2,7 +2,7 @@ import numpy as np
 import xarray as xr
 
 from parcels._core.utils.sgrid import (
-    DimDimPadding,
+    FaceNodePadding,
     Grid2DMetadata,
     Padding,
     _attach_sgrid_metadata,
@@ -254,11 +254,11 @@ datasets_sgrid = {
                 topology_dimension=2,
                 node_dimensions=("XG", "YG"),
                 face_dimensions=(
-                    DimDimPadding("XC", "XG", Padding.HIGH),
-                    DimDimPadding("YC", "YG", Padding.HIGH),
+                    FaceNodePadding("XC", "XG", Padding.HIGH),
+                    FaceNodePadding("YC", "YG", Padding.HIGH),
                 ),
                 node_coordinates=("lon", "lat"),
-                vertical_dimensions=(DimDimPadding("ZC", "ZG", Padding.HIGH),),
+                vertical_dimensions=(FaceNodePadding("ZC", "ZG", Padding.HIGH),),
             ),
         )
         .pipe(
@@ -275,11 +275,11 @@ datasets_sgrid = {
                 topology_dimension=2,
                 node_dimensions=("XG", "YG"),
                 face_dimensions=(
-                    DimDimPadding("XC", "XG", Padding.LOW),
-                    DimDimPadding("YC", "YG", Padding.LOW),
+                    FaceNodePadding("XC", "XG", Padding.LOW),
+                    FaceNodePadding("YC", "YG", Padding.LOW),
                 ),
                 node_coordinates=("lon", "lat"),
-                vertical_dimensions=(DimDimPadding("ZC", "ZG", Padding.LOW),),
+                vertical_dimensions=(FaceNodePadding("ZC", "ZG", Padding.LOW),),
             ),
         )
         .pipe(
