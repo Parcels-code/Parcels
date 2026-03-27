@@ -4,6 +4,9 @@ authors:
   - family-names: "Van Sebille"
     given-names: "Erik"
     orcid: "https://orcid.org/0000-0003-2041-0704"
+  - family-names: "Hodgskin"
+    given-names: "Nick"
+    orcid: ""
   - family-names: "Kehl"
     given-names: "Christian"
     orcid: "https://orcid.org/0000-0003-4200-1450"
@@ -16,7 +19,7 @@ authors:
   - name: "The Parcels contributors"
     website: "https://github.com/OceanParcels/parcels/graphs/contributors"
 title: "Parcels"
-version: 3.1.2
-doi: 10.5281/zenodo.14845686
-date-released: 2025-02-10
-url: "https://github.com/OceanParcels/parcels"
+version: 3.1.4
+doi: 10.5281/zenodo.823561
+date-released: 2025-08-07
+url: "https://github.com/Parcels-code/parcels"
