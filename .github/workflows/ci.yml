@@ -14,10 +14,14 @@ defaults:
   run:
     shell: bash -el {0}
 
+permissions: {}
+
 jobs:
   should-run-ci:
     name: should run ci
     runs-on: ubuntu-slim
+    permissions:
+      contents: read
     if: |
       github.repository == 'Parcels-code/Parcels'
       && (github.event_name == 'push' || github.event_name == 'pull_request')
@@ -25,6 +29,7 @@ jobs:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           fetch-depth: 2
+          persist-credentials: false
       - uses: xarray-contrib/ci-trigger@74ddc46fc6ca7509549ac7b660d7a185948c1e74 # v1
         id: check-skip
         with:
@@ -38,11 +43,15 @@ jobs:
   cache-pixi-lock:
     runs-on: ubuntu-latest
     needs: [should-run-ci]
+    permissions:
+      contents: read
     outputs:
       cache-key: ${{ steps.pixi-lock.outputs.cache-key }}
       pixi-version: ${{ steps.pixi-lock.outputs.pixi-version }}
     steps:
       - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
+        with:
+          persist-credentials: false
       - uses: Parcels-code/pixi-lock/create-and-cache@a9aee67fa67426e6b0297fa5bef80600572be153
         id: pixi-lock
       - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
@@ -54,6 +63,8 @@ jobs:
     name: "Unit tests: ${{ matrix.os }} | pixi run -e ${{ matrix.pixi-environment }} tests"
     runs-on: ${{ matrix.os }}-latest
     needs: [cache-pixi-lock]
+    permissions:
+      contents: read
     env:
       COVERAGE_REPORT: "${{ matrix.os }}_${{ matrix.pixi-environment }}_unit_test_report.html"
     strategy:
@@ -70,6 +81,8 @@ jobs:
             pixi-environment: "test-minimum"
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
       - name: Restore cached pixi lockfile
         uses: Parcels-code/pixi-lock/restore@a9aee67fa67426e6b0297fa5bef80600572be153
         with:
@@ -92,7 +105,7 @@ jobs:
       - name: Unit test
         id: unit-test
         run: |
-          pixi run -e ${{ matrix.pixi-environment }} tests -v -s --cov=parcels --cov-report=xml --html="${{ env.COVERAGE_REPORT }}" --self-contained-html
+          pixi run -e ${{ matrix.pixi-environment }} tests -v -s --cov=parcels --cov-report=xml --html="${COVERAGE_REPORT}" --self-contained-html
       # explicitly save the cache so it gets updated, also do this even if it fails.
       - name: Save cached hypothesis directory
         id: save-hypothesis-cache
@@ -104,7 +117,7 @@ jobs:
       - name: Codecov
         uses: codecov/codecov-action@5a1091511ad55cbe89839c7260b706298ca349f7 # v5.5.1
         env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }} # zizmor: ignore[secrets-outside-env]
         with:
           flags: unit-tests
       - name: Upload test results
@@ -117,6 +130,8 @@ jobs:
     name: "Integration: ${{ matrix.os }} | pixi run -e ${{ matrix.pixi-environment }} tests-notebooks"
     runs-on: ${{ matrix.os }}-latest
     needs: [cache-pixi-lock]
+    permissions:
+      contents: read
     # TODO v4: Re-enable the workflow once development has stabilized and we want to run integration tests again
     if: false
     env:
@@ -131,6 +146,8 @@ jobs:
             python-version: "3.11"
     steps:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
       - name: Restore cached pixi lockfile
         uses: Parcels-code/pixi-lock/restore@a9aee67fa67426e6b0297fa5bef80600572be153
         with:
@@ -143,11 +160,11 @@ jobs:
           cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
       - name: Integration test
         run: |
-          pixi run test-notebooks -v -s --html="${{ env.COVERAGE_REPORT }}" --self-contained-html --cov=parcels --cov-report=xml
+          pixi run test-notebooks -v -s --html="${COVERAGE_REPORT}" --self-contained-html --cov=parcels --cov-report=xml
       - name: Codecov
         uses: codecov/codecov-action@5a1091511ad55cbe89839c7260b706298ca349f7 # v5.5.1
         env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
+          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }} # zizmor: ignore[secrets-outside-env]
         with:
           flags: integration-tests
       - name: Upload test results
@@ -158,6 +175,7 @@ jobs:
           path: ${{ env.COVERAGE_REPORT }}
   merge-test-artifacts:
     runs-on: ubuntu-latest
+    permissions: {}
     needs:
       - unit-test
       - integration-test
@@ -172,9 +190,13 @@ jobs:
     name: "TypeChecking: pixi run typing"
     runs-on: ubuntu-latest
     needs: [cache-pixi-lock]
+    permissions:
+      contents: read
     steps:
       - name: Checkout
         uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+        with:
+          persist-credentials: false
       - name: Restore cached pixi lockfile
         uses: Parcels-code/pixi-lock/restore@a9aee67fa67426e6b0297fa5bef80600572be153
         with:
@@ -198,6 +220,7 @@ jobs:
       - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           fetch-depth: 0
+          persist-credentials: false
       - name: Restore cached pixi lockfile
         uses: Parcels-code/pixi-lock/restore@a9aee67fa67426e6b0297fa5bef80600572be153
         with:
@@ -219,4 +242,4 @@ jobs:
             pixi run -e build rattler-build upload prefix -c parcels "${pkg}"
           done
         env:
-          PREFIX_API_KEY: ${{ secrets.PREFIX_API_KEY }}
+          PREFIX_API_KEY: ${{ secrets.PREFIX_API_KEY }} # zizmor: ignore[secrets-outside-env]
