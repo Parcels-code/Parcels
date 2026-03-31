@@ -23,7 +23,7 @@ def test_nemo_to_sgrid():
         "node_dimensions": "x y",
         "face_dimensions": "x_center:x (padding:low) y_center:y (padding:low)",
         "node_coordinates": "lon lat",
-        "vertical_dimensions": "z_center:depth (padding:high)",
+        "vertical_dimensions": "depth_center:depth (padding:high)",
     }
 
     meta = sgrid.parse_grid_attrs(ds["grid"].attrs)

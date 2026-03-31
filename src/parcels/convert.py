@@ -24,7 +24,10 @@ from parcels._logger import logger
 if typing.TYPE_CHECKING:
     import uxarray as ux
 
-_NEMO_EXPECTED_COORDS = ["glamf", "gphif", "depthw"]
+_NEMO_EXPECTED_COORDS = [
+    "glamf",
+    "gphif",
+]  # "depthw" # TODO: Depthw needs to be available if the data has a depth dim. Refactor the whole convert module, this can surely all be handled better.
 
 _NEMO_DIMENSION_COORD_NAMES = [
     "x",
@@ -541,7 +544,7 @@ def copernicusmarine_to_sgrid(
                 sgrid.DimDimPadding("x_center", "lon", sgrid.Padding.LOW),
                 sgrid.DimDimPadding("y_center", "lat", sgrid.Padding.LOW),
             ),
-            vertical_dimensions=(sgrid.DimDimPadding("z_center", "depth", sgrid.Padding.LOW),),
+            vertical_dimensions=(sgrid.DimDimPadding("depth_center", "depth", sgrid.Padding.LOW),),
         ).to_attrs(),
     )
 
