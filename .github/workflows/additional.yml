@@ -11,8 +11,8 @@ jobs:
     env:
       COLUMNS: 120
     steps:
-      - uses: actions/checkout@v5
-      - uses: astral-sh/setup-uv@v7
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
         with:
           version: "0.9.26"
       - run: |
@@ -27,8 +27,8 @@ jobs:
     runs-on: "ubuntu-latest"
 
     steps:
-      - uses: actions/checkout@v5
-      - uses: prefix-dev/setup-pixi@v0.9.0
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
+      - uses: prefix-dev/setup-pixi@fef5c9568ca6c4ff7707bf840ab0692ba3f08293 # v0.9.0
       - run: pixi run docs-linkcheck
 
   create-issue-on-failure:
@@ -43,7 +43,7 @@ jobs:
       issues: write
     steps:
       - name: Create issue
-        uses: actions/github-script@v8
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         with:
           script: |
             const workflowUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;

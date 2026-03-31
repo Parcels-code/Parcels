@@ -22,10 +22,10 @@ jobs:
       github.repository == 'Parcels-code/Parcels'
       && (github.event_name == 'push' || github.event_name == 'pull_request')
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           fetch-depth: 2
-      - uses: xarray-contrib/ci-trigger@v1
+      - uses: xarray-contrib/ci-trigger@74ddc46fc6ca7509549ac7b660d7a185948c1e74 # v1
         id: check-skip
         with:
           keyword: "[skip-ci]"
@@ -42,10 +42,10 @@ jobs:
       cache-key: ${{ steps.pixi-lock.outputs.cache-key }}
       pixi-version: ${{ steps.pixi-lock.outputs.pixi-version }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4
       - uses: Parcels-code/pixi-lock/create-and-cache@a9aee67fa67426e6b0297fa5bef80600572be153
         id: pixi-lock
-      - uses: actions/upload-artifact@v7
+      - uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
         with:
           name: pixi-lock
           path: pixi.lock
@@ -69,12 +69,12 @@ jobs:
           - os: ubuntu
             pixi-environment: "test-minimum"
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
       - name: Restore cached pixi lockfile
         uses: Parcels-code/pixi-lock/restore@a9aee67fa67426e6b0297fa5bef80600572be153
         with:
           cache-key: ${{ needs.cache-pixi-lock.outputs.cache-key }}
-      - uses: prefix-dev/setup-pixi@v0.9.0
+      - uses: prefix-dev/setup-pixi@fef5c9568ca6c4ff7707bf840ab0692ba3f08293 # v0.9.0
         with:
           pixi-version: ${{ needs.cache-pixi-lock.outputs.pixi-version }}
           locked: false # TODO: Remove once v7 of the lock file is removed, or once we stop having external source dependencies https://github.com/Parcels-code/Parcels/pull/2550#issuecomment-4088660238
@@ -83,7 +83,7 @@ jobs:
       # https://github.com/actions/cache/blob/main/tips-and-workarounds.md#update-a-cache
       - name: Restore cached hypothesis directory
         id: restore-hypothesis-cache
-        uses: actions/cache/restore@v4
+        uses: actions/cache/restore@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: .hypothesis/
           key: cache-hypothesis-${{ runner.os }}-${{ github.run_id }}
@@ -97,19 +97,19 @@ jobs:
       - name: Save cached hypothesis directory
         id: save-hypothesis-cache
         if: always() && steps.unit-test.outcome != 'skipped'
-        uses: actions/cache/save@v4
+        uses: actions/cache/save@0057852bfaa89a56745cba8c7296529d2fc39830 # v4
         with:
           path: .hypothesis/
           key: cache-hypothesis-${{ runner.os }}-${{ github.run_id }}
       - name: Codecov
-        uses: codecov/codecov-action@v5.5.1
+        uses: codecov/codecov-action@5a1091511ad55cbe89839c7260b706298ca349f7 # v5.5.1
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         with:
           flags: unit-tests
       - name: Upload test results
         if: ${{ always() }} # Always run this step, even if tests fail
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
         with:
           name: Unittest report ${{ matrix.os }}-${{ matrix.pixi-environment }}
           path: ${{ env.COVERAGE_REPORT }}
@@ -130,12 +130,12 @@ jobs:
           - os: ubuntu
             python-version: "3.11"
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
       - name: Restore cached pixi lockfile
         uses: Parcels-code/pixi-lock/restore@a9aee67fa67426e6b0297fa5bef80600572be153
         with:
           cache-key: ${{ needs.cache-pixi-lock.outputs.cache-key }}
-      - uses: prefix-dev/setup-pixi@v0.9.0
+      - uses: prefix-dev/setup-pixi@fef5c9568ca6c4ff7707bf840ab0692ba3f08293 # v0.9.0
         with:
           pixi-version: ${{ needs.cache-pixi-lock.outputs.pixi-version }}
           locked: false # TODO: Remove once v7 of the lock file is removed, or once we stop having external source dependencies https://github.com/Parcels-code/Parcels/pull/2550#issuecomment-4088660238
@@ -145,14 +145,14 @@ jobs:
         run: |
           pixi run test-notebooks -v -s --html="${{ env.COVERAGE_REPORT }}" --self-contained-html --cov=parcels --cov-report=xml
       - name: Codecov
-        uses: codecov/codecov-action@v5.5.1
+        uses: codecov/codecov-action@5a1091511ad55cbe89839c7260b706298ca349f7 # v5.5.1
         env:
           CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }}
         with:
           flags: integration-tests
       - name: Upload test results
         if: ${{ always() }} # Always run this step, even if tests fail
-        uses: actions/upload-artifact@v7
+        uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
         with:
           name: Integration test report ${{ matrix.os }}-${{ matrix.pixi-environment }}
           path: ${{ env.COVERAGE_REPORT }}
@@ -164,7 +164,7 @@ jobs:
       - typechecking
     steps:
       - name: Merge Artifacts
-        uses: actions/upload-artifact/merge@v7
+        uses: actions/upload-artifact/merge@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7
         with:
           name: Testing reports
           pattern: "* report *"
@@ -174,12 +174,12 @@ jobs:
     needs: [cache-pixi-lock]
     steps:
       - name: Checkout
-        uses: actions/checkout@v5
+        uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
       - name: Restore cached pixi lockfile
         uses: Parcels-code/pixi-lock/restore@a9aee67fa67426e6b0297fa5bef80600572be153
         with:
           cache-key: ${{ needs.cache-pixi-lock.outputs.cache-key }}
-      - uses: prefix-dev/setup-pixi@v0.9.0
+      - uses: prefix-dev/setup-pixi@fef5c9568ca6c4ff7707bf840ab0692ba3f08293 # v0.9.0
         with:
           pixi-version: ${{ needs.cache-pixi-lock.outputs.pixi-version }}
           locked: false # TODO: Remove once v7 of the lock file is removed, or once we stop having external source dependencies https://github.com/Parcels-code/Parcels/pull/2550#issuecomment-4088660238
@@ -195,14 +195,14 @@ jobs:
       id-token: write
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@93cb6efe18208431cddfb8368fd83d5badbf9bfd # v5
         with:
           fetch-depth: 0
       - name: Restore cached pixi lockfile
         uses: Parcels-code/pixi-lock/restore@a9aee67fa67426e6b0297fa5bef80600572be153
         with:
           cache-key: ${{ needs.cache-pixi-lock.outputs.cache-key }}
-      - uses: prefix-dev/setup-pixi@v0.9.0
+      - uses: prefix-dev/setup-pixi@fef5c9568ca6c4ff7707bf840ab0692ba3f08293 # v0.9.0
         with:
           pixi-version: ${{ needs.cache-pixi-lock.outputs.pixi-version }}
           locked: false # TODO: Remove once v7 of the lock file is removed, or once we stop having external source dependencies https://github.com/Parcels-code/Parcels/pull/2550#issuecomment-4088660238
