@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import typing
 import warnings
+from typing import cast
 
 import numpy as np
 import xarray as xr
@@ -348,10 +349,10 @@ def nemo_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.Da
             node_dimensions=("x", "y"),
             node_coordinates=("glamf", "gphif"),
             face_dimensions=(
-                sgrid.DimDimPadding("x_center", "x", sgrid.Padding.LOW),
-                sgrid.DimDimPadding("y_center", "y", sgrid.Padding.LOW),
+                sgrid.FaceNodePadding("x_center", "x", sgrid.Padding.LOW),
+                sgrid.FaceNodePadding("y_center", "y", sgrid.Padding.LOW),
             ),
-            vertical_dimensions=(sgrid.DimDimPadding("depth_center", "depth", sgrid.Padding.HIGH),),
+            vertical_dimensions=(sgrid.FaceNodePadding("depth_center", "depth", sgrid.Padding.HIGH),),
         ).to_attrs(),
     )
 
@@ -416,10 +417,10 @@ def mitgcm_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.
             node_dimensions=("lon", "lat"),
             node_coordinates=("lon", "lat"),
             face_dimensions=(
-                sgrid.DimDimPadding("XC", "lon", sgrid.Padding.HIGH),
-                sgrid.DimDimPadding("YC", "lat", sgrid.Padding.HIGH),
+                sgrid.FaceNodePadding("XC", "lon", sgrid.Padding.HIGH),
+                sgrid.FaceNodePadding("YC", "lat", sgrid.Padding.HIGH),
             ),
-            vertical_dimensions=(sgrid.DimDimPadding("depth", "depth", sgrid.Padding.HIGH),),
+            vertical_dimensions=(sgrid.FaceNodePadding("depth", "depth", sgrid.Padding.HIGH),),
         ).to_attrs(),
     )
 
@@ -477,10 +478,10 @@ def croco_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.D
             node_dimensions=("lon", "lat"),
             node_coordinates=("lon", "lat"),
             face_dimensions=(
-                sgrid.DimDimPadding("xi_u", "xi_rho", sgrid.Padding.HIGH),
-                sgrid.DimDimPadding("eta_v", "eta_rho", sgrid.Padding.HIGH),
+                sgrid.FaceNodePadding("xi_u", "xi_rho", sgrid.Padding.HIGH),
+                sgrid.FaceNodePadding("eta_v", "eta_rho", sgrid.Padding.HIGH),
             ),
-            vertical_dimensions=(sgrid.DimDimPadding("s_rho", "depth", sgrid.Padding.HIGH),),
+            vertical_dimensions=(sgrid.FaceNodePadding("s_rho", "depth", sgrid.Padding.HIGH),),
         ).to_attrs(),
     )
 
@@ -541,10 +542,10 @@ def copernicusmarine_to_sgrid(
             node_dimensions=("lon", "lat"),
             node_coordinates=("lon", "lat"),
             face_dimensions=(
-                sgrid.DimDimPadding("x_center", "lon", sgrid.Padding.LOW),
-                sgrid.DimDimPadding("y_center", "lat", sgrid.Padding.LOW),
+                sgrid.FaceNodePadding("x_center", "lon", sgrid.Padding.LOW),
+                sgrid.FaceNodePadding("y_center", "lat", sgrid.Padding.LOW),
             ),
-            vertical_dimensions=(sgrid.DimDimPadding("depth_center", "depth", sgrid.Padding.LOW),),
+            vertical_dimensions=(sgrid.FaceNodePadding("depth_center", "depth", sgrid.Padding.LOW),),
         ).to_attrs(),
     )
 
@@ -585,7 +586,7 @@ def _detect_vertical_coordinates(
     ValueError
         If vertical coordinates cannot be detected.
     """
-    ds_dims = set(ds.dims)
+    ds_dims = cast(set[str], set(ds.dims))
 
     # Strategy 1: Use known mappings if provided and dimensions exist
     if known_mappings is not None:

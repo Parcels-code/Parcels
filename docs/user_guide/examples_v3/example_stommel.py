@@ -88,11 +88,6 @@ def AgeP(particle, fieldset, time):  # pragma: no cover
         particle.delete()
 
 
-def simple_partition_function(coords, mpi_size=1):
-    """A very simple partition function that assigns particles to processors (for MPI testing purposes))"""
-    return np.linspace(0, mpi_size, coords.shape[0], endpoint=False, dtype=np.int32)
-
-
 def stommel_example(
     npart=1,
     verbose=False,
@@ -101,7 +96,6 @@ def stommel_example(
     outfile="StommelParticle.zarr",
     repeatdt=None,
     maxage=None,
-    custom_partition_function=False,
 ):
     parcels.timer.fieldset = parcels.timer.Timer(
         "FieldSet", parent=parcels.timer.stommel
@@ -125,27 +119,15 @@ def stommel_example(
     ]
     MyParticle = parcels.Particle.add_variables(extra_vars)
 
-    if custom_partition_function:
-        pset = parcels.ParticleSet.from_line(
-            fieldset,
-            size=npart,
-            pclass=MyParticle,
-            repeatdt=repeatdt,
-            start=(10e3, 5000e3),
-            finish=(100e3, 5000e3),
-            time=0,
-            partition_function=simple_partition_function,
-        )
-    else:
-        pset = parcels.ParticleSet.from_line(
-            fieldset,
-            size=npart,
-            pclass=MyParticle,
-            repeatdt=repeatdt,
-            start=(10e3, 5000e3),
-            finish=(100e3, 5000e3),
-            time=0,
-        )
+    pset = parcels.ParticleSet.from_line(
+        fieldset,
+        size=npart,
+        pclass=MyParticle,
+        repeatdt=repeatdt,
+        start=(10e3, 5000e3),
+        finish=(100e3, 5000e3),
+        time=0,
+    )
 
     if verbose:
         print(f"Initial particle positions:\n{pset}")
@@ -245,12 +227,6 @@ Example of particle advection in the steady-state solution of the Stommel equati
         type=int,
         help="max age of the particles (after which particles are deleted)",
     )
-    p.add_argument(
-        "-cpf",
-        "--custom_partition_function",
-        default=False,
-        help="Use a custom partition_function (for MPI testing purposes)",
-    )
     args = p.parse_args(args)
 
     parcels.timer.args.stop()
@@ -262,7 +238,6 @@ Example of particle advection in the steady-state solution of the Stommel equati
         outfile=args.outfile,
         repeatdt=args.repeatdt,
         maxage=args.maxage,
-        custom_partition_function=args.custom_partition_function,
     )
     parcels.timer.stommel.stop()
     parcels.timer.root.stop()

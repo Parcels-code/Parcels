@@ -4,7 +4,7 @@ import numpy as np
 import xarray as xr
 
 from parcels._core.utils.sgrid import (
-    DimDimPadding,
+    FaceNodePadding,
     Grid2DMetadata,
     Padding,
     _attach_sgrid_metadata,
@@ -35,10 +35,10 @@ def simple_UV_dataset(dims=(360, 2, 30, 4), maxdepth=1, mesh="spherical"):
             topology_dimension=2,
             node_dimensions=("XG", "YG"),
             face_dimensions=(
-                DimDimPadding("XC", "XG", Padding.LOW),
-                DimDimPadding("YC", "YG", Padding.LOW),
+                FaceNodePadding("XC", "XG", Padding.LOW),
+                FaceNodePadding("YC", "YG", Padding.LOW),
             ),
-            vertical_dimensions=(DimDimPadding("ZC", "depth", Padding.BOTH),),
+            vertical_dimensions=(FaceNodePadding("ZC", "depth", Padding.BOTH),),
         ),
     )
 
