@@ -74,7 +74,7 @@ jobs:
         uses: Parcels-code/pixi-lock/restore@a9aee67fa67426e6b0297fa5bef80600572be153
         with:
           cache-key: ${{ needs.cache-pixi-lock.outputs.cache-key }}
-      - uses: prefix-dev/setup-pixi@v0.9.0
+      - uses: prefix-dev/setup-pixi@v0.9.5
         with:
           pixi-version: ${{ needs.cache-pixi-lock.outputs.pixi-version }}
           locked: false # TODO: Remove once v7 of the lock file is removed, or once we stop having external source dependencies https://github.com/Parcels-code/Parcels/pull/2550#issuecomment-4088660238
@@ -135,7 +135,7 @@ jobs:
         uses: Parcels-code/pixi-lock/restore@a9aee67fa67426e6b0297fa5bef80600572be153
         with:
           cache-key: ${{ needs.cache-pixi-lock.outputs.cache-key }}
-      - uses: prefix-dev/setup-pixi@v0.9.0
+      - uses: prefix-dev/setup-pixi@v0.9.5
         with:
           pixi-version: ${{ needs.cache-pixi-lock.outputs.pixi-version }}
           locked: false # TODO: Remove once v7 of the lock file is removed, or once we stop having external source dependencies https://github.com/Parcels-code/Parcels/pull/2550#issuecomment-4088660238
@@ -179,7 +179,7 @@ jobs:
         uses: Parcels-code/pixi-lock/restore@a9aee67fa67426e6b0297fa5bef80600572be153
         with:
           cache-key: ${{ needs.cache-pixi-lock.outputs.cache-key }}
-      - uses: prefix-dev/setup-pixi@v0.9.0
+      - uses: prefix-dev/setup-pixi@v0.9.5
         with:
           pixi-version: ${{ needs.cache-pixi-lock.outputs.pixi-version }}
           locked: false # TODO: Remove once v7 of the lock file is removed, or once we stop having external source dependencies https://github.com/Parcels-code/Parcels/pull/2550#issuecomment-4088660238
@@ -202,7 +202,7 @@ jobs:
         uses: Parcels-code/pixi-lock/restore@a9aee67fa67426e6b0297fa5bef80600572be153
         with:
           cache-key: ${{ needs.cache-pixi-lock.outputs.cache-key }}
-      - uses: prefix-dev/setup-pixi@v0.9.0
+      - uses: prefix-dev/setup-pixi@v0.9.5
         with:
           pixi-version: ${{ needs.cache-pixi-lock.outputs.pixi-version }}
           locked: false # TODO: Remove once v7 of the lock file is removed, or once we stop having external source dependencies https://github.com/Parcels-code/Parcels/pull/2550#issuecomment-4088660238
