@@ -130,7 +130,6 @@ class ParticleSet:
             self._data[kwvar][:] = kwval
 
         self._kernel = None
-        self._requires_prepended_positionupdate_kernel = False
 
     def __del__(self):
         if self._data is not None and isinstance(self._data, xr.Dataset):
@@ -422,7 +421,12 @@ class ParticleSet:
             pbar = tqdm(total=end_time - start_time, file=sys.stdout)
             pbar.set_description("Integration time: " + str(start_time))
 
-        next_output = start_time if output_file else None
+        next_output = None
+        if output_file :
+            # Write the initial condition
+            output_file.write(self, start_time)
+            # Increment the next_output 
+            next_output = start_time + outputdt
 
         time = start_time
         while sign_dt * (time - end_time) < 0:

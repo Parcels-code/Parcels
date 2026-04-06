@@ -80,8 +80,7 @@ class Kernel:
 
         self._kernels: list[Callable] = kernels
 
-        if pset._requires_prepended_positionupdate_kernel:
-            self.prepend_positionupdate_kernel()
+        self.append_positionupdate_kernel()
 
     @property  #! Ported from v3. To be removed in v4? (/find another way to name kernels in output file)
     def funcname(self):
@@ -108,7 +107,7 @@ class Kernel:
         if len(indices) > 0:
             pset.remove_indices(indices)
 
-    def prepend_positionupdate_kernel(self):
+    def append_positionupdate_kernel(self):
         # Adding kernels that set and update the coordinate changes
         def PositionUpdate(particles, fieldset):  # pragma: no cover
             particles.lon += particles.dlon
@@ -124,7 +123,7 @@ class Kernel:
                 # Update dt in case it's increased in RK45 kernel
                 particles.dt = particles.next_dt
 
-        self._kernels = [PositionUpdate] + self._kernels
+        self._kernels = self._kernels + [PositionUpdate]
 
     def check_fieldsets_in_kernels(self, kernel):  # TODO v4: this can go into another method? assert_is_compatible()?
         """
@@ -243,10 +242,5 @@ class Kernel:
                         error_func(pset[inds].time)
                     else:
                         error_func(pset[inds].z, pset[inds].lat, pset[inds].lon)
-
-            # Only prepend PositionUpdate kernel at the end of the first execute call to avoid adding dt to time too early
-            if not pset._requires_prepended_positionupdate_kernel:
-                self.prepend_positionupdate_kernel()
-                pset._requires_prepended_positionupdate_kernel = True
 
         return pset
