@@ -9,8 +9,12 @@ repos:
       - id: check-json
         types: [text]
         files: \.(json|ipynb)$
+  - repo: https://github.com/zizmorcore/zizmor-pre-commit
+    rev: v1.23.1
+    hooks:
+      - id: zizmor
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.4
+    rev: v0.15.9
     hooks:
       - id: ruff
         name: ruff lint (.py)

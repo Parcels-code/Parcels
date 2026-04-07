@@ -4,15 +4,21 @@ on:
   schedule:
     - cron: "0 0 1 */3 *" # Run every 3 months
 
+permissions: {}
+
 jobs:
   min-version-policy:
     name: Minimum Version Policy
     runs-on: "ubuntu-latest"
+    permissions:
+      contents: read
     env:
       COLUMNS: 120
     steps:
-      - uses: actions/checkout@v5
-      - uses: astral-sh/setup-uv@v7
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: astral-sh/setup-uv@37802adc94f370d6bfd71619e3f0bf239e1f3b78 # v7
         with:
           version: "0.9.26"
       - run: |
@@ -25,10 +31,14 @@ jobs:
   linkcheck:
     name: pixi run docs-linkcheck
     runs-on: "ubuntu-latest"
+    permissions:
+      contents: read
 
     steps:
-      - uses: actions/checkout@v5
-      - uses: prefix-dev/setup-pixi@v0.9.0
+      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        with:
+          persist-credentials: false
+      - uses: prefix-dev/setup-pixi@fef5c9568ca6c4ff7707bf840ab0692ba3f08293 # v0.9.0
       - run: pixi run docs-linkcheck
 
   create-issue-on-failure:
@@ -43,7 +53,7 @@ jobs:
       issues: write
     steps:
       - name: Create issue
-        uses: actions/github-script@v8
+        uses: actions/github-script@ed597411d8f924073f98dfc5c65a23a2325f34cd # v8
         with:
           script: |
             const workflowUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
