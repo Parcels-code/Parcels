@@ -241,9 +241,10 @@ class _DatetimeDecoder(json.JSONDecoder):
 
 
 def dataset_from_json(path: PathLike) -> xr.Dataset:
+    """Read in a representative Xarray dataset from a JSON filed created by `dataset_to_json`."""
     with open(path) as f:
         d = json.load(f, cls=_DatetimeDecoder)
-    assert d["version"] == "1", f"Version of TOML CDL representation must be '1'. Got {d['version']!r}"
+    assert d["version"] == "1", f"Version of Parcels JSON CDL representation must be '1'. Got {d['version']!r}"
 
     ds_dict = _fill_with_dummy_data(d["dataset"])
 
@@ -251,12 +252,22 @@ def dataset_from_json(path: PathLike) -> xr.Dataset:
 
 
 def dataset_to_json(ds: xr.Dataset, path: PathLike) -> None:
+    """Serialize a dataset to JSON with coordinate arrays.
+
+    Does not support CFtime time coordinate.
+    """
     with open(path, "w") as f:
         d = {
             "version": "1",
             "dataset": _dataset_to_dict_with_coordinate_arrays(ds),
         }
-        json.dump(d, f, cls=_DatetimeEncoder)
+        try:
+            json.dump(d, f, cls=_DatetimeEncoder)
+        except TypeError as e:
+            e.add_note(
+                "This function does not support CFtime time coordinates. Replace with datetime or float coordinates using (e.g., `ds['time'] = ...`)."
+            )
+            raise e
     return
 
 
