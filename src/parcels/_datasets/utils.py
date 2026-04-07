@@ -1,10 +1,15 @@
 import copy
-from typing import Any
+from collections.abc import Mapping
+from typing import Any, TypeVar, cast
 
 import numpy as np
 import xarray as xr
 
+from parcels._typing import PathLike
+
 _SUPPORTED_ATTR_TYPES = int | float | str | np.ndarray
+K = TypeVar("K")
+V = TypeVar("V")
 
 
 def _print_mismatched_keys(d1: dict[Any, Any], d2: dict[Any, Any]) -> None:
@@ -201,6 +206,68 @@ def from_xarray_dataset_dict(d) -> xr.Dataset:
     >>> ds2 = from_xarray_dataset_dict(d)
     """
     return xr.Dataset.from_dict(_fill_with_dummy_data(copy.deepcopy(d)))
+
+
+def dataset_from_json(path: PathLike) -> xr.Dataset:
+    import json
+
+    with open(path, "rb") as f:
+        d = json.load(f)
+    assert d["version"] == "1", f"Version of TOML CDL representation must be '1'. Got {d['version']!r}"
+
+    ds_dict = _fill_with_dummy_data(d["dataset"])
+
+    return xr.Dataset.from_dict(ds_dict)
+
+
+def dataset_to_json(ds: xr.Dataset, path: PathLike) -> None:
+    import json
+
+    with open(path, "w") as f:
+        d = {
+            "version": "1",
+            "dataset": _dataset_to_dict_with_coordinate_arrays(ds),
+        }
+        json.dump(d, f)
+    return
+
+
+def _decode_numpy_dict_values(attrs: Mapping[K, V]) -> dict[K, V]:
+    """Convert attribute values from numpy objects to native Python objects,
+    for use in to_dict
+    """
+    attrs = dict(attrs)
+    for k, v in attrs.items():
+        if isinstance(v, np.ndarray):
+            attrs[k] = cast(V, v.tolist())
+        elif isinstance(v, np.generic):
+            attrs[k] = v.item()
+    return attrs
+
+
+def _dataset_to_dict_with_coordinate_arrays(ds: xr.Dataset) -> dict:
+    # Implementation mostly copied from xr.Dataset.to_dict()
+    encoding = True
+
+    d: dict = {
+        "coords": {},
+        "attrs": _decode_numpy_dict_values(ds.attrs),
+        "dims": dict(ds.sizes),
+        "data_vars": {},
+    }
+    for k in ds.coords:
+        d["coords"].update(
+            {
+                k: ds[k].variable.to_dict(data="list", encoding=encoding)
+            }  # data='list' so coordinates are written to file
+        )
+    for k in ds.data_vars:
+        d["data_vars"].update(
+            {k: ds[k].variable.to_dict(data=False, encoding=encoding)}  # data=False so that data isn't writen to file
+        )
+    if encoding:
+        d["encoding"] = dict(ds.encoding)
+    return d
 
 
 def _fill_with_dummy_data(d: dict[str, dict]):
