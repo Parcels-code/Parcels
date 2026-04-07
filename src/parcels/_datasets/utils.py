@@ -1,11 +1,15 @@
 import copy
+import re
 from collections.abc import Mapping
+from datetime import datetime
 from typing import Any, TypeVar, cast
 
 import numpy as np
 import xarray as xr
 
 from parcels._typing import PathLike
+
+_ISO_DATETIME_RE = re.compile(r"^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}")
 
 _SUPPORTED_ATTR_TYPES = int | float | str | np.ndarray
 K = TypeVar("K")
@@ -208,6 +212,28 @@ def from_xarray_dataset_dict(d) -> xr.Dataset:
     return xr.Dataset.from_dict(_fill_with_dummy_data(copy.deepcopy(d)))
 
 
+def _datetimes_to_iso(obj: Any) -> Any:
+    """Recursively convert datetime objects to ISO format strings."""
+    if isinstance(obj, datetime):
+        return obj.isoformat()
+    if isinstance(obj, list):
+        return [_datetimes_to_iso(v) for v in obj]
+    if isinstance(obj, dict):
+        return {k: _datetimes_to_iso(v) for k, v in obj.items()}
+    return obj
+
+
+def _iso_to_datetimes(obj: Any) -> Any:
+    """Recursively convert ISO datetime strings back to datetime objects."""
+    if isinstance(obj, str) and _ISO_DATETIME_RE.match(obj):
+        return datetime.fromisoformat(obj)
+    if isinstance(obj, list):
+        return [_iso_to_datetimes(v) for v in obj]
+    if isinstance(obj, dict):
+        return {k: _iso_to_datetimes(v) for k, v in obj.items()}
+    return obj
+
+
 def dataset_from_json(path: PathLike) -> xr.Dataset:
     import json
 
@@ -215,7 +241,7 @@ def dataset_from_json(path: PathLike) -> xr.Dataset:
         d = json.load(f)
     assert d["version"] == "1", f"Version of TOML CDL representation must be '1'. Got {d['version']!r}"
 
-    ds_dict = _fill_with_dummy_data(d["dataset"])
+    ds_dict = _fill_with_dummy_data(_iso_to_datetimes(d["dataset"]))
 
     return xr.Dataset.from_dict(ds_dict)
 
@@ -226,7 +252,7 @@ def dataset_to_json(ds: xr.Dataset, path: PathLike) -> None:
     with open(path, "w") as f:
         d = {
             "version": "1",
-            "dataset": _dataset_to_dict_with_coordinate_arrays(ds),
+            "dataset": _datetimes_to_iso(_dataset_to_dict_with_coordinate_arrays(ds)),
         }
         json.dump(d, f)
     return
