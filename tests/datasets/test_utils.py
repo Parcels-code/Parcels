@@ -1,6 +1,7 @@
 import json
 from datetime import datetime
 
+import numpy as np
 import pytest
 import xarray as xr
 
@@ -45,8 +46,20 @@ def _replace_with_cf_time(ds) -> xr.Dataset:
 def test_dataset_json_roundtrip(ds: xr.Dataset, tmp_path):
     path = tmp_path / "dataset-metadata.json"
     utils.dataset_to_json(ds, path)
-    ds_parsed = utils.dataset_from_json(path)  # noqa: F841
-    # breakpoint()
+    ds_parsed = utils.dataset_from_json(path)
+
+    assert list(ds_parsed.coords) == list(ds.coords)
+    assert list(ds_parsed.data_vars) == list(ds.data_vars)
+
+    for k in set(ds.data_vars):
+        assert ds_parsed[k].attrs == ds[k].attrs, f"Attrs for {k!r} do not match"
+
+    for k in set(ds.coords):
+        assert ds_parsed[k].attrs == ds[k].attrs, f"Attrs for {k!r} do not match"
+        if isinstance(ds_parsed[k].dtype, np.dtypes.DateTime64DType):
+            np.testing.assert_equal(ds_parsed[k].values, ds[k].values)
+        else:
+            np.testing.assert_allclose(ds_parsed[k].values, ds[k].values)
 
 
 @pytest.mark.parametrize("ds", [pytest.param(_replace_with_cf_time(datasets["ds_2d_left"]), id="cftime-ds_2d_left")])
