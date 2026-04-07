@@ -210,7 +210,7 @@ def from_xarray_dataset_dict(d) -> xr.Dataset:
     return xr.Dataset.from_dict(_fill_with_dummy_data(copy.deepcopy(d)))
 
 
-class _DatetimeEncoder(json.JSONEncoder):
+class _XarrayEncoder(json.JSONEncoder):
     """Convert all datetime objects within to be isoformat strings."""
 
     def default(self, o: Any) -> Any:
@@ -219,7 +219,7 @@ class _DatetimeEncoder(json.JSONEncoder):
         return super().default(o)
 
 
-class _DatetimeDecoder(json.JSONDecoder):
+class _XarrayDecoder(json.JSONDecoder):
     """Convert all isoformat datetime strings within to be datetime objects."""
 
     def raw_decode(self, s: str, idx: int = 0) -> tuple[Any, int]:
@@ -234,16 +234,16 @@ class _DatetimeDecoder(json.JSONDecoder):
             except ValueError:
                 return obj
         if isinstance(obj, list):
-            return [_DatetimeDecoder._convert(v) for v in obj]
+            return [_XarrayDecoder._convert(v) for v in obj]
         if isinstance(obj, dict):
-            return {k: _DatetimeDecoder._convert(v) for k, v in obj.items()}
+            return {k: _XarrayDecoder._convert(v) for k, v in obj.items()}
         return obj
 
 
 def dataset_from_json(path: PathLike) -> xr.Dataset:
     """Read in a representative Xarray dataset from a JSON filed created by `dataset_to_json`."""
     with open(path) as f:
-        d = json.load(f, cls=_DatetimeDecoder)
+        d = json.load(f, cls=_XarrayDecoder)
     assert d["version"] == "1", f"Version of Parcels JSON CDL representation must be '1'. Got {d['version']!r}"
 
     ds_dict = _fill_with_dummy_data(d["dataset"])
@@ -262,7 +262,7 @@ def dataset_to_json(ds: xr.Dataset, path: PathLike) -> None:
             "dataset": _dataset_to_dict_with_coordinate_arrays(ds),
         }
         try:
-            json.dump(d, f, cls=_DatetimeEncoder)
+            json.dump(d, f, cls=_XarrayEncoder)
         except TypeError as e:
             e.add_note(
                 "This function does not support CFtime time coordinates. Replace with datetime or float coordinates using (e.g., `ds['time'] = ...`)."
