@@ -2,7 +2,9 @@ import copy
 import json
 from collections.abc import Mapping
 from datetime import datetime
-from typing import Any, TypeVar, cast
+from functools import partial
+from pathlib import Path
+from typing import Any, Literal, TypeVar, cast
 
 import numpy as np
 import xarray as xr
@@ -251,12 +253,31 @@ def dataset_from_json(path: PathLike) -> xr.Dataset:
     return xr.Dataset.from_dict(ds_dict)
 
 
-def dataset_to_json(ds: xr.Dataset, path: PathLike) -> None:
+def get_opener(mode: Literal["r", "w"], compressed: bool):
+    import gzip
+
+    if compressed:
+        return partial(gzip.open, mode=f"{mode}t", encoding="utf-8")
+    else:
+        return partial(open, mode=mode)
+
+
+def dataset_to_json(ds: xr.Dataset, path: PathLike, compressed=False) -> None:
     """Serialize a dataset to JSON with coordinate arrays.
 
     Does not support CFtime time coordinate.
     """
-    with open(path, "w") as f:
+    path = Path(path)
+    if compressed:
+        if path.suffix != ".gz":
+            raise ValueError(f"Path suffix must be '.gz' . Got {path.suffix}")
+    else:
+        if path.suffix != ".json":
+            raise ValueError(f"Path suffix must be '.json' . Got {path.suffix}")
+
+    _open = get_opener(mode="w", compressed=compressed)
+
+    with _open(path) as f:
         d = {
             "version": "1",
             "dataset": _dataset_to_dict_with_coordinate_arrays(ds),
@@ -286,7 +307,7 @@ def _decode_numpy_dict_values(attrs: Mapping[K, V]) -> dict[K, V]:
 
 def _dataset_to_dict_with_coordinate_arrays(ds: xr.Dataset) -> dict:
     # Implementation mostly copied from xr.Dataset.to_dict()
-    encoding = True
+    encoding = False
 
     d: dict = {
         "coords": {},
