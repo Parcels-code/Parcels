@@ -191,12 +191,23 @@ def compare_datasets(ds1, ds2, ds1_name="Dataset 1", ds2_name="Dataset 2", verbo
 def replace_arrays_with_zeros(
     ds: xr.Dataset, except_for: Literal["coords"] | list[Hashable] | None = None
 ) -> xr.Dataset:
-    """Replace datavars in the xarray dataset with with zeros, except for some.
+    """Replace datavars in the xarray dataset with zeros, except for some.
 
-    except_for options:
-    - except_for=None: Replace all arrays with zeros
-    - except_for='coords': Replace all arrays with zeros except the non-index coords
-    - except_for=[...]: Provide list of items to exclude
+    Parameters
+    ----------
+    ds : xr.Dataset
+        The dataset whose arrays will be replaced with zeros.
+    except_for : "coords" or list of Hashable or None, optional
+        Controls which arrays are preserved:
+
+        - ``None``: Replace all arrays with zeros.
+        - ``"coords"``: Replace all arrays with zeros except the non-index coords.
+        - list: Provide a list of variable/coord names to exclude from zeroing.
+
+    Returns
+    -------
+    xr.Dataset
+        A copy of ``ds`` with the selected arrays replaced by zeros.
     """
     import dask.array as da
 
