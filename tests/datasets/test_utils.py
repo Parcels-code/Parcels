@@ -6,19 +6,6 @@ from parcels._datasets import utils
 from parcels._datasets.structured.generic import datasets
 
 
-def _replace_with_cf_time(ds) -> xr.Dataset:
-    import cftime
-
-    assert "time" in ds, "Dataset must have a dimension named 'time'"
-    ntime = 12
-    ntime = min(ntime, len(ds.time.values))
-    ds = ds.isel(time=slice(None, ntime))
-
-    dates = [cftime.DatetimeNoLeap(1, month, 1) for month in range(1, ntime + 1)]
-    ds["time"] = dates
-    return ds
-
-
 @pytest.fixture
 def nonzero_ds():
     """Small dataset with nonzero data_vars and non-index coords for replace_arrays_with_zeros tests.
