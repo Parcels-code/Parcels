@@ -260,12 +260,22 @@ def get_opener(mode: Literal["r", "w"], compressed: bool):
         return partial(open, mode=mode)
 
 
-def strip_datavars(ds: xr.Dataset) -> xr.Dataset:
-    """Replace the data-variables with zeros. Leave the coordinates as-is."""
+def replace_data_vars_with_zeros(ds: xr.Dataset, except_for: list[str] | None = None) -> xr.Dataset:
+    """Replace datavars in the xarray dataset with with zeros, except for some.
+
+    If except_for is None:
+    - Replace all non-coordinate arrays with zeros
+
+    If except_for is not None:
+    - Exclude items listed from the replacement
+    """
     import dask.array as da
 
+    if except_for is None:
+        except_for = []
+
     ds = ds.copy()
-    for k in ds.data_vars:
+    for k in set(ds.data_vars) - set(except_for):
         ds[k].data = da.zeros_like(ds[k].data)
     return ds
 
