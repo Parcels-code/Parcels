@@ -1,10 +1,8 @@
 import copy
 import json
-from collections.abc import Mapping
 from datetime import datetime
 from functools import partial
-from pathlib import Path
-from typing import Any, Literal, TypeVar, cast
+from typing import Any, Literal, TypeVar
 
 import numpy as np
 import xarray as xr
@@ -262,72 +260,14 @@ def get_opener(mode: Literal["r", "w"], compressed: bool):
         return partial(open, mode=mode)
 
 
-def dataset_to_json(ds: xr.Dataset, path: PathLike, compressed=False) -> None:
-    """Serialize a dataset to JSON with coordinate arrays.
+def strip_datavars(ds: xr.Dataset) -> xr.Dataset:
+    """Replace the data-variables with zeros. Leave the coordinates as-is."""
+    import dask.array as da
 
-    Does not support CFtime time coordinate.
-    """
-    path = Path(path)
-    if compressed:
-        if path.suffix != ".gz":
-            raise ValueError(f"Path suffix must be '.gz' . Got {path.suffix}")
-    else:
-        if path.suffix != ".json":
-            raise ValueError(f"Path suffix must be '.json' . Got {path.suffix}")
-
-    _open = get_opener(mode="w", compressed=compressed)
-
-    with _open(path) as f:
-        d = {
-            "version": "1",
-            "dataset": _dataset_to_dict_with_coordinate_arrays(ds),
-        }
-        try:
-            json.dump(d, f, cls=_XarrayEncoder)
-        except TypeError as e:
-            e.add_note(
-                "This function does not support CFtime time coordinates. Replace with datetime or float coordinates using (e.g., `ds['time'] = ...`)."
-            )
-            raise e
-    return
-
-
-def _decode_numpy_dict_values(attrs: Mapping[K, V]) -> dict[K, V]:
-    """Convert attribute values from numpy objects to native Python objects,
-    for use in to_dict
-    """
-    attrs = dict(attrs)
-    for k, v in attrs.items():
-        if isinstance(v, np.ndarray):
-            attrs[k] = cast(V, v.tolist())
-        elif isinstance(v, np.generic):
-            attrs[k] = v.item()
-    return attrs
-
-
-def _dataset_to_dict_with_coordinate_arrays(ds: xr.Dataset) -> dict:
-    # Implementation mostly copied from xr.Dataset.to_dict()
-    encoding = False
-
-    d: dict = {
-        "coords": {},
-        "attrs": _decode_numpy_dict_values(ds.attrs),
-        "dims": dict(ds.sizes),
-        "data_vars": {},
-    }
-    for k in ds.coords:
-        d["coords"].update(
-            {
-                k: ds[k].variable.to_dict(data="list", encoding=encoding)
-            }  # data='list' so coordinates are written to file
-        )
+    ds = ds.copy()
     for k in ds.data_vars:
-        d["data_vars"].update(
-            {k: ds[k].variable.to_dict(data=False, encoding=encoding)}  # data=False so that data isn't writen to file
-        )
-    if encoding:
-        d["encoding"] = dict(ds.encoding)
-    return d
+        ds[k].data = da.zeros_like(ds[k].data)
+    return ds
 
 
 def _fill_with_dummy_data(d: dict[str, dict]):
