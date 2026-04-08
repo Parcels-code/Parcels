@@ -52,6 +52,10 @@ def nonzero_ds():
         },
     )
 
+@pytest.mark.parametrize("ds", [pytest.param(v, id=k) for k,v in datasets.items()])
+@pytest.mark.parametrize("except_for", [None, "coords"])
+def test_replace_arrays_with_zeros(ds, except_for):
+    utils.replace_arrays_with_zeros(ds, except_for=except_for)
 
 def test_replace_arrays_with_zeros_none(nonzero_ds):
     """except_for=None: all data_vars and coords replaced with zeros."""
