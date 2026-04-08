@@ -1,20 +1,9 @@
-import json
-from datetime import datetime
-
 import numpy as np
 import pytest
 import xarray as xr
 
 from parcels._datasets import utils
 from parcels._datasets.structured.generic import datasets
-
-
-def test_datetime_encoder_decoder_roundtrip():
-    dt = datetime(2000, 1, 15, 12, 30, 45)
-    data = {"timestamps": [dt, dt], "nested": {"time": dt}, "value": 42}
-    encoded = json.dumps(data, cls=utils._DatetimeEncoder)
-    decoded = json.loads(encoded, cls=utils._DatetimeDecoder)
-    assert decoded == data
 
 
 def test_from_xarray_dataset_dict():
@@ -42,28 +31,67 @@ def _replace_with_cf_time(ds) -> xr.Dataset:
     return ds
 
 
-@pytest.mark.parametrize("ds", [pytest.param(v, id=k) for k, v in datasets.items()])
-def test_dataset_json_roundtrip(ds: xr.Dataset, tmp_path):
-    path = tmp_path / "dataset-metadata.json"
-    utils.dataset_to_json(ds, path)
-    ds_parsed = utils.dataset_from_json(path)
+@pytest.fixture
+def nonzero_ds():
+    """Small dataset with nonzero data_vars and non-index coords for replace_arrays_with_zeros tests.
 
-    assert list(ds_parsed.coords) == list(ds.coords)
-    assert list(ds_parsed.data_vars) == list(ds.data_vars)
+    Uses 2D lon/lat as coords so they are regular (non-index) variables that can be zeroed.
+    """
+    import dask.array as da
 
-    for k in set(ds.data_vars):
-        assert ds_parsed[k].attrs == ds[k].attrs, f"Attrs for {k!r} do not match"
+    lon = np.array([[1.0, 2.0, 3.0, 4.0]] * 3)
+    lat = np.array([[10.0] * 4, [20.0] * 4, [30.0] * 4])
+    return xr.Dataset(
+        {
+            "U": (["y", "x"], da.from_array(np.ones((3, 4)), chunks=-1)),
+            "V": (["y", "x"], da.from_array(np.full((3, 4), 2.0), chunks=-1)),
+        },
+        coords={
+            "lon": (["y", "x"], da.from_array(lon, chunks=-1)),
+            "lat": (["y", "x"], da.from_array(lat, chunks=-1)),
+        },
+    )
 
-    for k in set(ds.coords):
-        assert ds_parsed[k].attrs == ds[k].attrs, f"Attrs for {k!r} do not match"
-        if isinstance(ds_parsed[k].dtype, np.dtypes.DateTime64DType):
-            np.testing.assert_equal(ds_parsed[k].values, ds[k].values)
-        else:
-            np.testing.assert_allclose(ds_parsed[k].values, ds[k].values)
+
+def test_replace_arrays_with_zeros_none(nonzero_ds):
+    """except_for=None: all data_vars and coords replaced with zeros."""
+    result = utils.replace_arrays_with_zeros(nonzero_ds, except_for=None)
+
+    for k in set(result.data_vars) | set(result.coords):
+        assert np.all(result[k].values == 0), f"{k!r} should be zero"
 
 
-@pytest.mark.parametrize("ds", [pytest.param(_replace_with_cf_time(datasets["ds_2d_left"]), id="cftime-ds_2d_left")])
-def test_dataset_json_errors_with_cftime(ds: xr.Dataset, tmp_path):
-    path = tmp_path / "dataset-metadata.json"
-    with pytest.raises(TypeError, match="Object of type Datetime.* is not JSON serializable"):
-        utils.dataset_to_json(ds, path)
+def test_replace_arrays_with_zeros_coords(nonzero_ds):
+    """except_for='coords': data_vars zeroed, coords preserved."""
+    result = utils.replace_arrays_with_zeros(nonzero_ds, except_for="coords")
+
+    for k in result.data_vars:
+        assert np.all(result[k].values == 0), f"data_var {k!r} should be zero"
+
+    np.testing.assert_array_equal(result["lon"].values, nonzero_ds["lon"].values)
+    np.testing.assert_array_equal(result["lat"].values, nonzero_ds["lat"].values)
+
+
+def test_replace_arrays_with_zeros_list(nonzero_ds):
+    """except_for=[...]: listed variables preserved, others zeroed."""
+    result = utils.replace_arrays_with_zeros(nonzero_ds, except_for=["U", "lon"])
+
+    np.testing.assert_array_equal(result["U"].values, nonzero_ds["U"].values)
+    np.testing.assert_array_equal(result["lon"].values, nonzero_ds["lon"].values)
+    assert np.all(result["V"].values == 0), "V should be zero"
+    assert np.all(result["lat"].values == 0), "lat should be zero"
+
+
+def test_replace_arrays_with_zeros_does_not_mutate(nonzero_ds):
+    """Original dataset is not modified."""
+    original_U = nonzero_ds["U"].values.copy()
+    original_lon = nonzero_ds["lon"].values.copy()
+    utils.replace_arrays_with_zeros(nonzero_ds, except_for=None)
+    np.testing.assert_array_equal(nonzero_ds["U"].values, original_U)
+    np.testing.assert_array_equal(nonzero_ds["lon"].values, original_lon)
+
+
+def test_replace_arrays_with_zeros_invalid_key(nonzero_ds):
+    """Invalid key in except_for raises ValueError."""
+    with pytest.raises(ValueError, match="not a valid item"):
+        utils.replace_arrays_with_zeros(nonzero_ds, except_for=["nonexistent"])
