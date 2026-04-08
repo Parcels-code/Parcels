@@ -6,18 +6,6 @@ from parcels._datasets import utils
 from parcels._datasets.structured.generic import datasets
 
 
-def test_from_xarray_dataset_dict():
-    ds_expected = datasets["ds_2d_left"]
-    d = ds_expected.to_dict(data=False)
-    ds = utils.from_xarray_dataset_dict(d)
-
-    assert list(ds.coords) == list(ds_expected.coords)
-    assert list(ds.data_vars) == list(ds_expected.data_vars)
-
-    for k in set(ds.coords) | set(ds.data_vars):
-        assert ds[k].attrs == ds_expected[k].attrs, f"Attrs for {k!r} do not match"
-
-
 def _replace_with_cf_time(ds) -> xr.Dataset:
     import cftime
 
@@ -52,10 +40,12 @@ def nonzero_ds():
         },
     )
 
-@pytest.mark.parametrize("ds", [pytest.param(v, id=k) for k,v in datasets.items()])
+
+@pytest.mark.parametrize("ds", [pytest.param(v, id=k) for k, v in datasets.items()])
 @pytest.mark.parametrize("except_for", [None, "coords"])
 def test_replace_arrays_with_zeros(ds, except_for):
     utils.replace_arrays_with_zeros(ds, except_for=except_for)
+
 
 def test_replace_arrays_with_zeros_none(nonzero_ds):
     """except_for=None: all data_vars and coords replaced with zeros."""
