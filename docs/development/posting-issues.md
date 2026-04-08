@@ -68,12 +68,12 @@ ds = xr.open_dataset("my_dataset.nc")  # or xr.open_zarr(...), etc.
 #   except_for=['lon', 'lat']   — keep a specific list of variables
 ds_trimmed = replace_arrays_with_zeros(ds)  # default: except_for=None
 
-# Save to a zipped Zarr store
-output_file = "my_dataset.zip"
-ds_trimmed.to_zarr(zarr.storage.ZipStore(output_file))
+# Save to a zipped Zarr store - replace `my_dataset` with a more informative name
+with zarr.storage.ZipStore("my_dataset.zip", mode='w') as store:
+    ds_trimmed.to_zarr(store)
 
 # Check the file size (aim for < 25 MB so it can be attached to a GitHub issue)
-size_mb = os.path.getsize(output_file) / 1e6
+size_mb = os.path.getsize("my_dataset.zip") / 1e6
 print(f"Zip store size: {size_mb:.1f} MB")
 ```
 
@@ -91,7 +91,7 @@ As developers looking to inspect the dataset, we would do:
 import xarray as xr
 import zarr
 
-ds = xr.open_zarr(zarr.storage.ZipStore("my_dataset.zip"))
+ds = xr.open_zarr(zarr.storage.ZipStore("my_dataset.zip", mode="r"))
 ds
 ```
 
