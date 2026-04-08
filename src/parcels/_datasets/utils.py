@@ -1,13 +1,9 @@
 import copy
-import json
-from datetime import datetime
-from functools import partial
+from collections.abc import Hashable
 from typing import Any, Literal, TypeVar
 
 import numpy as np
 import xarray as xr
-
-from parcels._typing import PathLike
 
 _SUPPORTED_ATTR_TYPES = int | float | str | np.ndarray
 K = TypeVar("K")
@@ -210,72 +206,25 @@ def from_xarray_dataset_dict(d) -> xr.Dataset:
     return xr.Dataset.from_dict(_fill_with_dummy_data(copy.deepcopy(d)))
 
 
-class _XarrayEncoder(json.JSONEncoder):
-    """Convert all datetime objects within to be isoformat strings."""
-
-    def default(self, o: Any) -> Any:
-        if isinstance(o, datetime):
-            return o.isoformat()
-        return super().default(o)
-
-
-class _XarrayDecoder(json.JSONDecoder):
-    """Convert all isoformat datetime strings within to be datetime objects."""
-
-    def raw_decode(self, s: str, idx: int = 0) -> tuple[Any, int]:
-        obj, end = super().raw_decode(s, idx)
-        return self._convert(obj), end
-
-    @staticmethod
-    def _convert(obj: Any) -> Any:
-        if isinstance(obj, str):
-            try:
-                return datetime.fromisoformat(obj)
-            except ValueError:
-                return obj
-        if isinstance(obj, list):
-            return [_XarrayDecoder._convert(v) for v in obj]
-        if isinstance(obj, dict):
-            return {k: _XarrayDecoder._convert(v) for k, v in obj.items()}
-        return obj
-
-
-def dataset_from_json(path: PathLike) -> xr.Dataset:
-    """Read in a representative Xarray dataset from a JSON filed created by `dataset_to_json`."""
-    with open(path) as f:
-        d = json.load(f, cls=_XarrayDecoder)
-    assert d["version"] == "1", f"Version of Parcels JSON CDL representation must be '1'. Got {d['version']!r}"
-
-    ds_dict = _fill_with_dummy_data(d["dataset"])
-
-    return xr.Dataset.from_dict(ds_dict)
-
-
-def get_opener(mode: Literal["r", "w"], compressed: bool):
-    import gzip
-
-    if compressed:
-        return partial(gzip.open, mode=f"{mode}t", encoding="utf-8")
-    else:
-        return partial(open, mode=mode)
-
-
-def replace_data_vars_with_zeros(ds: xr.Dataset, except_for: list[str] | None = None) -> xr.Dataset:
+def replace_arrays_with_zeros(
+    ds: xr.Dataset, except_for: Literal["coords"] | list[Hashable] | None = None
+) -> xr.Dataset:
     """Replace datavars in the xarray dataset with with zeros, except for some.
 
-    If except_for is None:
-    - Replace all non-coordinate arrays with zeros
-
-    If except_for is not None:
-    - Exclude items listed from the replacement
+    except_for options:
+    - except_for=None: Replace all arrays with zeros
+    - except_for='coords': Replace all arrays with zeros except the coords
+    - except_for=[...]: Provide list of items to exclude
     """
     import dask.array as da
 
     if except_for is None:
         except_for = []
+    if except_for == "coords":
+        except_for = list(ds.coords.keys())
 
     ds = ds.copy()
-    for k in set(ds.data_vars) - set(except_for):
+    for k in set(ds.data_vars) | set(ds.coords) - set(except_for):
         ds[k].data = da.zeros_like(ds[k].data)
     return ds
 

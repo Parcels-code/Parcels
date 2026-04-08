@@ -29,7 +29,7 @@ zarrs_folder = Path("zarrs")
 zarrs_folder.mkdir(exist_ok=True)
 for k, (ds, except_for) in datasets.items():
     path = zarrs_folder / f"{datetime.datetime.now().isoformat()}-{k}.zip"
-    ds = ds.pipe(utils.replace_data_vars_with_zeros, except_for=except_for)
+    ds = ds.pipe(utils.replace_arrays_with_zeros, except_for=except_for)
     nbytes_uncompressed_full_dataset = ds.nbytes
     nbytes_uncompressed_trimmed = 0
 
