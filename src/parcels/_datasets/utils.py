@@ -224,8 +224,14 @@ def replace_arrays_with_zeros(
         except_for = list(ds.coords.keys())
 
     ds = ds.copy()
-    for k in set(ds.data_vars) | set(ds.coords) - set(except_for):
+    ds_keys = set(ds.data_vars) | set(ds.coords)
+    for k in except_for:
+        if k not in ds_keys:
+            raise ValueError(f"Item {k!r} in `except_for` not a valid item in dataset. Got {except_for=!r}.")
+
+    for k in ds_keys - set(except_for):
         ds[k].data = da.zeros_like(ds[k].data)
+
     return ds
 
 
