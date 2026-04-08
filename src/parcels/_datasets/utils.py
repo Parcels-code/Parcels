@@ -213,7 +213,7 @@ def replace_arrays_with_zeros(
 
     except_for options:
     - except_for=None: Replace all arrays with zeros
-    - except_for='coords': Replace all arrays with zeros except the coords
+    - except_for='coords': Replace all arrays with zeros except the non-index coords
     - except_for=[...]: Provide list of items to exclude
     """
     import dask.array as da
@@ -230,7 +230,12 @@ def replace_arrays_with_zeros(
             raise ValueError(f"Item {k!r} in `except_for` not a valid item in dataset. Got {except_for=!r}.")
 
     for k in ds_keys - set(except_for):
-        ds[k].data = da.zeros_like(ds[k].data)
+        data = da.zeros_like(ds[k].data)
+        try:
+            ds[k].data = data
+        except ValueError:
+            # Cannot assign to dimension coordinate, leave as is
+            pass
 
     return ds
 
