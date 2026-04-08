@@ -1,12 +1,10 @@
 from collections.abc import Hashable
-from typing import Any, Literal, TypeVar
+from typing import Any, Literal
 
 import numpy as np
 import xarray as xr
 
 _SUPPORTED_ATTR_TYPES = int | float | str | np.ndarray
-K = TypeVar("K")
-V = TypeVar("V")
 
 
 def _print_mismatched_keys(d1: dict[Any, Any], d2: dict[Any, Any]) -> None:
