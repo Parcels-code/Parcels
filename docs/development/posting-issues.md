@@ -105,5 +105,5 @@ Path("my_dataset.nc").unlink()
 
 ```
 
-From there we can take a look at the structure and metadata of your dataset!
+From there we can take a look at the structure, metadata, and grid topology of your dataset!
 This also makes it straightforward for us to add this dataset to our test suite.
