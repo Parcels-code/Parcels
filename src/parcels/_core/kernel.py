@@ -80,7 +80,7 @@ class Kernel:
 
         self._kernels: list[Callable] = kernels
 
-        self.append_positionupdate_kernel()
+        self._position_update = self._make_position_update()
 
     @property  #! Ported from v3. To be removed in v4? (/find another way to name kernels in output file)
     def funcname(self):
@@ -107,7 +107,7 @@ class Kernel:
         if len(indices) > 0:
             pset.remove_indices(indices)
 
-    def append_positionupdate_kernel(self):
+    def _make_position_update(self):
         # Adding kernels that set and update the coordinate changes
         def PositionUpdate(particles, fieldset):  # pragma: no cover
             particles.lon += particles.dlon
@@ -123,7 +123,7 @@ class Kernel:
                 # Update dt in case it's increased in RK45 kernel
                 particles.dt = particles.next_dt
 
-        self._kernels = self._kernels + [PositionUpdate]
+        return PositionUpdate
 
     def check_fieldsets_in_kernels(self, kernel):  # TODO v4: this can go into another method? assert_is_compatible()?
         """
@@ -219,6 +219,9 @@ class Kernel:
                 while np.any(repeat_particles):
                     f(pset[repeat_particles], self._fieldset)
                     repeat_particles = pset.state == StatusCode.Repeat
+
+            # apply position/time update after all user kernels
+            self._position_update(pset[evaluate_particles], self._fieldset)
 
             # revert to original dt (unless in RK45 mode)
             if not hasattr(self.fieldset, "RK45_tol"):
