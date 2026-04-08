@@ -92,7 +92,6 @@ icecream = "*"
 ipykernel = "*"
 snoop = "*"
 pyinstrument = "*"
-intake-xarray = ">=2.0.0,<3"
 
 [feature.devtools.target.linux-64.dependencies]
 memray = "*"
