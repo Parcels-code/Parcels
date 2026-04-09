@@ -12,9 +12,9 @@ __all__ = ["download_example_dataset", "list_example_datasets"]
 
 # When modifying existing datasets in a backwards incompatible way,
 # make a new release in the repo and update the DATA_REPO_TAG to the new tag
-DATA_REPO_TAG = "main"
+_DATA_REPO_TAG = "main"
 
-DATA_URL = f"https://github.com/Parcels-code/parcels-data/raw/{DATA_REPO_TAG}/data"
+_DATA_URL = f"https://github.com/Parcels-code/parcels-data/raw/{_DATA_REPO_TAG}/data"
 
 # Keys are the dataset names. Values are the filenames in the dataset folder. Note that
 # you can specify subfolders in the dataset folder putting slashes in the filename list.
@@ -28,7 +28,7 @@ DATA_URL = f"https://github.com/Parcels-code/parcels-data/raw/{DATA_REPO_TAG}/da
 #     └── file2.nc
 #
 # See instructions at https://github.com/Parcels-code/parcels-data for adding new datasets
-EXAMPLE_DATA_FILES: dict[str, list[str]] = {
+_EXAMPLE_DATA_FILES: dict[str, list[str]] = {
     "MovingEddies_data": [
         "moving_eddiesP.nc",
         "moving_eddiesU.nc",
@@ -110,7 +110,7 @@ EXAMPLE_DATA_FILES: dict[str, list[str]] = {
 # The first here is a human readable key, the latter the path to load the netcdf data
 # (after refactor the latter open path will disappear, and will just be `open_zarr(f'{ds_key}.zip')`)
 # fmt: off
-DATASET_KEYS_AND_OPEN_PATHS: dict[str, str] = dict([
+_DATASET_KEYS_AND_OPEN_PATHS: dict[str, str] = dict([
     ("MovingEddies_data/P", "MovingEddies_data/moving_eddiesP.nc"),
     ("MovingEddies_data/U", "MovingEddies_data/moving_eddiesU.nc"),
     ("MovingEddies_data/V", "MovingEddies_data/moving_eddiesV.nc"),
@@ -152,7 +152,7 @@ def _create_pooch_registry() -> dict[str, None]:
     Hashes are set to None for all files.
     """
     registry: dict[str, None] = {}
-    for dataset, filenames in EXAMPLE_DATA_FILES.items():
+    for dataset, filenames in _EXAMPLE_DATA_FILES.items():
         for filename in filenames:
             registry[f"{dataset}/{filename}"] = None
     return registry
@@ -169,7 +169,7 @@ def _get_pooch(data_home=None):
 
     return pooch.create(
         path=data_home,
-        base_url=DATA_URL,
+        base_url=_DATA_URL,
         registry=POOCH_REGISTRY,
     )
 
@@ -185,8 +185,8 @@ def list_example_datasets(v4=False) -> list[str]:  # TODO: Remove v4 flag when m
         The names of the available example datasets.
     """
     if v4:
-        return list(DATASET_KEYS_AND_OPEN_PATHS.keys())
-    return list(set(v.split("/")[0] for v in DATASET_KEYS_AND_OPEN_PATHS.values()))
+        return list(_DATASET_KEYS_AND_OPEN_PATHS.keys())
+    return list(set(v.split("/")[0] for v in _DATASET_KEYS_AND_OPEN_PATHS.values()))
 
 
 def download_example_dataset(dataset: str, data_home=None):
@@ -210,9 +210,9 @@ def download_example_dataset(dataset: str, data_home=None):
         Path to the folder containing the downloaded dataset files.
     """
     # Dev note: `dataset` is assumed to be a folder name with netcdf files
-    if dataset not in EXAMPLE_DATA_FILES:
+    if dataset not in _EXAMPLE_DATA_FILES:
         raise ValueError(
-            f"Dataset {dataset!r} not found. Available datasets are: " + ", ".join(EXAMPLE_DATA_FILES.keys())
+            f"Dataset {dataset!r} not found. Available datasets are: " + ", ".join(_EXAMPLE_DATA_FILES.keys())
         )
     odie = _get_pooch(data_home=data_home)
 
@@ -228,23 +228,23 @@ def download_example_dataset(dataset: str, data_home=None):
 
 
 # Just creating a temp folder to help during the migration
-TMP_ZARR_FOLDER = Path("../parcels-data/data-zarr")
+_TMP_ZARR_FOLDER = Path("../parcels-data/data-zarr")
 
 
 def open_dataset(name: str):
-    if name not in DATASET_KEYS_AND_OPEN_PATHS:
+    if name not in _DATASET_KEYS_AND_OPEN_PATHS:
         raise ValueError(
             f"Dataset {name!r} not found. Available datasets are: " + ", ".join(list_example_datasets(v4=True))
         )
 
     open_dataset_kwargs = dict(decode_timedelta=False, decode_cf=False)
     # assert not dataset.endswith((".zarr", ".zip", ".nc")), "Dataset name should not have suffix"
-    download_dataset_stem, rest = DATASET_KEYS_AND_OPEN_PATHS[name].split("/", maxsplit=1)
+    download_dataset_stem, rest = _DATASET_KEYS_AND_OPEN_PATHS[name].split("/", maxsplit=1)
     folder = download_example_dataset(download_dataset_stem)
 
     with xr.set_options(use_new_combine_kwarg_defaults=True):
         ds = xr.open_mfdataset(f"{folder}/{rest}", **open_dataset_kwargs)
-    path = TMP_ZARR_FOLDER / f"{name}.zip"
+    path = _TMP_ZARR_FOLDER / f"{name}.zip"
     path.parent.mkdir(exist_ok=True)
     if not path.exists():
         with zarr.storage.ZipStore(path, mode="w") as store:
