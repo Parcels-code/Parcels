@@ -73,6 +73,9 @@ ds_trimmed = replace_arrays_with_zeros(ds)  # default: except_for=None
 with zarr.storage.ZipStore("my_dataset.zip", mode='w') as store:
     ds_trimmed.to_zarr(store)
 
+size_mb_original = os.path.getsize("my_dataset.nc") / 1e6
+print(f"Original size: {size_mb_original:.1f} MB")
+
 # Check the file size (aim for < 25 MB so it can be attached to a GitHub issue)
 size_mb = os.path.getsize("my_dataset.zip") / 1e6
 print(f"Zip store size: {size_mb:.1f} MB")
