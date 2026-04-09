@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 import uxarray as ux
 
+import parcels.tutorial
 from parcels import (
     Field,
     FieldSet,
@@ -9,7 +10,6 @@ from parcels import (
     ParticleSet,
     UxGrid,
     VectorField,
-    download_example_dataset,
 )
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
 from parcels.convert import fesom_to_ugrid, icon_to_ugrid
@@ -22,7 +22,7 @@ from parcels.interpolators import (
 
 @pytest.fixture
 def ds_fesom_channel() -> ux.UxDataset:
-    fesom_path = download_example_dataset("FESOM_periodic_channel")
+    fesom_path = parcels.tutorial.download_example_dataset("FESOM_periodic_channel")
     grid_path = f"{fesom_path}/fesom_channel.nc"
     data_path = [
         f"{fesom_path}/u.fesom_channel.nc",

@@ -38,7 +38,6 @@ from parcels._core.warnings import (
     ParticleSetWarning,
 )
 from parcels._logger import logger
-from parcels.tutorial import download_example_dataset, list_example_datasets
 
 __all__ = [  # noqa: RUF022
     # Core classes

@@ -53,9 +53,10 @@ import numpy as np
 import xarray as xr
 
 import parcels
+import parcels.tutorial
 
 # Load the CopernicusMarine data in the Agulhas region from the example_datasets
-example_dataset_folder = parcels.download_example_dataset(
+example_dataset_folder = parcels.tutorial.download_example_dataset(
     "CopernicusMarine_data_for_Argo_tutorial"
 )
 

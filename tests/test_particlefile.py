@@ -8,6 +8,7 @@ import pytest
 import xarray as xr
 from zarr.storage import MemoryStore
 
+import parcels.tutorial
 from parcels import (
     Field,
     FieldSet,
@@ -18,7 +19,6 @@ from parcels import (
     Variable,
     VectorField,
     XGrid,
-    download_example_dataset,
 )
 from parcels._core.particle import Particle, create_particle_data, get_default_particle
 from parcels._core.utils.time import TimeInterval, timedelta_to_float
@@ -442,7 +442,7 @@ def test_pset_execute_outputdt_backwards_fieldset_timevarying():
     dt = -timedelta(minutes=5)
 
     # TODO: Not ideal using the `download_example_dataset` here, but I'm struggling to recreate this error using the test suite fieldsets we have
-    example_dataset_folder = download_example_dataset("CopernicusMarine_data_for_Argo_tutorial")
+    example_dataset_folder = parcels.tutorial.download_example_dataset("CopernicusMarine_data_for_Argo_tutorial")
     ds_in = xr.open_mfdataset(f"{example_dataset_folder}/*.nc", combine="by_coords")
     fields = {"U": ds_in["uo"], "V": ds_in["vo"]}
     ds_fset = copernicusmarine_to_sgrid(fields=fields)

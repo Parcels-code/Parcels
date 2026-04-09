@@ -2,6 +2,7 @@ import numpy as np
 import xarray as xr
 
 import parcels
+import parcels.tutorial
 from parcels import Particle, ParticleSet, Variable
 from parcels.kernels import AdvectionRK4_3D_CROCO, SampleOmegaCroco, convert_z_to_sigma_croco
 
@@ -17,7 +18,7 @@ def test_conversion_3DCROCO():
     lat, lon = ds.y_rho.values[y, x], ds.x_rho.values[y, x]
     ```
     """
-    data_folder = parcels.download_example_dataset("CROCOidealized_data")
+    data_folder = parcels.tutorial.download_example_dataset("CROCOidealized_data")
     ds_fields = xr.open_dataset(data_folder / "CROCO_idealized.nc")
     fields = {
         "U": ds_fields["u"],
@@ -46,7 +47,7 @@ def test_conversion_3DCROCO():
 
 
 def test_advection_3DCROCO():
-    data_folder = parcels.download_example_dataset("CROCOidealized_data")
+    data_folder = parcels.tutorial.download_example_dataset("CROCOidealized_data")
     ds_fields = xr.open_dataset(data_folder / "CROCO_idealized.nc")
     ds_fields.load()
 

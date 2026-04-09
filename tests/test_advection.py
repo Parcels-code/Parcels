@@ -3,6 +3,7 @@ import pytest
 import xarray as xr
 
 import parcels
+import parcels.tutorial
 from parcels import (
     Field,
     FieldSet,
@@ -455,7 +456,7 @@ def test_peninsula_fieldset(kernel, rtol, grid_type):
 
 
 def test_nemo_curvilinear_fieldset():
-    data_folder = parcels.download_example_dataset("NemoCurvilinear_data")
+    data_folder = parcels.tutorial.download_example_dataset("NemoCurvilinear_data")
     U = xr.open_mfdataset(data_folder.glob("*U.nc4"))
     V = xr.open_mfdataset(data_folder.glob("*V.nc4"))
     coords = xr.open_dataset(data_folder / "mesh_mask.nc4")
@@ -476,7 +477,7 @@ def test_nemo_curvilinear_fieldset():
 
 @pytest.mark.parametrize("kernel", [AdvectionRK4, AdvectionRK4_3D])
 def test_nemo_3D_curvilinear_fieldset(kernel):
-    data_folder = parcels.download_example_dataset("NemoNorthSeaORCA025-N006_data")
+    data_folder = parcels.tutorial.download_example_dataset("NemoNorthSeaORCA025-N006_data")
     U = xr.open_mfdataset(data_folder.glob("*U.nc"))
     V = xr.open_mfdataset(data_folder.glob("*V.nc"))
     W = xr.open_mfdataset(data_folder.glob("*W.nc"))
@@ -505,7 +506,7 @@ def test_nemo_3D_curvilinear_fieldset(kernel):
 
 
 def test_mitgcm():
-    data_folder = parcels.download_example_dataset("MITgcm_example_data")
+    data_folder = parcels.tutorial.download_example_dataset("MITgcm_example_data")
     ds_fields = xr.open_dataset(data_folder / "mitgcm_UV_surface_zonally_reentrant.nc")
 
     ds_fset = convert.mitgcm_to_sgrid(fields={"U": ds_fields.UVEL, "V": ds_fields.VVEL}, coords=ds_fields)
