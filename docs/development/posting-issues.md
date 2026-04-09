@@ -67,7 +67,8 @@ ds = xr.open_dataset("my_dataset.nc")  # or xr.open_zarr(...), etc.
 # You can customise `except_for` to also retain actual values for specific variables:
 #   except_for='coords'         — keep coordinate arrays (useful for grid topology)
 #   except_for=['lon', 'lat']   — keep a specific list of variables
-ds_trimmed = replace_arrays_with_zeros(ds)  # default: except_for=None
+#   except_for=None   — remove all arrays (useful to know about dtypes, structure, and metadata). This is the default for the function.
+ds_trimmed = replace_arrays_with_zeros(ds, except_for = None)
 
 # Save to a zipped Zarr store - replace `my_dataset` with a more informative name
 with zarr.storage.ZipStore("my_dataset.zip", mode='w') as store:
