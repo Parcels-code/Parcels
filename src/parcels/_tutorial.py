@@ -4,6 +4,7 @@ from pathlib import Path
 
 import pooch
 import xarray as xr
+import zarr
 
 from parcels._v3to4 import patch_dataset_v4_compat
 
@@ -106,6 +107,40 @@ EXAMPLE_DATA_FILES: dict[str, list[str]] = {
     "CROCOidealized_data": ["CROCO_idealized.nc"],
 }
 
+EXAMPLE_DATA_FILES2: list[str] = [
+    "MovingEddies_data/moving_eddiesP.nc",
+    "MovingEddies_data/moving_eddiesU.nc",
+    "MovingEddies_data/moving_eddiesV.nc",
+    "MITgcm_example_data/mitgcm_UV_surface_zonally_reentrant.nc",
+    "OFAM_example_data/OFAM_simple_U.nc",
+    "OFAM_example_data/OFAM_simple_V.nc",
+    "Peninsula_data/peninsulaU.nc",
+    "Peninsula_data/peninsulaV.nc",
+    "Peninsula_data/peninsulaP.nc",
+    "Peninsula_data/peninsulaT.nc",
+    "GlobCurrent_example_data/*000000-GLOBCURRENT-L4-CUReul_hs-ALT_SUM-v02.0-fv01.0.nc",
+    "CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-cur_anfc_0.083deg_P1D-m_uo-vo_31.00E-33.00E_33.00S-30.00S_0.49-2225.08m_2024-01-01-2024-02-01.nc",
+    "CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-so_anfc_0.083deg_P1D-m_so_31.00E-33.00E_33.00S-30.00S_0.49-2225.08m_2024-01-01-2024-02-01.nc",
+    "CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-thetao_anfc_0.083deg_P1D-m_thetao_31.00E-33.00E_33.00S-30.00S_0.49-2225.08m_2024-01-01-2024-02-01.nc",
+    "DecayingMovingEddy_data/decaying_moving_eddyU.nc",
+    "DecayingMovingEddy_data/decaying_moving_eddyV.nc",
+    "FESOM_periodic_channel/fesom_channel.nc",
+    "FESOM_periodic_channel/u.fesom_channel.nc",
+    "FESOM_periodic_channel/v.fesom_channel.nc",
+    "FESOM_periodic_channel/w.fesom_channel.nc",
+    "NemoCurvilinear_data/U_purely_zonal-ORCA025_grid_U.nc4",
+    "NemoCurvilinear_data/V_purely_zonal-ORCA025_grid_V.nc4",
+    "NemoCurvilinear_data/mesh_mask.nc4",
+    "NemoNorthSeaORCA025-N006_data/ORCA025-N06_200001*05U.nc",
+    "NemoNorthSeaORCA025-N006_data/ORCA025-N06_200001*05V.nc",
+    "NemoNorthSeaORCA025-N006_data/ORCA025-N06_200001*05W.nc",
+    "NemoNorthSeaORCA025-N006_data/coordinates.nc",
+    # "POPSouthernOcean_data/t.x1_SAMOC_flux.16900*.nc", # TODO v4: In v3 but should be in v4 https://github.com/Parcels-code/Parcels/issues/2571#issuecomment-4214476973
+    "SWASH_data/field_00655*.nc",
+    "WOA_data/woa18_decav_t*_04.nc",
+    "CROCOidealized_data/CROCO_idealized.nc",
+]
+
 
 def _create_pooch_registry() -> dict[str, None]:
     """Collapses the mapping of dataset names to filenames into a pooch registry.
@@ -135,7 +170,7 @@ def _get_pooch(data_home=None):
     )
 
 
-def list_example_datasets() -> list[str]:
+def list_example_datasets(full=False) -> list[str]:  # TODO: Remove full flag when migrating to open_dataset
     """List the available example datasets.
 
     Use :func:`download_example_dataset` to download one of the datasets.
@@ -145,7 +180,11 @@ def list_example_datasets() -> list[str]:
     datasets : list of str
         The names of the available example datasets.
     """
-    return list(EXAMPLE_DATA_FILES.keys())
+    if full:
+        return EXAMPLE_DATA_FILES2
+    return list(
+        set(i.split("/")[0] for i in EXAMPLE_DATA_FILES2)
+    )  # TODO: Update implementation to return full dataset item and not just stem, to be in line with `open_dataset`
 
 
 def download_example_dataset(dataset: str, data_home=None):
@@ -184,6 +223,25 @@ def download_example_dataset(dataset: str, data_home=None):
             odie.fetch(file_name, processor=_v4_compat_patch if should_patch else None)
 
     return dataset_folder
+
+
+# Just creating a temp folder to help during the migration
+TMP_ZARR_FOLDER = Path("../parcels-data-zarr/data")
+
+
+def open_dataset(dataset: str):
+    open_dataset_kwargs = dict(decode_timedelta=False, decode_cf=False)
+    # assert not dataset.endswith((".zarr", ".zip", ".nc")), "Dataset name should not have suffix"
+    dataset_stem, rest = dataset.split("/", maxsplit=1)
+    folder = download_example_dataset(dataset_stem)
+
+    ds = xr.open_mfdataset(f"{folder}/{rest}", **open_dataset_kwargs)
+    path = TMP_ZARR_FOLDER / f"{dataset}.zip"
+    path.parent.mkdir(exist_ok=True)
+    if not path.exists():
+        with zarr.storage.ZipStore(path, mode="w") as store:
+            ds.to_zarr(store)
+    return xr.open_zarr(path, **open_dataset_kwargs)
 
 
 def _v4_compat_patch(fname, action, pup):
