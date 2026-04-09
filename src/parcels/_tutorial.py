@@ -242,7 +242,8 @@ def open_dataset(name: str):
     download_dataset_stem, rest = DATASET_KEYS_AND_OPEN_PATHS[name].split("/", maxsplit=1)
     folder = download_example_dataset(download_dataset_stem)
 
-    ds = xr.open_mfdataset(f"{folder}/{rest}", **open_dataset_kwargs)
+    with xr.set_options(use_new_combine_kwarg_defaults=True):
+        ds = xr.open_mfdataset(f"{folder}/{rest}", **open_dataset_kwargs)
     path = TMP_ZARR_FOLDER / f"{name}.zip"
     path.parent.mkdir(exist_ok=True)
     if not path.exists():
