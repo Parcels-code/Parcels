@@ -2,7 +2,7 @@ import pytest
 import requests
 import xarray as xr
 
-from parcels._tutorial import (
+from parcels.tutorial import (
     _get_pooch,
     download_example_dataset,
     list_example_datasets,

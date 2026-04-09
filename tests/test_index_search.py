@@ -6,8 +6,8 @@ import xgcm
 from parcels import Field, XGrid
 from parcels._core.index_search import _search_indices_curvilinear_2d
 from parcels._datasets.structured.generic import datasets
-from parcels._tutorial import download_example_dataset
 from parcels.interpolators import XLinear
+from parcels.tutorial import download_example_dataset
 
 
 @pytest.fixture
