@@ -1,10 +1,12 @@
 import pytest
 import requests
+import xarray as xr
 
 from parcels._tutorial import (
     _get_pooch,
     download_example_dataset,
     list_example_datasets,
+    open_dataset,
 )
 
 
@@ -35,3 +37,9 @@ def test_download_example_dataset_no_data_home():
     dataset_folder_path = download_example_dataset(dataset)
     assert dataset_folder_path.exists()
     assert dataset_folder_path.name == dataset
+
+
+@pytest.mark.parametrize("name", list_example_datasets(v4=True))
+def test_open_dataset(name):
+    ds = open_dataset(name)
+    assert isinstance(ds, xr.Dataset)
