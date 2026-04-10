@@ -268,12 +268,11 @@ def open_dataset(name: str):  # TODO: Remove code_path arg
         ) from e
 
     open_dataset_kwargs = dict(decode_cf=False)
-    # assert not dataset.endswith((".zarr", ".zip", ".nc")), "Dataset name should not have suffix"
+    assert not name.endswith((".zarr", ".zip", ".nc")), "Dataset name should not have suffix"
     download_dataset_stem, rest = cfg.path_relative_to_root.split("/", maxsplit=1)
     folder = download_example_dataset(download_dataset_stem)
 
     with xr.set_options(use_new_combine_kwarg_defaults=True):
-        # return f"{folder}/{rest}"
         ds = xr.open_mfdataset(f"{folder}/{rest}", **open_dataset_kwargs)
 
     if cfg.pre_decode_cf_callable is not None:
