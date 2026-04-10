@@ -1,6 +1,7 @@
 import os
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Literal
 
 import pooch
 import xarray as xr
@@ -231,7 +232,7 @@ def download_example_dataset(dataset: str, data_home=None):
 _TMP_ZARR_FOLDER = Path("../parcels-data/data-zarr")
 
 
-def open_dataset(name: str):
+def open_dataset(name: str, code_path: Literal["nc", "zarr"] = "nc"):  # TODO: Remove code_path arg
     if name not in _DATASET_KEYS_AND_OPEN_PATHS:
         raise ValueError(
             f"Dataset {name!r} not found. Available datasets are: " + ", ".join(list_example_datasets(v4=True))
@@ -244,6 +245,8 @@ def open_dataset(name: str):
 
     with xr.set_options(use_new_combine_kwarg_defaults=True):
         ds = xr.open_mfdataset(f"{folder}/{rest}", **open_dataset_kwargs)
+    if code_path == "nc":
+        return ds
     path = _TMP_ZARR_FOLDER / f"{name}.zip"
     path.parent.mkdir(exist_ok=True)
     if not path.exists():
