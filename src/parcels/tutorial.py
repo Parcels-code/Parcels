@@ -1,4 +1,6 @@
 import os
+from collections.abc import Callable
+from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Literal
@@ -108,41 +110,50 @@ _EXAMPLE_DATA_FILES: dict[str, list[str]] = {
     "CROCOidealized_data": ["CROCO_idealized.nc"],
 }
 
+
+@dataclass
+class DatasetNCtoZarrConfig:
+    path_relative_to_root: str
+
+    # Function to apply to the dataset before the decoding the CF variables
+    pre_decode_cf_callable: None | Callable[[xr.Dataset], xr.Dataset] = None
+
+
 # The first here is a human readable key, the latter the path to load the netcdf data
 # (after refactor the latter open path will disappear, and will just be `open_zarr(f'{ds_key}.zip')`)
 # fmt: off
-_DATASET_KEYS_AND_OPEN_PATHS: dict[str, str] = dict([
-    ("MovingEddies_data/P", "MovingEddies_data/moving_eddiesP.nc"),
-    ("MovingEddies_data/U", "MovingEddies_data/moving_eddiesU.nc"),
-    ("MovingEddies_data/V", "MovingEddies_data/moving_eddiesV.nc"),
-    ("MITgcm_example_data/mitgcm_UV_surface_zonally_reentrant", "MITgcm_example_data/mitgcm_UV_surface_zonally_reentrant.nc"),
-    ("OFAM_example_data/U", "OFAM_example_data/OFAM_simple_U.nc"),
-    ("OFAM_example_data/V", "OFAM_example_data/OFAM_simple_V.nc"),
-    ("Peninsula_data/U", "Peninsula_data/peninsulaU.nc"),
-    ("Peninsula_data/V", "Peninsula_data/peninsulaV.nc"),
-    ("Peninsula_data/P", "Peninsula_data/peninsulaP.nc"),
-    ("Peninsula_data/T", "Peninsula_data/peninsulaT.nc"),
-    ("GlobCurrent_example_data/data.nc", "GlobCurrent_example_data/*000000-GLOBCURRENT-L4-CUReul_hs-ALT_SUM-v02.0-fv01.0.nc"),
-    ("CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-cur_anfc", "CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-cur_anfc_0.083deg_P1D-m_uo-vo_31.00E-33.00E_33.00S-30.00S_0.49-2225.08m_2024-01-01-2024-02-01.nc"),
-    ("CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-so_anfc", "CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-so_anfc_0.083deg_P1D-m_so_31.00E-33.00E_33.00S-30.00S_0.49-2225.08m_2024-01-01-2024-02-01.nc"),
-    ("CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-thetao_anfc", "CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-thetao_anfc_0.083deg_P1D-m_thetao_31.00E-33.00E_33.00S-30.00S_0.49-2225.08m_2024-01-01-2024-02-01.nc"),
-    ("DecayingMovingEddy_data/U", "DecayingMovingEddy_data/decaying_moving_eddyU.nc"),
-    ("DecayingMovingEddy_data/V", "DecayingMovingEddy_data/decaying_moving_eddyV.nc"),
-    ("FESOM_periodic_channel/fesom_channel", "FESOM_periodic_channel/fesom_channel.nc"),
-    ("FESOM_periodic_channel/u.fesom_channel", "FESOM_periodic_channel/u.fesom_channel.nc"),
-    ("FESOM_periodic_channel/v.fesom_channel", "FESOM_periodic_channel/v.fesom_channel.nc"),
-    ("FESOM_periodic_channel/w.fesom_channel", "FESOM_periodic_channel/w.fesom_channel.nc"),
-    ("NemoCurvilinear_data_zonal/U", "NemoCurvilinear_data/U_purely_zonal-ORCA025_grid_U.nc4"),
-    ("NemoCurvilinear_data_zonal/V", "NemoCurvilinear_data/V_purely_zonal-ORCA025_grid_V.nc4"),
-    ("NemoCurvilinear_data_zonal/mesh_mask", "NemoCurvilinear_data/mesh_mask.nc4"),
-    ("NemoNorthSeaORCA025-N006_data/U", "NemoNorthSeaORCA025-N006_data/ORCA025-N06_200001*05U.nc"),
-    ("NemoNorthSeaORCA025-N006_data/V", "NemoNorthSeaORCA025-N006_data/ORCA025-N06_200001*05V.nc"),
-    ("NemoNorthSeaORCA025-N006_data/W", "NemoNorthSeaORCA025-N006_data/ORCA025-N06_200001*05W.nc"),
-    ("NemoNorthSeaORCA025-N006_data/mesh_mask", "NemoNorthSeaORCA025-N006_data/coordinates.nc"),
+_DATASET_KEYS_AND_CONFIGS: dict[str, DatasetNCtoZarrConfig] = dict([
+    ("MovingEddies_data/P", DatasetNCtoZarrConfig("MovingEddies_data/moving_eddiesP.nc")),
+    ("MovingEddies_data/U", DatasetNCtoZarrConfig("MovingEddies_data/moving_eddiesU.nc")),
+    ("MovingEddies_data/V", DatasetNCtoZarrConfig("MovingEddies_data/moving_eddiesV.nc")),
+    ("MITgcm_example_data/mitgcm_UV_surface_zonally_reentrant", DatasetNCtoZarrConfig("MITgcm_example_data/mitgcm_UV_surface_zonally_reentrant.nc")),
+    ("OFAM_example_data/U", DatasetNCtoZarrConfig("OFAM_example_data/OFAM_simple_U.nc")),
+    ("OFAM_example_data/V", DatasetNCtoZarrConfig("OFAM_example_data/OFAM_simple_V.nc")),
+    ("Peninsula_data/U", DatasetNCtoZarrConfig("Peninsula_data/peninsulaU.nc")),
+    ("Peninsula_data/V", DatasetNCtoZarrConfig("Peninsula_data/peninsulaV.nc")),
+    ("Peninsula_data/P", DatasetNCtoZarrConfig("Peninsula_data/peninsulaP.nc")),
+    ("Peninsula_data/T", DatasetNCtoZarrConfig("Peninsula_data/peninsulaT.nc")),
+    ("GlobCurrent_example_data/data.nc", DatasetNCtoZarrConfig("GlobCurrent_example_data/*000000-GLOBCURRENT-L4-CUReul_hs-ALT_SUM-v02.0-fv01.0.nc")),
+    ("CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-cur_anfc", DatasetNCtoZarrConfig("CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-cur_anfc_0.083deg_P1D-m_uo-vo_31.00E-33.00E_33.00S-30.00S_0.49-2225.08m_2024-01-01-2024-02-01.nc")),
+    ("CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-so_anfc", DatasetNCtoZarrConfig("CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-so_anfc_0.083deg_P1D-m_so_31.00E-33.00E_33.00S-30.00S_0.49-2225.08m_2024-01-01-2024-02-01.nc")),
+    ("CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-thetao_anfc", DatasetNCtoZarrConfig("CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-thetao_anfc_0.083deg_P1D-m_thetao_31.00E-33.00E_33.00S-30.00S_0.49-2225.08m_2024-01-01-2024-02-01.nc")),
+    ("DecayingMovingEddy_data/U", DatasetNCtoZarrConfig("DecayingMovingEddy_data/decaying_moving_eddyU.nc")),
+    ("DecayingMovingEddy_data/V", DatasetNCtoZarrConfig("DecayingMovingEddy_data/decaying_moving_eddyV.nc")),
+    ("FESOM_periodic_channel/fesom_channel", DatasetNCtoZarrConfig("FESOM_periodic_channel/fesom_channel.nc")),
+    ("FESOM_periodic_channel/u.fesom_channel", DatasetNCtoZarrConfig("FESOM_periodic_channel/u.fesom_channel.nc")),
+    ("FESOM_periodic_channel/v.fesom_channel", DatasetNCtoZarrConfig("FESOM_periodic_channel/v.fesom_channel.nc")),
+    ("FESOM_periodic_channel/w.fesom_channel", DatasetNCtoZarrConfig("FESOM_periodic_channel/w.fesom_channel.nc")),
+    ("NemoCurvilinear_data_zonal/U", DatasetNCtoZarrConfig("NemoCurvilinear_data/U_purely_zonal-ORCA025_grid_U.nc4")),
+    ("NemoCurvilinear_data_zonal/V", DatasetNCtoZarrConfig("NemoCurvilinear_data/V_purely_zonal-ORCA025_grid_V.nc4")),
+    ("NemoCurvilinear_data_zonal/mesh_mask", DatasetNCtoZarrConfig("NemoCurvilinear_data/mesh_mask.nc4")),
+    ("NemoNorthSeaORCA025-N006_data/U", DatasetNCtoZarrConfig("NemoNorthSeaORCA025-N006_data/ORCA025-N06_200001*05U.nc")),
+    ("NemoNorthSeaORCA025-N006_data/V", DatasetNCtoZarrConfig("NemoNorthSeaORCA025-N006_data/ORCA025-N06_200001*05V.nc")),
+    ("NemoNorthSeaORCA025-N006_data/W", DatasetNCtoZarrConfig("NemoNorthSeaORCA025-N006_data/ORCA025-N06_200001*05W.nc")),
+    ("NemoNorthSeaORCA025-N006_data/mesh_mask", DatasetNCtoZarrConfig("NemoNorthSeaORCA025-N006_data/coordinates.nc")),
     # "POPSouthernOcean_data/t.x1_SAMOC_flux.16900*.nc", # TODO v4: In v3 but should be in v4 https://github.com/Parcels-code/Parcels/issues/2571#issuecomment-4214476973
-    ("SWASH_data/data", "SWASH_data/field_00655*.nc"),
-    ("WOA_data/data", "WOA_data/woa18_decav_t*_04.nc"),
-    ("CROCOidealized_data/data", "CROCOidealized_data/CROCO_idealized.nc"),
+    ("SWASH_data/data", DatasetNCtoZarrConfig("SWASH_data/field_00655*.nc")),
+    ("WOA_data/data", DatasetNCtoZarrConfig("WOA_data/woa18_decav_t*_04.nc")),
+    ("CROCOidealized_data/data", DatasetNCtoZarrConfig("CROCOidealized_data/CROCO_idealized.nc")),
 ])
 # fmt: on
 
@@ -186,8 +197,8 @@ def list_example_datasets(v4=False) -> list[str]:  # TODO: Remove v4 flag when m
         The names of the available example datasets.
     """
     if v4:
-        return list(_DATASET_KEYS_AND_OPEN_PATHS.keys())
-    return list(set(v.split("/")[0] for v in _DATASET_KEYS_AND_OPEN_PATHS.values()))
+        return list(_DATASET_KEYS_AND_CONFIGS.keys())
+    return list(set(v.path_relative_to_root.split("/")[0] for v in _DATASET_KEYS_AND_CONFIGS.values()))
 
 
 def download_example_dataset(dataset: str, data_home=None):
@@ -233,18 +244,28 @@ _TMP_ZARR_FOLDER = Path("../parcels-data/data-zarr")
 
 
 def open_dataset(name: str, code_path: Literal["nc", "zarr"] = "nc"):  # TODO: Remove code_path arg
-    if name not in _DATASET_KEYS_AND_OPEN_PATHS:
+    try:
+        cfg = _DATASET_KEYS_AND_CONFIGS[name]
+    except KeyError as e:
         raise ValueError(
             f"Dataset {name!r} not found. Available datasets are: " + ", ".join(list_example_datasets(v4=True))
-        )
+        ) from e
 
     open_dataset_kwargs = dict(decode_timedelta=False, decode_cf=False)
+    open_dataset_kwargs = dict(decode_cf=False)
     # assert not dataset.endswith((".zarr", ".zip", ".nc")), "Dataset name should not have suffix"
-    download_dataset_stem, rest = _DATASET_KEYS_AND_OPEN_PATHS[name].split("/", maxsplit=1)
+    download_dataset_stem, rest = cfg.path_relative_to_root.split("/", maxsplit=1)
     folder = download_example_dataset(download_dataset_stem)
 
     with xr.set_options(use_new_combine_kwarg_defaults=True):
+        # return f"{folder}/{rest}"
         ds = xr.open_mfdataset(f"{folder}/{rest}", **open_dataset_kwargs)
+
+    if cfg.pre_decode_cf_callable is not None:
+        ds = cfg.pre_decode_cf_callable(ds)
+
+    ds = xr.decode_cf(ds)
+
     if code_path == "nc":
         return ds
     path = _TMP_ZARR_FOLDER / f"{name}.zip"
