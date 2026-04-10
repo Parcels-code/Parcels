@@ -119,6 +119,23 @@ class DatasetNCtoZarrConfig:
     pre_decode_cf_callable: None | Callable[[xr.Dataset], xr.Dataset] = None
 
 
+def _preprocess_drop_time_from_mesh1(ds: xr.Dataset) -> xr.Dataset:
+    # For some reason on the mesh "NemoNorthSeaORCA025-N006_data/coordinates.nc" there are time dimensions. These dimension also has broken cf-time metadata
+    # this fixes that
+    return ds.isel(time=0).drop(["time", "time_steps"])
+
+
+def _preprocess_drop_time_from_mesh2(ds: xr.Dataset) -> xr.Dataset:
+    # For some reason on the mesh "NemoCurvilinear_data_zonal/mesh_mask" there is a time dimension.
+    return ds.isel(time=0).drop(["time"])
+
+
+def _preprocess_set_cf_calendar_360_day(ds: xr.Dataset) -> xr.Dataset:
+    # For some reason "WOA_data/woa18_decav_t*_04.nc" looks to be simulation data using CF time (i.e., months of 30 days), however the calendar attribute isn't set.
+    ds.time.attrs.update({"calendar": "360_day"})
+    return ds
+
+
 # The first here is a human readable key, the latter the path to load the netcdf data
 # (after refactor the latter open path will disappear, and will just be `open_zarr(f'{ds_key}.zip')`)
 # fmt: off
@@ -145,14 +162,14 @@ _DATASET_KEYS_AND_CONFIGS: dict[str, DatasetNCtoZarrConfig] = dict([
     ("FESOM_periodic_channel/w.fesom_channel", DatasetNCtoZarrConfig("FESOM_periodic_channel/w.fesom_channel.nc")),
     ("NemoCurvilinear_data_zonal/U", DatasetNCtoZarrConfig("NemoCurvilinear_data/U_purely_zonal-ORCA025_grid_U.nc4")),
     ("NemoCurvilinear_data_zonal/V", DatasetNCtoZarrConfig("NemoCurvilinear_data/V_purely_zonal-ORCA025_grid_V.nc4")),
-    ("NemoCurvilinear_data_zonal/mesh_mask", DatasetNCtoZarrConfig("NemoCurvilinear_data/mesh_mask.nc4")),
+    ("NemoCurvilinear_data_zonal/mesh_mask", DatasetNCtoZarrConfig("NemoCurvilinear_data/mesh_mask.nc4", _preprocess_drop_time_from_mesh2)),
     ("NemoNorthSeaORCA025-N006_data/U", DatasetNCtoZarrConfig("NemoNorthSeaORCA025-N006_data/ORCA025-N06_200001*05U.nc")),
     ("NemoNorthSeaORCA025-N006_data/V", DatasetNCtoZarrConfig("NemoNorthSeaORCA025-N006_data/ORCA025-N06_200001*05V.nc")),
     ("NemoNorthSeaORCA025-N006_data/W", DatasetNCtoZarrConfig("NemoNorthSeaORCA025-N006_data/ORCA025-N06_200001*05W.nc")),
-    ("NemoNorthSeaORCA025-N006_data/mesh_mask", DatasetNCtoZarrConfig("NemoNorthSeaORCA025-N006_data/coordinates.nc")),
+    ("NemoNorthSeaORCA025-N006_data/mesh_mask", DatasetNCtoZarrConfig("NemoNorthSeaORCA025-N006_data/coordinates.nc", _preprocess_drop_time_from_mesh1)),
     # "POPSouthernOcean_data/t.x1_SAMOC_flux.16900*.nc", # TODO v4: In v3 but should be in v4 https://github.com/Parcels-code/Parcels/issues/2571#issuecomment-4214476973
     ("SWASH_data/data", DatasetNCtoZarrConfig("SWASH_data/field_00655*.nc")),
-    ("WOA_data/data", DatasetNCtoZarrConfig("WOA_data/woa18_decav_t*_04.nc")),
+    ("WOA_data/data", DatasetNCtoZarrConfig("WOA_data/woa18_decav_t*_04.nc", _preprocess_set_cf_calendar_360_day)),
     ("CROCOidealized_data/data", DatasetNCtoZarrConfig("CROCOidealized_data/CROCO_idealized.nc")),
 ])
 # fmt: on
