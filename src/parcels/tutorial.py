@@ -3,7 +3,6 @@ from collections.abc import Callable
 from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
-from typing import Literal
 
 import pooch
 import xarray as xr
@@ -260,7 +259,7 @@ def download_example_dataset(dataset: str, data_home=None):
 _TMP_ZARR_FOLDER = Path("../parcels-data/data-zarr")
 
 
-def open_dataset(name: str, code_path: Literal["nc", "zarr"] = "nc"):  # TODO: Remove code_path arg
+def open_dataset(name: str):  # TODO: Remove code_path arg
     try:
         cfg = _DATASET_KEYS_AND_CONFIGS[name]
     except KeyError as e:
@@ -268,7 +267,6 @@ def open_dataset(name: str, code_path: Literal["nc", "zarr"] = "nc"):  # TODO: R
             f"Dataset {name!r} not found. Available datasets are: " + ", ".join(list_example_datasets(v4=True))
         ) from e
 
-    open_dataset_kwargs = dict(decode_timedelta=False, decode_cf=False)
     open_dataset_kwargs = dict(decode_cf=False)
     # assert not dataset.endswith((".zarr", ".zip", ".nc")), "Dataset name should not have suffix"
     download_dataset_stem, rest = cfg.path_relative_to_root.split("/", maxsplit=1)
@@ -283,14 +281,12 @@ def open_dataset(name: str, code_path: Literal["nc", "zarr"] = "nc"):  # TODO: R
 
     ds = xr.decode_cf(ds)
 
-    if code_path == "nc":
-        return ds
     path = _TMP_ZARR_FOLDER / f"{name}.zip"
-    path.parent.mkdir(exist_ok=True)
+    path.parent.mkdir(exist_ok=True, parents=True)
     if not path.exists():
         with zarr.storage.ZipStore(path, mode="w") as store:
             ds.to_zarr(store)
-    return xr.open_zarr(path, **open_dataset_kwargs)
+    return xr.open_zarr(path)
 
 
 def _v4_compat_patch(fname, action, pup):
