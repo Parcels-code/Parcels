@@ -456,10 +456,9 @@ def test_peninsula_fieldset(kernel, rtol, grid_type):
 
 
 def test_nemo_curvilinear_fieldset():
-    data_folder = parcels.tutorial.download_example_dataset("NemoCurvilinear_data")
-    U = xr.open_mfdataset(data_folder.glob("*U.nc4"))
-    V = xr.open_mfdataset(data_folder.glob("*V.nc4"))
-    coords = xr.open_dataset(data_folder / "mesh_mask.nc4")
+    U = parcels.tutorial.open_dataset("NemoCurvilinear_data_zonal/U")
+    V = parcels.tutorial.open_dataset("NemoCurvilinear_data_zonal/V")
+    coords = parcels.tutorial.open_dataset("NemoCurvilinear_data_zonal/mesh_mask")
 
     ds = parcels.convert.nemo_to_sgrid(fields=dict(U=U, V=V), coords=coords)
 
@@ -477,11 +476,10 @@ def test_nemo_curvilinear_fieldset():
 
 @pytest.mark.parametrize("kernel", [AdvectionRK4, AdvectionRK4_3D])
 def test_nemo_3D_curvilinear_fieldset(kernel):
-    data_folder = parcels.tutorial.download_example_dataset("NemoNorthSeaORCA025-N006_data")
-    U = xr.open_mfdataset(data_folder.glob("*U.nc"))
-    V = xr.open_mfdataset(data_folder.glob("*V.nc"))
-    W = xr.open_mfdataset(data_folder.glob("*W.nc"))
-    coords = xr.open_dataset(data_folder / "coordinates.nc", decode_times=False)
+    U = parcels.tutorial.open_dataset("NemoNorthSeaORCA025-N006_data/U")
+    V = parcels.tutorial.open_dataset("NemoNorthSeaORCA025-N006_data/V")
+    W = parcels.tutorial.open_dataset("NemoNorthSeaORCA025-N006_data/W")
+    coords = parcels.tutorial.open_dataset("NemoNorthSeaORCA025-N006_data/mesh_mask")
 
     ds = parcels.convert.nemo_to_sgrid(fields=dict(U=U["uo"], V=V["vo"], W=W["wo"]), coords=coords)
 
@@ -506,8 +504,7 @@ def test_nemo_3D_curvilinear_fieldset(kernel):
 
 
 def test_mitgcm():
-    data_folder = parcels.tutorial.download_example_dataset("MITgcm_example_data")
-    ds_fields = xr.open_dataset(data_folder / "mitgcm_UV_surface_zonally_reentrant.nc")
+    ds_fields = parcels.tutorial.open_dataset("MITgcm_example_data/mitgcm_UV_surface_zonally_reentrant")
 
     ds_fset = convert.mitgcm_to_sgrid(fields={"U": ds_fields.UVEL, "V": ds_fields.VVEL}, coords=ds_fields)
     fieldset = FieldSet.from_sgrid_conventions(ds_fset)

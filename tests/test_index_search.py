@@ -1,13 +1,12 @@
 import numpy as np
 import pytest
-import xarray as xr
 import xgcm
 
+import parcels.tutorial
 from parcels import Field, XGrid
 from parcels._core.index_search import _search_indices_curvilinear_2d
 from parcels._datasets.structured.generic import datasets
 from parcels.interpolators import XLinear
-from parcels.tutorial import download_example_dataset
 
 
 @pytest.fixture
@@ -56,10 +55,7 @@ def test_grid_indexing_fpoints(field_cone):
 
 
 def test_indexing_nemo_curvilinear():
-    data_folder = download_example_dataset("NemoCurvilinear_data")
-    ds = xr.open_mfdataset(
-        data_folder.glob("*.nc4"), combine="nested", data_vars="minimal", coords="minimal", compat="override"
-    )
+    ds = parcels.tutorial.open_dataset("NemoCurvilinear_data_zonal/mesh_mask")
     ds = ds.isel({"time_counter": 0, "time": 0, "z_a": 0}, drop=True).rename(
         {"glamf": "lon", "gphif": "lat", "z": "depth"}
     )

@@ -441,9 +441,8 @@ def test_pset_execute_outputdt_backwards_fieldset_timevarying():
     runtime = timedelta(days=2)
     dt = -timedelta(minutes=5)
 
-    # TODO: Not ideal using the `download_example_dataset` here, but I'm struggling to recreate this error using the test suite fieldsets we have
-    example_dataset_folder = parcels.tutorial.download_example_dataset("CopernicusMarine_data_for_Argo_tutorial")
-    ds_in = xr.open_mfdataset(f"{example_dataset_folder}/*.nc", combine="by_coords")
+    # TODO: Not ideal using the `open_dataset` here, but I'm struggling to recreate this error using the test suite fieldsets we have
+    ds_in = parcels.tutorial.open_dataset("CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-cur_anfc")
     fields = {"U": ds_in["uo"], "V": ds_in["vo"]}
     ds_fset = copernicusmarine_to_sgrid(fields=fields)
     fieldset = FieldSet.from_sgrid_conventions(ds_fset)
