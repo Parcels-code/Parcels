@@ -131,7 +131,15 @@ class _V3Dataset(_ParcelsDataset):
     def open_dataset(self) -> xr.Dataset:
         self.download_relevant_files()
         with xr.set_options(use_new_combine_kwarg_defaults=True):
-            ds = xr.open_mfdataset(f"{self.pup.path}/{self.path_relative_to_root}", decode_cf=False)
+            ds = xr.open_mfdataset(
+                f"{self.pup.path}/{self.path_relative_to_root}",
+                decode_cf=False,
+                # options to open mfdataset https://github.com/Parcels-code/Parcels/pull/2574#discussion_r3073256988
+                combine="nested",
+                data_vars="minimal",
+                coords="minimal",
+                compat="override",
+            )
 
         if self.pre_decode_cf_callable is not None:
             ds = self.pre_decode_cf_callable(ds)
