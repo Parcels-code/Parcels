@@ -4,6 +4,7 @@ import os
 from collections.abc import Callable
 from datetime import datetime, timedelta
 from pathlib import Path
+from typing import Literal
 
 import pooch
 import xarray as xr
@@ -174,12 +175,15 @@ def _preprocess_set_cf_calendar_360_day(ds: xr.Dataset) -> xr.Dataset:
     return ds
 
 
+class _Purpose(enum.Enum):
+    TESTING = "testing"
+    TUTORIAL = "tutorial"
+
+
+_TPurpose = Literal["testing", "tutorial"]
+
 # The first here is a human readable key used to open datasets, with an object to open the datasets
 # fmt: off
-class _Purpose(enum.Enum):
-    TESTING = enum.auto()
-    TUTORIAL = enum.auto()
-
 _DATASET_KEYS_AND_CONFIGS: dict[str, tuple[_V3Dataset, _Purpose]] = dict([
     ("MovingEddies_data/P", (_V3Dataset("MovingEddies_data/moving_eddiesP.nc"), _Purpose.TUTORIAL)),
     ("MovingEddies_data/U", (_V3Dataset("MovingEddies_data/moving_eddiesU.nc"), _Purpose.TUTORIAL)),
@@ -216,23 +220,54 @@ _DATASET_KEYS_AND_CONFIGS: dict[str, tuple[_V3Dataset, _Purpose]] = dict([
 # fmt: on
 
 
-def list_datasets() -> list[str]:  # TODO: Remove v4 flag when migrating to open_dataset
-    """List the available example datasets.
+def list_datasets(purpose: _TPurpose | Literal["any"] = "any") -> list[str]:
+    """List the available remote datasets.
 
     Use :func:`open_dataset` to download and open one of the datasets.
+
+    Parameters
+    ----------
+    purpose : {'any', 'testing', 'tutorial'}, optional
+        Filter datasets by purpose. Use ``'any'`` (default) to return all
+        datasets, ``'tutorial'`` for tutorial datasets, or ``'testing'`` for
+        datasets used in tests.
 
     Returns
     -------
     datasets : list of str
-        The names of the available example datasets.
+        The names of the available datasets matching the given purpose.
     """
-    return list(_DATASET_KEYS_AND_CONFIGS.keys())
+    if purpose == "any":
+        return list(_DATASET_KEYS_AND_CONFIGS.keys())
+
+    purpose_enum = _Purpose(purpose)
+    return [k for (k, (_, p)) in _DATASET_KEYS_AND_CONFIGS.items() if p == purpose_enum]
 
 
-def open_dataset(name: str):
+def open_dataset(name: str, purpose: _TPurpose | Literal["any"] = "any"):
+    """Download and open a remote dataset as an :class:`xarray.Dataset`.
+
+    Use :func:`list_datasets` to see the available dataset names.
+
+    Parameters
+    ----------
+    name : str
+        Name of the dataset to open. Must be one of the keys returned by
+        :func:`list_datasets`.
+    purpose : {'any', 'testing', 'tutorial'}, optional
+        Purpose filter used to populate the error message when ``name`` is not
+        found. Defaults to ``'any'``.
+
+    Returns
+    -------
+    xarray.Dataset
+        The requested dataset.
+    """
     try:
         dataset_config = _DATASET_KEYS_AND_CONFIGS[name][0]
     except KeyError as e:
-        raise ValueError(f"Dataset {name!r} not found. Available datasets are: " + ", ".join(list_datasets())) from e
+        raise ValueError(
+            f"Dataset {name!r} not found. Available datasets are: " + ", ".join(list_datasets(purpose=purpose))
+        ) from e
 
     return dataset_config.open_dataset()
