@@ -3,14 +3,14 @@ import requests
 import xarray as xr
 
 from parcels.tutorial import (
-    _get_pooch,
+    _ODIE,
     download_example_dataset,
     list_example_datasets,
     open_dataset,
 )
 
 
-@pytest.mark.parametrize("url", [_get_pooch().get_url(filename) for filename in _get_pooch().registry.keys()])
+@pytest.mark.parametrize("url", [_ODIE.get_url(filename) for filename in _ODIE.registry.keys()])
 def test_pooch_registry_url_reponse(url):
     response = requests.head(url)
     assert not (400 <= response.status_code < 600)

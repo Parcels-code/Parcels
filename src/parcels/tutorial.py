@@ -18,9 +18,9 @@ _DATA_REPO_TAG = "main"
 
 _DATA_URL = f"https://github.com/Parcels-code/parcels-data/raw/{_DATA_REPO_TAG}/data"
 
-DATA_HOME = os.environ.get("PARCELS_EXAMPLE_DATA")
-if DATA_HOME is None:
-    DATA_HOME = pooch.os_cache("parcels")
+_DATA_HOME = os.environ.get("PARCELS_EXAMPLE_DATA")
+if _DATA_HOME is None:
+    _DATA_HOME = pooch.os_cache("parcels")
 
 
 # Keys are the dataset names. Values are the filenames in the dataset folder. Note that
@@ -191,15 +191,12 @@ def _create_pooch_registry() -> dict[str, None]:
     return registry
 
 
-POOCH_REGISTRY = _create_pooch_registry()
-
-
-def _get_pooch():
-    return pooch.create(
-        path=DATA_HOME,
-        base_url=_DATA_URL,
-        registry=POOCH_REGISTRY,
-    )
+_POOCH_REGISTRY = _create_pooch_registry()
+_ODIE = pooch.create(
+    path=_DATA_HOME,
+    base_url=_DATA_URL,
+    registry=_POOCH_REGISTRY,
+)
 
 
 def list_example_datasets(v4=False) -> list[str]:  # TODO: Remove v4 flag when migrating to open_dataset
@@ -240,15 +237,14 @@ def download_example_dataset(dataset: str):
         raise ValueError(
             f"Dataset {dataset!r} not found. Available datasets are: " + ", ".join(_EXAMPLE_DATA_FILES.keys())
         )
-    odie = _get_pooch()
 
-    cache_folder = Path(odie.path)
+    cache_folder = Path(_ODIE.path)
     dataset_folder = cache_folder / dataset
 
-    for file_name in odie.registry:
+    for file_name in _ODIE.registry:
         if file_name.startswith(dataset):
             should_patch = dataset == "GlobCurrent_example_data"
-            odie.fetch(file_name, processor=_v4_compat_patch if should_patch else None)
+            _ODIE.fetch(file_name, processor=_v4_compat_patch if should_patch else None)
 
     return dataset_folder
 
