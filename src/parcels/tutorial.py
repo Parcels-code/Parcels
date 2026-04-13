@@ -194,11 +194,9 @@ def _create_pooch_registry() -> dict[str, None]:
 POOCH_REGISTRY = _create_pooch_registry()
 
 
-def _get_pooch(data_home=None):
-    if data_home is None:
-        data_home = DATA_HOME
+def _get_pooch():
     return pooch.create(
-        path=data_home,
+        path=DATA_HOME,
         base_url=_DATA_URL,
         registry=POOCH_REGISTRY,
     )
@@ -219,20 +217,18 @@ def list_example_datasets(v4=False) -> list[str]:  # TODO: Remove v4 flag when m
     return list(set(v.path_relative_to_root.split("/")[0] for v in _DATASET_KEYS_AND_CONFIGS.values()))
 
 
-def download_example_dataset(dataset: str, data_home=None):
+def download_example_dataset(dataset: str):
     """Load an example dataset from the parcels website.
 
     This function provides quick access to a small number of example datasets
     that are useful in documentation and testing in parcels.
 
+    The location where the data is downloaded can be set using the environment variable PARCELS_EXAMPLE_DATA .
+
     Parameters
     ----------
     dataset : str
         Name of the dataset to load.
-    data_home : pathlike, optional
-        The directory in which to cache data. If not specified, the value
-        of the ``PARCELS_EXAMPLE_DATA`` environment variable, if any, is used.
-        Otherwise the default location is assigned by :func:`get_data_home`.
 
     Returns
     -------
@@ -244,7 +240,7 @@ def download_example_dataset(dataset: str, data_home=None):
         raise ValueError(
             f"Dataset {dataset!r} not found. Available datasets are: " + ", ".join(_EXAMPLE_DATA_FILES.keys())
         )
-    odie = _get_pooch(data_home=data_home)
+    odie = _get_pooch()
 
     cache_folder = Path(odie.path)
     dataset_folder = cache_folder / dataset
