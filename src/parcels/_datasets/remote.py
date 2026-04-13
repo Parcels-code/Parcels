@@ -135,7 +135,6 @@ class _V3Dataset(_ParcelsDataset):
                 f"{self.pup.path}/{self.path_relative_to_root}",
                 decode_cf=False,
                 # options to open mfdataset https://github.com/Parcels-code/Parcels/pull/2574#discussion_r3073256988
-                combine="nested",
                 data_vars="minimal",
                 coords="minimal",
                 compat="override",
