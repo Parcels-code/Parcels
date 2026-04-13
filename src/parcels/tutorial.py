@@ -9,7 +9,7 @@ import xarray as xr
 
 from parcels._v3to4 import patch_dataset_v4_compat
 
-__all__ = ["download_example_dataset", "list_example_datasets"]
+__all__ = ["list_datasets", "open_dataset"]
 
 # When modifying existing datasets in a backwards incompatible way,
 # make a new release in the repo and update the DATA_REPO_TAG to the new tag
@@ -34,99 +34,88 @@ if _DATA_HOME is None:
 #     └── file2.nc
 #
 # See instructions at https://github.com/Parcels-code/parcels-data for adding new datasets
-_EXAMPLE_DATA_FILES: dict[str, list[str]] = {
-    "MovingEddies_data": [
-        "moving_eddiesP.nc",
-        "moving_eddiesU.nc",
-        "moving_eddiesV.nc",
-    ],
-    "MITgcm_example_data": ["mitgcm_UV_surface_zonally_reentrant.nc"],
-    "OFAM_example_data": ["OFAM_simple_U.nc", "OFAM_simple_V.nc"],
-    "Peninsula_data": [
-        "peninsulaU.nc",
-        "peninsulaV.nc",
-        "peninsulaP.nc",
-        "peninsulaT.nc",
-    ],
-    "GlobCurrent_example_data": [
-        f"{date.strftime('%Y%m%d')}000000-GLOBCURRENT-L4-CUReul_hs-ALT_SUM-v02.0-fv01.0.nc"
+_POOCH_REGISTRY_FILES: list[str] = (
+    [
+        "MovingEddies_data/moving_eddiesP.nc",
+        "MovingEddies_data/moving_eddiesU.nc",
+        "MovingEddies_data/moving_eddiesV.nc",
+    ]
+    + ["MITgcm_example_data/mitgcm_UV_surface_zonally_reentrant.nc"]
+    + ["OFAM_example_data/OFAM_simple_U.nc", "OFAM_example_data/OFAM_simple_V.nc"]
+    + [
+        "Peninsula_data/peninsulaU.nc",
+        "Peninsula_data/peninsulaV.nc",
+        "Peninsula_data/peninsulaP.nc",
+        "Peninsula_data/peninsulaT.nc",
+    ]
+    + [
+        f"GlobCurrent_example_data/{date.strftime('%Y%m%d')}000000-GLOBCURRENT-L4-CUReul_hs-ALT_SUM-v02.0-fv01.0.nc"
         for date in ([datetime(2002, 1, 1) + timedelta(days=x) for x in range(0, 365)] + [datetime(2003, 1, 1)])
-    ],
-    "CopernicusMarine_data_for_Argo_tutorial": [
-        "cmems_mod_glo_phy-cur_anfc_0.083deg_P1D-m_uo-vo_31.00E-33.00E_33.00S-30.00S_0.49-2225.08m_2024-01-01-2024-02-01.nc",
-        "cmems_mod_glo_phy-so_anfc_0.083deg_P1D-m_so_31.00E-33.00E_33.00S-30.00S_0.49-2225.08m_2024-01-01-2024-02-01.nc",
-        "cmems_mod_glo_phy-thetao_anfc_0.083deg_P1D-m_thetao_31.00E-33.00E_33.00S-30.00S_0.49-2225.08m_2024-01-01-2024-02-01.nc",
-    ],
-    "DecayingMovingEddy_data": [
-        "decaying_moving_eddyU.nc",
-        "decaying_moving_eddyV.nc",
-    ],
-    "FESOM_periodic_channel": [
-        "fesom_channel.nc",
-        "u.fesom_channel.nc",
-        "v.fesom_channel.nc",
-        "w.fesom_channel.nc",
-    ],
-    "NemoCurvilinear_data": [
-        "U_purely_zonal-ORCA025_grid_U.nc4",
-        "V_purely_zonal-ORCA025_grid_V.nc4",
-        "mesh_mask.nc4",
-    ],
-    "NemoNorthSeaORCA025-N006_data": [
-        "ORCA025-N06_20000104d05U.nc",
-        "ORCA025-N06_20000109d05U.nc",
-        "ORCA025-N06_20000114d05U.nc",
-        "ORCA025-N06_20000119d05U.nc",
-        "ORCA025-N06_20000124d05U.nc",
-        "ORCA025-N06_20000129d05U.nc",
-        "ORCA025-N06_20000104d05V.nc",
-        "ORCA025-N06_20000109d05V.nc",
-        "ORCA025-N06_20000114d05V.nc",
-        "ORCA025-N06_20000119d05V.nc",
-        "ORCA025-N06_20000124d05V.nc",
-        "ORCA025-N06_20000129d05V.nc",
-        "ORCA025-N06_20000104d05W.nc",
-        "ORCA025-N06_20000109d05W.nc",
-        "ORCA025-N06_20000114d05W.nc",
-        "ORCA025-N06_20000119d05W.nc",
-        "ORCA025-N06_20000124d05W.nc",
-        "ORCA025-N06_20000129d05W.nc",
-        "coordinates.nc",
-    ],
-    "POPSouthernOcean_data": [
-        "t.x1_SAMOC_flux.169000.nc",
-        "t.x1_SAMOC_flux.169001.nc",
-        "t.x1_SAMOC_flux.169002.nc",
-        "t.x1_SAMOC_flux.169003.nc",
-        "t.x1_SAMOC_flux.169004.nc",
-        "t.x1_SAMOC_flux.169005.nc",
-    ],
-    "SWASH_data": [
-        "field_0065532.nc",
-        "field_0065537.nc",
-        "field_0065542.nc",
-        "field_0065548.nc",
-        "field_0065552.nc",
-        "field_0065557.nc",
-    ],
-    "WOA_data": [f"woa18_decav_t{m:02d}_04.nc" for m in range(1, 13)],
-    "CROCOidealized_data": ["CROCO_idealized.nc"],
-}
+    ]
+    + [
+        "CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-cur_anfc_0.083deg_P1D-m_uo-vo_31.00E-33.00E_33.00S-30.00S_0.49-2225.08m_2024-01-01-2024-02-01.nc",
+        "CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-so_anfc_0.083deg_P1D-m_so_31.00E-33.00E_33.00S-30.00S_0.49-2225.08m_2024-01-01-2024-02-01.nc",
+        "CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-thetao_anfc_0.083deg_P1D-m_thetao_31.00E-33.00E_33.00S-30.00S_0.49-2225.08m_2024-01-01-2024-02-01.nc",
+    ]
+    + [
+        "DecayingMovingEddy_data/decaying_moving_eddyU.nc",
+        "DecayingMovingEddy_data/decaying_moving_eddyV.nc",
+    ]
+    + [
+        "FESOM_periodic_channel/fesom_channel.nc",
+        "FESOM_periodic_channel/u.fesom_channel.nc",
+        "FESOM_periodic_channel/v.fesom_channel.nc",
+        "FESOM_periodic_channel/w.fesom_channel.nc",
+    ]
+    + [
+        "NemoCurvilinear_data/U_purely_zonal-ORCA025_grid_U.nc4",
+        "NemoCurvilinear_data/V_purely_zonal-ORCA025_grid_V.nc4",
+        "NemoCurvilinear_data/mesh_mask.nc4",
+    ]
+    + [
+        "NemoNorthSeaORCA025-N006_data/ORCA025-N06_20000104d05U.nc",
+        "NemoNorthSeaORCA025-N006_data/ORCA025-N06_20000109d05U.nc",
+        "NemoNorthSeaORCA025-N006_data/ORCA025-N06_20000114d05U.nc",
+        "NemoNorthSeaORCA025-N006_data/ORCA025-N06_20000119d05U.nc",
+        "NemoNorthSeaORCA025-N006_data/ORCA025-N06_20000124d05U.nc",
+        "NemoNorthSeaORCA025-N006_data/ORCA025-N06_20000129d05U.nc",
+        "NemoNorthSeaORCA025-N006_data/ORCA025-N06_20000104d05V.nc",
+        "NemoNorthSeaORCA025-N006_data/ORCA025-N06_20000109d05V.nc",
+        "NemoNorthSeaORCA025-N006_data/ORCA025-N06_20000114d05V.nc",
+        "NemoNorthSeaORCA025-N006_data/ORCA025-N06_20000119d05V.nc",
+        "NemoNorthSeaORCA025-N006_data/ORCA025-N06_20000124d05V.nc",
+        "NemoNorthSeaORCA025-N006_data/ORCA025-N06_20000129d05V.nc",
+        "NemoNorthSeaORCA025-N006_data/ORCA025-N06_20000104d05W.nc",
+        "NemoNorthSeaORCA025-N006_data/ORCA025-N06_20000109d05W.nc",
+        "NemoNorthSeaORCA025-N006_data/ORCA025-N06_20000114d05W.nc",
+        "NemoNorthSeaORCA025-N006_data/ORCA025-N06_20000119d05W.nc",
+        "NemoNorthSeaORCA025-N006_data/ORCA025-N06_20000124d05W.nc",
+        "NemoNorthSeaORCA025-N006_data/ORCA025-N06_20000129d05W.nc",
+        "NemoNorthSeaORCA025-N006_data/coordinates.nc",
+    ]
+    + [
+        "POPSouthernOcean_data/t.x1_SAMOC_flux.169000.nc",
+        "POPSouthernOcean_data/t.x1_SAMOC_flux.169001.nc",
+        "POPSouthernOcean_data/t.x1_SAMOC_flux.169002.nc",
+        "POPSouthernOcean_data/t.x1_SAMOC_flux.169003.nc",
+        "POPSouthernOcean_data/t.x1_SAMOC_flux.169004.nc",
+        "POPSouthernOcean_data/t.x1_SAMOC_flux.169005.nc",
+    ]
+    + [
+        "SWASH_data/field_0065532.nc",
+        "SWASH_data/field_0065537.nc",
+        "SWASH_data/field_0065542.nc",
+        "SWASH_data/field_0065548.nc",
+        "SWASH_data/field_0065552.nc",
+        "SWASH_data/field_0065557.nc",
+    ]
+    + [f"WOA_data/woa18_decav_t{m:02d}_04.nc" for m in range(1, 13)]
+    + ["CROCOidealized_data/CROCO_idealized.nc"]
+)
+
+_POOCH_REGISTRY = {k: None for k in _POOCH_REGISTRY_FILES}
 
 
-def _create_pooch_registry() -> dict[str, None]:
-    """Collapses the mapping of dataset names to filenames into a pooch registry.
-
-    Hashes are set to None for all files.
-    """
-    registry: dict[str, None] = {}
-    for dataset, filenames in _EXAMPLE_DATA_FILES.items():
-        for filename in filenames:
-            registry[f"{dataset}/{filename}"] = None
-    return registry
-
-
-_POOCH_REGISTRY = _create_pooch_registry()
 _ODIE = pooch.create(
     path=_DATA_HOME,
     base_url=_DATA_URL,
@@ -151,7 +140,7 @@ class _V3Dataset(_ParcelsDataset):
     def open_dataset(self) -> xr.Dataset:
         self.download_relevant_files()
         with xr.set_options(use_new_combine_kwarg_defaults=True):
-            ds = xr.open_mfdataset(Path(self.pup.path) / self.path_relative_to_root, decode_cf=False)
+            ds = xr.open_mfdataset(f"{self.pup.path}/{self.path_relative_to_root}", decode_cf=False)
 
         if self.pre_decode_cf_callable is not None:
             ds = self.pre_decode_cf_callable(ds)
@@ -193,8 +182,7 @@ def _preprocess_set_cf_calendar_360_day(ds: xr.Dataset) -> xr.Dataset:
     return ds
 
 
-# The first here is a human readable key, the latter the path to load the netcdf data
-# (after refactor the latter open path will disappear, and will just be `open_zarr(f'{ds_key}.zip')`)
+# The first here is a human readable key used to open datasets, with an object to open the datasets
 # fmt: off
 _DATASET_KEYS_AND_CONFIGS: dict[str, _V3Dataset] = dict([
     ("MovingEddies_data/P", _V3Dataset("MovingEddies_data/moving_eddiesP.nc")),
@@ -207,7 +195,7 @@ _DATASET_KEYS_AND_CONFIGS: dict[str, _V3Dataset] = dict([
     ("Peninsula_data/V", _V3Dataset("Peninsula_data/peninsulaV.nc")),
     ("Peninsula_data/P", _V3Dataset("Peninsula_data/peninsulaP.nc")),
     ("Peninsula_data/T", _V3Dataset("Peninsula_data/peninsulaT.nc")),
-    ("GlobCurrent_example_data/data", _V3Dataset("GlobCurrent_example_data/*000000-GLOBCURRENT-L4-CUReul_hs-ALT_SUM-v02.0-fv01.0.nc")),
+    ("GlobCurrent_example_data/data", _V3Dataset("GlobCurrent_example_data/*000000-GLOBCURRENT-L4-CUReul_hs-ALT_SUM-v02.0-fv01.0.nc", pre_decode_cf_callable=patch_dataset_v4_compat)),
     ("CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-cur_anfc", _V3Dataset("CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-cur_anfc_0.083deg_P1D-m_uo-vo_31.00E-33.00E_33.00S-30.00S_0.49-2225.08m_2024-01-01-2024-02-01.nc")),
     ("CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-so_anfc", _V3Dataset("CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-so_anfc_0.083deg_P1D-m_so_31.00E-33.00E_33.00S-30.00S_0.49-2225.08m_2024-01-01-2024-02-01.nc")),
     ("CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-thetao_anfc", _V3Dataset("CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-thetao_anfc_0.083deg_P1D-m_thetao_31.00E-33.00E_33.00S-30.00S_0.49-2225.08m_2024-01-01-2024-02-01.nc")),
@@ -232,77 +220,26 @@ _DATASET_KEYS_AND_CONFIGS: dict[str, _V3Dataset] = dict([
 # fmt: on
 
 
-def list_example_datasets(v4=False) -> list[str]:  # TODO: Remove v4 flag when migrating to open_dataset
+def list_datasets() -> list[str]:  # TODO: Remove v4 flag when migrating to open_dataset
     """List the available example datasets.
 
-    Use :func:`download_example_dataset` to download one of the datasets.
+    Use :func:`open_dataset` to download and open one of the datasets.
 
     Returns
     -------
     datasets : list of str
         The names of the available example datasets.
     """
-    if v4:
-        return list(_DATASET_KEYS_AND_CONFIGS.keys())
-    return list(set(v.path_relative_to_root.split("/")[0] for v in _DATASET_KEYS_AND_CONFIGS.values()))
-
-
-def download_example_dataset(dataset: str):
-    """Load an example dataset from the parcels website.
-
-    This function provides quick access to a small number of example datasets
-    that are useful in documentation and testing in parcels.
-
-    The location where the data is downloaded can be set using the environment variable PARCELS_EXAMPLE_DATA .
-
-    Parameters
-    ----------
-    dataset : str
-        Name of the dataset to load.
-
-    Returns
-    -------
-    dataset_folder : Path
-        Path to the folder containing the downloaded dataset files.
-    """
-    # Dev note: `dataset` is assumed to be a folder name with netcdf files
-    if dataset not in _EXAMPLE_DATA_FILES:
-        raise ValueError(
-            f"Dataset {dataset!r} not found. Available datasets are: " + ", ".join(_EXAMPLE_DATA_FILES.keys())
-        )
-
-    cache_folder = Path(_ODIE.path)
-    dataset_folder = cache_folder / dataset
-
-    for file_name in _ODIE.registry:
-        if file_name.startswith(dataset):
-            should_patch = dataset == "GlobCurrent_example_data"
-            _ODIE.fetch(file_name, processor=_v4_compat_patch if should_patch else None)
-
-    return dataset_folder
+    return list(_DATASET_KEYS_AND_CONFIGS.keys())
 
 
 def open_dataset(name: str):
     try:
         dataset_config = _DATASET_KEYS_AND_CONFIGS[name]
     except KeyError as e:
-        raise ValueError(
-            f"Dataset {name!r} not found. Available datasets are: " + ", ".join(list_example_datasets(v4=True))
-        ) from e
+        raise ValueError(f"Dataset {name!r} not found. Available datasets are: " + ", ".join(list_datasets())) from e
     assert not name.endswith((".zarr", ".zip", ".nc")), (
         "Dataset name should not have suffix"
     )  # TODO: Move to test_tutorial
 
     return dataset_config.open_dataset()
-
-
-def _v4_compat_patch(fname, action, pup):
-    """
-    Patch the GlobCurrent example dataset to be compatible with v4.
-
-    See https://www.fatiando.org/pooch/latest/processors.html#creating-your-own-processors
-    """
-    if action == "fetch":
-        return fname
-    xr.load_dataset(fname).pipe(patch_dataset_v4_compat).to_netcdf(fname)
-    return fname
