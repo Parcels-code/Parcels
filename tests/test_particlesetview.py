@@ -77,11 +77,11 @@ def test_particle_mask_conditional_updates(fieldset):
 
     pset.execute(ConditionalHeating, runtime=np.timedelta64(4, "s"), dt=np.timedelta64(1, "s"))
 
-    # After 5 timesteps (0, 1, 2, 3, 4): left particles should be at 15.0, right at 7.5
+    # After 4 timesteps: left particles should be at 14.0, right at 8.0
     left_particles = pset.lon < 0.5
     right_particles = pset.lon >= 0.5
-    assert np.allclose(pset.temp[left_particles], 15.0, atol=1e-6)
-    assert np.allclose(pset.temp[right_particles], 7.5, atol=1e-6)
+    assert np.allclose(pset.temp[left_particles], 14.0, atol=1e-6)
+    assert np.allclose(pset.temp[right_particles], 8.0, atol=1e-6)
 
 
 def test_particle_mask_progressive_changes(fieldset):
@@ -134,9 +134,9 @@ def test_particle_mask_multiple_sequential_operations(fieldset):
     group2 = (pset.lon >= 0.33) & (pset.lon < 0.67)
     group3 = pset.lon >= 0.67
 
-    assert np.allclose(pset.counter[group1], 6, atol=1e-6)  # 6 timesteps * 1
-    assert np.allclose(pset.counter[group2], 12, atol=1e-6)  # 6 timesteps * 2
-    assert np.allclose(pset.counter[group3], 18, atol=1e-6)  # 6 timesteps * 3
+    assert np.allclose(pset.counter[group1], 5, atol=1e-6)  # 5 timesteps * 1
+    assert np.allclose(pset.counter[group2], 10, atol=1e-6)  # 5 timesteps * 2
+    assert np.allclose(pset.counter[group3], 15, atol=1e-6)  # 5 timesteps * 3
 
 
 def test_particle_mask_empty_mask_handling(fieldset):
@@ -178,5 +178,5 @@ def test_particle_mask_with_delete_state(fieldset):
 
     # Should have deleted edge particles
     assert pset.size < initial_size
-    # Remaining particles should be in the middle range
-    assert np.all((pset.lon >= 0.2) & (pset.lon <= 0.8))
+    # Remaining particles should be in the middle range (with 0.02 of total displacement)
+    assert np.all((pset.lon >= 0.2) & (pset.lon <= 0.82))

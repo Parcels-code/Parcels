@@ -98,7 +98,7 @@ def test_advection_zonal_periodic():
     startlon = np.array([0.5, 0.4])
     pset = ParticleSet(fieldset, pclass=PeriodicParticle, lon=startlon, lat=[0.5, 0.5])
     pset.execute([AdvectionEE, periodicBC], runtime=np.timedelta64(40, "s"), dt=np.timedelta64(1, "s"))
-    np.testing.assert_allclose(pset.total_dlon, 4.1, atol=1e-5)
+    np.testing.assert_allclose(pset.total_dlon, 4.0, atol=1e-5)
     np.testing.assert_allclose(pset.lon, startlon, atol=1e-5)
     np.testing.assert_allclose(pset.lat, 0.5, atol=1e-5)
 

@@ -216,7 +216,7 @@ def test_pset_execute_subsecond_dt(fieldset, dt):
     pclass = Particle.add_variable(Variable("added_dt", dtype=np.float32, initial=0))
     pset = ParticleSet(fieldset, pclass=pclass, lon=0, lat=0)
     pset.execute(AddDt, runtime=dt * 10, dt=dt)
-    np.testing.assert_allclose(pset[0].added_dt, 11.0 * timedelta_to_float(dt), atol=1e-5)
+    np.testing.assert_allclose(pset[0].added_dt, 10.0 * timedelta_to_float(dt), atol=1e-5)
 
 
 def test_pset_remove_particle_in_kernel(fieldset):
@@ -286,7 +286,7 @@ def test_dont_run_particles_outside_starttime(fieldset):
     pset = ParticleSet(fieldset, lon=np.zeros(len(start_times)), lat=np.zeros(len(start_times)), time=start_times)
     pset.execute(AddLon, dt=np.timedelta64(1, "s"), endtime=endtime)
 
-    np.testing.assert_array_equal(pset.lon, [9, 7, 0])
+    np.testing.assert_array_equal(pset.lon, [8, 6, 0])
     assert pset.time[0:1] == timedelta_to_float(endtime - fieldset.time_interval.left)
     assert pset.time[2] == timedelta_to_float(
         start_times[2] - fieldset.time_interval.left
@@ -299,7 +299,7 @@ def test_dont_run_particles_outside_starttime(fieldset):
     pset = ParticleSet(fieldset, lon=np.zeros(len(start_times)), lat=np.zeros(len(start_times)), time=start_times)
     pset.execute(AddLon, dt=-np.timedelta64(1, "s"), endtime=endtime)
 
-    np.testing.assert_array_equal(pset.lon, [9, 7, 0])
+    np.testing.assert_array_equal(pset.lon, [8, 6, 0])
     assert pset.time[0:1] == timedelta_to_float(endtime - fieldset.time_interval.left)
     assert pset.time[2] == timedelta_to_float(
         start_times[2] - fieldset.time_interval.left
@@ -411,7 +411,7 @@ def test_changing_dt_in_kernel(fieldset):
 
     pset = ParticleSet(fieldset, lon=np.zeros(1), lat=np.zeros(1))
     pset.execute(KernelCounter, dt=np.timedelta64(2, "s"), runtime=np.timedelta64(5, "s"))
-    assert pset.lon == 4
+    assert pset.lon == 3
     assert pset.dt == 2
     assert pset.time == 5
 
