@@ -11,8 +11,6 @@ import xarray as xr
 
 from parcels._v3to4 import patch_dataset_v4_compat
 
-__all__ = ["list_datasets", "open_dataset"]
-
 # When modifying existing datasets in a backwards incompatible way,
 # make a new release in the repo and update the DATA_REPO_TAG to the new tag
 _DATA_REPO_TAG = "main"
@@ -220,7 +218,7 @@ _DATASET_KEYS_AND_CONFIGS: dict[str, tuple[_V3Dataset, _Purpose]] = dict([
 # fmt: on
 
 
-def list_datasets(purpose: _TPurpose | Literal["any"] = "any") -> list[str]:
+def list_remote_datasets(purpose: _TPurpose | Literal["any"] = "any") -> list[str]:
     """List the available remote datasets.
 
     Use :func:`open_dataset` to download and open one of the datasets.
@@ -244,7 +242,7 @@ def list_datasets(purpose: _TPurpose | Literal["any"] = "any") -> list[str]:
     return [k for (k, (_, p)) in _DATASET_KEYS_AND_CONFIGS.items() if p == purpose_enum]
 
 
-def open_dataset(name: str, purpose: _TPurpose | Literal["any"] = "any"):
+def open_remote_dataset(name: str, purpose: _TPurpose | Literal["any"] = "any"):
     """Download and open a remote dataset as an :class:`xarray.Dataset`.
 
     Use :func:`list_datasets` to see the available dataset names.
@@ -267,7 +265,7 @@ def open_dataset(name: str, purpose: _TPurpose | Literal["any"] = "any"):
         dataset_config = _DATASET_KEYS_AND_CONFIGS[name][0]
     except KeyError as e:
         raise ValueError(
-            f"Dataset {name!r} not found. Available datasets are: " + ", ".join(list_datasets(purpose=purpose))
+            f"Dataset {name!r} not found. Available datasets are: " + ", ".join(list_remote_datasets(purpose=purpose))
         ) from e
 
     return dataset_config.open_dataset()

@@ -19,24 +19,24 @@ def test_pooch_registry_url_reponse(url):
 
 def test_open_dataset_non_existing():
     with pytest.raises(ValueError, match="Dataset.*not found"):
-        remote.open_dataset("non_existing_dataset")
+        remote.open_remote_dataset("non_existing_dataset")
 
 
-@pytest.mark.parametrize("name", remote.list_datasets())
+@pytest.mark.parametrize("name", remote.list_remote_datasets())
 def test_open_dataset(name):
-    ds = remote.open_dataset(name)
+    ds = remote.open_remote_dataset(name)
     assert isinstance(ds, xr.Dataset)
 
 
-@pytest.mark.parametrize("name", remote.list_datasets())
+@pytest.mark.parametrize("name", remote.list_remote_datasets())
 def test_dataset_keys(name):
     assert not name.endswith((".zarr", ".zip", ".nc")), "Dataset name should not have suffix"
 
 
 def test_list_datasets():
-    tutorial_datasets = set(remote.list_datasets("tutorial"))
-    testing_datasets = set(remote.list_datasets("testing"))
-    all_datasets = set(remote.list_datasets("any"))
+    tutorial_datasets = set(remote.list_remote_datasets("tutorial"))
+    testing_datasets = set(remote.list_remote_datasets("testing"))
+    all_datasets = set(remote.list_remote_datasets("any"))
     assert tutorial_datasets.issubset(all_datasets)
     assert testing_datasets.issubset(all_datasets)
     assert tutorial_datasets | testing_datasets == all_datasets

@@ -1,5 +1,5 @@
-from parcels._datasets.remote import list_datasets as _remote_list_datasets
-from parcels._datasets.remote import open_dataset as _remote_open_dataset
+from parcels._datasets.remote import list_remote_datasets as _list_remote_datasets
+from parcels._datasets.remote import open_remote_dataset as _open_remote_dataset
 
 __all__ = ["list_datasets", "open_dataset"]
 
@@ -14,7 +14,7 @@ def list_datasets() -> list[str]:
     datasets : list of str
         The names of the available datasets matching the given purpose.
     """
-    return _remote_list_datasets(purpose="tutorial")
+    return _list_remote_datasets(purpose="tutorial")
 
 
 def open_dataset(name: str):
@@ -33,4 +33,4 @@ def open_dataset(name: str):
     xarray.Dataset
         The requested dataset.
     """
-    return _remote_open_dataset(name, purpose="tutorial")
+    return _open_remote_dataset(name, purpose="tutorial")
