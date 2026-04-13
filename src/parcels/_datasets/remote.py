@@ -212,7 +212,7 @@ _DATASET_KEYS_AND_CONFIGS: dict[str, tuple[_V3Dataset, _Purpose]] = dict([
     ("NemoNorthSeaORCA025-N006_data/V", (_V3Dataset("NemoNorthSeaORCA025-N006_data/ORCA025-N06_200001*05V.nc"), _Purpose.TUTORIAL)),
     ("NemoNorthSeaORCA025-N006_data/W", (_V3Dataset("NemoNorthSeaORCA025-N006_data/ORCA025-N06_200001*05W.nc"), _Purpose.TUTORIAL)),
     ("NemoNorthSeaORCA025-N006_data/mesh_mask", (_V3Dataset("NemoNorthSeaORCA025-N006_data/coordinates.nc", _preprocess_drop_time_from_mesh1), _Purpose.TUTORIAL)),
-    # "POPSouthernOcean_data/t.x1_SAMOC_flux.16900*.nc", # TODO v4: In v3 but should be in v4 https://github.com/Parcels-code/Parcels/issues/2571#issuecomment-4214476973
+    # "POPSouthernOcean_data/t.x1_SAMOC_flux.16900*.nc", # TODO v4: In v3 but should not be in v4 https://github.com/Parcels-code/Parcels/issues/2571#issuecomment-4214476973
     ("SWASH_data/data", (_V3Dataset("SWASH_data/field_00655*.nc"), _Purpose.TUTORIAL)),
     ("WOA_data/data", (_V3Dataset("WOA_data/woa18_decav_t*_04.nc", _preprocess_set_cf_calendar_360_day), _Purpose.TUTORIAL)),
     ("CROCOidealized_data/data", (_V3Dataset("CROCOidealized_data/CROCO_idealized.nc"), _Purpose.TUTORIAL)),
