@@ -422,10 +422,10 @@ class ParticleSet:
             pbar.set_description("Integration time: " + str(start_time))
 
         next_output = None
-        if output_file :
+        if output_file:
             # Write the initial condition
             output_file.write(self, start_time)
-            # Increment the next_output 
+            # Increment the next_output
             next_output = start_time + outputdt
 
         time = start_time

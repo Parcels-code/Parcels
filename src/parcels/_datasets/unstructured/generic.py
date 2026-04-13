@@ -404,6 +404,7 @@ def _icon_square_delaunay_uniform_z_coordinate():
 
     return ux.UxDataset({"U": u, "V": v, "W": w, "p": p}, uxgrid=uxgrid)
 
+
 def _ux_constant_flow_face_centered_2D():
     NX = 10
     NT = 2
@@ -412,39 +413,51 @@ def _ux_constant_flow_face_centered_2D():
         np.linspace(0, 20, NX, dtype=np.float64),
     )
     lon_flat, lat_flat = lon.ravel(), lat.ravel()
-    mask = (
-        np.isclose(lon_flat, 0) | np.isclose(lon_flat, 20)
-        | np.isclose(lat_flat, 0) | np.isclose(lat_flat, 20)
-    )
+    mask = np.isclose(lon_flat, 0) | np.isclose(lon_flat, 20) | np.isclose(lat_flat, 0) | np.isclose(lat_flat, 20)
     uxgrid = ux.Grid.from_points(
         (lon_flat, lat_flat),
         method="regional_delaunay",
         boundary_points=np.flatnonzero(mask),
     )
     uxgrid.attrs["Conventions"] = "UGRID-1.0"
-    
+
     # --- Uniform velocity field on face centers ---
     U0 = 0.001  # degrees/s
     V0 = 0.0
     TIME = xr.date_range("2000-01-01", periods=NT, freq="1h")
     zf = np.array([0.0, 1.0])
     zc = np.array([0.5])
-    
+
     U = np.full((NT, 1, uxgrid.n_face), U0)
     V = np.full((NT, 1, uxgrid.n_face), V0)
     W = np.zeros((NT, 2, uxgrid.n_node))
-    
-    ds = ux.UxDataset({
-        "U": ux.UxDataArray(U, uxgrid=uxgrid, dims=["time", "zc", "n_face"],
-                 coords=dict(time=(["time"], TIME), zc=(["zc"], zc)),
-                 attrs=dict(location="face", mesh="delaunay", Conventions="UGRID-1.0")),
-        "V": ux.UxDataArray(V, uxgrid=uxgrid, dims=["time", "zc", "n_face"],
-                 coords=dict(time=(["time"], TIME), zc=(["zc"], zc)),
-                 attrs=dict(location="face", mesh="delaunay", Conventions="UGRID-1.0")),
-        "W": ux.UxDataArray(W, uxgrid=uxgrid, dims=["time", "zf", "n_node"],
-                 coords=dict(time=(["time"], TIME), nz=(["zf"], zf)),
-                 attrs=dict(location="node", mesh="delaunay", Conventions="UGRID-1.0")),
-    }, uxgrid=uxgrid)
+
+    ds = ux.UxDataset(
+        {
+            "U": ux.UxDataArray(
+                U,
+                uxgrid=uxgrid,
+                dims=["time", "zc", "n_face"],
+                coords=dict(time=(["time"], TIME), zc=(["zc"], zc)),
+                attrs=dict(location="face", mesh="delaunay", Conventions="UGRID-1.0"),
+            ),
+            "V": ux.UxDataArray(
+                V,
+                uxgrid=uxgrid,
+                dims=["time", "zc", "n_face"],
+                coords=dict(time=(["time"], TIME), zc=(["zc"], zc)),
+                attrs=dict(location="face", mesh="delaunay", Conventions="UGRID-1.0"),
+            ),
+            "W": ux.UxDataArray(
+                W,
+                uxgrid=uxgrid,
+                dims=["time", "zf", "n_node"],
+                coords=dict(time=(["time"], TIME), nz=(["zf"], zf)),
+                attrs=dict(location="node", mesh="delaunay", Conventions="UGRID-1.0"),
+            ),
+        },
+        uxgrid=uxgrid,
+    )
     return ds
 
 
