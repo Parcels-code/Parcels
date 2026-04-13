@@ -56,11 +56,7 @@ import parcels
 import parcels.tutorial
 
 # Load the CopernicusMarine data in the Agulhas region from the example_datasets
-ds_fields = xr.merge([
-    parcels.tutorial.open_dataset("CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-cur_anfc"),
-    parcels.tutorial.open_dataset("CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-so_anfc"),
-    parcels.tutorial.open_dataset("CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-thetao_anfc"),
-])
+ds_fields = parcels.tutorial.open_dataset("CopernicusMarine_data_for_Argo_tutorial/data")
 ds_fields.load()  # load the dataset into memory
 
 # Create an idealised wind field and add it to the dataset
