@@ -10,12 +10,12 @@ repos:
         types: [text]
         files: \.(json|ipynb)$
   - repo: https://github.com/zizmorcore/zizmor-pre-commit
-    rev: v1.23.1
+    rev: v1.24.1
     hooks:
       - id: zizmor
         args: ["--offline"]
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.9
+    rev: v0.15.10
     hooks:
       - id: ruff
         name: ruff lint (.py)
@@ -28,7 +28,7 @@ repos:
       - id: ruff-format
         types_or: [python, jupyter]
   - repo: https://github.com/rbubley/mirrors-prettier # Update mirror as official mirror is deprecated
-    rev: v3.8.1
+    rev: v3.8.2
     hooks:
       - id: prettier
 
