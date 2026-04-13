@@ -30,11 +30,11 @@ hydrodynamics fields in which the particles are tracked. Here we provide an exam
 [Global Ocean Physics Reanalysis](https://doi.org/10.48670/moi-00021) from the Copernicus Marine Service.
 
 ```{code-cell}
-example_dataset_folder = parcels.tutorial.download_example_dataset(
-    "CopernicusMarine_data_for_Argo_tutorial"
-)
-
-ds_fields = xr.open_mfdataset(f"{example_dataset_folder}/*.nc", combine="by_coords")
+ds_fields = xr.merge([
+    parcels.tutorial.open_dataset("CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-cur_anfc"),
+    parcels.tutorial.open_dataset("CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-so_anfc"),
+    parcels.tutorial.open_dataset("CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-thetao_anfc"),
+])
 ds_fields.load()  # load the dataset into memory
 ds_fields
 ```

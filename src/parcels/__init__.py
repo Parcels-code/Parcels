@@ -67,8 +67,6 @@ __all__ = [  # noqa: RUF022
     "ParticleSetWarning",
     # Utilities
     "logger",
-    "download_example_dataset",
-    "list_example_datasets",
 ]
 
 _stdlib_warnings.warn(
