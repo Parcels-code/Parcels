@@ -1,4 +1,5 @@
 import abc
+import enum
 import os
 from collections.abc import Callable
 from datetime import datetime, timedelta
@@ -175,38 +176,42 @@ def _preprocess_set_cf_calendar_360_day(ds: xr.Dataset) -> xr.Dataset:
 
 # The first here is a human readable key used to open datasets, with an object to open the datasets
 # fmt: off
-_DATASET_KEYS_AND_CONFIGS: dict[str, _V3Dataset] = dict([
-    ("MovingEddies_data/P", _V3Dataset("MovingEddies_data/moving_eddiesP.nc")),
-    ("MovingEddies_data/U", _V3Dataset("MovingEddies_data/moving_eddiesU.nc")),
-    ("MovingEddies_data/V", _V3Dataset("MovingEddies_data/moving_eddiesV.nc")),
-    ("MITgcm_example_data/mitgcm_UV_surface_zonally_reentrant", _V3Dataset("MITgcm_example_data/mitgcm_UV_surface_zonally_reentrant.nc")),
-    ("OFAM_example_data/U", _V3Dataset("OFAM_example_data/OFAM_simple_U.nc")),
-    ("OFAM_example_data/V", _V3Dataset("OFAM_example_data/OFAM_simple_V.nc")),
-    ("Peninsula_data/U", _V3Dataset("Peninsula_data/peninsulaU.nc")),
-    ("Peninsula_data/V", _V3Dataset("Peninsula_data/peninsulaV.nc")),
-    ("Peninsula_data/P", _V3Dataset("Peninsula_data/peninsulaP.nc")),
-    ("Peninsula_data/T", _V3Dataset("Peninsula_data/peninsulaT.nc")),
-    ("GlobCurrent_example_data/data", _V3Dataset("GlobCurrent_example_data/*000000-GLOBCURRENT-L4-CUReul_hs-ALT_SUM-v02.0-fv01.0.nc", pre_decode_cf_callable=patch_dataset_v4_compat)),
-    ("CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-cur_anfc", _V3Dataset("CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-cur_anfc_0.083deg_P1D-m_uo-vo_31.00E-33.00E_33.00S-30.00S_0.49-2225.08m_2024-01-01-2024-02-01.nc")),
-    ("CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-so_anfc", _V3Dataset("CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-so_anfc_0.083deg_P1D-m_so_31.00E-33.00E_33.00S-30.00S_0.49-2225.08m_2024-01-01-2024-02-01.nc")),
-    ("CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-thetao_anfc", _V3Dataset("CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-thetao_anfc_0.083deg_P1D-m_thetao_31.00E-33.00E_33.00S-30.00S_0.49-2225.08m_2024-01-01-2024-02-01.nc")),
-    ("DecayingMovingEddy_data/U", _V3Dataset("DecayingMovingEddy_data/decaying_moving_eddyU.nc")),
-    ("DecayingMovingEddy_data/V", _V3Dataset("DecayingMovingEddy_data/decaying_moving_eddyV.nc")),
-    ("FESOM_periodic_channel/fesom_channel", _V3Dataset("FESOM_periodic_channel/fesom_channel.nc")),
-    ("FESOM_periodic_channel/u.fesom_channel", _V3Dataset("FESOM_periodic_channel/u.fesom_channel.nc")),
-    ("FESOM_periodic_channel/v.fesom_channel", _V3Dataset("FESOM_periodic_channel/v.fesom_channel.nc")),
-    ("FESOM_periodic_channel/w.fesom_channel", _V3Dataset("FESOM_periodic_channel/w.fesom_channel.nc")),
-    ("NemoCurvilinear_data_zonal/U", _V3Dataset("NemoCurvilinear_data/U_purely_zonal-ORCA025_grid_U.nc4")),
-    ("NemoCurvilinear_data_zonal/V", _V3Dataset("NemoCurvilinear_data/V_purely_zonal-ORCA025_grid_V.nc4")),
-    ("NemoCurvilinear_data_zonal/mesh_mask", _V3Dataset("NemoCurvilinear_data/mesh_mask.nc4", _preprocess_drop_time_from_mesh2)),
-    ("NemoNorthSeaORCA025-N006_data/U", _V3Dataset("NemoNorthSeaORCA025-N006_data/ORCA025-N06_200001*05U.nc")),
-    ("NemoNorthSeaORCA025-N006_data/V", _V3Dataset("NemoNorthSeaORCA025-N006_data/ORCA025-N06_200001*05V.nc")),
-    ("NemoNorthSeaORCA025-N006_data/W", _V3Dataset("NemoNorthSeaORCA025-N006_data/ORCA025-N06_200001*05W.nc")),
-    ("NemoNorthSeaORCA025-N006_data/mesh_mask", _V3Dataset("NemoNorthSeaORCA025-N006_data/coordinates.nc", _preprocess_drop_time_from_mesh1)),
+class _Purpose(enum.Enum):
+    TESTING = enum.auto()
+    TUTORIAL = enum.auto()
+
+_DATASET_KEYS_AND_CONFIGS: dict[str, tuple[_V3Dataset, _Purpose]] = dict([
+    ("MovingEddies_data/P", (_V3Dataset("MovingEddies_data/moving_eddiesP.nc"), _Purpose.TUTORIAL)),
+    ("MovingEddies_data/U", (_V3Dataset("MovingEddies_data/moving_eddiesU.nc"), _Purpose.TUTORIAL)),
+    ("MovingEddies_data/V", (_V3Dataset("MovingEddies_data/moving_eddiesV.nc"), _Purpose.TUTORIAL)),
+    ("MITgcm_example_data/mitgcm_UV_surface_zonally_reentrant", (_V3Dataset("MITgcm_example_data/mitgcm_UV_surface_zonally_reentrant.nc"), _Purpose.TUTORIAL)),
+    ("OFAM_example_data/U", (_V3Dataset("OFAM_example_data/OFAM_simple_U.nc"), _Purpose.TUTORIAL)),
+    ("OFAM_example_data/V", (_V3Dataset("OFAM_example_data/OFAM_simple_V.nc"), _Purpose.TUTORIAL)),
+    ("Peninsula_data/U", (_V3Dataset("Peninsula_data/peninsulaU.nc"), _Purpose.TUTORIAL)),
+    ("Peninsula_data/V", (_V3Dataset("Peninsula_data/peninsulaV.nc"), _Purpose.TUTORIAL)),
+    ("Peninsula_data/P", (_V3Dataset("Peninsula_data/peninsulaP.nc"), _Purpose.TUTORIAL)),
+    ("Peninsula_data/T", (_V3Dataset("Peninsula_data/peninsulaT.nc"), _Purpose.TUTORIAL)),
+    ("GlobCurrent_example_data/data", (_V3Dataset("GlobCurrent_example_data/*000000-GLOBCURRENT-L4-CUReul_hs-ALT_SUM-v02.0-fv01.0.nc", pre_decode_cf_callable=patch_dataset_v4_compat), _Purpose.TUTORIAL)),
+    ("CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-cur_anfc", (_V3Dataset("CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-cur_anfc_0.083deg_P1D-m_uo-vo_31.00E-33.00E_33.00S-30.00S_0.49-2225.08m_2024-01-01-2024-02-01.nc"), _Purpose.TUTORIAL)),
+    ("CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-so_anfc", (_V3Dataset("CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-so_anfc_0.083deg_P1D-m_so_31.00E-33.00E_33.00S-30.00S_0.49-2225.08m_2024-01-01-2024-02-01.nc"), _Purpose.TUTORIAL)),
+    ("CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-thetao_anfc", (_V3Dataset("CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-thetao_anfc_0.083deg_P1D-m_thetao_31.00E-33.00E_33.00S-30.00S_0.49-2225.08m_2024-01-01-2024-02-01.nc"), _Purpose.TUTORIAL)),
+    ("DecayingMovingEddy_data/U", (_V3Dataset("DecayingMovingEddy_data/decaying_moving_eddyU.nc"), _Purpose.TUTORIAL)),
+    ("DecayingMovingEddy_data/V", (_V3Dataset("DecayingMovingEddy_data/decaying_moving_eddyV.nc"), _Purpose.TUTORIAL)),
+    ("FESOM_periodic_channel/fesom_channel", (_V3Dataset("FESOM_periodic_channel/fesom_channel.nc"), _Purpose.TUTORIAL)),
+    ("FESOM_periodic_channel/u.fesom_channel", (_V3Dataset("FESOM_periodic_channel/u.fesom_channel.nc"), _Purpose.TUTORIAL)),
+    ("FESOM_periodic_channel/v.fesom_channel", (_V3Dataset("FESOM_periodic_channel/v.fesom_channel.nc"), _Purpose.TUTORIAL)),
+    ("FESOM_periodic_channel/w.fesom_channel", (_V3Dataset("FESOM_periodic_channel/w.fesom_channel.nc"), _Purpose.TUTORIAL)),
+    ("NemoCurvilinear_data_zonal/U", (_V3Dataset("NemoCurvilinear_data/U_purely_zonal-ORCA025_grid_U.nc4"), _Purpose.TUTORIAL)),
+    ("NemoCurvilinear_data_zonal/V", (_V3Dataset("NemoCurvilinear_data/V_purely_zonal-ORCA025_grid_V.nc4"), _Purpose.TUTORIAL)),
+    ("NemoCurvilinear_data_zonal/mesh_mask", (_V3Dataset("NemoCurvilinear_data/mesh_mask.nc4", _preprocess_drop_time_from_mesh2), _Purpose.TUTORIAL)),
+    ("NemoNorthSeaORCA025-N006_data/U", (_V3Dataset("NemoNorthSeaORCA025-N006_data/ORCA025-N06_200001*05U.nc"), _Purpose.TUTORIAL)),
+    ("NemoNorthSeaORCA025-N006_data/V", (_V3Dataset("NemoNorthSeaORCA025-N006_data/ORCA025-N06_200001*05V.nc"), _Purpose.TUTORIAL)),
+    ("NemoNorthSeaORCA025-N006_data/W", (_V3Dataset("NemoNorthSeaORCA025-N006_data/ORCA025-N06_200001*05W.nc"), _Purpose.TUTORIAL)),
+    ("NemoNorthSeaORCA025-N006_data/mesh_mask", (_V3Dataset("NemoNorthSeaORCA025-N006_data/coordinates.nc", _preprocess_drop_time_from_mesh1), _Purpose.TUTORIAL)),
     # "POPSouthernOcean_data/t.x1_SAMOC_flux.16900*.nc", # TODO v4: In v3 but should be in v4 https://github.com/Parcels-code/Parcels/issues/2571#issuecomment-4214476973
-    ("SWASH_data/data", _V3Dataset("SWASH_data/field_00655*.nc")),
-    ("WOA_data/data", _V3Dataset("WOA_data/woa18_decav_t*_04.nc", _preprocess_set_cf_calendar_360_day)),
-    ("CROCOidealized_data/data", _V3Dataset("CROCOidealized_data/CROCO_idealized.nc")),
+    ("SWASH_data/data", (_V3Dataset("SWASH_data/field_00655*.nc"), _Purpose.TUTORIAL)),
+    ("WOA_data/data", (_V3Dataset("WOA_data/woa18_decav_t*_04.nc", _preprocess_set_cf_calendar_360_day), _Purpose.TUTORIAL)),
+    ("CROCOidealized_data/data", (_V3Dataset("CROCOidealized_data/CROCO_idealized.nc"), _Purpose.TUTORIAL)),
 ])
 # fmt: on
 
@@ -226,7 +231,7 @@ def list_datasets() -> list[str]:  # TODO: Remove v4 flag when migrating to open
 
 def open_dataset(name: str):
     try:
-        dataset_config = _DATASET_KEYS_AND_CONFIGS[name]
+        dataset_config = _DATASET_KEYS_AND_CONFIGS[name][0]
     except KeyError as e:
         raise ValueError(f"Dataset {name!r} not found. Available datasets are: " + ", ".join(list_datasets())) from e
 
