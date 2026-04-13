@@ -32,7 +32,7 @@ _POOCH_REGISTRY_FILES: list[str] = (
         "data/MovingEddies_data/moving_eddiesV.nc",
     ]
     + ["data/MITgcm_example_data/mitgcm_UV_surface_zonally_reentrant.nc"]
-    + ["data/OFAM_example_data/OFAM_simple_U.nc", "OFAM_example_data/OFAM_simple_V.nc"]
+    + ["data/OFAM_example_data/OFAM_simple_U.nc", "data/OFAM_example_data/OFAM_simple_V.nc"]
     + [
         "data/Peninsula_data/peninsulaU.nc",
         "data/Peninsula_data/peninsulaV.nc",
