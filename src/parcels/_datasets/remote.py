@@ -164,7 +164,7 @@ class _ZarrZipDataset(_ParcelsDataset):
 
 
 def _preprocess_drop_time_from_mesh1(ds: xr.Dataset) -> xr.Dataset:
-    # For some reason on the mesh "NemoNorthSeaORCA025-N006_data/coordinates.nc" there are time dimensions. These dimension also has broken cf-time metadata
+    # For some reason on the mesh "NemoNorthSeaORCA025-N006_data/coordinates.nc" there are two time dimensions (of length 1). These dimension also has broken cf-time metadata
     # this fixes that
     return ds.isel(time=0).drop(["time", "time_steps"])
 
