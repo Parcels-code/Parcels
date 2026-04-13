@@ -15,102 +15,93 @@ __all__ = ["list_datasets", "open_dataset"]
 # make a new release in the repo and update the DATA_REPO_TAG to the new tag
 _DATA_REPO_TAG = "main"
 
-_DATA_URL = f"https://github.com/Parcels-code/parcels-data/raw/{_DATA_REPO_TAG}/data"
+_DATA_URL = f"https://github.com/Parcels-code/parcels-data/raw/{_DATA_REPO_TAG}"
 
 _DATA_HOME = os.environ.get("PARCELS_EXAMPLE_DATA")
 if _DATA_HOME is None:
     _DATA_HOME = pooch.os_cache("parcels")
 
-
-# Keys are the dataset names. Values are the filenames in the dataset folder. Note that
-# you can specify subfolders in the dataset folder putting slashes in the filename list.
-# e.g.,
-# "my_dataset": ["file0.nc", "folder1/file1.nc", "folder2/file2.nc"]
-# my_dataset/
-# ├── file0.nc
-# ├── folder1/
-# │   └── file1.nc
-# └── folder2/
-#     └── file2.nc
-#
 # See instructions at https://github.com/Parcels-code/parcels-data for adding new datasets
 _POOCH_REGISTRY_FILES: list[str] = (
+    # These datasets are from v3 and before of Parcels, where we just used netcdf files
     [
-        "MovingEddies_data/moving_eddiesP.nc",
-        "MovingEddies_data/moving_eddiesU.nc",
-        "MovingEddies_data/moving_eddiesV.nc",
+        "data/MovingEddies_data/moving_eddiesP.nc",
+        "data/MovingEddies_data/moving_eddiesU.nc",
+        "data/MovingEddies_data/moving_eddiesV.nc",
     ]
-    + ["MITgcm_example_data/mitgcm_UV_surface_zonally_reentrant.nc"]
-    + ["OFAM_example_data/OFAM_simple_U.nc", "OFAM_example_data/OFAM_simple_V.nc"]
+    + ["data/MITgcm_example_data/mitgcm_UV_surface_zonally_reentrant.nc"]
+    + ["data/OFAM_example_data/OFAM_simple_U.nc", "OFAM_example_data/OFAM_simple_V.nc"]
     + [
-        "Peninsula_data/peninsulaU.nc",
-        "Peninsula_data/peninsulaV.nc",
-        "Peninsula_data/peninsulaP.nc",
-        "Peninsula_data/peninsulaT.nc",
+        "data/Peninsula_data/peninsulaU.nc",
+        "data/Peninsula_data/peninsulaV.nc",
+        "data/Peninsula_data/peninsulaP.nc",
+        "data/Peninsula_data/peninsulaT.nc",
     ]
     + [
-        f"GlobCurrent_example_data/{date.strftime('%Y%m%d')}000000-GLOBCURRENT-L4-CUReul_hs-ALT_SUM-v02.0-fv01.0.nc"
+        f"data/GlobCurrent_example_data/{date.strftime('%Y%m%d')}000000-GLOBCURRENT-L4-CUReul_hs-ALT_SUM-v02.0-fv01.0.nc"
         for date in ([datetime(2002, 1, 1) + timedelta(days=x) for x in range(0, 365)] + [datetime(2003, 1, 1)])
     ]
     + [
-        "CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-cur_anfc_0.083deg_P1D-m_uo-vo_31.00E-33.00E_33.00S-30.00S_0.49-2225.08m_2024-01-01-2024-02-01.nc",
-        "CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-so_anfc_0.083deg_P1D-m_so_31.00E-33.00E_33.00S-30.00S_0.49-2225.08m_2024-01-01-2024-02-01.nc",
-        "CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-thetao_anfc_0.083deg_P1D-m_thetao_31.00E-33.00E_33.00S-30.00S_0.49-2225.08m_2024-01-01-2024-02-01.nc",
+        "data/CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-cur_anfc_0.083deg_P1D-m_uo-vo_31.00E-33.00E_33.00S-30.00S_0.49-2225.08m_2024-01-01-2024-02-01.nc",
+        "data/CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-so_anfc_0.083deg_P1D-m_so_31.00E-33.00E_33.00S-30.00S_0.49-2225.08m_2024-01-01-2024-02-01.nc",
+        "data/CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-thetao_anfc_0.083deg_P1D-m_thetao_31.00E-33.00E_33.00S-30.00S_0.49-2225.08m_2024-01-01-2024-02-01.nc",
     ]
     + [
-        "DecayingMovingEddy_data/decaying_moving_eddyU.nc",
-        "DecayingMovingEddy_data/decaying_moving_eddyV.nc",
+        "data/DecayingMovingEddy_data/decaying_moving_eddyU.nc",
+        "data/DecayingMovingEddy_data/decaying_moving_eddyV.nc",
     ]
     + [
-        "FESOM_periodic_channel/fesom_channel.nc",
-        "FESOM_periodic_channel/u.fesom_channel.nc",
-        "FESOM_periodic_channel/v.fesom_channel.nc",
-        "FESOM_periodic_channel/w.fesom_channel.nc",
+        "data/FESOM_periodic_channel/fesom_channel.nc",
+        "data/FESOM_periodic_channel/u.fesom_channel.nc",
+        "data/FESOM_periodic_channel/v.fesom_channel.nc",
+        "data/FESOM_periodic_channel/w.fesom_channel.nc",
     ]
     + [
-        "NemoCurvilinear_data/U_purely_zonal-ORCA025_grid_U.nc4",
-        "NemoCurvilinear_data/V_purely_zonal-ORCA025_grid_V.nc4",
-        "NemoCurvilinear_data/mesh_mask.nc4",
+        "data/NemoCurvilinear_data/U_purely_zonal-ORCA025_grid_U.nc4",
+        "data/NemoCurvilinear_data/V_purely_zonal-ORCA025_grid_V.nc4",
+        "data/NemoCurvilinear_data/mesh_mask.nc4",
     ]
     + [
-        "NemoNorthSeaORCA025-N006_data/ORCA025-N06_20000104d05U.nc",
-        "NemoNorthSeaORCA025-N006_data/ORCA025-N06_20000109d05U.nc",
-        "NemoNorthSeaORCA025-N006_data/ORCA025-N06_20000114d05U.nc",
-        "NemoNorthSeaORCA025-N006_data/ORCA025-N06_20000119d05U.nc",
-        "NemoNorthSeaORCA025-N006_data/ORCA025-N06_20000124d05U.nc",
-        "NemoNorthSeaORCA025-N006_data/ORCA025-N06_20000129d05U.nc",
-        "NemoNorthSeaORCA025-N006_data/ORCA025-N06_20000104d05V.nc",
-        "NemoNorthSeaORCA025-N006_data/ORCA025-N06_20000109d05V.nc",
-        "NemoNorthSeaORCA025-N006_data/ORCA025-N06_20000114d05V.nc",
-        "NemoNorthSeaORCA025-N006_data/ORCA025-N06_20000119d05V.nc",
-        "NemoNorthSeaORCA025-N006_data/ORCA025-N06_20000124d05V.nc",
-        "NemoNorthSeaORCA025-N006_data/ORCA025-N06_20000129d05V.nc",
-        "NemoNorthSeaORCA025-N006_data/ORCA025-N06_20000104d05W.nc",
-        "NemoNorthSeaORCA025-N006_data/ORCA025-N06_20000109d05W.nc",
-        "NemoNorthSeaORCA025-N006_data/ORCA025-N06_20000114d05W.nc",
-        "NemoNorthSeaORCA025-N006_data/ORCA025-N06_20000119d05W.nc",
-        "NemoNorthSeaORCA025-N006_data/ORCA025-N06_20000124d05W.nc",
-        "NemoNorthSeaORCA025-N006_data/ORCA025-N06_20000129d05W.nc",
-        "NemoNorthSeaORCA025-N006_data/coordinates.nc",
+        "data/NemoNorthSeaORCA025-N006_data/ORCA025-N06_20000104d05U.nc",
+        "data/NemoNorthSeaORCA025-N006_data/ORCA025-N06_20000109d05U.nc",
+        "data/NemoNorthSeaORCA025-N006_data/ORCA025-N06_20000114d05U.nc",
+        "data/NemoNorthSeaORCA025-N006_data/ORCA025-N06_20000119d05U.nc",
+        "data/NemoNorthSeaORCA025-N006_data/ORCA025-N06_20000124d05U.nc",
+        "data/NemoNorthSeaORCA025-N006_data/ORCA025-N06_20000129d05U.nc",
+        "data/NemoNorthSeaORCA025-N006_data/ORCA025-N06_20000104d05V.nc",
+        "data/NemoNorthSeaORCA025-N006_data/ORCA025-N06_20000109d05V.nc",
+        "data/NemoNorthSeaORCA025-N006_data/ORCA025-N06_20000114d05V.nc",
+        "data/NemoNorthSeaORCA025-N006_data/ORCA025-N06_20000119d05V.nc",
+        "data/NemoNorthSeaORCA025-N006_data/ORCA025-N06_20000124d05V.nc",
+        "data/NemoNorthSeaORCA025-N006_data/ORCA025-N06_20000129d05V.nc",
+        "data/NemoNorthSeaORCA025-N006_data/ORCA025-N06_20000104d05W.nc",
+        "data/NemoNorthSeaORCA025-N006_data/ORCA025-N06_20000109d05W.nc",
+        "data/NemoNorthSeaORCA025-N006_data/ORCA025-N06_20000114d05W.nc",
+        "data/NemoNorthSeaORCA025-N006_data/ORCA025-N06_20000119d05W.nc",
+        "data/NemoNorthSeaORCA025-N006_data/ORCA025-N06_20000124d05W.nc",
+        "data/NemoNorthSeaORCA025-N006_data/ORCA025-N06_20000129d05W.nc",
+        "data/NemoNorthSeaORCA025-N006_data/coordinates.nc",
     ]
     + [
-        "POPSouthernOcean_data/t.x1_SAMOC_flux.169000.nc",
-        "POPSouthernOcean_data/t.x1_SAMOC_flux.169001.nc",
-        "POPSouthernOcean_data/t.x1_SAMOC_flux.169002.nc",
-        "POPSouthernOcean_data/t.x1_SAMOC_flux.169003.nc",
-        "POPSouthernOcean_data/t.x1_SAMOC_flux.169004.nc",
-        "POPSouthernOcean_data/t.x1_SAMOC_flux.169005.nc",
+        "data/POPSouthernOcean_data/t.x1_SAMOC_flux.169000.nc",
+        "data/POPSouthernOcean_data/t.x1_SAMOC_flux.169001.nc",
+        "data/POPSouthernOcean_data/t.x1_SAMOC_flux.169002.nc",
+        "data/POPSouthernOcean_data/t.x1_SAMOC_flux.169003.nc",
+        "data/POPSouthernOcean_data/t.x1_SAMOC_flux.169004.nc",
+        "data/POPSouthernOcean_data/t.x1_SAMOC_flux.169005.nc",
     ]
     + [
-        "SWASH_data/field_0065532.nc",
-        "SWASH_data/field_0065537.nc",
-        "SWASH_data/field_0065542.nc",
-        "SWASH_data/field_0065548.nc",
-        "SWASH_data/field_0065552.nc",
-        "SWASH_data/field_0065557.nc",
+        "data/SWASH_data/field_0065532.nc",
+        "data/SWASH_data/field_0065537.nc",
+        "data/SWASH_data/field_0065542.nc",
+        "data/SWASH_data/field_0065548.nc",
+        "data/SWASH_data/field_0065552.nc",
+        "data/SWASH_data/field_0065557.nc",
     ]
-    + [f"WOA_data/woa18_decav_t{m:02d}_04.nc" for m in range(1, 13)]
-    + ["CROCOidealized_data/CROCO_idealized.nc"]
+    + [f"data/WOA_data/woa18_decav_t{m:02d}_04.nc" for m in range(1, 13)]
+    + ["data/CROCOidealized_data/CROCO_idealized.nc"]
+    # These datasets are from v4 of Parcels where we're opting for Zipped zarr datasets
+    # ...
 )
 
 _POOCH_REGISTRY = {k: None for k in _POOCH_REGISTRY_FILES}
