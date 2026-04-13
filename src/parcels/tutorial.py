@@ -229,8 +229,5 @@ def open_dataset(name: str):
         dataset_config = _DATASET_KEYS_AND_CONFIGS[name]
     except KeyError as e:
         raise ValueError(f"Dataset {name!r} not found. Available datasets are: " + ", ".join(list_datasets())) from e
-    assert not name.endswith((".zarr", ".zip", ".nc")), (
-        "Dataset name should not have suffix"
-    )  # TODO: Move to test_tutorial
 
     return dataset_config.open_dataset()

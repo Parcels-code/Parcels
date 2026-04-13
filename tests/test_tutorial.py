@@ -28,3 +28,8 @@ def test_open_dataset_non_existing():
 def test_open_dataset(name):
     ds = parcels.tutorial.open_dataset(name)
     assert isinstance(ds, xr.Dataset)
+
+
+@pytest.mark.parametrize("name", parcels.tutorial.list_datasets())
+def test_dataset_keys(name):
+    assert not name.endswith((".zarr", ".zip", ".nc")), "Dataset name should not have suffix"
