@@ -266,11 +266,10 @@ def open_remote_dataset(name: str, purpose: _TPurpose | Literal["any"] = "any"):
     xarray.Dataset
         The requested dataset.
     """
-    try:
-        dataset_config = _DATASET_KEYS_AND_CONFIGS[name][0]
-    except KeyError as e:
+    if name not in list_remote_datasets(purpose=purpose):
         raise ValueError(
             f"Dataset {name!r} not found. Available datasets are: " + ", ".join(list_remote_datasets(purpose=purpose))
-        ) from e
+        )
 
+    dataset_config = _DATASET_KEYS_AND_CONFIGS[name][0]
     return dataset_config.open_dataset()
