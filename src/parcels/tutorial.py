@@ -1,12 +1,11 @@
+import abc
 import os
 from collections.abc import Callable
-from dataclasses import dataclass
 from datetime import datetime, timedelta
 from pathlib import Path
 
 import pooch
 import xarray as xr
-import zarr
 
 from parcels._v3to4 import patch_dataset_v4_compat
 
@@ -115,12 +114,66 @@ _EXAMPLE_DATA_FILES: dict[str, list[str]] = {
 }
 
 
-@dataclass
-class DatasetNCtoZarrConfig:
-    path_relative_to_root: str
+def _create_pooch_registry() -> dict[str, None]:
+    """Collapses the mapping of dataset names to filenames into a pooch registry.
 
-    # Function to apply to the dataset before the decoding the CF variables
-    pre_decode_cf_callable: None | Callable[[xr.Dataset], xr.Dataset] = None
+    Hashes are set to None for all files.
+    """
+    registry: dict[str, None] = {}
+    for dataset, filenames in _EXAMPLE_DATA_FILES.items():
+        for filename in filenames:
+            registry[f"{dataset}/{filename}"] = None
+    return registry
+
+
+_POOCH_REGISTRY = _create_pooch_registry()
+_ODIE = pooch.create(
+    path=_DATA_HOME,
+    base_url=_DATA_URL,
+    registry=_POOCH_REGISTRY,
+)
+
+
+class _ParcelsDataset(abc.ABC):
+    @abc.abstractmethod
+    def open_dataset(self) -> xr.Dataset: ...
+
+
+class _V3Dataset(_ParcelsDataset):
+    def __init__(self, path_relative_to_root: str, pre_decode_cf_callable=None):
+        self.path_relative_to_root = path_relative_to_root  # glob is allowed
+
+        # Function to apply to the dataset before the decoding the CF variables
+        self.pup = _ODIE
+        self.pre_decode_cf_callable: None | Callable[[xr.Dataset], xr.Dataset] = pre_decode_cf_callable
+        self.v3_dataset_name = path_relative_to_root.split("/")[0]
+
+    def open_dataset(self) -> xr.Dataset:
+        self.download_relevant_files()
+        with xr.set_options(use_new_combine_kwarg_defaults=True):
+            ds = xr.open_mfdataset(Path(self.pup.path) / self.path_relative_to_root, decode_cf=False)
+
+        if self.pre_decode_cf_callable is not None:
+            ds = self.pre_decode_cf_callable(ds)
+
+        ds = xr.decode_cf(ds)
+        return ds
+
+    def download_relevant_files(self) -> None:
+        for file in self.pup.registry:
+            if self.v3_dataset_name in file:
+                self.pup.fetch(file)
+        return
+
+
+class _ZarrZipDataset(_ParcelsDataset):
+    def __init__(self, path_relative_to_root):
+        self.pup = _ODIE
+        self.path_relative_to_root = path_relative_to_root
+
+    def open_dataset(self) -> xr.Dataset:
+        self.pup.fetch(self.path_relative_to_root)
+        return xr.open_zarr(Path(self.pup.path) / self.path_relative_to_root)
 
 
 def _preprocess_drop_time_from_mesh1(ds: xr.Dataset) -> xr.Dataset:
@@ -143,60 +196,40 @@ def _preprocess_set_cf_calendar_360_day(ds: xr.Dataset) -> xr.Dataset:
 # The first here is a human readable key, the latter the path to load the netcdf data
 # (after refactor the latter open path will disappear, and will just be `open_zarr(f'{ds_key}.zip')`)
 # fmt: off
-_DATASET_KEYS_AND_CONFIGS: dict[str, DatasetNCtoZarrConfig] = dict([
-    ("MovingEddies_data/P", DatasetNCtoZarrConfig("MovingEddies_data/moving_eddiesP.nc")),
-    ("MovingEddies_data/U", DatasetNCtoZarrConfig("MovingEddies_data/moving_eddiesU.nc")),
-    ("MovingEddies_data/V", DatasetNCtoZarrConfig("MovingEddies_data/moving_eddiesV.nc")),
-    ("MITgcm_example_data/mitgcm_UV_surface_zonally_reentrant", DatasetNCtoZarrConfig("MITgcm_example_data/mitgcm_UV_surface_zonally_reentrant.nc")),
-    ("OFAM_example_data/U", DatasetNCtoZarrConfig("OFAM_example_data/OFAM_simple_U.nc")),
-    ("OFAM_example_data/V", DatasetNCtoZarrConfig("OFAM_example_data/OFAM_simple_V.nc")),
-    ("Peninsula_data/U", DatasetNCtoZarrConfig("Peninsula_data/peninsulaU.nc")),
-    ("Peninsula_data/V", DatasetNCtoZarrConfig("Peninsula_data/peninsulaV.nc")),
-    ("Peninsula_data/P", DatasetNCtoZarrConfig("Peninsula_data/peninsulaP.nc")),
-    ("Peninsula_data/T", DatasetNCtoZarrConfig("Peninsula_data/peninsulaT.nc")),
-    ("GlobCurrent_example_data/data.nc", DatasetNCtoZarrConfig("GlobCurrent_example_data/*000000-GLOBCURRENT-L4-CUReul_hs-ALT_SUM-v02.0-fv01.0.nc")),
-    ("CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-cur_anfc", DatasetNCtoZarrConfig("CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-cur_anfc_0.083deg_P1D-m_uo-vo_31.00E-33.00E_33.00S-30.00S_0.49-2225.08m_2024-01-01-2024-02-01.nc")),
-    ("CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-so_anfc", DatasetNCtoZarrConfig("CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-so_anfc_0.083deg_P1D-m_so_31.00E-33.00E_33.00S-30.00S_0.49-2225.08m_2024-01-01-2024-02-01.nc")),
-    ("CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-thetao_anfc", DatasetNCtoZarrConfig("CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-thetao_anfc_0.083deg_P1D-m_thetao_31.00E-33.00E_33.00S-30.00S_0.49-2225.08m_2024-01-01-2024-02-01.nc")),
-    ("DecayingMovingEddy_data/U", DatasetNCtoZarrConfig("DecayingMovingEddy_data/decaying_moving_eddyU.nc")),
-    ("DecayingMovingEddy_data/V", DatasetNCtoZarrConfig("DecayingMovingEddy_data/decaying_moving_eddyV.nc")),
-    ("FESOM_periodic_channel/fesom_channel", DatasetNCtoZarrConfig("FESOM_periodic_channel/fesom_channel.nc")),
-    ("FESOM_periodic_channel/u.fesom_channel", DatasetNCtoZarrConfig("FESOM_periodic_channel/u.fesom_channel.nc")),
-    ("FESOM_periodic_channel/v.fesom_channel", DatasetNCtoZarrConfig("FESOM_periodic_channel/v.fesom_channel.nc")),
-    ("FESOM_periodic_channel/w.fesom_channel", DatasetNCtoZarrConfig("FESOM_periodic_channel/w.fesom_channel.nc")),
-    ("NemoCurvilinear_data_zonal/U", DatasetNCtoZarrConfig("NemoCurvilinear_data/U_purely_zonal-ORCA025_grid_U.nc4")),
-    ("NemoCurvilinear_data_zonal/V", DatasetNCtoZarrConfig("NemoCurvilinear_data/V_purely_zonal-ORCA025_grid_V.nc4")),
-    ("NemoCurvilinear_data_zonal/mesh_mask", DatasetNCtoZarrConfig("NemoCurvilinear_data/mesh_mask.nc4", _preprocess_drop_time_from_mesh2)),
-    ("NemoNorthSeaORCA025-N006_data/U", DatasetNCtoZarrConfig("NemoNorthSeaORCA025-N006_data/ORCA025-N06_200001*05U.nc")),
-    ("NemoNorthSeaORCA025-N006_data/V", DatasetNCtoZarrConfig("NemoNorthSeaORCA025-N006_data/ORCA025-N06_200001*05V.nc")),
-    ("NemoNorthSeaORCA025-N006_data/W", DatasetNCtoZarrConfig("NemoNorthSeaORCA025-N006_data/ORCA025-N06_200001*05W.nc")),
-    ("NemoNorthSeaORCA025-N006_data/mesh_mask", DatasetNCtoZarrConfig("NemoNorthSeaORCA025-N006_data/coordinates.nc", _preprocess_drop_time_from_mesh1)),
+_DATASET_KEYS_AND_CONFIGS: dict[str, _V3Dataset] = dict([
+    ("MovingEddies_data/P", _V3Dataset("MovingEddies_data/moving_eddiesP.nc")),
+    ("MovingEddies_data/U", _V3Dataset("MovingEddies_data/moving_eddiesU.nc")),
+    ("MovingEddies_data/V", _V3Dataset("MovingEddies_data/moving_eddiesV.nc")),
+    ("MITgcm_example_data/mitgcm_UV_surface_zonally_reentrant", _V3Dataset("MITgcm_example_data/mitgcm_UV_surface_zonally_reentrant.nc")),
+    ("OFAM_example_data/U", _V3Dataset("OFAM_example_data/OFAM_simple_U.nc")),
+    ("OFAM_example_data/V", _V3Dataset("OFAM_example_data/OFAM_simple_V.nc")),
+    ("Peninsula_data/U", _V3Dataset("Peninsula_data/peninsulaU.nc")),
+    ("Peninsula_data/V", _V3Dataset("Peninsula_data/peninsulaV.nc")),
+    ("Peninsula_data/P", _V3Dataset("Peninsula_data/peninsulaP.nc")),
+    ("Peninsula_data/T", _V3Dataset("Peninsula_data/peninsulaT.nc")),
+    ("GlobCurrent_example_data/data", _V3Dataset("GlobCurrent_example_data/*000000-GLOBCURRENT-L4-CUReul_hs-ALT_SUM-v02.0-fv01.0.nc")),
+    ("CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-cur_anfc", _V3Dataset("CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-cur_anfc_0.083deg_P1D-m_uo-vo_31.00E-33.00E_33.00S-30.00S_0.49-2225.08m_2024-01-01-2024-02-01.nc")),
+    ("CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-so_anfc", _V3Dataset("CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-so_anfc_0.083deg_P1D-m_so_31.00E-33.00E_33.00S-30.00S_0.49-2225.08m_2024-01-01-2024-02-01.nc")),
+    ("CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-thetao_anfc", _V3Dataset("CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-thetao_anfc_0.083deg_P1D-m_thetao_31.00E-33.00E_33.00S-30.00S_0.49-2225.08m_2024-01-01-2024-02-01.nc")),
+    ("DecayingMovingEddy_data/U", _V3Dataset("DecayingMovingEddy_data/decaying_moving_eddyU.nc")),
+    ("DecayingMovingEddy_data/V", _V3Dataset("DecayingMovingEddy_data/decaying_moving_eddyV.nc")),
+    ("FESOM_periodic_channel/fesom_channel", _V3Dataset("FESOM_periodic_channel/fesom_channel.nc")),
+    ("FESOM_periodic_channel/u.fesom_channel", _V3Dataset("FESOM_periodic_channel/u.fesom_channel.nc")),
+    ("FESOM_periodic_channel/v.fesom_channel", _V3Dataset("FESOM_periodic_channel/v.fesom_channel.nc")),
+    ("FESOM_periodic_channel/w.fesom_channel", _V3Dataset("FESOM_periodic_channel/w.fesom_channel.nc")),
+    ("NemoCurvilinear_data_zonal/U", _V3Dataset("NemoCurvilinear_data/U_purely_zonal-ORCA025_grid_U.nc4")),
+    ("NemoCurvilinear_data_zonal/V", _V3Dataset("NemoCurvilinear_data/V_purely_zonal-ORCA025_grid_V.nc4")),
+    ("NemoCurvilinear_data_zonal/mesh_mask", _V3Dataset("NemoCurvilinear_data/mesh_mask.nc4", _preprocess_drop_time_from_mesh2)),
+    ("NemoNorthSeaORCA025-N006_data/U", _V3Dataset("NemoNorthSeaORCA025-N006_data/ORCA025-N06_200001*05U.nc")),
+    ("NemoNorthSeaORCA025-N006_data/V", _V3Dataset("NemoNorthSeaORCA025-N006_data/ORCA025-N06_200001*05V.nc")),
+    ("NemoNorthSeaORCA025-N006_data/W", _V3Dataset("NemoNorthSeaORCA025-N006_data/ORCA025-N06_200001*05W.nc")),
+    ("NemoNorthSeaORCA025-N006_data/mesh_mask", _V3Dataset("NemoNorthSeaORCA025-N006_data/coordinates.nc", _preprocess_drop_time_from_mesh1)),
     # "POPSouthernOcean_data/t.x1_SAMOC_flux.16900*.nc", # TODO v4: In v3 but should be in v4 https://github.com/Parcels-code/Parcels/issues/2571#issuecomment-4214476973
-    ("SWASH_data/data", DatasetNCtoZarrConfig("SWASH_data/field_00655*.nc")),
-    ("WOA_data/data", DatasetNCtoZarrConfig("WOA_data/woa18_decav_t*_04.nc", _preprocess_set_cf_calendar_360_day)),
-    ("CROCOidealized_data/data", DatasetNCtoZarrConfig("CROCOidealized_data/CROCO_idealized.nc")),
+    ("SWASH_data/data", _V3Dataset("SWASH_data/field_00655*.nc")),
+    ("WOA_data/data", _V3Dataset("WOA_data/woa18_decav_t*_04.nc", _preprocess_set_cf_calendar_360_day)),
+    ("CROCOidealized_data/data", _V3Dataset("CROCOidealized_data/CROCO_idealized.nc")),
 ])
 # fmt: on
-
-
-def _create_pooch_registry() -> dict[str, None]:
-    """Collapses the mapping of dataset names to filenames into a pooch registry.
-
-    Hashes are set to None for all files.
-    """
-    registry: dict[str, None] = {}
-    for dataset, filenames in _EXAMPLE_DATA_FILES.items():
-        for filename in filenames:
-            registry[f"{dataset}/{filename}"] = None
-    return registry
-
-
-_POOCH_REGISTRY = _create_pooch_registry()
-_ODIE = pooch.create(
-    path=_DATA_HOME,
-    base_url=_DATA_URL,
-    registry=_POOCH_REGISTRY,
-)
 
 
 def list_example_datasets(v4=False) -> list[str]:  # TODO: Remove v4 flag when migrating to open_dataset
@@ -249,37 +282,18 @@ def download_example_dataset(dataset: str):
     return dataset_folder
 
 
-# Just creating a temp folder to help during the migration
-_TMP_ZARR_FOLDER = Path("../parcels-data/data-zarr")
-
-
-def open_dataset(name: str):  # TODO: Remove code_path arg
+def open_dataset(name: str):
     try:
-        cfg = _DATASET_KEYS_AND_CONFIGS[name]
+        dataset_config = _DATASET_KEYS_AND_CONFIGS[name]
     except KeyError as e:
         raise ValueError(
             f"Dataset {name!r} not found. Available datasets are: " + ", ".join(list_example_datasets(v4=True))
         ) from e
+    assert not name.endswith((".zarr", ".zip", ".nc")), (
+        "Dataset name should not have suffix"
+    )  # TODO: Move to test_tutorial
 
-    open_dataset_kwargs = dict(decode_cf=False)
-    assert not name.endswith((".zarr", ".zip", ".nc")), "Dataset name should not have suffix"
-    download_dataset_stem, rest = cfg.path_relative_to_root.split("/", maxsplit=1)
-    folder = download_example_dataset(download_dataset_stem)
-
-    with xr.set_options(use_new_combine_kwarg_defaults=True):
-        ds = xr.open_mfdataset(f"{folder}/{rest}", **open_dataset_kwargs)
-
-    if cfg.pre_decode_cf_callable is not None:
-        ds = cfg.pre_decode_cf_callable(ds)
-
-    ds = xr.decode_cf(ds)
-
-    path = _TMP_ZARR_FOLDER / f"{name}.zip"
-    path.parent.mkdir(exist_ok=True, parents=True)
-    if not path.exists():
-        with zarr.storage.ZipStore(path, mode="w") as store:
-            ds.to_zarr(store)
-    return xr.open_zarr(path)
+    return dataset_config.open_dataset()
 
 
 def _v4_compat_patch(fname, action, pup):
