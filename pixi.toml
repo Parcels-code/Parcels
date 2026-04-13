@@ -56,7 +56,7 @@ uxarray = "2025.3.*"
 dask = "2024.6.*"
 zarr = "2.18.*"
 xgcm = { version = "0.9.*", channel = "conda-forge" }
-cf_xarray = "0.8.*"
+cf_xarray = "0.10.*"
 cftime = "1.6.*"
 pooch = "1.8.*"
 
