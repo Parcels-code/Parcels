@@ -18,6 +18,11 @@ _DATA_REPO_TAG = "main"
 
 _DATA_URL = f"https://github.com/Parcels-code/parcels-data/raw/{_DATA_REPO_TAG}/data"
 
+DATA_HOME = os.environ.get("PARCELS_EXAMPLE_DATA")
+if DATA_HOME is None:
+    DATA_HOME = pooch.os_cache("parcels")
+
+
 # Keys are the dataset names. Values are the filenames in the dataset folder. Note that
 # you can specify subfolders in the dataset folder putting slashes in the filename list.
 # e.g.,
@@ -191,10 +196,7 @@ POOCH_REGISTRY = _create_pooch_registry()
 
 def _get_pooch(data_home=None):
     if data_home is None:
-        data_home = os.environ.get("PARCELS_EXAMPLE_DATA")
-    if data_home is None:
-        data_home = pooch.os_cache("parcels")
-
+        data_home = DATA_HOME
     return pooch.create(
         path=data_home,
         base_url=_DATA_URL,
