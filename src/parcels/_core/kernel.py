@@ -220,8 +220,11 @@ class Kernel:
                     f(pset[repeat_particles], self._fieldset)
                     repeat_particles = pset.state == StatusCode.Repeat
 
-            # apply position/time update after all user kernels
-            self._position_update(pset[evaluate_particles], self._fieldset)
+            # apply position/time update only to particles still in a normal state
+            # (particles that signalled Stop*/Delete/errors should not have time/position advanced)
+            update_particles = evaluate_particles & np.isin(pset.state, [StatusCode.Evaluate, StatusCode.Success])
+            if np.any(update_particles):
+                self._position_update(pset[update_particles], self._fieldset)
 
             # revert to original dt (unless in RK45 mode)
             if not hasattr(self.fieldset, "RK45_tol"):
