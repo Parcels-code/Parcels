@@ -10,6 +10,12 @@ from parcels.tutorial import (
 )
 
 
+@pytest.fixture(scope="function")
+def tmp_path_parcels_example_data(monkeypatch, tmp_path):
+    monkeypatch.setenv("PARCELS_EXAMPLE_DATA", str(tmp_path))
+    return tmp_path
+
+
 @pytest.mark.parametrize("url", [_ODIE.get_url(filename) for filename in _ODIE.registry.keys()])
 def test_pooch_registry_url_reponse(url):
     response = requests.head(url)
@@ -17,17 +23,16 @@ def test_pooch_registry_url_reponse(url):
 
 
 @pytest.mark.parametrize("dataset", list_example_datasets()[:1])
-def test_download_example_dataset_folder_creation(tmp_path, dataset):
-    dataset_folder_path = download_example_dataset(dataset, data_home=tmp_path)
+def test_download_example_dataset_folder_creation(dataset):
+    dataset_folder_path = download_example_dataset(dataset)
 
     assert dataset_folder_path.exists()
     assert dataset_folder_path.name == dataset
-    assert dataset_folder_path.parent == tmp_path
 
 
-def test_download_non_existing_example_dataset(tmp_path):
+def test_download_non_existing_example_dataset(tmp_path_parcels_example_data):
     with pytest.raises(ValueError):
-        download_example_dataset("non_existing_dataset", data_home=tmp_path)
+        download_example_dataset("non_existing_dataset")
 
 
 def test_download_example_dataset_no_data_home():
