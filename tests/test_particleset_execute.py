@@ -203,7 +203,7 @@ def test_particleset_interpolate_outside_domainedge(zonal_flow_fieldset):
     pset = ParticleSet(fieldset, lon=fieldset.U.grid.lon[-1], lat=fieldset.U.grid.lat[-1] + dlat)
 
     with pytest.raises(FieldOutOfBoundError):
-        pset.execute(SampleU, runtime=np.timedelta64(1, "D"), dt=np.timedelta64(1, "D"))
+        pset.execute(SampleU, runtime=np.timedelta64(2, "D"), dt=np.timedelta64(1, "D"))
 
 
 @pytest.mark.parametrize(
