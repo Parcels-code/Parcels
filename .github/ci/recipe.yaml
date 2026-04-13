@@ -35,7 +35,7 @@ requirements:
     - netcdf4 >=1.7.2
     - numpy >=2.1.0
     - tqdm >=4.50.0
-    - xarray >=2024.5.0
+    - xarray >=2025.8.0
     - cf_xarray >=0.8.6
     - xgcm >=0.9.0
     - zarr >=2.15.0,!=2.18.0,<3

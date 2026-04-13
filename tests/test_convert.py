@@ -3,6 +3,7 @@ import xarray as xr
 
 import parcels
 import parcels.convert as convert
+import parcels.tutorial
 from parcels import FieldSet
 from parcels._core.utils import sgrid
 from parcels._datasets.structured.circulation_models import datasets as datasets_circulation_models
@@ -10,10 +11,9 @@ from parcels.interpolators._xinterpolators import _get_offsets_dictionary
 
 
 def test_nemo_to_sgrid():
-    data_folder = parcels.download_example_dataset("NemoCurvilinear_data")
-    U = xr.open_mfdataset(data_folder.glob("*U.nc4"))
-    V = xr.open_mfdataset(data_folder.glob("*V.nc4"))
-    coords = xr.open_dataset(data_folder / "mesh_mask.nc4")
+    U = parcels.tutorial.open_dataset("NemoCurvilinear_data_zonal/U")
+    V = parcels.tutorial.open_dataset("NemoCurvilinear_data_zonal/V")
+    coords = parcels.tutorial.open_dataset("NemoCurvilinear_data_zonal/mesh_mask")
 
     ds = convert.nemo_to_sgrid(fields=dict(U=U, V=V), coords=coords)
 
@@ -41,10 +41,9 @@ def test_nemo_to_sgrid():
 
 
 def test_convert_nemo_offsets():
-    data_folder = parcels.download_example_dataset("NemoCurvilinear_data")
-    U = xr.open_mfdataset(data_folder.glob("*U.nc4"))
-    V = xr.open_mfdataset(data_folder.glob("*V.nc4"))
-    coords = xr.open_dataset(data_folder / "mesh_mask.nc4")
+    U = parcels.tutorial.open_dataset("NemoCurvilinear_data_zonal/U")
+    V = parcels.tutorial.open_dataset("NemoCurvilinear_data_zonal/V")
+    coords = parcels.tutorial.open_dataset("NemoCurvilinear_data_zonal/mesh_mask")
 
     ds = convert.nemo_to_sgrid(fields=dict(U=U, V=V), coords=coords)
     fieldset = FieldSet.from_sgrid_conventions(ds)
@@ -56,8 +55,7 @@ def test_convert_nemo_offsets():
 
 
 def test_convert_mitgcm_offsets():
-    data_folder = parcels.download_example_dataset("MITgcm_example_data")
-    ds_fields = xr.open_dataset(data_folder / "mitgcm_UV_surface_zonally_reentrant.nc")
+    ds_fields = parcels.tutorial.open_dataset("MITgcm_example_data/mitgcm_UV_surface_zonally_reentrant")
     coords = ds_fields[["XG", "YG", "Zl", "time"]]
     ds_fset = convert.mitgcm_to_sgrid(fields={"U": ds_fields.UVEL, "V": ds_fields.VVEL}, coords=coords)
     fieldset = FieldSet.from_sgrid_conventions(ds_fset)
