@@ -23,7 +23,7 @@ python = ">=3.11"
 netcdf4 = ">=1.6.0"
 numpy = ">=2.1.0"
 tqdm = ">=4.50.0"
-xarray = ">=2024.5.0"
+xarray = ">=2024.5.0,<2026.4.0" # TODO: remove upper pin when https://github.com/UXARRAY/uxarray/issues/1490 is resolved
 holoviews = ">=1.22.0" # https://github.com/prefix-dev/rattler-build/issues/2326
 uxarray = ">=2025.3.0"
 dask = ">=2024.5.1"
