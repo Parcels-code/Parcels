@@ -685,6 +685,8 @@ def fesom_to_ugrid(ds: ux.UxDataset) -> ux.UxDataset:
     Renames vertical dimensions:
     - nz -> zf (vertical layer faces/interfaces)
     - nz1 -> zc (vertical layer centers)
+    - nod2 -> n_face (face)
+    - elem -> n_node (node)
 
     Parameters
     ----------
@@ -706,6 +708,11 @@ def fesom_to_ugrid(ds: ux.UxDataset) -> ux.UxDataset:
     >>> fieldset = FieldSet.from_ugrid_conventions(ds_ugrid, mesh="flat")
     """
     ds = ds.copy()
+
+    for try_dim, target in [("nod2", "n_face"), ("elem", "n_node")]:
+        if try_dim in ds.dims:
+            ds = ds.rename_dims({try_dim: target})
+
     interface_dim, center_dim = _detect_vertical_coordinates(ds, _FESOM2_VERTICAL_DIMS)
     return _rename_vertical_dims(ds, interface_dim, center_dim)
 
