@@ -7,6 +7,7 @@ import parcels.convert as convert
 import parcels.tutorial
 from parcels import FieldSet
 from parcels._core.utils import sgrid
+from parcels._datasets.remote import open_remote_dataset
 from parcels._datasets.structured.circulation_models import datasets as datasets_circulation_models
 from parcels.interpolators._xinterpolators import _get_offsets_dictionary
 
@@ -126,13 +127,8 @@ def test_convert_copernicusmarine_no_logs(ds, caplog):
 
 
 def test_convert_fesom_to_ugrid():
-    PARCELS_BENCHMARKS_DATA_FOLDER = "../parcels-benchmarks/data"
-    grid_file = xr.open_mfdataset(
-        f"{PARCELS_BENCHMARKS_DATA_FOLDER}/surf-data/parcels-benchmarks/data/Parcelsv4_Benchmarking_data/Parcels_Benchmarks_FESOM-baroclinic-gyre/data/mesh/fesom.mesh.diag.nc"
-    )
-    data_files = xr.open_mfdataset(
-        f"{PARCELS_BENCHMARKS_DATA_FOLDER}/surf-data/parcels-benchmarks/data/Parcelsv4_Benchmarking_data/Parcels_Benchmarks_FESOM-baroclinic-gyre/data/*.nc"
-    )
+    grid_file = open_remote_dataset("Benchmarks_FESOM2-baroclinic-gyre/grid")
+    data_files = open_remote_dataset("Benchmarks_FESOM2-baroclinic-gyre/data")
 
     grid = ux.open_grid(grid_file)
     uxds = ux.UxDataset(data_files, uxgrid=grid)
