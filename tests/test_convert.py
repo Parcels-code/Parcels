@@ -1,4 +1,5 @@
 import pytest
+import uxarray as ux
 import xarray as xr
 
 import parcels
@@ -122,3 +123,18 @@ def test_convert_copernicusmarine_no_logs(ds, caplog):
     assert "V" in fieldset.fields
     assert "UV" in fieldset.fields
     assert caplog.text == ""
+
+
+def test_convert_fesom_to_ugrid():
+    PARCELS_BENCHMARKS_DATA_FOLDER = "../parcels-benchmarks/data"
+    grid_file = xr.open_mfdataset(
+        f"{PARCELS_BENCHMARKS_DATA_FOLDER}/surf-data/parcels-benchmarks/data/Parcelsv4_Benchmarking_data/Parcels_Benchmarks_FESOM-baroclinic-gyre/data/mesh/fesom.mesh.diag.nc"
+    )
+    data_files = xr.open_mfdataset(
+        f"{PARCELS_BENCHMARKS_DATA_FOLDER}/surf-data/parcels-benchmarks/data/Parcelsv4_Benchmarking_data/Parcels_Benchmarks_FESOM-baroclinic-gyre/data/*.nc"
+    )
+
+    grid = ux.open_grid(grid_file)
+    uxds = ux.UxDataset(data_files, uxgrid=grid)
+    uxds = convert.fesom_to_ugrid(uxds)
+    FieldSet.from_ugrid_conventions(uxds)
