@@ -16,7 +16,6 @@ def test_ux_constant_flow_face_centered_2D(integrator, tmp_zarrfile):
     ds = datasets_unstructured["ux_constant_flow_face_centered_2D"]
     T = np.timedelta64(3600, "s")
     dt = np.timedelta64(300, "s")
-    dt_s = 300.0
 
     fieldset = parcels.FieldSet.from_ugrid_conventions(ds, mesh="flat")
     pset = parcels.ParticleSet(fieldset, lon=[5.0], lat=[5.0])
