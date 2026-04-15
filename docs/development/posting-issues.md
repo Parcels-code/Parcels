@@ -20,51 +20,96 @@ Following these templates provides structure and ensures that we have all the ne
 Parcels is designed to work with a large range of input datasets.
 
 When extending support for various input datasets, or trying to debug problems
-that only occur with specific datasets, having the dataset metadata is very valuable.
+that only occur with specific datasets, having access to your dataset (or a
+close representation of it) is very valuable.
 
-This metadata could include information such as:
+This could include information such as:
 
 - the nature of the array variables (e.g., via CF compliant metadata)
 - descriptions about the origin of the dataset, or additional comments
 - the shapes and data types of the arrays
+- the grid topology (coordinates and key variables)
 
 This also allows us to see if your metadata is broken/non-compliant with standards - where we can then suggest fixes for you (and maybe we can tell the data provider!).
 Since version 4 of Parcels we rely much more on metadata to discover information about your input data.
 
-Sharing this metadata often provides enough debugging information to solve your problem, instead of having to share a whole dataset.
+Sharing a compact representation of your dataset often provides enough information to solve your problem, without having to share the full dataset (which may be very large or contain sensitive data).
 
-Sharing dataset metadata is made easy in Parcels.
+Parcels makes this easy by replacing irrelevant array data with zeros and saving the result as a compressed Zarr zip store, which is typically small enough to attach directly to a GitHub issue.
 
 ### Step 1. Users
 
 As a user with access to your dataset, you would do:
 
 ```{code-cell}
-import json
+:tags: [hide-cell]
 
+# Generate an example dataset to zip. The user would use their own.
 import xarray as xr
-
-# defining an example dataset to illustrate
-# (you would use `xr.open_dataset(...)` instead)
-ds = xr.Dataset(attrs={"description": "my dataset"})
-
-output_file = "my_dataset.json"
-with open(output_file, "w") as f:
-    json.dump(ds.to_dict(data=False), f)  # write your dataset to a JSON excluding array data
+from parcels._datasets.structured.generic import datasets
+datasets['ds_2d_left'].to_netcdf("my_dataset.nc")
 ```
 
-Then attach the JSON file written above alongside your issue
+```{code-cell}
+import os
+
+import xarray as xr
+import zarr
+
+from parcels._datasets.utils import replace_arrays_with_zeros
+
+# load your dataset
+ds = xr.open_dataset("my_dataset.nc")  # or xr.open_zarr(...), etc.
+
+# Replace all data arrays with zeros, keeping coordinate metadata.
+# This keeps array shapes and metadata while removing actual data.
+#
+# You can customise `except_for` to also retain actual values for specific variables:
+#   except_for='coords'         — keep coordinate arrays (useful for grid topology)
+#   except_for=['lon', 'lat']   — keep a specific list of variables
+#   except_for=None   — remove all arrays (useful to know about dtypes, structure, and metadata). This is the default for the function.
+ds_trimmed = replace_arrays_with_zeros(ds, except_for = None)
+
+# Save to a zipped Zarr store - replace `my_dataset` with a more informative name
+with zarr.storage.ZipStore("my_dataset.zip", mode='w') as store:
+    ds_trimmed.to_zarr(store)
+
+size_mb_original = os.path.getsize("my_dataset.nc") / 1e6
+print(f"Original size: {size_mb_original:.1f} MB")
+
+# Check the file size (aim for < 25 MB so it can be attached to a GitHub issue)
+size_mb = os.path.getsize("my_dataset.zip") / 1e6
+print(f"Zip store size: {size_mb:.1f} MB")
+```
+
+Then attach the zip file written above alongside your issue.
+
+If the file is larger than 25 MB, try passing `except_for=None` (the default)
+to ensure all arrays are zeroed out. If it is still too large, consider
+subsetting your dataset to a smaller spatial or temporal region before saving.
 
 ### Step 2. Maintainers and developers
 
-As developers looking to inspect the metadata, we would do:
+As developers looking to inspect the dataset, we would do:
 
 ```{code-cell}
-from parcels._datasets.utils import from_xarray_dataset_dict
+import xarray as xr
+import zarr
 
-with open(output_file) as f:
-    d = json.load(f)
-ds = from_xarray_dataset_dict(d)
+ds = xr.open_zarr(zarr.storage.ZipStore("my_dataset.zip", mode="r"))
+ds
 ```
 
-From there we can take a look the metadata of your dataset!
+```{code-cell}
+:tags: [hide-cell]
+
+# Cleanup files in doc build process
+del ds
+from pathlib import Path
+Path("my_dataset.zip").unlink()
+Path("my_dataset.nc").unlink()
+
+```
+
+From there we can take a look at the structure, metadata, and grid topology of your dataset!
+This also makes it straightforward for us to add this dataset to our test suite.

@@ -1,19 +1,21 @@
 import pytest
+import uxarray as ux
 import xarray as xr
 
 import parcels
 import parcels.convert as convert
+import parcels.tutorial
 from parcels import FieldSet
 from parcels._core.utils import sgrid
+from parcels._datasets.remote import open_remote_dataset
 from parcels._datasets.structured.circulation_models import datasets as datasets_circulation_models
 from parcels.interpolators._xinterpolators import _get_offsets_dictionary
 
 
 def test_nemo_to_sgrid():
-    data_folder = parcels.download_example_dataset("NemoCurvilinear_data")
-    U = xr.open_mfdataset(data_folder.glob("*U.nc4"))
-    V = xr.open_mfdataset(data_folder.glob("*V.nc4"))
-    coords = xr.open_dataset(data_folder / "mesh_mask.nc4")
+    U = parcels.tutorial.open_dataset("NemoCurvilinear_data_zonal/U")
+    V = parcels.tutorial.open_dataset("NemoCurvilinear_data_zonal/V")
+    coords = parcels.tutorial.open_dataset("NemoCurvilinear_data_zonal/mesh_mask")
 
     ds = convert.nemo_to_sgrid(fields=dict(U=U, V=V), coords=coords)
 
@@ -23,7 +25,7 @@ def test_nemo_to_sgrid():
         "node_dimensions": "x y",
         "face_dimensions": "x_center:x (padding:low) y_center:y (padding:low)",
         "node_coordinates": "lon lat",
-        "vertical_dimensions": "z_center:depth (padding:high)",
+        "vertical_dimensions": "depth_center:depth (padding:high)",
     }
 
     meta = sgrid.parse_grid_attrs(ds["grid"].attrs)
@@ -41,10 +43,9 @@ def test_nemo_to_sgrid():
 
 
 def test_convert_nemo_offsets():
-    data_folder = parcels.download_example_dataset("NemoCurvilinear_data")
-    U = xr.open_mfdataset(data_folder.glob("*U.nc4"))
-    V = xr.open_mfdataset(data_folder.glob("*V.nc4"))
-    coords = xr.open_dataset(data_folder / "mesh_mask.nc4")
+    U = parcels.tutorial.open_dataset("NemoCurvilinear_data_zonal/U")
+    V = parcels.tutorial.open_dataset("NemoCurvilinear_data_zonal/V")
+    coords = parcels.tutorial.open_dataset("NemoCurvilinear_data_zonal/mesh_mask")
 
     ds = convert.nemo_to_sgrid(fields=dict(U=U, V=V), coords=coords)
     fieldset = FieldSet.from_sgrid_conventions(ds)
@@ -56,8 +57,7 @@ def test_convert_nemo_offsets():
 
 
 def test_convert_mitgcm_offsets():
-    data_folder = parcels.download_example_dataset("MITgcm_example_data")
-    ds_fields = xr.open_dataset(data_folder / "mitgcm_UV_surface_zonally_reentrant.nc")
+    ds_fields = parcels.tutorial.open_dataset("MITgcm_example_data/mitgcm_UV_surface_zonally_reentrant")
     coords = ds_fields[["XG", "YG", "Zl", "time"]]
     ds_fset = convert.mitgcm_to_sgrid(fields={"U": ds_fields.UVEL, "V": ds_fields.VVEL}, coords=coords)
     fieldset = FieldSet.from_sgrid_conventions(ds_fset)
@@ -124,3 +124,13 @@ def test_convert_copernicusmarine_no_logs(ds, caplog):
     assert "V" in fieldset.fields
     assert "UV" in fieldset.fields
     assert caplog.text == ""
+
+
+def test_convert_fesom_to_ugrid():
+    grid_file = open_remote_dataset("Benchmarks_FESOM2-baroclinic-gyre/grid")
+    data_files = open_remote_dataset("Benchmarks_FESOM2-baroclinic-gyre/data")
+
+    grid = ux.open_grid(grid_file)
+    uxds = ux.UxDataset(data_files, uxgrid=grid)
+    uxds = convert.fesom_to_ugrid(uxds)
+    FieldSet.from_ugrid_conventions(uxds)

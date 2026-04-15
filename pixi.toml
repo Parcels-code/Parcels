@@ -1,9 +1,10 @@
 [workspace]
 name = "Parcels"
+exclude-newer = "5d" # security pre-caution against compromised packages
 preview = ["pixi-build"]
 channels = ["conda-forge"]
 platforms = ["win-64", "linux-64", "osx-64", "osx-arm64"]
-requires-pixi = ">=0.63.0"
+requires-pixi = ">=0.67.0"
 
 [package]
 name = "parcels"
@@ -22,7 +23,7 @@ python = ">=3.11"
 netcdf4 = ">=1.6.0"
 numpy = ">=2.1.0"
 tqdm = ">=4.50.0"
-xarray = ">=2024.5.0"
+xarray = ">=2024.5.0,<2026.4.0" # TODO: remove upper pin when https://github.com/UXARRAY/uxarray/issues/1490 is resolved
 holoviews = ">=1.22.0" # https://github.com/prefix-dev/rattler-build/issues/2326
 uxarray = ">=2025.3.0"
 dask = ">=2024.5.1"
@@ -50,12 +51,12 @@ python = "3.11.*"
 netcdf4 = "1.6.*"
 numpy = "2.1.*"
 tqdm = "4.50.*"
-xarray = "2024.5.*"
+xarray = "2025.8.*"
 uxarray = "2025.3.*"
-dask = "2024.5.*"
-zarr = "2.15.*"
+dask = "2024.6.*"
+zarr = "2.18.*"
 xgcm = { version = "0.9.*", channel = "conda-forge" }
-cf_xarray = "0.8.*"
+cf_xarray = "0.10.*"
 cftime = "1.6.*"
 pooch = "1.8.*"
 

@@ -20,6 +20,7 @@ and writing output files that can be read with xarray.
 import numpy as np
 import xarray as xr
 import parcels
+import parcels.tutorial
 ```
 
 ## Input flow fields: `FieldSet`
@@ -29,11 +30,8 @@ hydrodynamics fields in which the particles are tracked. Here we provide an exam
 [Global Ocean Physics Reanalysis](https://doi.org/10.48670/moi-00021) from the Copernicus Marine Service.
 
 ```{code-cell}
-example_dataset_folder = parcels.download_example_dataset(
-    "CopernicusMarine_data_for_Argo_tutorial"
-)
+ds_fields = parcels.tutorial.open_dataset("CopernicusMarine_data_for_Argo_tutorial/data")
 
-ds_fields = xr.open_mfdataset(f"{example_dataset_folder}/*.nc", combine="by_coords")
 ds_fields.load()  # load the dataset into memory
 ds_fields
 ```
