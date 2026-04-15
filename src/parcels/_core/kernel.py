@@ -80,9 +80,6 @@ class Kernel:
 
         self._kernels: list[Callable] = kernels
 
-        if pset._requires_prepended_positionupdate_kernel:
-            self.prepend_positionupdate_kernel()
-
     @property  #! Ported from v3. To be removed in v4? (/find another way to name kernels in output file)
     def funcname(self):
         ret = ""
@@ -108,23 +105,19 @@ class Kernel:
         if len(indices) > 0:
             pset.remove_indices(indices)
 
-    def prepend_positionupdate_kernel(self):
-        # Adding kernels that set and update the coordinate changes
-        def PositionUpdate(particles, fieldset):  # pragma: no cover
-            particles.lon += particles.dlon
-            particles.lat += particles.dlat
-            particles.z += particles.dz
-            particles.time += particles.dt
+    def _position_update(self, particles, fieldset):
+        particles.lon += particles.dlon
+        particles.lat += particles.dlat
+        particles.z += particles.dz
+        particles.time += particles.dt
 
-            particles.dlon = 0
-            particles.dlat = 0
-            particles.dz = 0
+        particles.dlon = 0
+        particles.dlat = 0
+        particles.dz = 0
 
-            if hasattr(self.fieldset, "RK45_tol"):
-                # Update dt in case it's increased in RK45 kernel
-                particles.dt = particles.next_dt
-
-        self._kernels = [PositionUpdate] + self._kernels
+        if hasattr(self.fieldset, "RK45_tol"):
+            # Update dt in case it's increased in RK45 kernel
+            particles.dt = particles.next_dt
 
     def check_fieldsets_in_kernels(self, kernel):  # TODO v4: this can go into another method? assert_is_compatible()?
         """
@@ -221,6 +214,12 @@ class Kernel:
                     f(pset[repeat_particles], self._fieldset)
                     repeat_particles = pset.state == StatusCode.Repeat
 
+            # apply position/time update only to particles still in a normal state
+            # (particles that signalled Stop*/Delete/errors should not have time/position advanced)
+            update_particles = evaluate_particles & np.isin(pset.state, [StatusCode.Evaluate, StatusCode.Success])
+            if np.any(update_particles):
+                self._position_update(pset[update_particles], self._fieldset)
+
             # revert to original dt (unless in RK45 mode)
             if not hasattr(self.fieldset, "RK45_tol"):
                 pset._data["dt"][:] = dt
@@ -243,10 +242,5 @@ class Kernel:
                         error_func(pset[inds].time)
                     else:
                         error_func(pset[inds].z, pset[inds].lat, pset[inds].lon)
-
-            # Only prepend PositionUpdate kernel at the end of the first execute call to avoid adding dt to time too early
-            if not pset._requires_prepended_positionupdate_kernel:
-                self.prepend_positionupdate_kernel()
-                pset._requires_prepended_positionupdate_kernel = True
 
         return pset
