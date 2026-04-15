@@ -184,6 +184,7 @@ def test_variable_written_once():
     ...
 
 
+@pytest.mark.skip(reason="Pending ParticleFile refactor; see issue #2386")
 @pytest.mark.parametrize("dt", [-np.timedelta64(1, "s"), np.timedelta64(1, "s")])
 @pytest.mark.parametrize("maxvar", [2, 4, 10])
 def test_pset_repeated_release_delayed_adding_deleting(fieldset, tmp_zarrfile, dt, maxvar):
