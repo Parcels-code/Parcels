@@ -13,8 +13,9 @@ repos:
     rev: v1.23.1
     hooks:
       - id: zizmor
+        args: ["--offline"]
   - repo: https://github.com/astral-sh/ruff-pre-commit
-    rev: v0.15.8
+    rev: v0.15.9
     hooks:
       - id: ruff
         name: ruff lint (.py)

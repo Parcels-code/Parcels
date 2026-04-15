@@ -1,7 +1,11 @@
+from pathlib import Path
+
 import numpy as np
 import pytest
 import uxarray as ux
 
+import parcels._datasets.remote as _parcels_remote
+import parcels.tutorial
 from parcels import (
     Field,
     FieldSet,
@@ -9,7 +13,6 @@ from parcels import (
     ParticleSet,
     UxGrid,
     VectorField,
-    download_example_dataset,
 )
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
 from parcels.convert import fesom_to_ugrid, icon_to_ugrid
@@ -22,12 +25,15 @@ from parcels.interpolators import (
 
 @pytest.fixture
 def ds_fesom_channel() -> ux.UxDataset:
-    fesom_path = download_example_dataset("FESOM_periodic_channel")
-    grid_path = f"{fesom_path}/fesom_channel.nc"
+    # Download FESOM files via the new tutorial API
+    parcels.tutorial.open_dataset("FESOM_periodic_channel/fesom_channel")
+    # uxarray requires file paths; access the downloaded files from the pooch cache
+    _fesom_dir = Path(_parcels_remote._DATA_HOME) / "data" / "FESOM_periodic_channel"
+    grid_path = str(_fesom_dir / "fesom_channel.nc")
     data_path = [
-        f"{fesom_path}/u.fesom_channel.nc",
-        f"{fesom_path}/v.fesom_channel.nc",
-        f"{fesom_path}/w.fesom_channel.nc",
+        str(_fesom_dir / "u.fesom_channel.nc"),
+        str(_fesom_dir / "v.fesom_channel.nc"),
+        str(_fesom_dir / "w.fesom_channel.nc"),
     ]
     ds = ux.open_mfdataset(grid_path, data_path).rename_vars({"u": "U", "v": "V", "w": "W"})
     ds = fesom_to_ugrid(ds)

@@ -1,5 +1,5 @@
-import copy
-from typing import Any
+from collections.abc import Hashable
+from typing import Any, Literal
 
 import numpy as np
 import xarray as xr
@@ -186,21 +186,49 @@ def compare_datasets(ds1, ds2, ds1_name="Dataset 1", ds2_name="Dataset 2", verbo
     verbose_print("=" * 30 + " End of Comparison " + "=" * 30)
 
 
-def from_xarray_dataset_dict(d) -> xr.Dataset:
-    """Reconstruct a dataset with zero data from the output of ``xarray.Dataset.to_dict(data=False)``.
+def replace_arrays_with_zeros(
+    ds: xr.Dataset, except_for: Literal["coords"] | list[Hashable] | None = None
+) -> xr.Dataset:
+    """Replace datavars in the xarray dataset with zeros, except for some.
 
-    Useful in issues helping users debug fieldsets - sharing dataset schemas with associated metadata
-    without sharing the data itself.
+    Parameters
+    ----------
+    ds : xr.Dataset
+        The dataset whose arrays will be replaced with zeros.
+    except_for : "coords" or list of Hashable or None, optional
+        Controls which arrays are preserved:
 
-    Example
+        - ``None``: Replace all arrays with zeros.
+        - ``"coords"``: Replace all arrays with zeros except the non-index coords.
+        - list: Provide a list of variable/coord names to exclude from zeroing.
+
+    Returns
     -------
-    >>> import xarray as xr
-    >>> from parcels._datasets.structured.generic import datasets
-    >>> ds = datasets['ds_2d_left']
-    >>> d = ds.to_dict(data=False)
-    >>> ds2 = from_xarray_dataset_dict(d)
+    xr.Dataset
+        A copy of ``ds`` with the selected arrays replaced by zeros.
     """
-    return xr.Dataset.from_dict(_fill_with_dummy_data(copy.deepcopy(d)))
+    import dask.array as da
+
+    if except_for is None:
+        except_for = []
+    if except_for == "coords":
+        except_for = list(ds.coords.keys())
+
+    ds = ds.copy()
+    ds_keys = set(ds.data_vars) | set(ds.coords)
+    for k in except_for:
+        if k not in ds_keys:
+            raise ValueError(f"Item {k!r} in `except_for` not a valid item in dataset. Got {except_for=!r}.")
+
+    for k in ds_keys - set(except_for):
+        data = da.zeros_like(ds[k].data)
+        try:
+            ds[k].data = data
+        except ValueError:
+            # Cannot assign to dimension coordinate, leave as is
+            pass
+
+    return ds
 
 
 def _fill_with_dummy_data(d: dict[str, dict]):

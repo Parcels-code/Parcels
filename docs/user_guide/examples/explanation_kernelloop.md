@@ -53,13 +53,10 @@ import numpy as np
 import xarray as xr
 
 import parcels
+import parcels.tutorial
 
 # Load the CopernicusMarine data in the Agulhas region from the example_datasets
-example_dataset_folder = parcels.download_example_dataset(
-    "CopernicusMarine_data_for_Argo_tutorial"
-)
-
-ds_fields = xr.open_mfdataset(f"{example_dataset_folder}/*.nc", combine="by_coords")
+ds_fields = parcels.tutorial.open_dataset("CopernicusMarine_data_for_Argo_tutorial/data")
 ds_fields.load()  # load the dataset into memory
 
 # Create an idealised wind field and add it to the dataset
