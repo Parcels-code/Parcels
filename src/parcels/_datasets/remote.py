@@ -20,9 +20,10 @@ _DATA_URL = f"https://github.com/Parcels-code/parcels-data/raw/{_DATA_REPO_TAG}"
 _DATA_HOME = os.environ.get("PARCELS_EXAMPLE_DATA")
 if _DATA_HOME is None:
     _DATA_HOME = pooch.os_cache("parcels")
+_DATA_HOME = Path(_DATA_HOME)
 
 # See instructions at https://github.com/Parcels-code/parcels-data for adding new datasets
-_POOCH_REGISTRY_FILES: list[str] = (
+_ODIE_REGISTRY_FILES: list[str] = (
     # These datasets are from v3 and before of Parcels, where we just used netcdf files
     [
         "data/MovingEddies_data/moving_eddiesP.nc",
@@ -101,16 +102,17 @@ _POOCH_REGISTRY_FILES: list[str] = (
     + [f"data/WOA_data/woa18_decav_t{m:02d}_04.nc" for m in range(1, 13)]
     + ["data/CROCOidealized_data/CROCO_idealized.nc"]
     # These datasets are from v4 of Parcels where we're opting for Zipped zarr datasets
-    # ...
+    + [
+        "data-zarr/Benchmarks_FESOM2-baroclinic-gyre/data.zip",
+        "data-zarr/Benchmarks_FESOM2-baroclinic-gyre/grid.zip",
+    ]
+    + []
 )
-
-_POOCH_REGISTRY = {k: None for k in _POOCH_REGISTRY_FILES}
-
 
 _ODIE = pooch.create(
     path=_DATA_HOME,
     base_url=_DATA_URL,
-    registry=_POOCH_REGISTRY,
+    registry={k: None for k in _ODIE_REGISTRY_FILES},
 )
 
 
@@ -120,13 +122,13 @@ class _ParcelsDataset(abc.ABC):
 
 
 class _V3Dataset(_ParcelsDataset):
-    def __init__(self, path_relative_to_root: str, pre_decode_cf_callable=None):
-        self.path_relative_to_root = path_relative_to_root  # glob is allowed
+    def __init__(self, pup: pooch.Pooch, path_relative_to_pup: str, pre_decode_cf_callable=None):
+        self.path_relative_to_root = path_relative_to_pup  # glob is allowed
 
         # Function to apply to the dataset before the decoding the CF variables
-        self.pup = _ODIE
+        self.pup = pup
         self.pre_decode_cf_callable: None | Callable[[xr.Dataset], xr.Dataset] = pre_decode_cf_callable
-        self.v3_dataset_name = path_relative_to_root.split("/")[0]
+        self.v3_dataset_name = path_relative_to_pup.split("/")[0]
 
     def open_dataset(self) -> xr.Dataset:
         self.download_relevant_files()
@@ -154,9 +156,9 @@ class _V3Dataset(_ParcelsDataset):
 
 
 class _ZarrZipDataset(_ParcelsDataset):
-    def __init__(self, path_relative_to_root):
-        self.pup = _ODIE
-        self.path_relative_to_root = path_relative_to_root
+    def __init__(self, pup, path_relative_to_pup):
+        self.pup = pup
+        self.path_relative_to_root = path_relative_to_pup
 
     def open_dataset(self) -> xr.Dataset:
         self.pup.fetch(self.path_relative_to_root)
@@ -190,35 +192,38 @@ _TPurpose = Literal["testing", "tutorial"]
 # The first here is a human readable key used to open datasets, with an object to open the datasets
 # fmt: off
 _DATASET_KEYS_AND_CONFIGS: dict[str, tuple[_V3Dataset, _Purpose]] = dict([
-    ("MovingEddies_data/P", (_V3Dataset("data/MovingEddies_data/moving_eddiesP.nc"), _Purpose.TUTORIAL)),
-    ("MovingEddies_data/U", (_V3Dataset("data/MovingEddies_data/moving_eddiesU.nc"), _Purpose.TUTORIAL)),
-    ("MovingEddies_data/V", (_V3Dataset("data/MovingEddies_data/moving_eddiesV.nc"), _Purpose.TUTORIAL)),
-    ("MITgcm_example_data/mitgcm_UV_surface_zonally_reentrant", (_V3Dataset("data/MITgcm_example_data/mitgcm_UV_surface_zonally_reentrant.nc"), _Purpose.TUTORIAL)),
-    ("OFAM_example_data/U", (_V3Dataset("data/OFAM_example_data/OFAM_simple_U.nc"), _Purpose.TUTORIAL)),
-    ("OFAM_example_data/V", (_V3Dataset("data/OFAM_example_data/OFAM_simple_V.nc"), _Purpose.TUTORIAL)),
-    ("Peninsula_data/U", (_V3Dataset("data/Peninsula_data/peninsulaU.nc"), _Purpose.TUTORIAL)),
-    ("Peninsula_data/V", (_V3Dataset("data/Peninsula_data/peninsulaV.nc"), _Purpose.TUTORIAL)),
-    ("Peninsula_data/P", (_V3Dataset("data/Peninsula_data/peninsulaP.nc"), _Purpose.TUTORIAL)),
-    ("Peninsula_data/T", (_V3Dataset("data/Peninsula_data/peninsulaT.nc"), _Purpose.TUTORIAL)),
-    ("GlobCurrent_example_data/data", (_V3Dataset("data/GlobCurrent_example_data/*000000-GLOBCURRENT-L4-CUReul_hs-ALT_SUM-v02.0-fv01.0.nc", pre_decode_cf_callable=patch_dataset_v4_compat), _Purpose.TUTORIAL)),
-    ("CopernicusMarine_data_for_Argo_tutorial/data", (_V3Dataset("data/CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-*.nc"), _Purpose.TUTORIAL)),
-    ("DecayingMovingEddy_data/U", (_V3Dataset("data/DecayingMovingEddy_data/decaying_moving_eddyU.nc"), _Purpose.TUTORIAL)),
-    ("DecayingMovingEddy_data/V", (_V3Dataset("data/DecayingMovingEddy_data/decaying_moving_eddyV.nc"), _Purpose.TUTORIAL)),
-    ("FESOM_periodic_channel/fesom_channel", (_V3Dataset("data/FESOM_periodic_channel/fesom_channel.nc"), _Purpose.TUTORIAL)),
-    ("FESOM_periodic_channel/u.fesom_channel", (_V3Dataset("data/FESOM_periodic_channel/u.fesom_channel.nc"), _Purpose.TUTORIAL)),
-    ("FESOM_periodic_channel/v.fesom_channel", (_V3Dataset("data/FESOM_periodic_channel/v.fesom_channel.nc"), _Purpose.TUTORIAL)),
-    ("FESOM_periodic_channel/w.fesom_channel", (_V3Dataset("data/FESOM_periodic_channel/w.fesom_channel.nc"), _Purpose.TUTORIAL)),
-    ("NemoCurvilinear_data_zonal/U", (_V3Dataset("data/NemoCurvilinear_data/U_purely_zonal-ORCA025_grid_U.nc4"), _Purpose.TUTORIAL)),
-    ("NemoCurvilinear_data_zonal/V", (_V3Dataset("data/NemoCurvilinear_data/V_purely_zonal-ORCA025_grid_V.nc4"), _Purpose.TUTORIAL)),
-    ("NemoCurvilinear_data_zonal/mesh_mask", (_V3Dataset("data/NemoCurvilinear_data/mesh_mask.nc4", _preprocess_drop_time_from_mesh2), _Purpose.TUTORIAL)),
-    ("NemoNorthSeaORCA025-N006_data/U", (_V3Dataset("data/NemoNorthSeaORCA025-N006_data/ORCA025-N06_200001*05U.nc"), _Purpose.TUTORIAL)),
-    ("NemoNorthSeaORCA025-N006_data/V", (_V3Dataset("data/NemoNorthSeaORCA025-N006_data/ORCA025-N06_200001*05V.nc"), _Purpose.TUTORIAL)),
-    ("NemoNorthSeaORCA025-N006_data/W", (_V3Dataset("data/NemoNorthSeaORCA025-N006_data/ORCA025-N06_200001*05W.nc"), _Purpose.TUTORIAL)),
-    ("NemoNorthSeaORCA025-N006_data/mesh_mask", (_V3Dataset("data/NemoNorthSeaORCA025-N006_data/coordinates.nc", _preprocess_drop_time_from_mesh1), _Purpose.TUTORIAL)),
+    ("MovingEddies_data/P", (_V3Dataset(_ODIE,"data/MovingEddies_data/moving_eddiesP.nc"), _Purpose.TUTORIAL)),
+    ("MovingEddies_data/U", (_V3Dataset(_ODIE,"data/MovingEddies_data/moving_eddiesU.nc"), _Purpose.TUTORIAL)),
+    ("MovingEddies_data/V", (_V3Dataset(_ODIE,"data/MovingEddies_data/moving_eddiesV.nc"), _Purpose.TUTORIAL)),
+    ("MITgcm_example_data/mitgcm_UV_surface_zonally_reentrant", (_V3Dataset(_ODIE,"data/MITgcm_example_data/mitgcm_UV_surface_zonally_reentrant.nc"), _Purpose.TUTORIAL)),
+    ("OFAM_example_data/U", (_V3Dataset(_ODIE,"data/OFAM_example_data/OFAM_simple_U.nc"), _Purpose.TUTORIAL)),
+    ("OFAM_example_data/V", (_V3Dataset(_ODIE,"data/OFAM_example_data/OFAM_simple_V.nc"), _Purpose.TUTORIAL)),
+    ("Peninsula_data/U", (_V3Dataset(_ODIE,"data/Peninsula_data/peninsulaU.nc"), _Purpose.TUTORIAL)),
+    ("Peninsula_data/V", (_V3Dataset(_ODIE,"data/Peninsula_data/peninsulaV.nc"), _Purpose.TUTORIAL)),
+    ("Peninsula_data/P", (_V3Dataset(_ODIE,"data/Peninsula_data/peninsulaP.nc"), _Purpose.TUTORIAL)),
+    ("Peninsula_data/T", (_V3Dataset(_ODIE,"data/Peninsula_data/peninsulaT.nc"), _Purpose.TUTORIAL)),
+    ("GlobCurrent_example_data/data", (_V3Dataset(_ODIE,"data/GlobCurrent_example_data/*000000-GLOBCURRENT-L4-CUReul_hs-ALT_SUM-v02.0-fv01.0.nc", pre_decode_cf_callable=patch_dataset_v4_compat), _Purpose.TUTORIAL)),
+    ("CopernicusMarine_data_for_Argo_tutorial/data", (_V3Dataset(_ODIE,"data/CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-*.nc"), _Purpose.TUTORIAL)),
+    ("DecayingMovingEddy_data/U", (_V3Dataset(_ODIE,"data/DecayingMovingEddy_data/decaying_moving_eddyU.nc"), _Purpose.TUTORIAL)),
+    ("DecayingMovingEddy_data/V", (_V3Dataset(_ODIE,"data/DecayingMovingEddy_data/decaying_moving_eddyV.nc"), _Purpose.TUTORIAL)),
+    ("FESOM_periodic_channel/fesom_channel", (_V3Dataset(_ODIE,"data/FESOM_periodic_channel/fesom_channel.nc"), _Purpose.TUTORIAL)),
+    ("FESOM_periodic_channel/u.fesom_channel", (_V3Dataset(_ODIE,"data/FESOM_periodic_channel/u.fesom_channel.nc"), _Purpose.TUTORIAL)),
+    ("FESOM_periodic_channel/v.fesom_channel", (_V3Dataset(_ODIE,"data/FESOM_periodic_channel/v.fesom_channel.nc"), _Purpose.TUTORIAL)),
+    ("FESOM_periodic_channel/w.fesom_channel", (_V3Dataset(_ODIE,"data/FESOM_periodic_channel/w.fesom_channel.nc"), _Purpose.TUTORIAL)),
+    ("NemoCurvilinear_data_zonal/U", (_V3Dataset(_ODIE,"data/NemoCurvilinear_data/U_purely_zonal-ORCA025_grid_U.nc4"), _Purpose.TUTORIAL)),
+    ("NemoCurvilinear_data_zonal/V", (_V3Dataset(_ODIE,"data/NemoCurvilinear_data/V_purely_zonal-ORCA025_grid_V.nc4"), _Purpose.TUTORIAL)),
+    ("NemoCurvilinear_data_zonal/mesh_mask", (_V3Dataset(_ODIE,"data/NemoCurvilinear_data/mesh_mask.nc4", _preprocess_drop_time_from_mesh2), _Purpose.TUTORIAL)),
+    ("NemoNorthSeaORCA025-N006_data/U", (_V3Dataset(_ODIE,"data/NemoNorthSeaORCA025-N006_data/ORCA025-N06_200001*05U.nc"), _Purpose.TUTORIAL)),
+    ("NemoNorthSeaORCA025-N006_data/V", (_V3Dataset(_ODIE,"data/NemoNorthSeaORCA025-N006_data/ORCA025-N06_200001*05V.nc"), _Purpose.TUTORIAL)),
+    ("NemoNorthSeaORCA025-N006_data/W", (_V3Dataset(_ODIE,"data/NemoNorthSeaORCA025-N006_data/ORCA025-N06_200001*05W.nc"), _Purpose.TUTORIAL)),
+    ("NemoNorthSeaORCA025-N006_data/mesh_mask", (_V3Dataset(_ODIE,"data/NemoNorthSeaORCA025-N006_data/coordinates.nc", _preprocess_drop_time_from_mesh1), _Purpose.TUTORIAL)),
     # "POPSouthernOcean_data/t.x1_SAMOC_flux.16900*.nc", # TODO v4: In v3 but should not be in v4 https://github.com/Parcels-code/Parcels/issues/2571#issuecomment-4214476973
-    ("SWASH_data/data", (_V3Dataset("data/SWASH_data/field_00655*.nc"), _Purpose.TUTORIAL)),
-    ("WOA_data/data", (_V3Dataset("data/WOA_data/woa18_decav_t*_04.nc", _preprocess_set_cf_calendar_360_day), _Purpose.TUTORIAL)),
-    ("CROCOidealized_data/data", (_V3Dataset("data/CROCOidealized_data/CROCO_idealized.nc"), _Purpose.TUTORIAL)),
+    ("SWASH_data/data", (_V3Dataset(_ODIE,"data/SWASH_data/field_00655*.nc"), _Purpose.TUTORIAL)),
+    ("WOA_data/data", (_V3Dataset(_ODIE,"data/WOA_data/woa18_decav_t*_04.nc", _preprocess_set_cf_calendar_360_day), _Purpose.TUTORIAL)),
+    ("CROCOidealized_data/data", (_V3Dataset(_ODIE,"data/CROCOidealized_data/CROCO_idealized.nc"), _Purpose.TUTORIAL)),
+] + [
+    ("Benchmarks_FESOM2-baroclinic-gyre/data", (_ZarrZipDataset(_ODIE, 'data-zarr/Benchmarks_FESOM2-baroclinic-gyre/data.zip'), _Purpose.TESTING)),
+    ("Benchmarks_FESOM2-baroclinic-gyre/grid", (_ZarrZipDataset(_ODIE, 'data-zarr/Benchmarks_FESOM2-baroclinic-gyre/grid.zip'),_Purpose.TESTING)),
 ])
 # fmt: on
 
