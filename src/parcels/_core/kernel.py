@@ -80,8 +80,6 @@ class Kernel:
 
         self._kernels: list[Callable] = kernels
 
-        self._position_update = self._make_position_update()
-
     @property  #! Ported from v3. To be removed in v4? (/find another way to name kernels in output file)
     def funcname(self):
         ret = ""
@@ -107,23 +105,19 @@ class Kernel:
         if len(indices) > 0:
             pset.remove_indices(indices)
 
-    def _make_position_update(self):
-        # Adding kernels that set and update the coordinate changes
-        def PositionUpdate(particles, fieldset):  # pragma: no cover
-            particles.lon += particles.dlon
-            particles.lat += particles.dlat
-            particles.z += particles.dz
-            particles.time += particles.dt
+    def _position_update(self, particles, fieldset):
+        particles.lon += particles.dlon
+        particles.lat += particles.dlat
+        particles.z += particles.dz
+        particles.time += particles.dt
 
-            particles.dlon = 0
-            particles.dlat = 0
-            particles.dz = 0
+        particles.dlon = 0
+        particles.dlat = 0
+        particles.dz = 0
 
-            if hasattr(self.fieldset, "RK45_tol"):
-                # Update dt in case it's increased in RK45 kernel
-                particles.dt = particles.next_dt
-
-        return PositionUpdate
+        if hasattr(self.fieldset, "RK45_tol"):
+            # Update dt in case it's increased in RK45 kernel
+            particles.dt = particles.next_dt
 
     def check_fieldsets_in_kernels(self, kernel):  # TODO v4: this can go into another method? assert_is_compatible()?
         """
