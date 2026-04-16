@@ -159,27 +159,77 @@ convention = "numpy"
 [tool.ruff.lint.isort]
 known-first-party = ["parcels"]
 
-[tool.ty.src]
-include = ["./src/"]
 [tool.mypy]
-files = [
-  "parcels/_typing.py",
-  "parcels/tools/*.py",
-  "parcels/grid.py",
-  "parcels/field.py",
-  "parcels/fieldset.py",
+files = ['src']
+check_untyped_defs = true
+show_error_context = true
+warn_redundant_casts = true
+warn_unused_configs = true
+warn_unused_ignores = true
+
+exclude = [
+  # Temporarily exclude files. As we improve typechecking across the codebase, remove these
+  "src/parcels/_v3to4.py",
+  "src/parcels/_typing.py",
+  "src/parcels/_reprs.py",
+  "src/parcels/_datasets/remote.py",
+  "src/parcels/_datasets/__init__.py",
+  "src/parcels/_datasets/utils.py",
+  "src/parcels/_datasets/structured/generated.py",
+  "src/parcels/_datasets/structured/generic.py",
+  "src/parcels/_datasets/structured/__init__.py",
+  "src/parcels/_datasets/structured/circulation_models.py",
+  "src/parcels/_datasets/unstructured/generated.py",
+  "src/parcels/_datasets/unstructured/generic.py",
+  "src/parcels/_datasets/unstructured/__init__.py",
+  "src/parcels/_python.py",
+  "src/parcels/convert.py",
+  "src/parcels/__init__.py",
+  "src/parcels/_logger.py",
+  "src/parcels/_decorators.py",
+  "src/parcels/_version_setup.py",
+  "src/parcels/_compat.py",
+  "src/parcels/tutorial.py",
+  "src/parcels/_core/utils/__init__.py",
+  "src/parcels/_core/utils/time.py",
+  "src/parcels/_core/utils/interpolation.py",
+  "src/parcels/_core/utils/unstructured.py",
+  "src/parcels/_core/__init__.py",
+  "src/parcels/_core/particle.py",
+  "src/parcels/_core/field.py",
+  "src/parcels/_core/kernel.py",
+  "src/parcels/_core/particleset.py",
+  "src/parcels/_core/xgrid.py",
+  "src/parcels/_core/warnings.py",
+  "src/parcels/_core/constants.py",
+  "src/parcels/_core/utils/sgrid.py",
+  "src/parcels/_core/utils/string.py",
+  "src/parcels/_core/basegrid.py",
+  "src/parcels/_core/particlefile.py",
+  "src/parcels/_core/uxgrid.py",
+  "src/parcels/_core/spatialhash.py",
+  "src/parcels/_core/statuscodes.py",
+  "src/parcels/_core/particlesetview.py",
+  "src/parcels/_core/fieldset.py",
+  "src/parcels/_core/index_search.py",
+  "src/parcels/interpolators/_xinterpolators.py",
+  "src/parcels/interpolators/__init__.py",
+  "src/parcels/interpolators/_uxinterpolators.py",
+  "src/parcels/kernels/_sigmagrids.py",
+  "src/parcels/kernels/_advectiondiffusion.py",
+  "src/parcels/kernels/__init__.py",
+  "src/parcels/kernels/_advection.py",
 ]
 
 [[tool.mypy.overrides]]
 module = [
-  "parcels._version_setup",
-  "mpi4py",
   "scipy.spatial",
-  "sklearn.cluster",
   "zarr",
+  "zarr.storage",
   "cftime",
-  "pykdtree.kdtree",
   "netCDF4",
   "pooch",
+  "xgcm",
+  "uxarray",
 ]
 ignore_missing_imports = true
