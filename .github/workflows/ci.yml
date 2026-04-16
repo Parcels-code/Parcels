@@ -208,8 +208,14 @@ jobs:
           cache: true
           cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
       - name: Typechecking
-        run: | # TODO: Remove `|| true` once typechecking is stable
-          pixi run typing --output-format github || true
+        run: |
+          pixi run typing --non-interactive --html-report mypy-report
+      - name: Upload test results
+        if: ${{ always() }} # Upload even on mypy error
+        uses: actions/upload-artifact@v7
+        with:
+          name: Mypy report
+          path: mypy-report
   build-and-upload-nightly-parcels: # for alpha testing
     needs: [cache-pixi-lock]
     permissions:
