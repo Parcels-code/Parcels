@@ -142,22 +142,6 @@ def test_pfile_array_remove_all_particles(fieldset, chunks_obs, tmp_parquet):
         assert np.all(np.isnan(ds["time"][:, 1:]))
 
 
-@pytest.mark.uses_old_zarr
-def test_variable_write_double(fieldset, tmp_zarrfile):
-    def Update_lon(particles, fieldset):  # pragma: no cover
-        particles.dlon += 0.1
-
-    dt = np.timedelta64(1, "s")
-    particle = get_default_particle(np.float64)
-    pset = ParticleSet(fieldset, pclass=particle, lon=[0], lat=[0])
-    ofile = ParticleFile(tmp_zarrfile, outputdt=dt)
-    pset.execute(Update_lon, runtime=np.timedelta64(10, "s"), dt=dt, output_file=ofile)
-
-    ds = xr.open_zarr(tmp_zarrfile)
-    lons = ds["lon"][:]
-    assert isinstance(lons.values[0, 0], np.float64)
-
-
 
 def test_write_dtypes_pfile(fieldset, tmp_parquet):
     dtypes = [
