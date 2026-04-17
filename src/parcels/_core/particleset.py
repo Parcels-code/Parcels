@@ -20,7 +20,7 @@ from parcels._core.utils.time import (
 )
 from parcels._core.warnings import ParticleSetWarning
 from parcels._logger import logger
-from parcels._reprs import _format_zarr_output_location, particleset_repr
+from parcels._reprs import particleset_repr
 
 __all__ = ["ParticleSet"]
 
@@ -395,7 +395,7 @@ class ParticleSet:
 
         if output_file is not None:
             output_file.set_metadata(self.fieldset.gridset[0]._mesh)
-            output_file.metadata["parcels_kernels"] = self._kernel.funcname
+            output_file.extra_metadata["parcels_kernels"] = self._kernel.funcname
 
         dt, sign_dt = _convert_dt_to_float(dt)
         self._data["dt"][:] = dt
@@ -415,7 +415,7 @@ class ParticleSet:
 
         # Set up pbar
         if output_file:
-            logger.info(f"Output files are stored in {_format_zarr_output_location(output_file.store)}")
+            logger.info(f"Output files are stored in {output_file.path}")
 
         if verbose_progress:
             pbar = tqdm(total=end_time - start_time, file=sys.stdout)
@@ -451,6 +451,9 @@ class ParticleSet:
 
             time = next_time
 
+        if output_file is not None:
+            output_file.close()
+            
         if verbose_progress:
             pbar.close()
 

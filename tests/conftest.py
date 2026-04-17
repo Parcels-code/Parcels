@@ -11,3 +11,8 @@ def tmp_zarrfile(tmp_path, request):
 @pytest.fixture
 def tmp_store():
     return MemoryStore()
+
+@pytest.fixture
+def tmp_parquet(tmp_path):
+    return tmp_path / 'tmp.parquet'
+

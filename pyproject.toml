@@ -60,7 +60,7 @@ markers = [ # can be skipped by doing `pytest -m "not slow"` etc.
   "v4alpha: failing tests that should work for v4alpha",
   "v4future: failing tests that should work for a future release of v4",
   "v4remove: failing tests that should probably be removed later",
-  "uses_old_zarr: tests that need to be migrated to the new particleset format"
+  "uses_old_zarr: tests that need to be migrated to the new particleset format",
 ]
 
 filterwarnings = [

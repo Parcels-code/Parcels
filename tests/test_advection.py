@@ -4,6 +4,7 @@ import xarray as xr
 
 import parcels
 import parcels.tutorial
+import pandas as pd
 from parcels import (
     Field,
     FieldSet,
@@ -60,8 +61,7 @@ def test_advection_zonal(mesh, npart=10):
     np.testing.assert_allclose(pset.lat, startlat, atol=1e-5)
 
 
-@pytest.mark.uses_old_zarr
-def test_advection_zonal_with_particlefile(tmp_store):
+def test_advection_zonal_with_particlefile(tmp_parquet):
     """Particles at high latitude move geographically faster due to the pole correction."""
     npart = 10
     ds = simple_UV_dataset(mesh="flat")
@@ -69,12 +69,13 @@ def test_advection_zonal_with_particlefile(tmp_store):
     fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
 
     pset = ParticleSet(fieldset, lon=np.zeros(npart) + 20.0, lat=np.linspace(0, 80, npart))
-    pfile = ParticleFile(tmp_store, outputdt=np.timedelta64(30, "m"))
+    pfile = ParticleFile(tmp_parquet, outputdt=np.timedelta64(30, "m"))
     pset.execute(AdvectionRK4, runtime=np.timedelta64(2, "h"), dt=np.timedelta64(15, "m"), output_file=pfile)
 
     assert (np.diff(pset.lon) < 1.0e-4).all()
-    ds = xr.open_zarr(tmp_store)
-    np.testing.assert_allclose(ds.isel(obs=-1).lon.values, pset.lon)
+    df = pd.read_parquet(tmp_parquet)
+    final_time = df["time"].max()
+    np.testing.assert_allclose(df[df["time"] == final_time]["lon"].values, pset.lon, atol=1e-5)
 
 
 def periodicBC(particles, fieldset):
