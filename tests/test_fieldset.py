@@ -4,6 +4,7 @@ import cf_xarray  # noqa: F401
 import cftime
 import numpy as np
 import pytest
+import pandas as pd
 import xarray as xr
 
 from parcels import Field, ParticleFile, ParticleSet, VectorField, XGrid, convert

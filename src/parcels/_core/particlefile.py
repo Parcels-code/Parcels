@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING, Any, Literal
 import cftime
 import numpy as np
 import pyarrow as pa
+from parcels._typing import PathLike
 import pyarrow.parquet as pq
 
 import parcels
@@ -58,22 +59,24 @@ class ParticleFile:
         ParticleFile object that can be used to write particle data to file
     """
 
-    def __init__(self, path: Path, outputdt):
+    def __init__(self, path: PathLike, outputdt):
         if not isinstance(outputdt, (np.timedelta64, timedelta, float)):
             raise ValueError(
                 f"Expected outputdt to be a np.timedelta64, datetime.timedelta or float (in seconds), got {type(outputdt)}"
             )
 
         outputdt = timedelta_to_float(outputdt)
+        path = Path(path)
+
+        if path.suffix != ".parquet":
+            raise ValueError(f"ParticleFile data is stored in Parquet files - file extension must be '.parquet'. Got {path.suffix=!r}.")
 
         if outputdt <= 0:
             raise ValueError(f"outputdt must be positive/non-zero. Got {outputdt=!r}")
 
         self._outputdt = outputdt
 
-        self._path = Path(
-            path
-        )  # TODO v4: Consider https://arrow.apache.org/docs/python/getstarted.html#working-with-large-data - though a significant question becomes how to partition, perhaps using a particle variable "partition"?
+        self._path = path # TODO v4: Consider https://arrow.apache.org/docs/python/getstarted.html#working-with-large-data - though a significant question becomes how to partition, perhaps using a particle variable "partition"?
         self._writer: pq.ParquetWriter | None = None
         if path.exists():
             # TODO: Add logic for recovering/appending to existing parquet file
