@@ -95,8 +95,8 @@ def test_fieldset_gridset(fieldset):
     assert len(fieldset.gridset) == 2
 
 
-@pytest.mark.uses_old_zarr
-def test_fieldset_no_UV(tmp_zarrfile):
+
+def test_fieldset_no_UV(tmp_parquet):
     grid = XGrid.from_dataset(ds, mesh="flat")
     fieldset = FieldSet([Field("P", ds["U_A_grid"], grid, interp_method=XLinear)])
 
@@ -104,11 +104,11 @@ def test_fieldset_no_UV(tmp_zarrfile):
         particles.dlon += fieldset.P[particles]
 
     pset = ParticleSet(fieldset, lon=0, lat=0)
-    ofile = ParticleFile(tmp_zarrfile, outputdt=np.timedelta64(1, "s"))
+    ofile = ParticleFile(tmp_parquet, outputdt=np.timedelta64(1, "s"))
     pset.execute(SampleP, runtime=np.timedelta64(1, "s"), dt=np.timedelta64(1, "s"), output_file=ofile)
 
-    ds_out = xr.open_zarr(tmp_zarrfile)
-    assert ds_out["lon"].shape == (1, 2)
+    df = xr.open_zarr(tmp_parquet)
+    assert len(df["lon"]) == 2
 
 
 @pytest.mark.parametrize("ds", [pytest.param(ds, id=k) for k, ds in datasets_structured.items()])
