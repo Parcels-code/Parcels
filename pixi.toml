@@ -32,7 +32,6 @@ xgcm = { git = "https://github.com/xgcm/xgcm", rev = "master" } # TODO: Switch t
 cf_xarray = ">=0.8.6"
 cftime = ">=1.6.3"
 pooch = ">=1.8.0"
-py-triangle = ">=20250106,<20250107"
 
 [dependencies]
 parcels = { path = "." }
@@ -83,6 +82,7 @@ jupyter = "*"
 trajan = "*"
 matplotlib-base = ">=2.0.2"
 gsw = "*"
+py-triangle = "*"
 
 [feature.devtools.dependencies]
 pdbpp = "*"
