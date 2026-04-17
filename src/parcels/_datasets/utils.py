@@ -231,10 +231,10 @@ def replace_arrays_with_zeros(
     return ds
 
 
-def _fill_with_dummy_data(d: dict[str, dict]):
+def _fill_with_dummy_data(d: dict[str, Any]):
     assert isinstance(d, dict)
     if "dtype" in d:
-        d["data"] = np.zeros(d["shape"], dtype=d["dtype"])  # type:ignore[no-matching-overload] # loading from unsanitized data
+        d["data"] = np.zeros(d["shape"], dtype=d["dtype"])
         del d["dtype"]
         del d["shape"]
 
