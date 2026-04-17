@@ -222,21 +222,22 @@ class ParticleFile:
                         dims = ["trajectory", "obs"]
                     ds[var.name] = xr.DataArray(data=data, dims=dims, attrs=attrs[var.name])
                     ds[var.name].encoding["chunks"] = self.chunks[0] if var.to_write == "once" else self.chunks
-            ds.to_zarr(store, mode="w")
+            # ds.to_zarr(store, mode="w")
             self._create_new_zarrfile = False
         else:
-            Z = zarr.group(store=store, overwrite=False)
-            obs = particle_data["obs_written"][indices_to_write]
-            for var in vars_to_write:
-                if self._maxids > Z[var.name].shape[0]:
-                    self._extend_zarr_dims(Z[var.name], store, dtype=var.dtype, axis=0)
-                if var.to_write == "once":
-                    if len(once_ids) > 0:
-                        Z[var.name].vindex[ids_once] = particle_data[var.name][indices_to_write_once]
-                else:
-                    if max(obs) >= Z[var.name].shape[1]:
-                        self._extend_zarr_dims(Z[var.name], store, dtype=var.dtype, axis=1)
-                    Z[var.name].vindex[ids, obs] = particle_data[var.name][indices_to_write]
+            pass
+            # Z = zarr.group(store=store, overwrite=False)
+            # obs = particle_data["obs_written"][indices_to_write]
+            # for var in vars_to_write:
+            #     if self._maxids > Z[var.name].shape[0]:
+            #         self._extend_zarr_dims(Z[var.name], store, dtype=var.dtype, axis=0)
+            #     if var.to_write == "once":
+            #         if len(once_ids) > 0:
+            #             Z[var.name].vindex[ids_once] = particle_data[var.name][indices_to_write_once]
+            #     else:
+            #         if max(obs) >= Z[var.name].shape[1]:
+            #             self._extend_zarr_dims(Z[var.name], store, dtype=var.dtype, axis=1)
+            #         Z[var.name].vindex[ids, obs] = particle_data[var.name][indices_to_write]
 
         particle_data["obs_written"][indices_to_write] = obs + 1
 

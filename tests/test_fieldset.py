@@ -95,6 +95,7 @@ def test_fieldset_gridset(fieldset):
     assert len(fieldset.gridset) == 2
 
 
+@pytest.mark.uses_old_zarr
 def test_fieldset_no_UV(tmp_zarrfile):
     grid = XGrid.from_dataset(ds, mesh="flat")
     fieldset = FieldSet([Field("P", ds["U_A_grid"], grid, interp_method=XLinear)])

@@ -4,6 +4,7 @@ from contextlib import nullcontext as does_not_raise
 from datetime import datetime, timedelta
 
 import numpy as np
+import pyarrow as pa
 import pytest
 import xarray as xr
 from zarr.storage import MemoryStore
@@ -21,6 +22,7 @@ from parcels import (
     XGrid,
 )
 from parcels._core.particle import Particle, create_particle_data, get_default_particle
+from parcels._core.particlefile import _get_schema
 from parcels._core.utils.time import TimeInterval, timedelta_to_float
 from parcels._datasets.structured.generated import peninsula_dataset
 from parcels._datasets.structured.generic import datasets
@@ -44,6 +46,7 @@ def fieldset() -> FieldSet:  # TODO v4: Move into a `conftest.py` file and remov
     )
 
 
+@pytest.mark.uses_old_zarr
 def test_metadata(fieldset, tmp_zarrfile):
     pset = ParticleSet(fieldset, pclass=Particle, lon=0, lat=0)
 
@@ -54,6 +57,7 @@ def test_metadata(fieldset, tmp_zarrfile):
     assert ds.attrs["parcels_kernels"].lower() == "DoNothing".lower()
 
 
+@pytest.mark.uses_old_zarr
 def test_pfile_array_write_zarr_memorystore(fieldset):
     """Check that writing to a Zarr MemoryStore works."""
     npart = 10
@@ -72,6 +76,7 @@ def test_pfile_array_write_zarr_memorystore(fieldset):
     assert ds.sizes["trajectory"] == npart
 
 
+@pytest.mark.uses_old_zarr
 def test_write_fieldset_without_time(tmp_zarrfile):
     ds = peninsula_dataset()  # DataSet without time
     assert "time" not in ds.dims
@@ -87,6 +92,7 @@ def test_write_fieldset_without_time(tmp_zarrfile):
     assert ds.time.values[0, 1] == np.timedelta64(1, "s")
 
 
+@pytest.mark.uses_old_zarr
 def test_pfile_array_remove_particles(fieldset, tmp_zarrfile):
     npart = 10
     pset = ParticleSet(
@@ -108,6 +114,7 @@ def test_pfile_array_remove_particles(fieldset, tmp_zarrfile):
     assert (np.isnat(timearr[3, 1])) and (np.isfinite(timearr[3, 0]))
 
 
+@pytest.mark.uses_old_zarr
 @pytest.mark.parametrize("chunks_obs", [1, None])
 def test_pfile_array_remove_all_particles(fieldset, chunks_obs, tmp_zarrfile):
     npart = 10
@@ -135,6 +142,7 @@ def test_pfile_array_remove_all_particles(fieldset, chunks_obs, tmp_zarrfile):
         assert np.all(np.isnan(ds["time"][:, 1:]))
 
 
+@pytest.mark.uses_old_zarr
 def test_variable_write_double(fieldset, tmp_zarrfile):
     def Update_lon(particles, fieldset):  # pragma: no cover
         particles.dlon += 0.1
@@ -150,6 +158,7 @@ def test_variable_write_double(fieldset, tmp_zarrfile):
     assert isinstance(lons.values[0, 0], np.float64)
 
 
+@pytest.mark.uses_old_zarr
 def test_write_dtypes_pfile(fieldset, tmp_zarrfile):
     dtypes = [
         np.float32,
@@ -226,6 +235,7 @@ def test_pset_repeated_release_delayed_adding_deleting(fieldset, tmp_zarrfile, d
     assert filesize < 1024 * 65  # test that chunking leads to filesize less than 65KB
 
 
+@pytest.mark.uses_old_zarr
 def test_file_warnings(fieldset, tmp_zarrfile):
     pset = ParticleSet(fieldset, lon=[0, 0], lat=[0, 0], time=[np.timedelta64(0, "s"), np.timedelta64(1, "s")])
     pfile = ParticleFile(tmp_zarrfile, outputdt=np.timedelta64(2, "s"))
@@ -250,6 +260,7 @@ def test_outputdt_types(outputdt, expectation, tmp_zarrfile):
         assert pfile.outputdt == timedelta_to_float(outputdt)
 
 
+@pytest.mark.uses_old_zarr
 def test_write_timebackward(fieldset, tmp_zarrfile):
     release_time = fieldset.time_interval.left + [np.timedelta64(i + 1, "s") for i in range(3)]
     pset = ParticleSet(fieldset, lat=[0, 1, 2], lon=[0, 0, 0], time=release_time)
@@ -322,6 +333,7 @@ def test_write_xiyi(fieldset, tmp_zarrfile):
             assert fieldset.U.grid.lat[yi] <= lat < fieldset.U.grid.lat[yi + 1]
 
 
+@pytest.mark.uses_old_zarr
 @pytest.mark.parametrize("outputdt", [np.timedelta64(1, "s"), np.timedelta64(2, "s"), np.timedelta64(3, "s")])
 def test_time_is_age(fieldset, tmp_zarrfile, outputdt):
     # Test that particle age is same as time - initial_time
@@ -346,6 +358,7 @@ def test_time_is_age(fieldset, tmp_zarrfile, outputdt):
     np.testing.assert_equal(age, ds_timediff)
 
 
+@pytest.mark.uses_old_zarr
 def test_reset_dt(fieldset, tmp_zarrfile):
     # Assert that p.dt gets reset when a write_time is not a multiple of dt
     # for p.dt=0.02 to reach outputdt=0.05 and endtime=0.1, the steps should be [0.2, 0.2, 0.1, 0.2, 0.2, 0.1], resulting in 6 kernel executions
@@ -362,6 +375,7 @@ def test_reset_dt(fieldset, tmp_zarrfile):
     assert np.allclose(pset.lon, 0.6)
 
 
+@pytest.mark.uses_old_zarr
 def test_correct_misaligned_outputdt_dt(fieldset, tmp_zarrfile):
     """Testing that outputdt does not need to be a multiple of dt."""
 
@@ -398,6 +412,7 @@ def setup_pset_execute(*, fieldset: FieldSet, outputdt: timedelta, execute_kwarg
     return ds
 
 
+@pytest.mark.uses_old_zarr
 def test_pset_execute_outputdt_forwards(fieldset):
     """Testing output data dt matches outputdt in forward time."""
     outputdt = timedelta(hours=1)
@@ -409,6 +424,7 @@ def test_pset_execute_outputdt_forwards(fieldset):
     assert np.all(ds.isel(trajectory=0).time.diff(dim="obs").values == np.timedelta64(outputdt))
 
 
+@pytest.mark.uses_old_zarr
 def test_pset_execute_output_time_forwards(fieldset):
     """Testing output times start at initial time and end at initial time + runtime."""
     outputdt = np.timedelta64(1, "h")
@@ -423,6 +439,7 @@ def test_pset_execute_output_time_forwards(fieldset):
     )
 
 
+@pytest.mark.uses_old_zarr
 def test_pset_execute_outputdt_backwards(fieldset):
     """Testing output data dt matches outputdt in backwards time."""
     outputdt = timedelta(hours=1)
@@ -434,6 +451,7 @@ def test_pset_execute_outputdt_backwards(fieldset):
     assert np.all(file_outputdt == np.timedelta64(-outputdt))
 
 
+@pytest.mark.uses_old_zarr
 def test_pset_execute_outputdt_backwards_fieldset_timevarying():
     """test_pset_execute_outputdt_backwards() still passed despite #1722 as it doesn't account for time-varying fields,
     which for some reason #1722
@@ -469,6 +487,7 @@ def test_particlefile_init_invalid(tmp_store):  # TODO: Add test for read only s
         ParticleFile(tmp_store, outputdt=np.timedelta64(1, "s"), chunks=1)
 
 
+@pytest.mark.uses_old_zarr
 def test_particlefile_write_particle_data(tmp_store):
     nparticles = 100
 
@@ -535,3 +554,47 @@ def test_pfile_set_towrite_False(fieldset, tmp_zarrfile):
     # For pytest purposes, we need to reset to original status
     pset.set_variable_write_status("z", True)
     pset.set_variable_write_status("lat", True)
+
+
+@pytest.mark.parametrize(
+    "particle",
+    [
+        Particle,
+        parcels.ParticleClass(
+            variables=[
+                Variable(
+                    "lon",
+                    dtype=np.float32,
+                    attrs={"standard_name": "longitude", "units": "degrees_east", "axis": "X"},
+                ),
+                Variable(
+                    "lat",
+                    dtype=np.float32,
+                    attrs={"standard_name": "latitude", "units": "degrees_north", "axis": "Y"},
+                ),
+                Variable(
+                    "z",
+                    dtype=np.float32,
+                    attrs={"standard_name": "vertical coordinate", "units": "m", "positive": "down"},
+                ),
+            ]
+        ),
+    ],
+)
+def test_particle_schema(particle):
+    s = _get_schema(particle, {})
+
+    written_variables = [v for v in particle.variables if v.to_write]
+
+    assert len(s.names) == len(written_variables), (
+        "Number of particles in the output schema should be the same as the writable variables in the ParticleClass object."
+    )
+
+    for variable, pyarrow_field in zip(
+        written_variables,
+        s,
+        strict=False,
+    ):
+        assert variable.name == pyarrow_field.name
+        assert variable.attrs == {k.decode(): v.decode() for k, v in pyarrow_field.metadata.items()}
+        assert pa.from_numpy_dtype(variable.dtype) == pyarrow_field.type

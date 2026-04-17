@@ -11,6 +11,7 @@ from parcels.kernels import (
 )
 
 
+@pytest.mark.uses_old_zarr
 @pytest.mark.parametrize("integrator", [AdvectionEE, AdvectionRK2, AdvectionRK4])
 def test_ux_constant_flow_face_centered_2D(integrator, tmp_zarrfile):
     ds = datasets_unstructured["ux_constant_flow_face_centered_2D"]

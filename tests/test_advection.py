@@ -60,6 +60,7 @@ def test_advection_zonal(mesh, npart=10):
     np.testing.assert_allclose(pset.lat, startlat, atol=1e-5)
 
 
+@pytest.mark.uses_old_zarr
 def test_advection_zonal_with_particlefile(tmp_store):
     """Particles at high latitude move geographically faster due to the pole correction."""
     npart = 10
