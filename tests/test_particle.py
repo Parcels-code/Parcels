@@ -7,8 +7,6 @@ from parcels._core.particle import (
     Variable,
     create_particle_data,
 )
-from parcels._core.utils.time import TimeInterval
-from parcels._datasets.structured.generic import TIME
 
 
 def test_variable_init():
@@ -140,9 +138,8 @@ def test_particleclass_add_variable_collision():
 )
 @pytest.mark.parametrize("nparticles", [5, 10])
 def test_create_particle_data(particle, nparticles):
-    time_interval = TimeInterval(TIME[0], TIME[-1])
     ngrids = 4
-    data = create_particle_data(pclass=particle, nparticles=nparticles, ngrids=ngrids, time_interval=time_interval)
+    data = create_particle_data(pclass=particle, nparticles=nparticles, ngrids=ngrids)
 
     assert isinstance(data, dict)
     assert len(data) == len(particle.variables) + 1  # ei variable is separate

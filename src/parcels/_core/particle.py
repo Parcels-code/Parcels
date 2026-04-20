@@ -8,7 +8,6 @@ import numpy as np
 from parcels._compat import _attrgetter_helper
 from parcels._core.statuscodes import StatusCode
 from parcels._core.utils.string import _assert_str_and_python_varname
-from parcels._core.utils.time import TimeInterval
 from parcels._reprs import particleclass_repr, variable_repr
 
 __all__ = ["Particle", "ParticleClass", "Variable"]
@@ -176,7 +175,6 @@ def create_particle_data(
     pclass: ParticleClass,
     nparticles: int,
     ngrids: int,
-    time_interval: TimeInterval,
     initial: dict[str, np.ndarray] | None = None,
 ):
     if initial is None:
@@ -207,16 +205,9 @@ def create_particle_data(
             name_to_copy = var.initial(_attrgetter_helper)
             data[var.name] = data[name_to_copy].copy()
         else:
-            data[var.name] = _create_array_for_variable(var, nparticles, time_interval)
+            data[var.name] = np.full(
+                shape=(nparticles,),
+                fill_value=var.initial,
+                dtype=var.dtype,
+            )
     return data
-
-
-def _create_array_for_variable(variable: Variable, nparticles: int, time_interval: TimeInterval):
-    assert not isinstance(variable.initial, operator.attrgetter), (
-        "This function cannot handle attrgetter initial values."
-    )
-    return np.full(
-        shape=(nparticles,),
-        fill_value=variable.initial,
-        dtype=variable.dtype,
-    )
