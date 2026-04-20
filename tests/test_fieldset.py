@@ -108,7 +108,7 @@ def test_fieldset_no_UV(tmp_parquet):
     ofile = ParticleFile(tmp_parquet, outputdt=np.timedelta64(1, "s"))
     pset.execute(SampleP, runtime=np.timedelta64(1, "s"), dt=np.timedelta64(1, "s"), output_file=ofile)
 
-    df = xr.open_zarr(tmp_parquet)
+    df = pd.read_parquet(tmp_parquet)
     assert len(df["lon"]) == 2
 
 
