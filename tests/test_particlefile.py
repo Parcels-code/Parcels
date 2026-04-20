@@ -374,9 +374,9 @@ def test_pset_execute_outputdt_forwards(fieldset):
     runtime = timedelta(hours=5)
     dt = timedelta(minutes=5)
 
-    df = setup_pset_execute(fieldset=fieldset, outputdt=outputdt, execute_kwargs=dict(runtime=runtime, dt=dt))
+    df = setup_pset_execute(fieldset=fieldset, outputdt=outputdt, execute_kwargs=dict(runtime=runtime, dt=dt))  # noqa: F841
     pytest.skip("# TODO: Need to figure out how times work with parquet output (#2386)")
-    assert np.all(ds.isel(trajectory=0).time.diff(dim="obs").values == np.timedelta64(outputdt))
+    assert np.all(ds.isel(trajectory=0).time.diff(dim="obs").values == np.timedelta64(outputdt))  # noqa: F821
 
 
 def test_pset_execute_output_time_forwards(fieldset):
@@ -385,11 +385,11 @@ def test_pset_execute_output_time_forwards(fieldset):
     runtime = np.timedelta64(5, "h")
     dt = np.timedelta64(5, "m")
 
-    df = setup_pset_execute(fieldset=fieldset, outputdt=outputdt, execute_kwargs=dict(runtime=runtime, dt=dt))
+    df = setup_pset_execute(fieldset=fieldset, outputdt=outputdt, execute_kwargs=dict(runtime=runtime, dt=dt))  # noqa: F841
     pytest.skip("# TODO: Need to figure out how times work with parquet output (#2386)")
     assert (
-        ds.time[0, 0].values == fieldset.time_interval.left
-        and ds.time[0, -1].values == fieldset.time_interval.left + runtime
+        ds.time[0, 0].values == fieldset.time_interval.left  # noqa: F821
+        and ds.time[0, -1].values == fieldset.time_interval.left + runtime  # noqa: F821
     )
 
 
@@ -399,9 +399,9 @@ def test_pset_execute_outputdt_backwards(fieldset):
     runtime = timedelta(days=2)
     dt = -timedelta(minutes=5)
 
-    df = setup_pset_execute(fieldset=fieldset, outputdt=outputdt, execute_kwargs=dict(runtime=runtime, dt=dt))
+    df = setup_pset_execute(fieldset=fieldset, outputdt=outputdt, execute_kwargs=dict(runtime=runtime, dt=dt))  # noqa: F841
     pytest.skip("# TODO: Need to figure out how times work with parquet output (#2386)")
-    file_outputdt = ds.isel(trajectory=0).time.diff(dim="obs").values
+    file_outputdt = ds.isel(trajectory=0).time.diff(dim="obs").values  # noqa: F821
     assert np.all(file_outputdt == np.timedelta64(-outputdt))
 
 
@@ -419,9 +419,9 @@ def test_pset_execute_outputdt_backwards_fieldset_timevarying():
     ds_fset = copernicusmarine_to_sgrid(fields=fields)
     fieldset = FieldSet.from_sgrid_conventions(ds_fset)
 
-    df = setup_pset_execute(outputdt=outputdt, execute_kwargs=dict(runtime=runtime, dt=dt), fieldset=fieldset)
+    df = setup_pset_execute(outputdt=outputdt, execute_kwargs=dict(runtime=runtime, dt=dt), fieldset=fieldset)  # noqa: F841
     pytest.skip("# TODO: Need to figure out how times work with parquet output (#2386)")
-    file_outputdt = ds.isel(trajectory=0).time.diff(dim="obs").values
+    file_outputdt = ds.isel(trajectory=0).time.diff(dim="obs").values  # noqa: F821
     assert np.all(file_outputdt == np.timedelta64(-outputdt)), (file_outputdt, np.timedelta64(-outputdt))
 
 
