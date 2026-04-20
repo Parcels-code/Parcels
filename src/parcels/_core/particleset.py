@@ -453,7 +453,7 @@ class ParticleSet:
 
         if output_file is not None:
             output_file.close()
-            
+
         if verbose_progress:
             pbar.close()
 

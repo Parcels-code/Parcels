@@ -1,10 +1,10 @@
 import numpy as np
+import pandas as pd
 import pytest
 import xarray as xr
 
 import parcels
 import parcels.tutorial
-import pandas as pd
 from parcels import (
     Field,
     FieldSet,

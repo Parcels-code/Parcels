@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 import xarray as xr
-from zarr.storage import DirectoryStore
 
 if TYPE_CHECKING:
     from parcels import Field, FieldSet, ParticleSet
@@ -176,7 +175,6 @@ def _format_list_items_multiline(items: list[str] | dict, level: int = 1, with_b
         return f"[\n{items_str}\n{indentation_str_end}]"
     else:
         return "\n".join([textwrap.indent(e, indentation_str) for e in entries])
-
 
 
 def is_builtin_object(obj):

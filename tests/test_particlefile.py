@@ -2,13 +2,13 @@ import os
 import tempfile
 from contextlib import nullcontext as does_not_raise
 from datetime import datetime, timedelta
-import pyarrow.parquet as pq
-import pandas as pd
+
 import numpy as np
+import pandas as pd
 import pyarrow as pa
+import pyarrow.parquet as pq
 import pytest
 import xarray as xr
-from zarr.storage import MemoryStore
 
 import parcels.tutorial
 from parcels import (
@@ -22,9 +22,9 @@ from parcels import (
     VectorField,
     XGrid,
 )
-from parcels._core.particle import Particle, create_particle_data, get_default_particle
+from parcels._core.particle import Particle, get_default_particle
 from parcels._core.particlefile import _get_schema
-from parcels._core.utils.time import TimeInterval, timedelta_to_float
+from parcels._core.utils.time import timedelta_to_float
 from parcels._datasets.structured.generated import peninsula_dataset
 from parcels._datasets.structured.generic import datasets
 from parcels.convert import copernicusmarine_to_sgrid
@@ -343,7 +343,7 @@ def test_correct_misaligned_outputdt_dt(fieldset, tmp_parquet):
     pset.execute(Update_lon, runtime=np.timedelta64(11, "s"), dt=np.timedelta64(2, "s"), output_file=ofile)
 
     df = pd.read_parquet(tmp_parquet)
-    assert np.allclose(df['lon'].values, [0, 3, 6, 9])
+    assert np.allclose(df["lon"].values, [0, 3, 6, 9])
     pytest.skip("# TODO: Need to figure out how times work with parquet output (#2386)")
     assert np.allclose(timedelta_to_float(df.time.values - df.time.values[0, 0]), [0, 3, 6, 9])
 

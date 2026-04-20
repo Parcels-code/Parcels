@@ -3,8 +3,8 @@ from datetime import timedelta
 import cf_xarray  # noqa: F401
 import cftime
 import numpy as np
-import pytest
 import pandas as pd
+import pytest
 import xarray as xr
 
 from parcels import Field, ParticleFile, ParticleSet, VectorField, XGrid, convert
@@ -94,7 +94,6 @@ def test_fieldset_gridset(fieldset):
 
     fieldset.add_constant_field("constant_field", 1.0)
     assert len(fieldset.gridset) == 2
-
 
 
 def test_fieldset_no_UV(tmp_parquet):

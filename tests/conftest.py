@@ -12,7 +12,7 @@ def tmp_parquet(tmp_path, request):
 def tmp_store():
     return MemoryStore()
 
+
 @pytest.fixture
 def tmp_parquet(tmp_path):
-    return tmp_path / 'tmp.parquet'
-
+    return tmp_path / "tmp.parquet"

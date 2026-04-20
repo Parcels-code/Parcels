@@ -1,6 +1,6 @@
 import numpy as np
+import pandas as pd
 import pytest
-import xarray as xr
 
 import parcels
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
@@ -9,8 +9,6 @@ from parcels.kernels import (
     AdvectionRK2,
     AdvectionRK4,
 )
-import pandas as pd
-
 
 
 @pytest.mark.parametrize("integrator", [AdvectionEE, AdvectionRK2, AdvectionRK4])

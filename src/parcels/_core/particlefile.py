@@ -9,13 +9,13 @@ from typing import TYPE_CHECKING, Any, Literal
 import cftime
 import numpy as np
 import pyarrow as pa
-from parcels._typing import PathLike
 import pyarrow.parquet as pq
 
 import parcels
 from parcels._core.particle import ParticleClass
 from parcels._core.utils.time import timedelta_to_float
 from parcels._reprs import particlefile_repr
+from parcels._typing import PathLike
 
 if TYPE_CHECKING:
     from parcels._core.particle import Variable
@@ -69,14 +69,16 @@ class ParticleFile:
         path = Path(path)
 
         if path.suffix != ".parquet":
-            raise ValueError(f"ParticleFile data is stored in Parquet files - file extension must be '.parquet'. Got {path.suffix=!r}.")
+            raise ValueError(
+                f"ParticleFile data is stored in Parquet files - file extension must be '.parquet'. Got {path.suffix=!r}."
+            )
 
         if outputdt <= 0:
             raise ValueError(f"outputdt must be positive/non-zero. Got {outputdt=!r}")
 
         self._outputdt = outputdt
 
-        self._path = path # TODO v4: Consider https://arrow.apache.org/docs/python/getstarted.html#working-with-large-data - though a significant question becomes how to partition, perhaps using a particle variable "partition"?
+        self._path = path  # TODO v4: Consider https://arrow.apache.org/docs/python/getstarted.html#working-with-large-data - though a significant question becomes how to partition, perhaps using a particle variable "partition"?
         self._writer: pq.ParquetWriter | None = None
         if path.exists():
             # TODO: Add logic for recovering/appending to existing parquet file
@@ -138,7 +140,7 @@ class ParticleFile:
             indices_to_write = _to_write_particles(particle_data, time)
         else:
             indices_to_write = indices
-        
+
         self._writer.write_table(
             pa.table({v.name: pa.array(particle_data[v.name][indices_to_write]) for v in vars_to_write}),
         )
