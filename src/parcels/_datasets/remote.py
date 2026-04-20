@@ -4,6 +4,7 @@ import os
 from collections.abc import Callable
 from datetime import datetime, timedelta
 from pathlib import Path
+from zarr.storage import ZipStore
 from typing import Literal
 
 import pooch
@@ -156,13 +157,14 @@ class _V3Dataset(_ParcelsDataset):
 
 
 class _ZarrZipDataset(_ParcelsDataset):
-    def __init__(self, pup, path_relative_to_pup):
+    def __init__(self, pup, path_relative_to_pup, zarr_format: Literal[2, 3] = 3):
         self.pup = pup
         self.path_relative_to_root = path_relative_to_pup
+        self.zarr_format = zarr_format
 
     def open_dataset(self) -> xr.Dataset:
         self.pup.fetch(self.path_relative_to_root)
-        return xr.open_zarr(Path(self.pup.path) / self.path_relative_to_root)
+        return xr.open_zarr(ZipStore(Path(self.pup.path) / self.path_relative_to_root), zarr_format=self.zarr_format)
 
 
 def _preprocess_drop_time_from_mesh1(ds: xr.Dataset) -> xr.Dataset:
@@ -222,8 +224,8 @@ _DATASET_KEYS_AND_CONFIGS: dict[str, tuple[_V3Dataset, _Purpose]] = dict([
     ("WOA_data/data", (_V3Dataset(_ODIE,"data/WOA_data/woa18_decav_t*_04.nc", _preprocess_set_cf_calendar_360_day), _Purpose.TUTORIAL)),
     ("CROCOidealized_data/data", (_V3Dataset(_ODIE,"data/CROCOidealized_data/CROCO_idealized.nc"), _Purpose.TUTORIAL)),
 ] + [
-    ("Benchmarks_FESOM2-baroclinic-gyre/data", (_ZarrZipDataset(_ODIE, 'data-zarr/Benchmarks_FESOM2-baroclinic-gyre/data.zip'), _Purpose.TESTING)),
-    ("Benchmarks_FESOM2-baroclinic-gyre/grid", (_ZarrZipDataset(_ODIE, 'data-zarr/Benchmarks_FESOM2-baroclinic-gyre/grid.zip'),_Purpose.TESTING)),
+    ("Benchmarks_FESOM2-baroclinic-gyre/data", (_ZarrZipDataset(_ODIE, 'data-zarr/Benchmarks_FESOM2-baroclinic-gyre/data.zip', zarr_format=2), _Purpose.TESTING)),
+    ("Benchmarks_FESOM2-baroclinic-gyre/grid", (_ZarrZipDataset(_ODIE, 'data-zarr/Benchmarks_FESOM2-baroclinic-gyre/grid.zip', zarr_format=2),_Purpose.TESTING)),
 ])
 # fmt: on
 
