@@ -418,8 +418,14 @@ class ParticleSet:
             logger.info(f"Output files are stored in {_format_zarr_output_location(output_file.store)}")
 
         if verbose_progress:
-            pbar = tqdm(total=end_time - start_time, file=sys.stdout)
-            pbar.set_description("Integration time: " + str(float_to_datelike(start_time, self.fieldset.time_interval)))
+            pbar = tqdm(
+                total=end_time - start_time,
+                file=sys.stdout,
+                bar_format="{desc} {percentage:3.0f}%|{bar}| [{elapsed}<{remaining}]",
+            )
+            pbar.set_description_str(
+                "Integration time: " + str(float_to_datelike(start_time, self.fieldset.time_interval))
+            )
 
         next_output = None
         if output_file:
@@ -446,7 +452,9 @@ class ParticleSet:
                         next_output += outputdt * sign_dt
 
             if verbose_progress:
-                pbar.set_description("Integration time: " + str(float_to_datelike(time, self.fieldset.time_interval)))
+                pbar.set_description_str(
+                    "Integration time: " + str(float_to_datelike(time, self.fieldset.time_interval))
+                )
                 pbar.update(next_time - time)
 
             time = next_time
