@@ -421,7 +421,7 @@ class ParticleSet:
             pbar = tqdm(
                 total=end_time - start_time,
                 file=sys.stdout,
-                bar_format="{desc} {percentage:3.0f}%|{bar}| [{elapsed}<{remaining}]",
+                bar_format="{desc} {percentage:3.0f}%|{bar}| [{elapsed}<{remaining}, {rate_fmt}]",
             )
             pbar.set_description_str(
                 "Integration time: " + str(float_to_datelike(start_time, self.fieldset.time_interval))
