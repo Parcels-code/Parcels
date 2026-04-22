@@ -25,18 +25,24 @@ if TYPE_CHECKING:
 __all__ = ["ParticleFile"]
 
 
-def _get_schema(particle: parcels.ParticleClass, file_metadata: dict[Any, Any]) -> pa.Schema:
-    return pa.schema(
-        [
+def _get_schema(
+    particle: parcels.ParticleClass, file_metadata: dict[Any, Any], fset_time_interval: TimeInterval | None
+) -> pa.Schema:
+
+    fields = []
+    for v in _get_vars_to_write(particle):
+        attrs = v.attrs.copy()
+        if v.name == "time":
+            if fset_time_interval is not None:
+                attrs.update(fset_time_interval.get_cf_attrs())
+        fields.append(
             pa.field(
                 v.name,
                 pa.from_numpy_dtype(v.dtype),
-                metadata=v.attrs,
+                metadata=attrs,
             )
-            for v in _get_vars_to_write(particle)
-        ],
-        metadata=file_metadata.copy(),
-    )
+        )
+    return pa.schema(fields, metadata=file_metadata.copy())
 
 
 class ParticleFile:
@@ -131,7 +137,9 @@ class ParticleFile:
 
         if self._writer is None:
             assert not self.path.exists(), "If the file exists, the writer should already be set"
-            self._writer = pq.ParquetWriter(self.path, _get_schema(pclass, self.extra_metadata))
+            self._writer = pq.ParquetWriter(
+                self.path, _get_schema(pclass, self.extra_metadata, pset.fieldset.time_interval)
+            )
 
         if isinstance(time, (np.timedelta64, np.datetime64)):
             time = timedelta_to_float(time - time_interval.left)

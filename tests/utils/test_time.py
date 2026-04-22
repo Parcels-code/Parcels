@@ -8,7 +8,12 @@ from cftime import datetime as cftime_datetime
 from hypothesis import given
 from hypothesis import strategies as st
 
-from parcels._core.utils.time import TimeInterval, maybe_convert_python_timedelta_to_numpy, timedelta_to_float
+from parcels._core.utils.time import (
+    TimeInterval,
+    _get_cf_attrs,
+    maybe_convert_python_timedelta_to_numpy,
+    timedelta_to_float,
+)
 
 calendar_strategy = st.sampled_from(
     [
@@ -215,3 +220,8 @@ def test_timedelta_to_float(input, expected):
 def test_timedelta_to_float_exceptions():
     with pytest.raises((ValueError, TypeError)):
         timedelta_to_float("invalid_type")
+
+
+@given(datetime_strategy())
+def test_datetime_get_cf_attrs(dt):
+    _get_cf_attrs(dt)
