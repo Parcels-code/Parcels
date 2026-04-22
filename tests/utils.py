@@ -6,7 +6,10 @@ import struct
 from collections import defaultdict
 from pathlib import Path
 
+import cftime
 import numpy as np
+import pyarrow as pa
+import pyarrow.parquet as pq
 import xarray as xr
 
 import parcels
@@ -154,11 +157,6 @@ def round_and_hash_float_array(arr, decimals=6):
 
 
 def assert_cftime_like_particlefile(parquet_path: Path) -> None:
-
-    import cftime
-    import pyarrow as pa
-    import pyarrow.parquet as pq
-
     assert parquet_path.suffix == ".parquet", "Path must be a parquet file"
 
     table = pq.read_table(parquet_path)
