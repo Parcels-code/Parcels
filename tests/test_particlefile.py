@@ -68,9 +68,10 @@ def test_write_fieldset_without_time(tmp_parquet):
     ofile = ParticleFile(tmp_parquet, outputdt=np.timedelta64(1, "s"))
     pset.execute(DoNothing, runtime=np.timedelta64(1, "s"), dt=np.timedelta64(1, "s"), output_file=ofile)
 
-    df = pd.read_parquet(tmp_parquet)
-    pytest.skip("# TODO: Need to figure out how times work with parquet output (#2386)")
-    assert df["time"][1] == np.timedelta64(1, "s")
+    table = pq.read_table(tmp_parquet)
+    assert table.schema.field("time").metadata[b"units"] == b"seconds"
+    assert b"calendar" not in table.schema.field("time").metadata
+    assert table["time"].to_numpy()[1] == 1.0
 
 
 @pytest.mark.skip("Keep or remove? Introduced in 5d7dd6bba800baa0fe4bd38edfc17ca3e310062b ")
@@ -114,7 +115,6 @@ def test_pfile_array_remove_all_particles(fieldset, tmp_parquet):
     pfile.close()
 
     df = pd.read_parquet(tmp_parquet)
-    # np.testing.assert_allclose(ds["time"][:, 0] - fieldset.time_interval.left, np.timedelta64(0, "s")) # TODO: Need to figure out how times work with parquet output (#2386)
     assert df["trajectory"].nunique() == npart
 
 
@@ -344,8 +344,7 @@ def test_correct_misaligned_outputdt_dt(fieldset, tmp_parquet):
 
     df = pd.read_parquet(tmp_parquet)
     assert np.allclose(df["lon"].values, [0, 3, 6, 9])
-    pytest.skip("# TODO: Need to figure out how times work with parquet output (#2386)")
-    assert np.allclose(timedelta_to_float(df.time.values - df.time.values[0, 0]), [0, 3, 6, 9])
+    assert np.allclose(df.time - df.time.min(), [0, 3, 6, 9])
 
 
 def setup_pset_execute(*, fieldset: FieldSet, outputdt: timedelta, execute_kwargs, particle_class=Particle):
@@ -374,9 +373,10 @@ def test_pset_execute_outputdt_forwards(fieldset):
     runtime = timedelta(hours=5)
     dt = timedelta(minutes=5)
 
-    df = setup_pset_execute(fieldset=fieldset, outputdt=outputdt, execute_kwargs=dict(runtime=runtime, dt=dt))  # noqa: F841
-    pytest.skip("# TODO: Need to figure out how times work with parquet output (#2386)")
-    assert np.all(ds.isel(trajectory=0).time.diff(dim="obs").values == np.timedelta64(outputdt))  # noqa: F821
+    df = setup_pset_execute(fieldset=fieldset, outputdt=outputdt, execute_kwargs=dict(runtime=runtime, dt=dt))
+    particle_0_times = df[df.trajectory == 0].time.values
+
+    np.testing.assert_equal(np.diff(particle_0_times), outputdt.seconds)
 
 
 def test_pset_execute_output_time_forwards(fieldset):
@@ -385,12 +385,9 @@ def test_pset_execute_output_time_forwards(fieldset):
     runtime = np.timedelta64(5, "h")
     dt = np.timedelta64(5, "m")
 
-    df = setup_pset_execute(fieldset=fieldset, outputdt=outputdt, execute_kwargs=dict(runtime=runtime, dt=dt))  # noqa: F841
-    pytest.skip("# TODO: Need to figure out how times work with parquet output (#2386)")
-    assert (
-        ds.time[0, 0].values == fieldset.time_interval.left  # noqa: F821
-        and ds.time[0, -1].values == fieldset.time_interval.left + runtime  # noqa: F821
-    )
+    df = setup_pset_execute(fieldset=fieldset, outputdt=outputdt, execute_kwargs=dict(runtime=runtime, dt=dt))
+    assert df.time.min() == 0.0
+    assert df.time.max() == runtime / np.timedelta64(1, "s")
 
 
 def test_pset_execute_outputdt_backwards(fieldset):
@@ -399,10 +396,9 @@ def test_pset_execute_outputdt_backwards(fieldset):
     runtime = timedelta(days=2)
     dt = -timedelta(minutes=5)
 
-    df = setup_pset_execute(fieldset=fieldset, outputdt=outputdt, execute_kwargs=dict(runtime=runtime, dt=dt))  # noqa: F841
-    pytest.skip("# TODO: Need to figure out how times work with parquet output (#2386)")
-    file_outputdt = ds.isel(trajectory=0).time.diff(dim="obs").values  # noqa: F821
-    assert np.all(file_outputdt == np.timedelta64(-outputdt))
+    df = setup_pset_execute(fieldset=fieldset, outputdt=outputdt, execute_kwargs=dict(runtime=runtime, dt=dt))
+    particle_0_times = df[df.trajectory == 0].time.values
+    np.testing.assert_equal(np.diff(particle_0_times), -outputdt.seconds)
 
 
 def test_pset_execute_outputdt_backwards_fieldset_timevarying():
@@ -419,10 +415,9 @@ def test_pset_execute_outputdt_backwards_fieldset_timevarying():
     ds_fset = copernicusmarine_to_sgrid(fields=fields)
     fieldset = FieldSet.from_sgrid_conventions(ds_fset)
 
-    df = setup_pset_execute(outputdt=outputdt, execute_kwargs=dict(runtime=runtime, dt=dt), fieldset=fieldset)  # noqa: F841
-    pytest.skip("# TODO: Need to figure out how times work with parquet output (#2386)")
-    file_outputdt = ds.isel(trajectory=0).time.diff(dim="obs").values  # noqa: F821
-    assert np.all(file_outputdt == np.timedelta64(-outputdt)), (file_outputdt, np.timedelta64(-outputdt))
+    df = setup_pset_execute(outputdt=outputdt, execute_kwargs=dict(runtime=runtime, dt=dt), fieldset=fieldset)
+    particle_0_times = df[df.trajectory == 0].time.values
+    np.testing.assert_equal(np.diff(particle_0_times), -outputdt.seconds)
 
 
 def test_particlefile_init(tmp_parquet):
