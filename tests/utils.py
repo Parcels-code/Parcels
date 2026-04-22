@@ -151,3 +151,34 @@ def round_and_hash_float_array(arr, decimals=6):
     # Mimic Java's HashMap hash transformation
     h ^= (h >> 20) ^ (h >> 12)
     return h ^ (h >> 7) ^ (h >> 4)
+
+
+def assert_cftime_like_particlefile(parquet_path: Path) -> None:
+    import json
+
+    import cftime
+    import pyarrow as pa
+    import pyarrow.parquet as pq
+
+    assert parquet_path.suffix == ".parquet", "Path must be a parquet file"
+
+    table = pq.read_table(parquet_path)
+    assert "time" in table.schema.names, "Parquet file must have a 'time' column"
+
+    time_field = table.schema.field("time")
+    assert pa.types.is_floating(time_field.type) or pa.types.is_integer(time_field.type), (
+        f"'time' column must be numeric, got {time_field.type}"
+    )
+
+    raw_meta = time_field.metadata
+    attrs = json.loads(raw_meta[b"attrs"])
+
+    values = table.column("time").to_pylist()
+    v = xr.Variable(("time",), values, attrs)
+    decoded = xr.coders.CFDatetimeCoder(time_unit="s").decode(v)
+
+    # check first value (and hence rest of array) is what we expect
+    assert isinstance(decoded.values[0], (cftime.datetime, np.datetime64)), (
+        "CF-time values in Parquet did not get properly decoded. Are the attributes correct?"
+    )
+    return
