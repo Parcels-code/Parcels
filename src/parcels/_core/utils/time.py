@@ -95,6 +95,9 @@ def _get_cf_attrs(dt: TimeLike) -> dict[Literal["units", "calendar"], str]:
         dt = cast(cftime.datetime, dt)
         return {"units": f"seconds since {dt.strftime(dt.format)}", "calendar": dt.calendar}
 
+    if isinstance(dt, np.timedelta64):
+        return {"units": "seconds"}
+
     from pandas import Timestamp
 
     if isinstance(dt, np.datetime64):
