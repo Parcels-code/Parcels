@@ -1,5 +1,3 @@
-import json
-
 import numpy as np
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -28,7 +26,7 @@ def test_round_and_hash_float_array():
 def test_assert_cftime_like_particlefile(tmp_path, cal):
     path = tmp_path / "test.parquet"
     attrs = {"units": "seconds since 2000-01-01 17:00:00", "calendar": cal}
-    field = pa.field("time", pa.float64(), metadata={"attrs": json.dumps(attrs)})
+    field = pa.field("time", pa.float64(), metadata=attrs)
     schema = pa.schema([field])
     table = pa.table({"time": pa.array([-20.0, 1.0])}, schema=schema)
     pq.write_table(table, path)
@@ -39,7 +37,7 @@ def test_assert_cftime_like_particlefile(tmp_path, cal):
 def test_assert_cftime_like_particlefile_broken_parquet(tmp_path):
     path = tmp_path / "test.parquet"
     attrs = {"units": "broken-units", "calendar": "365_day"}
-    field = pa.field("time", pa.float64(), metadata={"attrs": json.dumps(attrs)})
+    field = pa.field("time", pa.float64(), metadata=attrs)
     schema = pa.schema([field])
     table = pa.table({"time": pa.array([-20.0, 1.0])}, schema=schema)
     pq.write_table(table, path)

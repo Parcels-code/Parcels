@@ -154,7 +154,6 @@ def round_and_hash_float_array(arr, decimals=6):
 
 
 def assert_cftime_like_particlefile(parquet_path: Path) -> None:
-    import json
 
     import cftime
     import pyarrow as pa
@@ -170,8 +169,7 @@ def assert_cftime_like_particlefile(parquet_path: Path) -> None:
         f"'time' column must be numeric, got {time_field.type}"
     )
 
-    raw_meta = time_field.metadata
-    attrs = json.loads(raw_meta[b"attrs"])
+    attrs = {k.decode(): v.decode() for k, v in time_field.metadata.items()}
 
     values = table.column("time").to_pylist()
     v = xr.Variable(("time",), values, attrs)

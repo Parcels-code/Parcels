@@ -37,7 +37,7 @@ from parcels.kernels import (
     AdvectionRK4_3D,
     AdvectionRK45,
 )
-from tests.utils import DEFAULT_PARTICLES
+from tests.utils import DEFAULT_PARTICLES, assert_cftime_like_particlefile
 
 
 @pytest.mark.parametrize("mesh", ["spherical", "flat"])
@@ -76,6 +76,7 @@ def test_advection_zonal_with_particlefile(tmp_parquet):
     df = pd.read_parquet(tmp_parquet)
     final_time = df["time"].max()
     np.testing.assert_allclose(df[df["time"] == final_time]["lon"].values, pset.lon, atol=1e-5)
+    assert_cftime_like_particlefile(tmp_parquet)
 
 
 def periodicBC(particles, fieldset):
