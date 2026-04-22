@@ -8,6 +8,7 @@ from pathlib import Path
 
 import cftime
 import numpy as np
+import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
 import xarray as xr
@@ -178,3 +179,35 @@ def assert_cftime_like_particlefile(parquet_path: Path) -> None:
         "CF-time values in Parquet did not get properly decoded. Are the attributes correct?"
     )
     return
+
+
+def read_particlefile(path: Path, decode_times: bool = True) -> pd.DataFrame:
+    assert path.suffix == ".parquet", "Only Parquet files are supported"
+
+    table = pq.read_table(path)
+
+    try:
+        time_field = table.field("time")
+    except KeyError as e:
+        raise ValueError(
+            f"Could not find 'time' column in parquet file. Are you sure {path=!r} is a particlefile?"
+        ) from e
+
+    try:
+        assert b"units" in time_field.metadata
+    except AssertionError as e:
+        raise ValueError(f"Could not find 'units' in the 'time' column metadata for parquet {path=!r}.") from e
+
+    attrs = {k.decode(): v.decode() for k, v in time_field.metadata.items()}
+
+    df = pd.read_parquet(path)
+    if not decode_times:
+        return df
+
+    values = table.column("time").to_numpy()
+    var = xr.Variable(("time",), values, attrs)
+    values = xr.coders.CFDatetimeCoder(time_unit="s").decode(var).values
+
+    df["time"] = values
+
+    return df

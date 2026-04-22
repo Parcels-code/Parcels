@@ -30,6 +30,7 @@ from parcels._datasets.structured.generic import datasets
 from parcels.convert import copernicusmarine_to_sgrid
 from parcels.interpolators import XLinear, XLinear_Velocity
 from parcels.kernels import AdvectionRK4
+from tests import utils
 from tests.common_kernels import DoNothing
 
 
@@ -306,13 +307,13 @@ def test_time_is_age(fieldset, tmp_parquet, outputdt):
 
     pset.execute(IncreaseAge, runtime=np.timedelta64(npart * 2, "s"), dt=np.timedelta64(1, "s"), output_file=ofile)
 
-    pytest.skip("# TODO: Need to figure out how times work with parquet output (#2386)")
-    ds = xr.open_zarr(tmp_parquet)
-    age = ds["age"][:].values.astype("timedelta64[s]")
-    ds_timediff = np.zeros_like(age)
-    for i in range(npart):
-        ds_timediff[i, :] = ds.time.values[i, :] - time[i]
-    np.testing.assert_equal(age, ds_timediff)
+    # df = pd.read_parquet(tmp_parquet)
+    df = utils.read_particlefile(tmp_parquet)
+
+    # Map sorted trajectory IDs to release times (0, 1, ..., npart-1 seconds)
+    for index, df_traj in df.groupby("trajectory"):
+        release_time = time[index]
+        np.testing.assert_equal(df_traj["age"].astype("timedelta64[s]").values, (df_traj["time"] - release_time).values)
 
 
 def test_reset_dt(fieldset, tmp_parquet):
