@@ -363,7 +363,7 @@ def setup_pset_execute(*, fieldset: FieldSet, outputdt: timedelta, execute_kwarg
         output_file = ParticleFile(name, outputdt=outputdt)
 
         pset.execute(DoNothing, output_file=output_file, **execute_kwargs)
-        df = pd.read_parquet(name)
+        df = utils.read_particlefile(name)
 
     return df
 
@@ -387,8 +387,8 @@ def test_pset_execute_output_time_forwards(fieldset):
     dt = np.timedelta64(5, "m")
 
     df = setup_pset_execute(fieldset=fieldset, outputdt=outputdt, execute_kwargs=dict(runtime=runtime, dt=dt))
-    assert df.time.min() == 0.0
-    assert df.time.max() == runtime / np.timedelta64(1, "s")
+    assert df.time.min() == pd.Timestamp(fieldset.time_interval.left)
+    assert df.time.max() - df.time.min() == runtime
 
 
 def test_pset_execute_outputdt_backwards(fieldset):

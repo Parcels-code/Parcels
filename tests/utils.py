@@ -17,6 +17,7 @@ import parcels
 from parcels import FieldSet, Particle, Variable
 from parcels._core.xgrid import _FIELD_DATA_ORDERING, XGrid, get_axis_from_dim_name
 from parcels._datasets.structured.generated import simple_UV_dataset
+from parcels._typing import PathLike
 
 PROJECT_ROOT = Path(__file__).resolve().parents[1]
 TEST_ROOT = PROJECT_ROOT / "tests"
@@ -169,7 +170,9 @@ def assert_cftime_like_particlefile(parquet_path: Path) -> None:
     return
 
 
-def read_particlefile(path: Path, decode_times: bool = True) -> pd.DataFrame:
+def read_particlefile(path: PathLike, decode_times: bool = True) -> pd.DataFrame:
+    path = Path(path)
+
     assert path.suffix == ".parquet", "Only Parquet files are supported"
 
     table = pq.read_table(path)

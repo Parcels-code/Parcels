@@ -224,4 +224,5 @@ def test_timedelta_to_float_exceptions():
 
 @given(datetime_strategy())
 def test_datetime_get_cf_attrs(dt):
-    _get_cf_attrs(dt)
+    attrs = _get_cf_attrs(dt)
+    assert "seconds" in attrs["units"]
