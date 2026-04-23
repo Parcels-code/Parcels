@@ -24,7 +24,7 @@ from parcels import (
 )
 from parcels._core.particle import Particle, get_default_particle
 from parcels._core.particlefile import _get_schema
-from parcels._core.utils.time import timedelta_to_float
+from parcels._core.utils.time import TimeInterval, timedelta_to_float
 from parcels._datasets.structured.generated import peninsula_dataset
 from parcels._datasets.structured.generic import datasets
 from parcels.convert import copernicusmarine_to_sgrid
@@ -496,7 +496,7 @@ def test_pfile_set_towrite_False(fieldset, tmp_parquet):
     ],
 )
 def test_particle_schema(particle):
-    s = _get_schema(particle, {})
+    s = _get_schema(particle, {}, TimeInterval(datetime(2023, 1, 1, 12, 0), datetime(2023, 1, 2, 12, 0)))
 
     written_variables = [v for v in particle.variables if v.to_write]
 
@@ -510,5 +510,9 @@ def test_particle_schema(particle):
         strict=False,
     ):
         assert variable.name == pyarrow_field.name
-        assert variable.attrs == {k.decode(): v.decode() for k, v in pyarrow_field.metadata.items()}
+        if variable.name != "time":
+            assert variable.attrs == {k.decode(): v.decode() for k, v in pyarrow_field.metadata.items()}
+        else:
+            assert b"units" in pyarrow_field.metadata
+            assert b"calendar" in pyarrow_field.metadata
         assert pa.from_numpy_dtype(variable.dtype) == pyarrow_field.type
