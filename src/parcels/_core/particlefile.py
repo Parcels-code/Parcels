@@ -8,8 +8,10 @@ from typing import TYPE_CHECKING, Any, Literal
 
 import cftime
 import numpy as np
+import pandas as pd
 import pyarrow as pa
 import pyarrow.parquet as pq
+import xarray as xr
 
 import parcels
 from parcels._core.particle import ParticleClass
@@ -207,3 +209,41 @@ def _get_calendar_and_units(time_interval: TimeInterval) -> dict[str, str]:  # T
         attrs["calendar"] = calendar
 
     return attrs
+
+
+def read_particlefile(path: PathLike, decode_times: bool = True) -> pd.DataFrame:
+    path = Path(path)
+
+    assert path.suffix == ".parquet", "Only Parquet files are supported"
+
+    table = pq.read_table(path)
+
+    try:
+        time_field = table.field("time")
+    except KeyError as e:
+        raise ValueError(
+            f"Could not find 'time' column in parquet file. Are you sure {path=!r} is a particlefile?"
+        ) from e
+
+    assert pa.types.is_floating(time_field.type) or pa.types.is_integer(time_field.type), (
+        f"'time' column must be numeric, got {time_field.type}"
+    )
+
+    try:
+        assert b"units" in time_field.metadata
+    except AssertionError as e:
+        raise ValueError(f"Could not find 'units' in the 'time' column metadata for parquet {path=!r}.") from e
+
+    attrs = {k.decode(): v.decode() for k, v in time_field.metadata.items()}
+
+    df = pd.read_parquet(path)
+    if not decode_times:
+        return df
+
+    values = table.column("time").to_numpy()
+    var = xr.Variable(("time",), values, attrs)
+    values = xr.coders.CFDatetimeCoder(time_unit="s").decode(var).values
+
+    df["time"] = values
+
+    return df

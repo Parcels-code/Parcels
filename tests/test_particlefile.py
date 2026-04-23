@@ -30,7 +30,6 @@ from parcels._datasets.structured.generic import datasets
 from parcels.convert import copernicusmarine_to_sgrid
 from parcels.interpolators import XLinear, XLinear_Velocity
 from parcels.kernels import AdvectionRK4
-from tests import utils
 from tests.common_kernels import DoNothing
 
 
@@ -308,7 +307,7 @@ def test_time_is_age(fieldset, tmp_parquet, outputdt):
     pset.execute(IncreaseAge, runtime=np.timedelta64(npart * 2, "s"), dt=np.timedelta64(1, "s"), output_file=ofile)
 
     # df = pd.read_parquet(tmp_parquet)
-    df = utils.read_particlefile(tmp_parquet)
+    df = parcels.read_particlefile(tmp_parquet)
 
     # Map sorted trajectory IDs to release times (0, 1, ..., npart-1 seconds)
     for index, df_traj in df.groupby("trajectory"):
@@ -363,7 +362,7 @@ def setup_pset_execute(*, fieldset: FieldSet, outputdt: timedelta, execute_kwarg
         output_file = ParticleFile(name, outputdt=outputdt)
 
         pset.execute(DoNothing, output_file=output_file, **execute_kwargs)
-        df = utils.read_particlefile(name)
+        df = parcels.read_particlefile(name)
 
     return df
 
