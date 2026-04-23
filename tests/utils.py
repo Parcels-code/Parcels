@@ -160,22 +160,10 @@ def round_and_hash_float_array(arr, decimals=6):
 def assert_cftime_like_particlefile(parquet_path: Path) -> None:
     assert parquet_path.suffix == ".parquet", "Path must be a parquet file"
 
-    table = pq.read_table(parquet_path)
-    assert "time" in table.schema.names, "Parquet file must have a 'time' column"
-
-    time_field = table.schema.field("time")
-    assert pa.types.is_floating(time_field.type) or pa.types.is_integer(time_field.type), (
-        f"'time' column must be numeric, got {time_field.type}"
-    )
-
-    attrs = {k.decode(): v.decode() for k, v in time_field.metadata.items()}
-
-    values = table.column("time").to_pylist()
-    v = xr.Variable(("time",), values, attrs)
-    decoded = xr.coders.CFDatetimeCoder(time_unit="s").decode(v)
+    df = read_particlefile(parquet_path, decode_times=True)
 
     # check first value (and hence rest of array) is what we expect
-    assert isinstance(decoded.values[0], (cftime.datetime, np.datetime64)), (
+    assert isinstance(df["time"].values[0], (cftime.datetime, np.datetime64)), (
         "CF-time values in Parquet did not get properly decoded. Are the attributes correct?"
     )
     return
@@ -192,6 +180,10 @@ def read_particlefile(path: Path, decode_times: bool = True) -> pd.DataFrame:
         raise ValueError(
             f"Could not find 'time' column in parquet file. Are you sure {path=!r} is a particlefile?"
         ) from e
+
+    assert pa.types.is_floating(time_field.type) or pa.types.is_integer(time_field.type), (
+        f"'time' column must be numeric, got {time_field.type}"
+    )
 
     try:
         assert b"units" in time_field.metadata
