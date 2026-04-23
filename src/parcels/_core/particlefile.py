@@ -212,6 +212,31 @@ def _get_calendar_and_units(time_interval: TimeInterval) -> dict[str, str]:  # T
 
 
 def read_particlefile(path: PathLike, decode_times: bool = True) -> pd.DataFrame:
+    """Read a Parcels particlefile (Parquet format) into a pandas DataFrame.
+
+    Parameters
+    ----------
+    path : PathLike
+        Path to the ``.parquet`` particlefile.
+    decode_times : bool, optional
+        If ``True`` (default), use Xarray to decode the numeric ``time`` column from CF
+        conventions into ``datetime`` or ``cftime.datetime`` values using the units stored in
+        the column metadata.  If ``False``, the raw numeric values are
+        returned unchanged.
+
+    Returns
+    -------
+    pd.DataFrame
+        DataFrame containing the particle data.  When *decode_times* is
+        ``True``, the ``time`` column contains datetime-like values;
+        otherwise it contains the original numeric representation.
+
+    Notes
+    -----
+    For larger datasets, consider using `Polars <https://docs.pola.rs/>`_ directly,
+    e.g. ``polars.read_parquet(path)``, which offers better performance and lower
+    memory usage than pandas for large Parquet files.
+    """
     path = Path(path)
 
     assert path.suffix == ".parquet", "Only Parquet files are supported"
