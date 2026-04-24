@@ -3,7 +3,6 @@ from datetime import timedelta
 from math import cos, pi
 
 import numpy as np
-import pandas as pd
 import pytest
 import xarray as xr
 
@@ -774,7 +773,7 @@ def test_multiple_grid_addlater_error():
     assert fail
 
 
-def test_fieldset_sampling_updating_order(tmp_parquet):
+def test_fieldset_sampling_updating_order(tmp_zarrfile):
     def calc_p(t, y, x):
         return 10 * t + x + 0.2 * y
 
@@ -806,10 +805,10 @@ def test_fieldset_sampling_updating_order(tmp_parquet):
 
     kernels = [AdvectionRK4, SampleP]
 
-    pfile = pset.ParticleFile(tmp_parquet, outputdt=1)
+    pfile = pset.ParticleFile(tmp_zarrfile, outputdt=1)
     pset.execute(kernels, endtime=1, dt=1, output_file=pfile)
 
-    ds = xr.open_zarr(tmp_parquet)
+    ds = xr.open_zarr(tmp_zarrfile)
     for t in range(len(ds["obs"])):
         for i in range(len(ds["trajectory"])):
             assert np.isclose(

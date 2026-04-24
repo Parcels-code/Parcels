@@ -2,11 +2,10 @@
 
 from __future__ import annotations
 
-from datetime import datetime, timedelta
+from datetime import timedelta
 from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
-import cftime
 import numpy as np
 import pandas as pd
 import pyarrow as pa
@@ -52,10 +51,8 @@ class ParticleFile:
 
     Parameters
     ----------
-    name : str
-        Basename of the output file. This can also be a Zarr store object.
-    particleset :
-        ParticleSet to output
+    path : PathLike
+        Path of the output Parquet file.
     outputdt :
         Interval which dictates the update frequency of file output
         while ParticleFile is given as an argument of ParticleSet.execute()
@@ -94,17 +91,13 @@ class ParticleFile:
         if not path.parent.exists():
             raise ValueError(f"Folder location for {path=!r} does not exist. Create the folder location first.")
 
-        self._maxids = 0
-        self._pids_written = {}
-        self.extra_metadata = {}
-
-        # TODO v4: Add check that if create_new_zarrfile is False, the store already exists
+        self.metadata = {}
 
     def __repr__(self) -> str:
         return particlefile_repr(self)
 
     def set_metadata(self, parcels_grid_mesh: Literal["spherical", "flat"]):
-        self.extra_metadata.update(
+        self.metadata.update(
             {
                 "feature_type": "trajectory",
                 "Conventions": "CF-1.6/CF-1.7",
@@ -139,9 +132,7 @@ class ParticleFile:
 
         if self._writer is None:
             assert not self.path.exists(), "If the file exists, the writer should already be set"
-            self._writer = pq.ParquetWriter(
-                self.path, _get_schema(pclass, self.extra_metadata, pset.fieldset.time_interval)
-            )
+            self._writer = pq.ParquetWriter(self.path, _get_schema(pclass, self.metadata, pset.fieldset.time_interval))
 
         if isinstance(time, (np.timedelta64, np.datetime64)):
             time = timedelta_to_float(time - time_interval.left)
@@ -154,9 +145,6 @@ class ParticleFile:
         self._writer.write_table(
             pa.table({v.name: pa.array(particle_data[v.name][indices_to_write]) for v in vars_to_write}),
         )
-
-        # if len(indices_to_write) == 0: # TODO: Remove this?
-        #     return
 
     def close(self):
         if self._writer is not None:
@@ -176,39 +164,22 @@ def _to_write_particles(particle_data, time):
                 time - np.abs(particle_data["dt"] / 2),
                 particle_data["time"],
                 where=np.isfinite(particle_data["time"]),
+                out=None,
             )
             & np.greater_equal(
                 time + np.abs(particle_data["dt"] / 2),
                 particle_data["time"],
                 where=np.isfinite(particle_data["time"]),
+                out=None,
             )  # check time - dt/2 <= particle_data["time"] <= time + dt/2
             | (
                 (np.isnan(particle_data["dt"]))
-                & np.equal(time, particle_data["time"], where=np.isfinite(particle_data["time"]))
+                & np.equal(time, particle_data["time"], where=np.isfinite(particle_data["time"]), out=None)
             )  # or dt is NaN and time matches particle_data["time"]
         )
         & (np.isfinite(particle_data["trajectory"]))
         & (np.isfinite(particle_data["time"]))
     )[0]
-
-
-def _get_calendar_and_units(time_interval: TimeInterval) -> dict[str, str]:  # TODO: Remove?
-    calendar = None
-    units = "seconds"
-    if time_interval:
-        if isinstance(time_interval.left, (np.datetime64, datetime)):
-            calendar = "standard"
-        elif isinstance(time_interval.left, cftime.datetime):
-            calendar = time_interval.left.calendar
-
-    if calendar is not None:
-        units += f" since {time_interval.left}"
-
-    attrs = {"units": units}
-    if calendar is not None:
-        attrs["calendar"] = calendar
-
-    return attrs
 
 
 def read_particlefile(path: PathLike, decode_times: bool = True) -> pd.DataFrame:
