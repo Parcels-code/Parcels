@@ -4,11 +4,11 @@ import os
 from collections.abc import Callable
 from datetime import datetime, timedelta
 from pathlib import Path
-from zarr.storage import ZipStore
 from typing import Literal
 
 import pooch
 import xarray as xr
+from zarr.storage import ZipStore
 
 from parcels._v3to4 import patch_dataset_v4_compat
 
