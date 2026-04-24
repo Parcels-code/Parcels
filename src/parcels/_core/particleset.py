@@ -394,7 +394,7 @@ class ParticleSet:
 
         if output_file is not None:
             output_file.set_metadata(self.fieldset.gridset[0]._mesh)
-            output_file.extra_metadata["parcels_kernels"] = self._kernel.funcname
+            output_file.metadata["parcels_kernels"] = self._kernel.funcname
 
         dt, sign_dt = _convert_dt_to_float(dt)
         self._data["dt"][:] = dt
