@@ -91,13 +91,13 @@ class ParticleFile:
         if not path.parent.exists():
             raise ValueError(f"Folder location for {path=!r} does not exist. Create the folder location first.")
 
-        self.extra_metadata = {}
+        self.metadata = {}
 
     def __repr__(self) -> str:
         return particlefile_repr(self)
 
     def set_metadata(self, parcels_grid_mesh: Literal["spherical", "flat"]):
-        self.extra_metadata.update(
+        self.metadata.update(
             {
                 "feature_type": "trajectory",
                 "Conventions": "CF-1.6/CF-1.7",
@@ -132,9 +132,7 @@ class ParticleFile:
 
         if self._writer is None:
             assert not self.path.exists(), "If the file exists, the writer should already be set"
-            self._writer = pq.ParquetWriter(
-                self.path, _get_schema(pclass, self.extra_metadata, pset.fieldset.time_interval)
-            )
+            self._writer = pq.ParquetWriter(self.path, _get_schema(pclass, self.metadata, pset.fieldset.time_interval))
 
         if isinstance(time, (np.timedelta64, np.datetime64)):
             time = timedelta_to_float(time - time_interval.left)
@@ -166,15 +164,17 @@ def _to_write_particles(particle_data, time):
                 time - np.abs(particle_data["dt"] / 2),
                 particle_data["time"],
                 where=np.isfinite(particle_data["time"]),
+                out=None,
             )
             & np.greater_equal(
                 time + np.abs(particle_data["dt"] / 2),
                 particle_data["time"],
                 where=np.isfinite(particle_data["time"]),
+                out=None,
             )  # check time - dt/2 <= particle_data["time"] <= time + dt/2
             | (
                 (np.isnan(particle_data["dt"]))
-                & np.equal(time, particle_data["time"], where=np.isfinite(particle_data["time"]))
+                & np.equal(time, particle_data["time"], where=np.isfinite(particle_data["time"]), out=None)
             )  # or dt is NaN and time matches particle_data["time"]
         )
         & (np.isfinite(particle_data["trajectory"]))
