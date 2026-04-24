@@ -39,7 +39,6 @@ Version 4 of Parcels is unreleased at the moment. The information in this migrat
 - `ParticleFile` output is now in Parquet format
 - `ParticleFile` writing behaviour now errors out if there's existing output (this be being further discussed in xxxx)
 
-
 ## Field
 
 - `Field.eval()` returns an array of floats instead of a single float (related to the vectorization)
