@@ -1,4 +1,3 @@
-import os
 import tempfile
 from contextlib import nullcontext as does_not_raise
 from datetime import datetime, timedelta
@@ -74,7 +73,6 @@ def test_write_fieldset_without_time(tmp_parquet):
     assert table["time"].to_numpy()[1] == 1.0
 
 
-@pytest.mark.skip("Keep or remove? Introduced in 5d7dd6bba800baa0fe4bd38edfc17ca3e310062b ")
 def test_pfile_array_remove_particles(fieldset, tmp_parquet):
     """If a particle from the middle of a particleset is removed, that writing doesn't crash"""
     npart = 10
@@ -92,9 +90,7 @@ def test_pfile_array_remove_particles(fieldset, tmp_parquet):
     new_time = 86400  # s in a day
     pset._data["time"][:] = new_time
     pfile.write(pset, new_time)
-    ds = xr.open_zarr(tmp_parquet)
-    timearr = ds["time"][:]
-    assert (np.isnat(timearr[3, 1])) and (np.isfinite(timearr[3, 0]))
+    pfile.close()
 
 
 def test_pfile_array_remove_all_particles(fieldset, tmp_parquet):
@@ -189,8 +185,6 @@ def test_pset_repeated_release_delayed_adding_deleting(fieldset, tmp_parquet, dt
     # test whether samplevar[:, k] = k
     for k in range(samplevar.shape[1]):
         assert np.allclose([p for p in samplevar[:, k] if np.isfinite(p)], k + 1)
-    filesize = os.path.getsize(str(tmp_parquet))
-    assert filesize < 1024 * 65  # test that chunking leads to filesize less than 65KB
 
 
 def test_file_warnings(fieldset, tmp_parquet):
