@@ -40,7 +40,6 @@ Version 4 of Parcels is unreleased at the moment. The information in this migrat
 - `ParticleFile` writing behaviour now errors out if there's existing output (this be being further discussed in https://github.com/Parcels-code/Parcels/issues/2593 )
 - A utility to read in ParticleFile output is now available. `parcels.read_particlefile()`
 
-
 ## Field
 
 - `Field.eval()` returns an array of floats instead of a single float (related to the vectorization)
