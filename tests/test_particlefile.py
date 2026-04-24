@@ -306,7 +306,6 @@ def test_time_is_age(fieldset, tmp_parquet, outputdt):
 
     pset.execute(IncreaseAge, runtime=np.timedelta64(npart * 2, "s"), dt=np.timedelta64(1, "s"), output_file=ofile)
 
-    # df = pd.read_parquet(tmp_parquet)
     df = parcels.read_particlefile(tmp_parquet)
 
     # Map sorted trajectory IDs to release times (0, 1, ..., npart-1 seconds)
