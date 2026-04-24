@@ -87,6 +87,7 @@ trajan = "*"
 matplotlib-base = ">=2.0.2"
 gsw = "*"
 py-triangle = "*"
+polars = "*"
 
 [feature.devtools.dependencies]
 pdbpp = "*"
