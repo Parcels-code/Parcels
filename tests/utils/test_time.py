@@ -36,7 +36,7 @@ def test_time_interval_initialization(left, right):
         TimeInterval(right, left)
 
 
-@given(pst.time_interval_strategy())
+@given(pst.time_interval())
 def test_time_interval_contains(interval):
     left = 0
     right = timedelta_to_float(interval.right - interval.left)
@@ -47,12 +47,12 @@ def test_time_interval_contains(interval):
     assert interval.is_all_time_in_interval(middle)
 
 
-@given(pst.time_interval_strategy(calendar="365_day"), pst.time_interval_strategy(calendar="365_day"))
+@given(pst.time_interval(calendar="365_day"), pst.time_interval(calendar="365_day"))
 def test_time_interval_intersection_commutative(interval1, interval2):
     assert interval1.intersection(interval2) == interval2.intersection(interval1)
 
 
-@given(pst.time_interval_strategy())
+@given(pst.time_interval())
 def test_time_interval_intersection_with_self(interval):
     assert interval.intersection(interval) == interval
 
@@ -64,7 +64,7 @@ def test_time_interval_repr():
     assert repr(interval) == expected
 
 
-@given(pst.time_interval_strategy())
+@given(pst.time_interval())
 def test_time_interval_equality(interval):
     assert interval == interval
 
@@ -175,7 +175,7 @@ def test_timedelta_to_float_exceptions():
         timedelta_to_float("invalid_type")
 
 
-@given(pst.datetime_strategy())
+@given(pst.datetime_various())
 def test_datetime_get_cf_attrs(dt):
     attrs = _get_cf_attrs(dt)
     assert "seconds" in attrs["units"]

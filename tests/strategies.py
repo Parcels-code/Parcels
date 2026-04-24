@@ -10,7 +10,7 @@ from parcels._core.utils.time import (
     TimeInterval,
 )
 
-calendar_strategy = st.sampled_from(
+cf_calendar = st.sampled_from(
     [
         "gregorian",
         "proleptic_gregorian",
@@ -26,17 +26,17 @@ calendar_strategy = st.sampled_from(
 
 
 @st.composite
-def np_timedelta64_strategy(draw):
+def np_timedelta64(draw):
     """Strategy for generating np.timedelta64 objects."""
     return np.timedelta64(draw(st.integers(1, 60 * 60 * 24 * 100 * 365)), "s")
 
 
 @st.composite
-def datetime_strategy(draw, calendar=None):
+def datetime_various(draw, calendar=None):
     if calendar is None:
-        calendar = draw(calendar_strategy)
+        calendar = draw(cf_calendar)
     if calendar is np.timedelta64:
-        return draw(np_timedelta64_strategy())
+        return draw(np_timedelta64())
 
     year = draw(st.integers(1900, 2100))
     month = draw(st.integers(1, 12))
@@ -50,9 +50,9 @@ def datetime_strategy(draw, calendar=None):
 
 
 @st.composite
-def time_interval_strategy(draw, left=None, calendar=None):
+def time_interval(draw, left=None, calendar=None):
     if left is None:
-        left = draw(datetime_strategy(calendar=calendar))
-    right = left + draw(np_timedelta64_strategy())
+        left = draw(datetime_various(calendar=calendar))
+    right = left + draw(np_timedelta64())
 
     return TimeInterval(left, right)
