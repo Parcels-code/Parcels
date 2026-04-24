@@ -39,6 +39,7 @@ Version 4 of Parcels is unreleased at the moment. The information in this migrat
 - `ParticleFile` output is now in Parquet format
 - `ParticleFile` writing behaviour now errors out if there's existing output (this be being further discussed in https://github.com/Parcels-code/Parcels/issues/2593 )
 - A utility to read in ParticleFile output is now available. `parcels.read_particlefile()`
+- "trajectory" is now called "particle_id" in the particle file output
 
 ## Field
 
