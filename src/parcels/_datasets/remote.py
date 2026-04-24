@@ -17,11 +17,13 @@ _DATA_REPO_TAG = "main"
 
 _DATA_URL = f"https://github.com/Parcels-code/parcels-data/raw/{_DATA_REPO_TAG}"
 
+
 def _get_data_home() -> Path:
     data_home = os.environ.get("PARCELS_EXAMPLE_DATA")
     if data_home is None:
         data_home = pooch.os_cache("parcels")
     return Path(data_home)
+
 
 _DATA_HOME = _get_data_home()
 
