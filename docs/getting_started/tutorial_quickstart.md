@@ -13,12 +13,12 @@ read more, we have a [concepts overview](./explanation_concepts.md) discussing t
 
 ## Imports
 
-Parcels depends on `xarray`, expecting inputs in the form of [`xarray.Dataset`](https://docs.xarray.dev/en/stable/generated/xarray.Dataset.html)
-and writing output files that can be read with xarray.
+Parcels depends on `xarray`, expecting inputs in the form of [`xarray.Dataset`](https://docs.xarray.dev/en/stable/generated/xarray.Dataset.html). Output files can be read with `pandas`.
 
 ```{code-cell}
 import numpy as np
 import xarray as xr
+import polars as pl
 import parcels
 import parcels.tutorial
 ```
@@ -123,11 +123,11 @@ Before starting the simulation, we must define where and how frequent we want to
 We can define this in a {py:obj}`parcels.ParticleFile` object:
 
 ```{code-cell}
-output_file = parcels.ParticleFile("output-quickstart.zarr", outputdt=np.timedelta64(1, "h"))
+output_file = parcels.ParticleFile("output-quickstart.parquet", outputdt=np.timedelta64(1, "h"))
 ```
 
-The output files are in `.zarr` [format](https://zarr.readthedocs.io/en/stable/), which can be read by `xarray`.
-See the [Parcels output tutorial](./tutorial_output.ipynb) for more information on the zarr format. We want to choose
+The output files are in `.parquet` [format](https://parquet.apache.org/), which can be read by `polars`.
+See the [Parcels output tutorial](./tutorial_output.ipynb) for more information on the parquet format. We want to choose
 the `outputdt` argument so that it captures the smallest timescales of our interest.
 
 ## Run Simulation: `ParticleSet.execute()`
@@ -155,13 +155,12 @@ pset.execute(
 To start analyzing the trajectories computed by **Parcels**, we can open the `ParticleFile` using `xarray`:
 
 ```{code-cell}
-ds_particles = xr.open_zarr("output-quickstart.zarr")
-ds_particles
+df_particles = pl.read_parquet("output-quickstart.parquet")
+df_particles
 ```
 
-The 10 particle trajectories are stored along the `trajectory` dimension, and each trajectory contains 25 observations
-(initial values + 24 hourly timesteps) along the `obs` dimension. The [working with Parcels output tutorial](./tutorial_output.ipynb)
-provides more detail about the dataset and how to analyse it.
+The file contains 250 rows: 25 observations for the 10 particle trajectories.
+The [working with Parcels output tutorial](./tutorial_output.ipynb) provides more detail about the dataset and how to analyse it.
 
 Let's verify that Parcels has computed the advection of the virtual particles!
 
@@ -169,9 +168,9 @@ Let's verify that Parcels has computed the advection of the virtual particles!
 import matplotlib.pyplot as plt
 
 # plot positions and color particles by number of observation
-scatter = plt.scatter(ds_particles.lon.T, ds_particles.lat.T, c=np.repeat(ds_particles.obs.values,npart))
-plt.scatter(ds_particles.lon[:,0],ds_particles.lat[:,0],facecolors="none",edgecolors='r') # starting positions
-plt.scatter(lon,lat,facecolors="none",edgecolors='r') # starting positions
+scatter = plt.scatter(df_particles['lon'], df_particles['lat'], c=np.repeat(df_particles['obs'].values, npart))
+plt.scatter(df_particles['lon'][:npart], df_particles['lat'][:npart], facecolors="none", edgecolors='r') # starting positions
+plt.scatter(lon, lat, facecolors="none", edgecolors='r') # starting positions
 plt.xlim(31,33)
 plt.ylabel("Latitude [deg N]")
 plt.ylim(-33,-30)
@@ -196,7 +195,7 @@ location!
 ```{code-cell}
 :tags: [hide-output]
 # set up output file
-output_file = parcels.ParticleFile("output-backwards.zarr", outputdt=np.timedelta64(1, "h"))
+output_file = parcels.ParticleFile("output-backwards.parquet", outputdt=np.timedelta64(1, "h"))
 
 # execute simulation in backwards time
 pset.execute(
@@ -210,10 +209,10 @@ pset.execute(
 When we check the output, we can see that the particles have returned to their original position!
 
 ```{code-cell}
-ds_particles_back = xr.open_zarr("output-backwards.zarr")
+df_particles_back = pl.read_parquet("output-backwards.parquet")
 
-scatter = plt.scatter(ds_particles_back.lon.T, ds_particles_back.lat.T, c=np.repeat(ds_particles_back.obs.values,npart))
-plt.scatter(ds_particles_back.lon[:,0],ds_particles_back.lat[:,0],facecolors="none",edgecolors='r') # starting positions
+scatter = plt.scatter(df_particles_back['lon'], df_particles_back['lat'], c=np.repeat(df_particles_back['obs'].values, npart))
+plt.scatter(df_particles_back['lon'][:npart], df_particles_back['lat'][:npart], facecolors="none", edgecolors='r') # starting positions
 plt.xlabel("Longitude [deg E]")
 plt.xlim(31,33)
 plt.ylabel("Latitude [deg N]")
@@ -226,6 +225,6 @@ Using Euler forward advection, the final positions are equal to the original pos
 
 ```{code-cell}
 # testing that final location == original location
-np.testing.assert_almost_equal(ds_particles_back['lat'].values[:,-1],ds_particles['lat'].values[:,0], 2)
-np.testing.assert_almost_equal(ds_particles_back['lon'].values[:,-1],ds_particles['lon'].values[:,0], 2)
+np.testing.assert_almost_equal(df_particles_back['lat'].values[:,-1],df_particles['lat'].values[:,0], 2)
+np.testing.assert_almost_equal(df_particles_back['lon'].values[:,-1],df_particles['lon'].values[:,0], 2)
 ```
