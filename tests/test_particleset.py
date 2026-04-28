@@ -52,8 +52,8 @@ def test_pset_with_pids(fieldset, offset, npart=100):
     lon = np.linspace(0, 1, npart)
     lat = np.linspace(1, 0, npart)
     trajectory_ids = np.arange(offset, npart + offset)
-    pset = ParticleSet(fieldset, lon=lon, lat=lat, trajectory_ids=trajectory_ids)
-    assert np.allclose([p.trajectory for p in pset], trajectory_ids, atol=1e-12)
+    pset = ParticleSet(fieldset, lon=lon, lat=lat, particle_ids=trajectory_ids)
+    assert np.allclose([p.particle_id for p in pset], trajectory_ids, atol=1e-12)
 
 
 @pytest.mark.parametrize("aslist", [True, False])
@@ -146,14 +146,14 @@ def test_pset_add_explicit(fieldset):
     assert len(pset) == npart
     assert np.allclose([p.lon for p in pset], lon, atol=1e-12)
     assert np.allclose([p.lat for p in pset], lat, atol=1e-12)
-    assert np.allclose(np.diff(pset._data["trajectory"]), np.ones(pset._data["trajectory"].size - 1), atol=1e-12)
+    assert np.allclose(np.diff(pset._data["particle_id"]), np.ones(pset._data["particle_id"].size - 1), atol=1e-12)
 
 
 def test_pset_add_implicit(fieldset):
     pset = ParticleSet(fieldset, lon=np.zeros(3), lat=np.ones(3), pclass=Particle)
     pset += ParticleSet(fieldset, lon=np.ones(4), lat=np.zeros(4), pclass=Particle)
     assert len(pset) == 7
-    assert np.allclose(np.diff(pset._data["trajectory"]), np.ones(6), atol=1e-12)
+    assert np.allclose(np.diff(pset._data["particle_id"]), np.ones(6), atol=1e-12)
 
 
 def test_pset_add_implicit_in_loop(fieldset, npart=10):
@@ -179,12 +179,12 @@ def test_pset_remove_index(fieldset, npart=100):
     indices_to_remove = [0, 10, 20]
     pset.remove_indices(indices_to_remove)
     assert pset.size == 97
-    assert not np.any(np.isin(pset.trajectory, indices_to_remove))
+    assert not np.any(np.isin(pset.particle_id, indices_to_remove))
 
 
 def test_pset_iterator(fieldset):
     npart = 10
     pset = ParticleSet(fieldset, lon=np.zeros(npart), lat=np.ones(npart))
     for i, particle in enumerate(pset):
-        assert particle.trajectory == i
+        assert particle.particle_id == i
     assert i == npart - 1
