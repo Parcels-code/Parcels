@@ -24,7 +24,7 @@ dependencies = [
   "numpy >=2.1.0",
   "dask >=2024.5.1",
   "netCDF4 >=1.7.2",
-  "zarr >=2.15.0,!=2.18.0,<3",
+  "zarr >=3",
   "tqdm >=4.50.0",
   "xarray >=2024.5.0,<2026.4.0", # TODO: remove upper pin when https://github.com/UXARRAY/uxarray/issues/1490 is resolved
   "pandas >= 2.2",

@@ -155,7 +155,7 @@ def get_default_particle(spatial_dtype: type[np.float32] | type[np.float64]) -> 
                 },  # "units" and "calendar" gets updated/set if working with cftime time domain
             ),
             Variable(
-                "trajectory",
+                "particle_id",
                 dtype=np.int64,
                 to_write="once",
                 attrs={
