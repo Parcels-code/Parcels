@@ -240,7 +240,7 @@ def read_particlefile(path: PathLike, decode_times: bool = True) -> pd.DataFrame
     values = table.column("time").to_numpy()
     var = xr.Variable(("time",), values, attrs)
     values = xr.coders.CFDatetimeCoder(time_unit="s").decode(var).values
-    values = values.astype("np.datetime64[s]")
+    values = values.astype("datetime64[ns]")
     df = df.with_columns(pl.Series("time", values))
 
     return df
