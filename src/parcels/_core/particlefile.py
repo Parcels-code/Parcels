@@ -239,8 +239,10 @@ def read_particlefile(path: PathLike, decode_times: bool = True) -> pd.DataFrame
 
     values = table.column("time").to_numpy()
     var = xr.Variable(("time",), values, attrs)
-    values = xr.coders.CFDatetimeCoder(time_unit="s").decode(var).values
-    values = values.astype("datetime64[ns]")
-    df = df.with_columns(pl.Series("time", values))
+    values = xr.coders.CFDatetimeCoder(time_unit="s").decode(var).values.astype("datetime64[ns]")
+    if np.issubdtype(values.dtype, np.datetime64):
+        df = df.with_columns(pl.Series("time", values, dtype=pl.Datetime("ns")))
+    elif np.issubdtype(values.dtype, np.timedelta64):
+        df = df.with_columns(pl.Series("time", values, dtype=pl.Duration("ns")))
 
     return df
