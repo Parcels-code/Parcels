@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any, Literal
 
 import numpy as np
 import pandas as pd
+import polars as pl
 import pyarrow as pa
 import pyarrow.parquet as pq
 import xarray as xr
@@ -232,14 +233,14 @@ def read_particlefile(path: PathLike, decode_times: bool = True) -> pd.DataFrame
 
     attrs = {k.decode(): v.decode() for k, v in time_field.metadata.items()}
 
-    df = pd.read_parquet(path)
+    df = pl.read_parquet(path)
     if not decode_times:
         return df
 
     values = table.column("time").to_numpy()
     var = xr.Variable(("time",), values, attrs)
     values = xr.coders.CFDatetimeCoder(time_unit="s").decode(var).values
-
-    df["time"] = values
+    values = values.astype("np.datetime64[s]")
+    df = df.with_columns(pl.Series("time", values))
 
     return df

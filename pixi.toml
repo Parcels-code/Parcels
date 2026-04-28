@@ -62,6 +62,7 @@ xgcm = { version = "0.9.*", channel = "conda-forge" }
 cf_xarray = "0.10.*"
 cftime = "1.6.*"
 pooch = "1.8.*"
+polars = "*"
 
 [feature.py311.dependencies]
 python = "3.11.*"
@@ -87,7 +88,6 @@ trajan = "*"
 matplotlib-base = ">=2.0.2"
 gsw = "*"
 py-triangle = "*"
-polars = "*"
 
 [feature.devtools.dependencies]
 pdbpp = "*"
