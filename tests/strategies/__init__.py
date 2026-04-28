@@ -1,4 +1,3 @@
-from . import sgrid
-from . import time
+from . import sgrid, time
 
-__all__ = ['sgrid', 'time']
+__all__ = ["sgrid", "time"]

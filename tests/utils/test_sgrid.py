@@ -6,8 +6,8 @@ import xarray as xr
 import xgcm
 from hypothesis import assume, example, given
 
-from parcels._core.utils import sgrid
 import tests.strategies as pst
+from parcels._core.utils import sgrid
 
 
 def create_example_grid2dmetadata(with_vertical_dimensions: bool, with_node_coordinates: bool):
