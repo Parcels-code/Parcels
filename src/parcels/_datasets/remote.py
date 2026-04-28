@@ -8,6 +8,7 @@ from typing import Literal
 
 import pooch
 import xarray as xr
+from zarr.storage import ZipStore
 
 from parcels._v3to4 import patch_dataset_v4_compat
 
@@ -17,10 +18,15 @@ _DATA_REPO_TAG = "main"
 
 _DATA_URL = f"https://github.com/Parcels-code/parcels-data/raw/{_DATA_REPO_TAG}"
 
-_DATA_HOME = os.environ.get("PARCELS_EXAMPLE_DATA")
-if _DATA_HOME is None:
-    _DATA_HOME = pooch.os_cache("parcels")
-_DATA_HOME = Path(_DATA_HOME)
+
+def _get_data_home() -> Path:
+    data_home = os.environ.get("PARCELS_EXAMPLE_DATA")
+    if data_home is None:
+        data_home = pooch.os_cache("parcels")
+    return Path(data_home)
+
+
+_DATA_HOME = _get_data_home()
 
 # See instructions at https://github.com/Parcels-code/parcels-data for adding new datasets
 _ODIE_REGISTRY_FILES: list[str] = (
@@ -156,13 +162,14 @@ class _V3Dataset(_ParcelsDataset):
 
 
 class _ZarrZipDataset(_ParcelsDataset):
-    def __init__(self, pup, path_relative_to_pup):
+    def __init__(self, pup, path_relative_to_pup, zarr_format: Literal[2, 3] = 3):
         self.pup = pup
         self.path_relative_to_root = path_relative_to_pup
+        self.zarr_format = zarr_format
 
     def open_dataset(self) -> xr.Dataset:
         self.pup.fetch(self.path_relative_to_root)
-        return xr.open_zarr(Path(self.pup.path) / self.path_relative_to_root)
+        return xr.open_zarr(ZipStore(Path(self.pup.path) / self.path_relative_to_root), zarr_format=self.zarr_format)
 
 
 def _preprocess_drop_time_from_mesh1(ds: xr.Dataset) -> xr.Dataset:
@@ -191,7 +198,7 @@ _TPurpose = Literal["testing", "tutorial"]
 
 # The first here is a human readable key used to open datasets, with an object to open the datasets
 # fmt: off
-_DATASET_KEYS_AND_CONFIGS: dict[str, tuple[_V3Dataset, _Purpose]] = dict([
+_DATASET_KEYS_AND_CONFIGS: dict[str, tuple[_ParcelsDataset, _Purpose]] = dict([
     ("MovingEddies_data/P", (_V3Dataset(_ODIE,"data/MovingEddies_data/moving_eddiesP.nc"), _Purpose.TUTORIAL)),
     ("MovingEddies_data/U", (_V3Dataset(_ODIE,"data/MovingEddies_data/moving_eddiesU.nc"), _Purpose.TUTORIAL)),
     ("MovingEddies_data/V", (_V3Dataset(_ODIE,"data/MovingEddies_data/moving_eddiesV.nc"), _Purpose.TUTORIAL)),
@@ -222,8 +229,8 @@ _DATASET_KEYS_AND_CONFIGS: dict[str, tuple[_V3Dataset, _Purpose]] = dict([
     ("WOA_data/data", (_V3Dataset(_ODIE,"data/WOA_data/woa18_decav_t*_04.nc", _preprocess_set_cf_calendar_360_day), _Purpose.TUTORIAL)),
     ("CROCOidealized_data/data", (_V3Dataset(_ODIE,"data/CROCOidealized_data/CROCO_idealized.nc"), _Purpose.TUTORIAL)),
 ] + [
-    ("Benchmarks_FESOM2-baroclinic-gyre/data", (_ZarrZipDataset(_ODIE, 'data-zarr/Benchmarks_FESOM2-baroclinic-gyre/data.zip'), _Purpose.TESTING)),
-    ("Benchmarks_FESOM2-baroclinic-gyre/grid", (_ZarrZipDataset(_ODIE, 'data-zarr/Benchmarks_FESOM2-baroclinic-gyre/grid.zip'),_Purpose.TESTING)),
+    ("Benchmarks_FESOM2-baroclinic-gyre/data", (_ZarrZipDataset(_ODIE, 'data-zarr/Benchmarks_FESOM2-baroclinic-gyre/data.zip', zarr_format=2), _Purpose.TESTING)),
+    ("Benchmarks_FESOM2-baroclinic-gyre/grid", (_ZarrZipDataset(_ODIE, 'data-zarr/Benchmarks_FESOM2-baroclinic-gyre/grid.zip', zarr_format=2),_Purpose.TESTING)),
 ])
 # fmt: on
 

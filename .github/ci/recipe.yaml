@@ -35,13 +35,13 @@ requirements:
     - netcdf4 >=1.7.2
     - numpy >=2.1.0
     - tqdm >=4.50.0
-    - xarray >=2025.8.0,<2026.4.0 # TODO: remove upper pin when https://github.com/UXARRAY/uxarray/issues/1490 is resolved
+    - xarray >=2025.8.0
     - pandas >=2.2
     - pyarrow >=20.0.0
     - cf_xarray >=0.8.6
     - xgcm >=0.9.0
-    - zarr >=2.15.0,!=2.18.0,<3
-    - uxarray>=2025.3.0
+    - zarr >=3
+    - uxarray>=2026.04.1
     - pyogrio # needed for geopandas (uxarray -> geoviews -> geopandas -> pyogrio, but for some reason conda doesn't pick it up automatically)
     - holoviews >= 1.22.0 # https://github.com/prefix-dev/rattler-build/issues/2326
     - pooch >=1.8.0
