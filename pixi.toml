@@ -55,7 +55,7 @@ tqdm = "4.50.*"
 xarray = "2025.8.*"
 pandas = "2.2.*"
 pyarrow = "20.0.*"
-uxarray = "2026.04.1"
+uxarray = "==2026.04.1"
 dask = "2024.6.*"
 zarr = "3.0.*"
 xgcm = { version = "0.9.*", channel = "conda-forge" }
