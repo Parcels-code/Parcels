@@ -111,7 +111,7 @@ def test_pfile_array_remove_all_particles(fieldset, tmp_parquet):
     pfile.close()
 
     df = pd.read_parquet(tmp_parquet)
-    assert df["trajectory"].nunique() == npart
+    assert df["particle_id"].nunique() == npart
 
 
 def test_write_dtypes_pfile(fieldset, tmp_parquet):
@@ -219,9 +219,9 @@ def test_write_timebackward(fieldset, tmp_parquet):
 
     df = pd.read_parquet(tmp_parquet)
 
-    assert df["trajectory"].dtype == "int64"
+    assert df["particle_id"].dtype == "int64"
     assert bool(
-        df.groupby("trajectory")
+        df.groupby("particle_id")
         .apply(
             lambda x: (np.diff(x["time"]) < 0).all()  # for each particle - set True if it has decreasing time
         )
@@ -302,8 +302,8 @@ def test_time_is_age(fieldset, tmp_parquet, outputdt):
 
     df = parcels.read_particlefile(tmp_parquet)
 
-    # Map sorted trajectory IDs to release times (0, 1, ..., npart-1 seconds)
-    for index, df_traj in df.groupby("trajectory"):
+    # Map sorted particle IDs to release times (0, 1, ..., npart-1 seconds)
+    for index, df_traj in df.groupby("particle_id"):
         release_time = time[index]
         np.testing.assert_equal(df_traj["age"].astype("timedelta64[s]").values, (df_traj["time"] - release_time).values)
 
@@ -367,7 +367,7 @@ def test_pset_execute_outputdt_forwards(fieldset):
     dt = timedelta(minutes=5)
 
     df = setup_pset_execute(fieldset=fieldset, outputdt=outputdt, execute_kwargs=dict(runtime=runtime, dt=dt))
-    particle_0_times = df[df.trajectory == 0].time.values
+    particle_0_times = df[df["particle_id"] == 0].time.values
 
     np.testing.assert_equal(np.diff(particle_0_times), outputdt.seconds)
 
@@ -390,7 +390,7 @@ def test_pset_execute_outputdt_backwards(fieldset):
     dt = -timedelta(minutes=5)
 
     df = setup_pset_execute(fieldset=fieldset, outputdt=outputdt, execute_kwargs=dict(runtime=runtime, dt=dt))
-    particle_0_times = df[df.trajectory == 0].time.values
+    particle_0_times = df[df["particle_id"] == 0].time.values
     np.testing.assert_equal(np.diff(particle_0_times), -outputdt.seconds)
 
 
@@ -409,7 +409,7 @@ def test_pset_execute_outputdt_backwards_fieldset_timevarying():
     fieldset = FieldSet.from_sgrid_conventions(ds_fset)
 
     df = setup_pset_execute(outputdt=outputdt, execute_kwargs=dict(runtime=runtime, dt=dt), fieldset=fieldset)
-    particle_0_times = df[df.trajectory == 0].time.values
+    particle_0_times = df[df["particle_id"] == 0].time.values
     np.testing.assert_equal(np.diff(particle_0_times), -outputdt.seconds)
 
 
