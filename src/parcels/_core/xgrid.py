@@ -52,6 +52,19 @@ def assert_all_field_dims_have_axis(da: xr.DataArray, xgcm_grid: xgcm.Grid) -> N
                 f'HINT: You may want to add an {{"axis": A}} to your DataSet["{dim[1]}"], where A is one of "X", "Y", "Z" or "T"'
             )
 
+    ax_dims = cast(dict[str, str], ax_dims)
+
+    seen_axes: dict[str, str] = {}
+    for ax, dim_name in ax_dims:
+        if ax in seen_axes:
+            raise ValueError(
+                f"Two dimensions ({dim_name!r} and {seen_axes[ax]!r}) provide values in the axis direction {ax!r}. "
+                "This is not possible, a field cannot have two dimensions on a single axis."
+            )
+        seen_axes[ax] = dim_name
+    assert len(ax_dims) <= 4
+    return
+
 
 def _transpose_xfield_data_to_tzyx(da: xr.DataArray, xgcm_grid: xgcm.Grid) -> xr.DataArray:
     """
