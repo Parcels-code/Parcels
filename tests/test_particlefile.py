@@ -142,11 +142,6 @@ def test_write_dtypes_pfile(fieldset, tmp_parquet):
         assert tab[f"v_{d.__name__}"].type == pa.from_numpy_dtype(d)
 
 
-def test_variable_written_once():
-    # Test that a vaiable is only written once. This should also work with gradual particle release (so the written once time is actually after the release of the particle)
-    ...
-
-
 @pytest.mark.skip(reason="Pending ParticleFile refactor; see issue #2386")
 @pytest.mark.parametrize("dt", [-np.timedelta64(1, "s"), np.timedelta64(1, "s")])
 @pytest.mark.parametrize("maxvar", [2, 4, 10])
