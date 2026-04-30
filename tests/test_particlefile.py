@@ -156,7 +156,7 @@ def test_pset_repeated_release_delayed_adding_deleting(fieldset, tmp_parquet, dt
     fieldset.add_constant("maxvar", maxvar)
 
     MyParticle = Particle.add_variable(
-        [Variable("sample_var", initial=0.0), Variable("v_once", dtype=np.float64, initial=0.0, to_write="once")]
+        [Variable("sample_var", initial=0.0), Variable("v_once", dtype=np.float64, initial=0.0)]
     )
 
     pset = ParticleSet(
