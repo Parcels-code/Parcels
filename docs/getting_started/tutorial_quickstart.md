@@ -155,8 +155,8 @@ pset.execute(
 To start analyzing the trajectories computed by **Parcels**, we can open the `ParticleFile` using `xarray`:
 
 ```{code-cell}
-df_particles = pl.read_parquet("output-quickstart.parquet")
-df_particles
+df = parcels.read_particlefile("output-quickstart.parquet")
+df
 ```
 
 The file contains 250 rows: 25 observations for the 10 particle trajectories.
@@ -167,9 +167,9 @@ Let's verify that Parcels has computed the advection of the virtual particles!
 ```{code-cell}
 import matplotlib.pyplot as plt
 
-# plot positions and color particles by number of observation
-scatter = plt.scatter(df_particles['lon'], df_particles['lat'], c=np.repeat(df_particles['obs'].values, npart))
-plt.scatter(df_particles['lon'][:npart], df_particles['lat'][:npart], facecolors="none", edgecolors='r') # starting positions
+# plot positions and color particles by time
+scatter = plt.scatter(df['lon'], df['lat'], c=df['time'])
+plt.scatter(df['lon'][:npart], df['lat'][:npart], facecolors="none", edgecolors='r') # starting positions
 plt.scatter(lon, lat, facecolors="none", edgecolors='r') # starting positions
 plt.xlim(31,33)
 plt.ylabel("Latitude [deg N]")
@@ -209,10 +209,11 @@ pset.execute(
 When we check the output, we can see that the particles have returned to their original position!
 
 ```{code-cell}
-df_particles_back = pl.read_parquet("output-backwards.parquet")
+df_back = parcels.read_particlefile("output-backwards.parquet")
 
-scatter = plt.scatter(df_particles_back['lon'], df_particles_back['lat'], c=np.repeat(df_particles_back['obs'].values, npart))
-plt.scatter(df_particles_back['lon'][:npart], df_particles_back['lat'][:npart], facecolors="none", edgecolors='r') # starting positions
+scatter = plt.scatter(df_back['lon'], df_back['lat'], c=df_back['time'])
+particles_at_start = df_back.filter(pl.col("time") == df_back["time"].min())
+plt.scatter(particles_at_start['lon'], particles_at_start['lat'], facecolors="none", edgecolors='r') # starting positions
 plt.xlabel("Longitude [deg E]")
 plt.xlim(31,33)
 plt.ylabel("Latitude [deg N]")
@@ -225,6 +226,6 @@ Using Euler forward advection, the final positions are equal to the original pos
 
 ```{code-cell}
 # testing that final location == original location
-np.testing.assert_almost_equal(df_particles_back['lat'].values[:,-1],df_particles['lat'].values[:,0], 2)
-np.testing.assert_almost_equal(df_particles_back['lon'].values[:,-1],df_particles['lon'].values[:,0], 2)
+np.testing.assert_almost_equal(particles_at_start["lat"], lat, 2)
+np.testing.assert_almost_equal(particles_at_start['lon'], lon, 2)
 ```
