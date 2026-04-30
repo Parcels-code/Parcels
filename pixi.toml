@@ -23,11 +23,11 @@ python = ">=3.11"
 netcdf4 = ">=1.6.0"
 numpy = ">=2.1.0"
 tqdm = ">=4.50.0"
-xarray = ">=2024.5.0,<2026.4.0" # TODO: remove upper pin when https://github.com/UXARRAY/uxarray/issues/1490 is resolved
+xarray = ">=2024.5.0"
 pandas = ">=2.2"
 pyarrow = ">=20.0.0"
 holoviews = ">=1.22.0" # https://github.com/prefix-dev/rattler-build/issues/2326
-uxarray = ">=2025.3.0"
+uxarray = ">=2026.04.1"
 dask = ">=2024.5.1"
 zarr = ">=3"
 xgcm = { git = "https://github.com/xgcm/xgcm", rev = "master" } # TODO: Switch to release version after release is cut
@@ -55,7 +55,7 @@ tqdm = "4.50.*"
 xarray = "2025.8.*"
 pandas = "2.2.*"
 pyarrow = "20.0.*"
-uxarray = "2025.3.*"
+uxarray = "==2026.04.1"
 dask = "2024.6.*"
 zarr = "3.0.*"
 xgcm = { version = "0.9.*", channel = "conda-forge" }
@@ -142,10 +142,12 @@ numpydoc = "*"
 numpydoc-lint = { cmd = "python tools/numpydoc-public-api.py", description = "Lint public API docstrings with numpydoc." }
 
 [feature.typing.dependencies]
-ty = "*"
+mypy = "*"
+lxml = "*" # in CI
+types-tqdm = "*"
 
 [feature.typing.tasks]
-typing = { cmd = "ty check", description = "Run static type checking with ty." }
+typing = { cmd = "mypy src/parcels --install-types", description = "Run static type checking with mypy." }
 
 
 [environments]

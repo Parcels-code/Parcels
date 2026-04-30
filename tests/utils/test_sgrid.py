@@ -6,8 +6,8 @@ import xarray as xr
 import xgcm
 from hypothesis import assume, example, given
 
+import tests.strategies as pst
 from parcels._core.utils import sgrid
-from tests.strategies import sgrid as sgrid_strategies
 
 
 def create_example_grid2dmetadata(with_vertical_dimensions: bool, with_node_coordinates: bool):
@@ -183,7 +183,7 @@ def dummy_comodo_3d_ds() -> xr.Dataset:
         sgrid.FaceNodePadding("edge2", "node2", sgrid.Padding.LOW),
     )
 )
-@given(sgrid_strategies.mappings)
+@given(pst.sgrid.mappings)
 def test_edge_node_mapping_metadata_roundtrip(edge_node_padding):
     serialized = sgrid.dump_mappings(edge_node_padding)
     parsed = sgrid.load_mappings(serialized)
@@ -204,7 +204,7 @@ def test_load_dump_mappings(input_, expected):
 
 
 @example(grid2dmetadata)
-@given(sgrid_strategies.grid2Dmetadata())
+@given(pst.sgrid.grid2Dmetadata())
 def test_Grid2DMetadata_roundtrip(grid: sgrid.Grid2DMetadata):
     attrs = grid.to_attrs()
     parsed = sgrid.Grid2DMetadata.from_attrs(attrs)
@@ -212,14 +212,14 @@ def test_Grid2DMetadata_roundtrip(grid: sgrid.Grid2DMetadata):
 
 
 @example(grid3dmetadata)
-@given(sgrid_strategies.grid3Dmetadata())
+@given(pst.sgrid.grid3Dmetadata())
 def test_Grid3DMetadata_roundtrip(grid: sgrid.Grid3DMetadata):
     attrs = grid.to_attrs()
     parsed = sgrid.Grid3DMetadata.from_attrs(attrs)
     assert parsed == grid
 
 
-@given(sgrid_strategies.grid_metadata)
+@given(pst.sgrid.grid_metadata)
 def test_parse_grid_attrs(grid: sgrid.AttrsSerializable):
     attrs = grid.to_attrs()
     parsed = sgrid.parse_grid_attrs(attrs)
@@ -227,7 +227,7 @@ def test_parse_grid_attrs(grid: sgrid.AttrsSerializable):
 
 
 @example(grid2dmetadata)
-@given(sgrid_strategies.grid2Dmetadata())
+@given(pst.sgrid.grid2Dmetadata())
 def test_parse_sgrid_2d(grid_metadata: sgrid.Grid2DMetadata):
     """Test the ingestion of datasets in XGCM to ensure that it matches the SGRID metadata provided"""
     ds = dummy_sgrid_2d_ds(grid_metadata)
@@ -249,7 +249,7 @@ def test_parse_sgrid_2d(grid_metadata: sgrid.Grid2DMetadata):
         assert coords[sgrid.SGRID_PADDING_TO_XGCM_POSITION[obj.padding]] == obj.node
 
 
-@given(sgrid_strategies.grid3Dmetadata())
+@given(pst.sgrid.grid3Dmetadata())
 def test_parse_sgrid_3d(grid_metadata: sgrid.Grid3DMetadata):
     """Test the ingestion of datasets in XGCM to ensure that it matches the SGRID metadata provided"""
     ds = dummy_sgrid_3d_ds(grid_metadata)

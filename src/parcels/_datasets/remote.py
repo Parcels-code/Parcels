@@ -18,10 +18,15 @@ _DATA_REPO_TAG = "main"
 
 _DATA_URL = f"https://github.com/Parcels-code/parcels-data/raw/{_DATA_REPO_TAG}"
 
-_DATA_HOME = os.environ.get("PARCELS_EXAMPLE_DATA")
-if _DATA_HOME is None:
-    _DATA_HOME = pooch.os_cache("parcels")
-_DATA_HOME = Path(_DATA_HOME)
+
+def _get_data_home() -> Path:
+    data_home = os.environ.get("PARCELS_EXAMPLE_DATA")
+    if data_home is None:
+        data_home = pooch.os_cache("parcels")
+    return Path(data_home)
+
+
+_DATA_HOME = _get_data_home()
 
 # See instructions at https://github.com/Parcels-code/parcels-data for adding new datasets
 _ODIE_REGISTRY_FILES: list[str] = (
@@ -193,7 +198,7 @@ _TPurpose = Literal["testing", "tutorial"]
 
 # The first here is a human readable key used to open datasets, with an object to open the datasets
 # fmt: off
-_DATASET_KEYS_AND_CONFIGS: dict[str, tuple[_V3Dataset, _Purpose]] = dict([
+_DATASET_KEYS_AND_CONFIGS: dict[str, tuple[_ParcelsDataset, _Purpose]] = dict([
     ("MovingEddies_data/P", (_V3Dataset(_ODIE,"data/MovingEddies_data/moving_eddiesP.nc"), _Purpose.TUTORIAL)),
     ("MovingEddies_data/U", (_V3Dataset(_ODIE,"data/MovingEddies_data/moving_eddiesU.nc"), _Purpose.TUTORIAL)),
     ("MovingEddies_data/V", (_V3Dataset(_ODIE,"data/MovingEddies_data/moving_eddiesV.nc"), _Purpose.TUTORIAL)),

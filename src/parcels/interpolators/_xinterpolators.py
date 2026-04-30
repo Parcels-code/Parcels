@@ -177,7 +177,6 @@ def CGrid_Velocity(
     yi, eta = grid_positions["Y"]["index"], grid_positions["Y"]["bcoord"]
     zi, zeta = grid_positions["Z"]["index"], grid_positions["Z"]["bcoord"]
     ti, tau = grid_positions["T"]["index"], grid_positions["T"]["bcoord"]
-    lon = particle_positions["lon"]
 
     U = vectorfield.U.data
     V = vectorfield.V.data
@@ -304,13 +303,6 @@ def CGrid_Velocity(
         conversion = 1852 * 60.0 * np.cos(np.deg2rad(particle_positions["lat"]))
         u /= conversion
         v /= conversion
-
-    # check whether the grid conversion has been applied correctly
-    xx = (1 - xsi) * (1 - eta) * px[0] + xsi * (1 - eta) * px[1] + xsi * eta * px[2] + (1 - xsi) * eta * px[3]
-    dlon = xx - lon
-    if grid._mesh == "spherical":
-        dlon = ((dlon + 180.0) % 360.0) - 180.0
-    u = np.where(np.abs(dlon / lon) > 1e-4, np.nan, u)
 
     if vectorfield.W:
         W = vectorfield.W.data

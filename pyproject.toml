@@ -26,10 +26,10 @@ dependencies = [
   "netCDF4 >=1.7.2",
   "zarr >=3",
   "tqdm >=4.50.0",
-  "xarray >=2024.5.0,<2026.4.0", # TODO: remove upper pin when https://github.com/UXARRAY/uxarray/issues/1490 is resolved
+  "xarray >=2024.5.0",
   "pandas >= 2.2",
   "pyarrow >=20.0.0",
-  "uxarray >=2025.3.0",
+  "uxarray >=2026.04.1",
   "pooch >=1.8.0",
   "xgcm >=0.9.0",
   "cf_xarray >=0.8.6",
@@ -159,9 +159,53 @@ convention = "numpy"
 [tool.ruff.lint.isort]
 known-first-party = ["parcels"]
 
-[tool.ty.src]
-include = ["./src/"]
+[tool.mypy]
+files = ['src']
+check_untyped_defs = true
+show_error_context = true
+warn_redundant_casts = true
+warn_unused_configs = true
+warn_unused_ignores = true
+
 exclude = [
-  "./src/parcels/interpolators/", # ignore for now
-  "./src/parcels/kernels/_advection.py",
+  # Temporarily exclude files. As we improve typechecking across the codebase, remove these
+  "src/parcels/_core/utils/time.py",
+  "src/parcels/_core/utils/interpolation.py",
+  "src/parcels/_core/utils/unstructured.py",
+  "src/parcels/_core/particle.py",
+  "src/parcels/_core/field.py",
+  "src/parcels/_core/kernel.py",
+  "src/parcels/_core/particleset.py",
+  "src/parcels/_core/xgrid.py",
+  "src/parcels/_core/warnings.py",
+  "src/parcels/_core/constants.py",
+  "src/parcels/_core/utils/sgrid.py",
+  "src/parcels/_core/utils/string.py",
+  "src/parcels/_core/particlefile.py",
+  "src/parcels/_core/uxgrid.py",
+  "src/parcels/_core/spatialhash.py",
+  "src/parcels/_core/statuscodes.py",
+  "src/parcels/_core/particlesetview.py",
+  "src/parcels/_core/fieldset.py",
+  "src/parcels/_core/index_search.py",
+  "src/parcels/interpolators/_xinterpolators.py",
+  "src/parcels/interpolators/__init__.py",
+  "src/parcels/interpolators/_uxinterpolators.py",
+  "src/parcels/kernels/_sigmagrids.py",
+  "src/parcels/kernels/_advectiondiffusion.py",
+  "src/parcels/kernels/__init__.py",
+  "src/parcels/kernels/_advection.py",
 ]
+
+[[tool.mypy.overrides]]
+module = [
+  "scipy.spatial",
+  "zarr",
+  "zarr.storage",
+  "cftime",
+  "netCDF4",
+  "pooch",
+  "xgcm",
+  "uxarray",
+]
+ignore_missing_imports = true
