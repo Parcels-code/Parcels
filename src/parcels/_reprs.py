@@ -129,8 +129,6 @@ def particlefile_repr(pfile: Any) -> str:
     out = f"""<{type(pfile).__name__}>
     path                : {pfile.path}
     outputdt            : {pfile.outputdt!r}
-    chunks              : {pfile.chunks!r}
-    create_new_zarrfile : {pfile.create_new_zarrfile!r}
     metadata            :
 {_format_list_items_multiline(pfile.metadata, level=2, with_brackets=False)}
 """
