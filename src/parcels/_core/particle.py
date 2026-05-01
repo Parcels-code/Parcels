@@ -26,9 +26,8 @@ class Variable:
     initial :
         Initial value of the variable. Note that this can also be a Field object,
         which will then be sampled at the location of the particle
-    to_write : bool, 'once', optional
-        Boolean or 'once'. Controls whether Variable is written to NetCDF file.
-        If to_write = 'once', the variable will be written as a time-independent 1D array
+    to_write : bool, optional
+        Controls whether Variable is written to output file.
     attrs : dict, optional
         Attributes to be stored with the variable when written to file. This can include metadata such as units, long_name, etc.
     """
