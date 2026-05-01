@@ -127,7 +127,7 @@ jobs:
           name: Unittest report ${{ matrix.os }}-${{ matrix.pixi-environment }}
           path: ${{ env.COVERAGE_REPORT }}
   flaky-unit-test:
-    name: "Falky unit tests: ${{ matrix.os }} | pixi run -e ${{ matrix.pixi-environment }} tests -m 'flaky'"
+    name: "Flaky unit tests: ${{ matrix.os }} | pixi run -e ${{ matrix.pixi-environment }} tests -m 'flaky'"
     runs-on: ${{ matrix.os }}-latest
     needs: [cache-pixi-lock]
     permissions:
