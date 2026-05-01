@@ -11,6 +11,7 @@ def tmp_path_parcels_example_data(monkeypatch, tmp_path):
     return tmp_path
 
 
+@pytest.mark.flaky
 @pytest.mark.parametrize("url", [remote._ODIE.get_url(filename) for filename in remote._ODIE.registry.keys()])
 def test_pooch_registry_url_reponse(url):
     response = requests.head(url)
