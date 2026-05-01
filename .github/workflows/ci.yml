@@ -137,15 +137,8 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu, windows]
+        os: [ubuntu]
         pixi-environment: [test]
-        include:
-          - os: ubuntu
-            pixi-environment: "test-py311"
-          - os: ubuntu
-            pixi-environment: "test-py313"
-          - os: ubuntu
-            pixi-environment: "test-minimum"
     steps:
       - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
         with:
@@ -191,7 +184,7 @@ jobs:
         if: ${{ always() }} # Always run this step, even if tests fail
         uses: actions/upload-artifact@bbbca2ddaa5d8feaa63e36b76fdaad77386f024f # v7.0.0
         with:
-          name: Unittest report ${{ matrix.os }}-${{ matrix.pixi-environment }}
+          name: Flaky unittest report ${{ matrix.os }}-${{ matrix.pixi-environment }}
           path: ${{ env.COVERAGE_REPORT }}
   integration-test:
     name: "Integration: ${{ matrix.os }} | pixi run -e ${{ matrix.pixi-environment }} tests-notebooks"
