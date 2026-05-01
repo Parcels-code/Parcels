@@ -14,6 +14,7 @@ import xarray as xr
 
 import parcels
 from parcels._core.particle import ParticleClass
+from parcels._core.particlesetview import ParticleSetView
 from parcels._core.utils.time import timedelta_to_float
 from parcels._reprs import particlefile_repr
 from parcels._typing import PathLike
@@ -115,7 +116,7 @@ class ParticleFile:
     def path(self):
         return self._path
 
-    def write(self, pset: ParticleSet, time, indices=None):
+    def write(self, pset: ParticleSet | ParticleSetView, time, fieldset=None, indices=None):
         """Write all data from one time step to the zarr file,
         before the particle locations are updated.
 
@@ -125,17 +126,22 @@ class ParticleFile:
             ParticleSet object to write
         time :
             Time at which to write ParticleSet (same time object as fieldset)
+        fieldset :
+            FieldSet object associated with the ParticleSet (optional). By default, the fieldset associated with the ParticleSet will be used, but this can be overridden by providing a fieldset here. This is used in cases when the particleset is a ParticleSetView.
         """
         pclass = pset._ptype
-        time_interval = pset.fieldset.time_interval
+        if isinstance(pset, ParticleSetView) and fieldset is None:
+            raise ValueError("When writing a ParticleSetView, a fieldset must be provided to the write() method.")
+        if fieldset is None:
+            fieldset = pset.fieldset
         particle_data = pset._data
 
         if self._writer is None:
             assert not self.path.exists(), "If the file exists, the writer should already be set"
-            self._writer = pq.ParquetWriter(self.path, _get_schema(pclass, self.metadata, pset.fieldset.time_interval))
+            self._writer = pq.ParquetWriter(self.path, _get_schema(pclass, self.metadata, fieldset.time_interval))
 
         if isinstance(time, (np.timedelta64, np.datetime64)):
-            time = timedelta_to_float(time - time_interval.left)
+            time = timedelta_to_float(time - fieldset.time_interval.left)
         vars_to_write = _get_vars_to_write(pclass)
         if indices is None:
             indices_to_write = _to_write_particles(particle_data, time)
