@@ -40,6 +40,7 @@ Version 4 of Parcels is unreleased at the moment. The information in this migrat
 - `ParticleFile` writing behaviour now errors out if there's existing output (this be being further discussed in https://github.com/Parcels-code/Parcels/issues/2593 )
 - A utility to read in ParticleFile output is now available. `parcels.read_particlefile()`
 - "trajectory" is now called "particle_id" in the particle file output
+- The `to_write="once"`option has been removed. A variable can now only be either written at every output time step, or not written at all.
 
 ## Field
 
