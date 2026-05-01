@@ -112,6 +112,7 @@ del ds
 from pathlib import Path
 Path("my_dataset.zip").unlink()
 Path("my_dataset.nc").unlink()
+shutil.rmtree("my_dataset_unzipped")
 
 ```
 
