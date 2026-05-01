@@ -127,7 +127,7 @@ jobs:
           name: Unittest report ${{ matrix.os }}-${{ matrix.pixi-environment }}
           path: ${{ env.COVERAGE_REPORT }}
   flaky-unit-test:
-    name: "Falky unit tests: ${{ matrix.os }} | pixi run -e ${{ matrix.pixi-environment }} tests"
+    name: "Falky unit tests: ${{ matrix.os }} | pixi run -e ${{ matrix.pixi-environment }} tests -m 'flaky'"
     runs-on: ${{ matrix.os }}-latest
     needs: [cache-pixi-lock]
     permissions:
@@ -165,7 +165,7 @@ jobs:
       - name: Unit test
         id: unit-test
         run: |
-          pixi run -e ${{ matrix.pixi-environment }} tests -v -s --cov=parcels --cov-report=xml --html="${COVERAGE_REPORT}" --self-contained-html
+          pixi run -e ${{ matrix.pixi-environment }} tests -m 'flaky' -v -s --cov=parcels --cov-report=xml --html="${COVERAGE_REPORT}" --self-contained-html
       # explicitly save the cache so it gets updated, also do this even if it fails.
       - name: Save cached hypothesis directory
         id: save-hypothesis-cache
