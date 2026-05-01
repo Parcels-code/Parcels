@@ -42,6 +42,7 @@ Version 4 of Parcels is unreleased at the moment. The information in this migrat
 - "trajectory" is now called "particle_id" in the particle file output
 - The `name` argument in `ParticleFile` has been replaced by `path` and can now be a string or a Path.
 - The `chunks` argument in `ParticleFile` has been removed.
+- The `to_write="once"`option has been removed. A variable can now only be either written at every output time step, or not written at all.
 
 ## Field
 
