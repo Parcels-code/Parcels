@@ -212,7 +212,7 @@ When we check the output, we can see that the particles have returned to their o
 df_back = parcels.read_particlefile("output-backwards.parquet")
 
 scatter = plt.scatter(df_back['lon'], df_back['lat'], c=df_back['time'])
-particles_at_start = df_back.filter(pl.col("time") == df_back["time"].min())
+particles_at_start = df_back.filter(pl.col("time") == df_back["time"].max())
 plt.scatter(particles_at_start['lon'], particles_at_start['lat'], facecolors="none", edgecolors='r') # starting positions
 plt.xlabel("Longitude [deg E]")
 plt.xlim(31,33)
