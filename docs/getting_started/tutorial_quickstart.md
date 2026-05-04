@@ -212,8 +212,8 @@ When we check the output, we can see that the particles have returned to their o
 df_back = parcels.read_particlefile("output-backwards.parquet")
 
 scatter = plt.scatter(df_back['lon'], df_back['lat'], c=df_back['time'])
-particles_at_start = df_back.filter(pl.col("time") == df_back["time"].max())
-plt.scatter(particles_at_start['lon'], particles_at_start['lat'], facecolors="none", edgecolors='r') # starting positions
+particles_at_max_time = df_back.filter(pl.col("time") == df_back["time"].max())
+plt.scatter(particles_at_max_time['lon'], particles_at_max_time['lat'], facecolors="none", edgecolors='r') # starting positions
 plt.xlabel("Longitude [deg E]")
 plt.xlim(31,33)
 plt.ylabel("Latitude [deg N]")
@@ -226,6 +226,7 @@ Using Euler forward advection, the final positions are equal to the original pos
 
 ```{code-cell}
 # testing that final location == original location
-np.testing.assert_almost_equal(particles_at_start["lat"], lat, 2)
-np.testing.assert_almost_equal(particles_at_start['lon'], lon, 2)
+particles_at_min_time = df_back.filter(pl.col("time") == df_back["time"].min())
+np.testing.assert_almost_equal(particles_at_min_time["lat"], lat, 2)
+np.testing.assert_almost_equal(particles_at_min_time['lon'], lon, 2)
 ```
