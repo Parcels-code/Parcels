@@ -6,7 +6,7 @@ import pytest
 import xarray as xr
 from numpy.testing import assert_allclose
 
-from parcels import Field
+from parcels import Field, FieldSet
 from parcels._core.index_search import (
     LEFT_OUT_OF_BOUNDS,
     RIGHT_OUT_OF_BOUNDS,
@@ -17,7 +17,7 @@ from parcels._core.xgrid import (
     XGrid,
     _transpose_xfield_data_to_tzyx,
 )
-from parcels._datasets.structured.generic import X, Y, Z, datasets
+from parcels._datasets.structured.generic import X, Y, Z, datasets, datasets_sgrid
 from parcels.interpolators import XLinear
 from tests import utils
 
@@ -149,6 +149,29 @@ def test_dim_without_axis():
     grid = XGrid.from_dataset(ds, mesh="flat")
     with pytest.raises(ValueError, match='Dimension "depth" has no axis attribute*'):
         Field("z1d", ds["z1d"], grid, XLinear)
+
+
+def test_dim_with_duplicate_axis():
+    ds = datasets_sgrid["ds_2d_padded_low"].copy()
+
+    # Add an extra Z axis
+    ds = ds[["data_g", "grid"]]
+    ds["data_g"] = ds["data_g"].expand_dims("vertical_dimensions_dim2", 1)
+
+    z = ds["vertical_dimensions_dim2"]
+    z.attrs.update({"axis": "Z", "c_grid_axis_shift": 0})
+    ds["vertical_dimensions_dim2"] = z
+
+    # TODO: Clean up this attribute setting (really, this should be on the source datasets)
+    lon = ds["lon"]
+    lat = ds["lat"]
+    lon.attrs.update({"units": "metres"})
+    lat.attrs.update({"units": "metres"})
+    ds["lon"] = lon
+    ds["lat"] = lat
+
+    with pytest.raises(ValueError, match="Two dimensions .*provide values in the axis direction 'Z'."):
+        FieldSet.from_sgrid_conventions(ds)
 
 
 def test_vertical1D_field():
