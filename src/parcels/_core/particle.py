@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 import operator
-from typing import Any, Literal
+from typing import Any
 
 import numpy as np
 
@@ -11,7 +11,7 @@ from parcels._core.utils.string import _assert_str_and_python_varname
 from parcels._reprs import particleclass_repr, variable_repr
 
 __all__ = ["Particle", "ParticleClass", "Variable"]
-_TO_WRITE_OPTIONS = [True, False, "once"]
+_TO_WRITE_OPTIONS = [True, False]
 
 
 class Variable:
@@ -26,9 +26,8 @@ class Variable:
     initial :
         Initial value of the variable. Note that this can also be a Field object,
         which will then be sampled at the location of the particle
-    to_write : bool, 'once', optional
-        Boolean or 'once'. Controls whether Variable is written to NetCDF file.
-        If to_write = 'once', the variable will be written as a time-independent 1D array
+    to_write : bool, optional
+        Controls whether Variable is written to output file.
     attrs : dict, optional
         Attributes to be stored with the variable when written to file. This can include metadata such as units, long_name, etc.
     """
@@ -38,7 +37,7 @@ class Variable:
         name,
         dtype: np.dtype[Any] | type[np.generic] = np.float32,
         initial=0,
-        to_write: bool | Literal["once"] = True,
+        to_write: bool = True,
         attrs: dict | None = None,
     ):
         _assert_str_and_python_varname(name)
@@ -157,7 +156,6 @@ def get_default_particle(spatial_dtype: type[np.float32] | type[np.float64]) -> 
             Variable(
                 "particle_id",
                 dtype=np.int64,
-                to_write="once",
                 attrs={
                     "long_name": "Unique identifier for each particle",
                     "cf_role": "trajectory_id",
