@@ -62,7 +62,9 @@ def assert_all_field_dims_have_axis(da: xr.DataArray, xgcm_grid: xgcm.Grid) -> N
                 "This is not possible, a field cannot have two dimensions on a single axis."
             )
         seen_axes[ax] = dim_name
-    assert len(ax_dims) <= 4
+    assert len(ax_dims) <= 4, (
+        "Execution should never reach this point. Please file an issue sharing more about your input dataset."
+    )
     return
 
 
