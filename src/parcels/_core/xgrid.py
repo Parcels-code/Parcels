@@ -63,7 +63,7 @@ def assert_all_field_dims_have_axis(da: xr.DataArray, xgcm_grid: xgcm.Grid) -> N
             )
         seen_axes[ax] = dim_name
     assert len(ax_dims) <= 4, (
-        "Execution should never reach this point. Please file an issue sharing more about your input dataset."
+        "The input dataset appears to have more than 4 dimensions after conversion. Execution should never reach this point. Please file an issue sharing more about your input dataset."
     )
     return
 
