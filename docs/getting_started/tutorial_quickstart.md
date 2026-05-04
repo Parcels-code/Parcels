@@ -13,7 +13,7 @@ read more, we have a [concepts overview](./explanation_concepts.md) discussing t
 
 ## Imports
 
-Parcels depends on `xarray`, expecting inputs in the form of [`xarray.Dataset`](https://docs.xarray.dev/en/stable/generated/xarray.Dataset.html). Output files can be read with `pandas`.
+Parcels depends on `xarray`, expecting inputs in the form of [`xarray.Dataset`](https://docs.xarray.dev/en/stable/generated/xarray.Dataset.html). Output files can be read with `polars`.
 
 ```{code-cell}
 import numpy as np
@@ -152,7 +152,7 @@ pset.execute(
 
 ## Read output
 
-To start analyzing the trajectories computed by **Parcels**, we can open the `ParticleFile` using `xarray`:
+To start analyzing the trajectories computed by **Parcels**, we can open the `ParticleFile` using the `read_particlefile()` utility, which itself uses `polars`:
 
 ```{code-cell}
 df = parcels.read_particlefile("output-quickstart.parquet")
