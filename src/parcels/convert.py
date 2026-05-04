@@ -12,6 +12,7 @@ be determined before they pass it to the FieldSet constructor.
 
 from __future__ import annotations
 
+import enum
 import typing
 import warnings
 from typing import cast
@@ -22,16 +23,22 @@ import xarray as xr
 from parcels._core.utils import sgrid
 from parcels._logger import logger
 
-from typing import cast
 if typing.TYPE_CHECKING:
     import uxarray as ux
+
     from parcels._typing import XgcmAxisDirection
 
 
-_NEMO_EXPECTED_COORDS: list[str] = [
-    "glamf",
-    "gphif",
-]  # "depthw" # TODO: Depthw needs to be available if the data has a depth dim. Refactor the whole convert module, this can surely all be handled better.
+class _Status(enum.Enum):
+    REQUIRED = enum.auto()
+    OPTIONAL = enum.auto()
+
+
+_NEMO_EXPECTED_COORDS: list[tuple[str, _Status]] = [
+    ("glamf", _Status.REQUIRED),
+    ("gphif", _Status.REQUIRED),
+    ("depthw", _Status.OPTIONAL),
+]
 
 _NEMO_DIMENSION_COORD_NAMES: list[str] = [
     "x",
@@ -65,7 +72,7 @@ _NEMO_VARNAMES_MAPPING: dict[str, str] = {
     "wo": "W",
 }
 
-_MITGCM_EXPECTED_COORDS: list[str] = ["XG", "YG", "Zl"]
+_MITGCM_EXPECTED_COORDS: list[tuple[str, _Status]] = [(name, _Status.REQUIRED) for name in ["XG", "YG", "Zl"]]
 
 _MITGCM_AXIS_VARNAMES: dict[str, XgcmAxisDirection] = {
     "XC": "X",
@@ -95,7 +102,9 @@ _COPERNICUS_MARINE_AXIS_VARNAMES: dict[XgcmAxisDirection, str] = {
     "T": "time",
 }
 
-_CROCO_EXPECTED_COORDS: list[str] = ["x_rho", "y_rho", "s_w", "time"]
+_CROCO_EXPECTED_COORDS: list[tuple[str, _Status]] = [
+    (name, _Status.REQUIRED) for name in ["x_rho", "y_rho", "s_w", "time"]
+]
 
 _CROCO_VARNAMES_MAPPING: dict[str, str] = {
     "x_rho": "lon",
@@ -104,13 +113,14 @@ _CROCO_VARNAMES_MAPPING: dict[str, str] = {
 }
 
 
-def _pick_expected_coords(coords: xr.Dataset, expected_coord_names: list[str]) -> xr.Dataset:
+def _pick_expected_coords(coords: xr.Dataset, expected_coord_names: list[tuple[str, _Status]]) -> xr.Dataset:
     coords_to_use = {}
-    for name in expected_coord_names:
+    for name, status in expected_coord_names:
         if name in coords:
             coords_to_use[name] = coords[name]
         else:
-            raise ValueError(f"Expected coordinate '{name}' not found in provided coords dataset.")
+            if status == _Status.REQUIRED:
+                raise ValueError(f"Expected coordinate '{name}' not found in provided coords dataset.")
     return xr.Dataset(coords_to_use)
 
 
