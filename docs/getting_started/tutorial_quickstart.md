@@ -126,7 +126,7 @@ We can define this in a {py:obj}`parcels.ParticleFile` object:
 output_file = parcels.ParticleFile("output-quickstart.parquet", outputdt=np.timedelta64(1, "h"))
 ```
 
-The output files are in `.parquet` [format](https://parquet.apache.org/), which can be read by `polars`.
+The output files are in `.parquet` [format](https://parquet.apache.org/), which can be read by [Polars](https://pola.rs/).
 See the [Parcels output tutorial](./tutorial_output.ipynb) for more information on the parquet format. We want to choose
 the `outputdt` argument so that it captures the smallest timescales of our interest.
 
