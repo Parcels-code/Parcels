@@ -35,11 +35,14 @@ Version 4 of Parcels is unreleased at the moment. The information in this migrat
 
 ## ParticleFile
 
+- ParticleFiles output is now written in parquet format by default, instead of zarr. This means that ParticleFiles can now be read with `polars.read_parquet`. We also provide a helper function `parcels.read_particlefile` to read ParticleFiles, which automatically converts the cftime.
 - Particlefiles should be created by `ParticleFile(...)` instead of `pset.ParticleFile(...)`
-- `ParticleFile` output is now in Parquet format
 - `ParticleFile` writing behaviour now errors out if there's existing output (this be being further discussed in https://github.com/Parcels-code/Parcels/issues/2593 )
 - A utility to read in ParticleFile output is now available. `parcels.read_particlefile()`
 - "trajectory" is now called "particle_id" in the particle file output
+- The `name` argument in `ParticleFile` has been replaced by `path` and can now be a string or a Path.
+- The `chunks` argument in `ParticleFile` has been removed.
+- The `to_write="once"`option has been removed. A variable can now only be either written at every output time step, or not written at all.
 
 ## Field
 

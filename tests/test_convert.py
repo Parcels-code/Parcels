@@ -41,6 +41,7 @@ def test_nemo_to_sgrid():
         meta.get_value_by_id("node_dimension2"),  # Y edge
     }.issubset(set(ds["V"].dims))
 
+    parcels.FieldSet.from_sgrid_conventions(ds)
 
 def test_convert_nemo_offsets():
     U = parcels.tutorial.open_dataset("NemoCurvilinear_data_zonal/U")
