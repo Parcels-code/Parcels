@@ -45,6 +45,7 @@ requirements:
     - pyogrio # needed for geopandas (uxarray -> geoviews -> geopandas -> pyogrio, but for some reason conda doesn't pick it up automatically)
     - holoviews >= 1.22.0 # https://github.com/prefix-dev/rattler-build/issues/2326
     - pooch >=1.8.0
+    - polars >=1.31.0
 
 tests:
   - python:

@@ -11,6 +11,7 @@ def tmp_path_parcels_example_data(monkeypatch, tmp_path):
     return tmp_path
 
 
+@pytest.mark.flaky
 @pytest.mark.parametrize("url", [remote._ODIE.get_url(filename) for filename in remote._ODIE.registry.keys()])
 def test_pooch_registry_url_reponse(url):
     response = requests.head(url)
@@ -22,6 +23,7 @@ def test_open_dataset_non_existing():
         remote.open_remote_dataset("non_existing_dataset")
 
 
+@pytest.mark.flaky
 @pytest.mark.parametrize("name", remote.list_remote_datasets())
 def test_open_dataset(name):
     ds = remote.open_remote_dataset(name)
