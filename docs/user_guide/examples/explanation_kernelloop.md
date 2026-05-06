@@ -108,7 +108,7 @@ lats = np.linspace(-32.5, -30.5, npart)
 
 pset = parcels.ParticleSet(fieldset, pclass=parcels.Particle, z=z, lat=lats, lon=lons)
 output_file = parcels.ParticleFile(
-    store="advection_then_wind.zarr", outputdt=np.timedelta64(6,'h')
+    path="advection_then_wind.parquet", outputdt=np.timedelta64(6,'h')
 )
 pset.execute(
     [parcels.kernels.AdvectionRK2, wind_kernel],
@@ -126,7 +126,7 @@ pset_reverse = parcels.ParticleSet(
     fieldset, pclass=parcels.Particle, z=z, lat=lats,  lon=lons
 )
 output_file_reverse = parcels.ParticleFile(
-    store="wind_then_advection.zarr", outputdt=np.timedelta64(6,"h")
+    path="wind_then_advection.parquet", outputdt=np.timedelta64(6,"h")
 )
 pset_reverse.execute(
     [wind_kernel, parcels.kernels.AdvectionRK2],
@@ -140,10 +140,14 @@ Finally, plot the trajectories to show that they are identical in the two simula
 
 ```{code-cell}
 # Plot the resulting particle trajectories overlapped for both cases
-advection_then_wind = xr.open_zarr("advection_then_wind.zarr")
-wind_then_advection = xr.open_zarr("wind_then_advection.zarr")
-plt.plot(wind_then_advection.lon.T, wind_then_advection.lat.T, "-")
-plt.plot(advection_then_wind.lon.T, advection_then_wind.lat.T, "--", c="k", alpha=0.7)
+advection_then_wind = parcels.read_particlefile("advection_then_wind.parquet")
+wind_then_advection = parcels.read_particlefile("wind_then_advection.parquet")
+
+fig, ax = plt.subplots(figsize=(5, 3))
+for traj in wind_then_advection.partition_by("particle_id", maintain_order=True):
+    ax.plot(traj["lon"], traj["lat"], "-")
+for traj in advection_then_wind.partition_by("particle_id", maintain_order=True):
+    ax.plot(traj["lon"], traj["lat"], "--", c="k", alpha=0.7)
 plt.show()
 ```
 

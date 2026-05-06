@@ -34,6 +34,7 @@ xgcm = { git = "https://github.com/xgcm/xgcm", rev = "master" } # TODO: Switch t
 cf_xarray = ">=0.8.6"
 cftime = ">=1.6.3"
 pooch = ">=1.8.0"
+polars = ">=1.31.0"
 
 [dependencies]
 parcels = { path = "." }
@@ -62,6 +63,7 @@ xgcm = { version = "0.9.*", channel = "conda-forge" }
 cf_xarray = "0.10.*"
 cftime = "1.6.*"
 pooch = "1.8.*"
+polars = "1.31.*"
 
 [feature.py311.dependencies]
 python = "3.11.*"

@@ -23,6 +23,7 @@ def test_open_dataset_non_existing():
         remote.open_remote_dataset("non_existing_dataset")
 
 
+@pytest.mark.flaky
 @pytest.mark.parametrize("name", remote.list_remote_datasets())
 def test_open_dataset(name):
     ds = remote.open_remote_dataset(name)
