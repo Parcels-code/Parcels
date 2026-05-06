@@ -87,7 +87,6 @@ def test_nemo_to_sgrid_with_depth(U, V, depth, coords):  # noqa: N803
         meta.get_value_by_id("face_dimension1"),  # X center
         meta.get_value_by_id("node_dimension2"),  # Y edge
     }.issubset(set(ds["V"].dims))
-    # pytest.mark.param(open_remote_dataset(""), open_remote_dataset(""), open_remote_dataset(""), id=""),
 
     parcels.FieldSet.from_sgrid_conventions(ds)
 
