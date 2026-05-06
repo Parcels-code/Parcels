@@ -12,6 +12,7 @@ be determined before they pass it to the FieldSet constructor.
 
 from __future__ import annotations
 
+import enum
 import typing
 import warnings
 from typing import cast
@@ -25,12 +26,21 @@ from parcels._logger import logger
 if typing.TYPE_CHECKING:
     import uxarray as ux
 
-_NEMO_EXPECTED_COORDS = [
-    "glamf",
-    "gphif",
-]  # "depthw" # TODO: Depthw needs to be available if the data has a depth dim. Refactor the whole convert module, this can surely all be handled better.
+    from parcels._typing import XgcmAxisDirection
 
-_NEMO_DIMENSION_COORD_NAMES = [
+
+class _Status(enum.Enum):
+    REQUIRED = enum.auto()
+    OPTIONAL = enum.auto()
+
+
+_NEMO_EXPECTED_COORDS: list[tuple[str, _Status]] = [
+    ("glamf", _Status.REQUIRED),
+    ("gphif", _Status.REQUIRED),
+    ("depthw", _Status.OPTIONAL),
+]
+
+_NEMO_DIMENSION_COORD_NAMES: list[str] = [
     "x",
     "y",
     "time",
@@ -44,7 +54,7 @@ _NEMO_DIMENSION_COORD_NAMES = [
     "gphif",
 ]
 
-_NEMO_AXIS_VARNAMES = {
+_NEMO_AXIS_VARNAMES: dict[str, XgcmAxisDirection] = {
     "x": "X",
     "x_center": "X",
     "y": "Y",
@@ -54,7 +64,7 @@ _NEMO_AXIS_VARNAMES = {
     "time": "T",
 }
 
-_NEMO_VARNAMES_MAPPING = {
+_NEMO_VARNAMES_MAPPING: dict[str, str] = {
     "time_counter": "time",
     "depthw": "depth",
     "uo": "U",
@@ -62,9 +72,9 @@ _NEMO_VARNAMES_MAPPING = {
     "wo": "W",
 }
 
-_MITGCM_EXPECTED_COORDS = ["XG", "YG", "Zl"]
+_MITGCM_EXPECTED_COORDS: list[tuple[str, _Status]] = [(name, _Status.REQUIRED) for name in ["XG", "YG", "Zl"]]
 
-_MITGCM_AXIS_VARNAMES = {
+_MITGCM_AXIS_VARNAMES: dict[str, XgcmAxisDirection] = {
     "XC": "X",
     "XG": "X",
     "Xp1": "X",
@@ -79,39 +89,42 @@ _MITGCM_AXIS_VARNAMES = {
     "time": "T",
 }
 
-_MITGCM_VARNAMES_MAPPING = {
+_MITGCM_VARNAMES_MAPPING: dict[str, str] = {
     "XG": "lon",
     "YG": "lat",
     "Zl": "depth",
 }
 
-_COPERNICUS_MARINE_AXIS_VARNAMES = {
+_COPERNICUS_MARINE_AXIS_VARNAMES: dict[XgcmAxisDirection, str] = {
     "X": "lon",
     "Y": "lat",
     "Z": "depth",
     "T": "time",
 }
 
-_CROCO_EXPECTED_COORDS = ["x_rho", "y_rho", "s_w", "time"]
+_CROCO_EXPECTED_COORDS: list[tuple[str, _Status]] = [
+    (name, _Status.REQUIRED) for name in ["x_rho", "y_rho", "s_w", "time"]
+]
 
-_CROCO_VARNAMES_MAPPING = {
+_CROCO_VARNAMES_MAPPING: dict[str, str] = {
     "x_rho": "lon",
     "y_rho": "lat",
     "s_w": "depth",
 }
 
 
-def _pick_expected_coords(coords: xr.Dataset, expected_coord_names: list[str]) -> xr.Dataset:
+def _pick_expected_coords(coords: xr.Dataset, expected_coord_names: list[tuple[str, _Status]]) -> xr.Dataset:
     coords_to_use = {}
-    for name in expected_coord_names:
+    for name, status in expected_coord_names:
         if name in coords:
             coords_to_use[name] = coords[name]
         else:
-            raise ValueError(f"Expected coordinate '{name}' not found in provided coords dataset.")
+            if status == _Status.REQUIRED:
+                raise ValueError(f"Expected coordinate '{name}' not found in provided coords dataset.")
     return xr.Dataset(coords_to_use)
 
 
-def _maybe_bring_other_depths_to_depth(ds):
+def _maybe_bring_other_depths_to_depth(ds: xr.Dataset):
     for var in ds.data_vars:
         for old_depth, target in [
             ("depthu", "depth_center"),
@@ -129,7 +142,7 @@ def _maybe_bring_other_depths_to_depth(ds):
     return ds
 
 
-def _maybe_rename_coords(ds, axis_varnames):
+def _maybe_rename_coords(ds: xr.Dataset, axis_varnames: dict[XgcmAxisDirection, str]):
     try:
         for axis, [coord] in ds.cf.axes.items():
             ds = ds.rename({coord: axis_varnames[axis]})
@@ -138,31 +151,33 @@ def _maybe_rename_coords(ds, axis_varnames):
     return ds
 
 
-def _maybe_rename_variables(ds, varnames_mapping):
+def _maybe_rename_variables(ds: xr.Dataset, varnames_mapping: dict[str, str]):
     rename_dict = {old: new for old, new in varnames_mapping.items() if (old in ds.data_vars) or (old in ds.coords)}
     if rename_dict:
         ds = ds.rename(rename_dict)
     return ds
 
 
-def _assign_dims_as_coords(ds, dimension_names):
+def _assign_dims_as_coords(ds: xr.Dataset, dimension_names: list[str]):
     for axis in dimension_names:
         if axis in ds.dims and axis not in ds.coords:
             ds = ds.assign_coords({axis: np.arange(ds.sizes[axis])})
     return ds
 
 
-def _drop_unused_dimensions_and_coords(ds, dimension_and_coord_names):
+def _drop_unused_dimensions_and_coords(ds: xr.Dataset, dimension_and_coord_names: list[str]):
     for dim in ds.dims:
         if dim not in dimension_and_coord_names:
+            dim = cast(str, dim)
             ds = ds.drop_dims(dim, errors="ignore")
     for coord in ds.coords:
+        coord = cast(str, coord)
         if coord not in dimension_and_coord_names:
             ds = ds.drop_vars(coord, errors="ignore")
     return ds
 
 
-def _set_coords(ds, dimension_names):
+def _set_coords(ds: xr.Dataset, dimension_names):
     for varname in dimension_names:
         if varname in ds and varname not in ds.coords:
             ds = ds.set_coords([varname])
@@ -176,7 +191,7 @@ def _maybe_remove_depth_from_lonlat(ds):
     return ds
 
 
-def _set_axis_attrs(ds, dim_axis):
+def _set_axis_attrs(ds: xr.Dataset, dim_axis: dict[str, XgcmAxisDirection]):
     for dim, axis in dim_axis.items():
         if dim in ds:
             ds[dim].attrs["axis"] = axis
