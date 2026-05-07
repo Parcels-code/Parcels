@@ -112,7 +112,12 @@ _ODIE_REGISTRY_FILES: list[str] = (
         "data-zarr/Benchmarks_FESOM2-baroclinic-gyre/data.zip",
         "data-zarr/Benchmarks_FESOM2-baroclinic-gyre/grid.zip",
     ]
-    + []
+    + [
+        "data-zarr/Benchmarks_MOi_data_metadata-only/U.zip",
+        "data-zarr/Benchmarks_MOi_data_metadata-only/V.zip",
+        "data-zarr/Benchmarks_MOi_data_metadata-only/W.zip",
+        "data-zarr/Benchmarks_MOi_data_metadata-only/mesh.zip",
+    ]
 )
 
 _ODIE = pooch.create(
@@ -231,6 +236,10 @@ _DATASET_KEYS_AND_CONFIGS: dict[str, tuple[_ParcelsDataset, _Purpose]] = dict([
 ] + [
     ("Benchmarks_FESOM2-baroclinic-gyre/data", (_ZarrZipDataset(_ODIE, 'data-zarr/Benchmarks_FESOM2-baroclinic-gyre/data.zip', zarr_format=2), _Purpose.TESTING)),
     ("Benchmarks_FESOM2-baroclinic-gyre/grid", (_ZarrZipDataset(_ODIE, 'data-zarr/Benchmarks_FESOM2-baroclinic-gyre/grid.zip', zarr_format=2),_Purpose.TESTING)),
+    ("Benchmarks_MOi_data_metadata-only/U", (_ZarrZipDataset(_ODIE, "data-zarr/Benchmarks_MOi_data_metadata-only/U.zip"), _Purpose.TESTING)),
+    ("Benchmarks_MOi_data_metadata-only/V", (_ZarrZipDataset(_ODIE, "data-zarr/Benchmarks_MOi_data_metadata-only/V.zip"), _Purpose.TESTING)),
+    ("Benchmarks_MOi_data_metadata-only/W", (_ZarrZipDataset(_ODIE, "data-zarr/Benchmarks_MOi_data_metadata-only/W.zip"), _Purpose.TESTING)),
+    ("Benchmarks_MOi_data_metadata-only/mesh", (_ZarrZipDataset(_ODIE, "data-zarr/Benchmarks_MOi_data_metadata-only/mesh.zip"), _Purpose.TESTING)),
 ])
 # fmt: on
 
