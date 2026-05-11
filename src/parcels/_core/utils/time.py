@@ -207,9 +207,12 @@ def timedelta_to_float(dt: float | timedelta | np.timedelta64) -> float:
     return float(dt)
 
 
-def float_to_datelike(dt: float, time_interval) -> np.datetime64 | np.timedelta64:
+def float_to_datelike(dt: float, time_interval) -> np.datetime64 | np.timedelta64 | cftime.datetime:
     """Convert a float time (in seconds from the start of the time_interval) to a datetime (if time_interval is a datetime object) or timedelta (otherwise)"""
     if time_interval:
-        return np.timedelta64(int(dt), "s") + time_interval.left
+        result = np.timedelta64(int(dt), "s") + time_interval.left
+        if isinstance(result, cftime.datetime):
+            return result
+        return result.astype("datetime64[s]")
     else:
         return np.timedelta64(int(dt), "s")

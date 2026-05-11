@@ -57,6 +57,23 @@ def test_metadata(fieldset, tmp_parquet):
     assert tab.schema.metadata[b"parcels_kernels"].decode().lower() == "DoNothing".lower()
 
 
+@pytest.mark.parametrize("compression", ["zstd", "gzip", "snappy", "brotli", None])
+def test_compression(fieldset, tmp_parquet, compression):
+    pset = ParticleSet(fieldset, pclass=Particle, lon=0, lat=0)
+
+    ofile = ParticleFile(tmp_parquet, outputdt=np.timedelta64(1, "s"), compression=compression)
+    pset.execute(DoNothing, runtime=np.timedelta64(1, "s"), dt=np.timedelta64(1, "s"), output_file=ofile)
+
+    tab = pq.ParquetFile(tmp_parquet)
+    for i in range(tab.num_row_groups):
+        row_group = tab.metadata.row_group(i)
+        for j in range(row_group.num_columns):
+            col = row_group.column(j)
+            assert col.compression.lower() == compression or (
+                compression is None and col.compression.lower() == "uncompressed"
+            )
+
+
 def test_write_fieldset_without_time(tmp_parquet):
     ds = peninsula_dataset()  # DataSet without time
     assert "time" not in ds.dims
