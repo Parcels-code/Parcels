@@ -24,6 +24,8 @@ class GridType(IntEnum):
 class BaseGrid(ABC):
     """Base class for parcels.XGrid and parcels.UxGrid defining common methods and properties"""
 
+    _spatialhash: SpatialHash | None
+
     @abstractmethod
     def search(self, z: float, y: float, x: float, ei=None) -> dict[str, tuple[int, float | np.ndarray]]:
         """

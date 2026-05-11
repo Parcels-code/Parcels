@@ -1,18 +1,17 @@
 from __future__ import annotations
 
 import operator
-from typing import Any, Literal
+from typing import Any
 
 import numpy as np
 
 from parcels._compat import _attrgetter_helper
 from parcels._core.statuscodes import StatusCode
 from parcels._core.utils.string import _assert_str_and_python_varname
-from parcels._core.utils.time import TimeInterval
 from parcels._reprs import particleclass_repr, variable_repr
 
 __all__ = ["Particle", "ParticleClass", "Variable"]
-_TO_WRITE_OPTIONS = [True, False, "once"]
+_TO_WRITE_OPTIONS = [True, False]
 
 
 class Variable:
@@ -27,9 +26,8 @@ class Variable:
     initial :
         Initial value of the variable. Note that this can also be a Field object,
         which will then be sampled at the location of the particle
-    to_write : bool, 'once', optional
-        Boolean or 'once'. Controls whether Variable is written to NetCDF file.
-        If to_write = 'once', the variable will be written as a time-independent 1D array
+    to_write : bool, optional
+        Controls whether Variable is written to output file.
     attrs : dict, optional
         Attributes to be stored with the variable when written to file. This can include metadata such as units, long_name, etc.
     """
@@ -39,7 +37,7 @@ class Variable:
         name,
         dtype: np.dtype[Any] | type[np.generic] = np.float32,
         initial=0,
-        to_write: bool | Literal["once"] = True,
+        to_write: bool = True,
         attrs: dict | None = None,
     ):
         _assert_str_and_python_varname(name)
@@ -149,18 +147,20 @@ def get_default_particle(spatial_dtype: type[np.float32] | type[np.float64]) -> 
             Variable(
                 "time",
                 dtype=np.float64,
-                attrs={"standard_name": "time", "units": "seconds", "axis": "T"},
+                attrs={
+                    "standard_name": "time",
+                    "units": "seconds",
+                    "axis": "T",
+                },  # "units" and "calendar" gets updated/set if working with cftime time domain
             ),
             Variable(
-                "trajectory",
+                "particle_id",
                 dtype=np.int64,
-                to_write="once",
                 attrs={
                     "long_name": "Unique identifier for each particle",
                     "cf_role": "trajectory_id",
                 },
             ),
-            Variable("obs_written", dtype=np.int32, initial=0, to_write=False),
             Variable("dt", dtype=np.float64, initial=1.0, to_write=False),
             Variable("state", dtype=np.int32, initial=StatusCode.Evaluate, to_write=False),
         ]
@@ -176,7 +176,6 @@ def create_particle_data(
     pclass: ParticleClass,
     nparticles: int,
     ngrids: int,
-    time_interval: TimeInterval,
     initial: dict[str, np.ndarray] | None = None,
 ):
     if initial is None:
@@ -207,16 +206,9 @@ def create_particle_data(
             name_to_copy = var.initial(_attrgetter_helper)
             data[var.name] = data[name_to_copy].copy()
         else:
-            data[var.name] = _create_array_for_variable(var, nparticles, time_interval)
+            data[var.name] = np.full(
+                shape=(nparticles,),
+                fill_value=var.initial,
+                dtype=var.dtype,
+            )
     return data
-
-
-def _create_array_for_variable(variable: Variable, nparticles: int, time_interval: TimeInterval):
-    assert not isinstance(variable.initial, operator.attrgetter), (
-        "This function cannot handle attrgetter initial values."
-    )
-    return np.full(
-        shape=(nparticles,),
-        fill_value=variable.initial,
-        dtype=variable.dtype,
-    )

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from datetime import datetime, timedelta
-from typing import TYPE_CHECKING, TypeVar
+from typing import TYPE_CHECKING, Literal, TypeVar, cast
 
 import cftime
 import numpy as np
@@ -84,6 +84,39 @@ class TimeInterval:
         end = min(self.right, other.right)
 
         return TimeInterval(start, end) if start <= end else None
+
+    def get_cf_attrs(self) -> dict[Literal["units", "calendar"], str]:
+        """Return the cf-attrs that would correspond to x seconds from the left edge."""
+        return _get_cf_attrs(self.left)
+
+
+def _get_cf_attrs(dt: TimeLike) -> dict[Literal["units", "calendar"], str]:
+    if isinstance(dt, cftime.datetime):
+        dt = cast(cftime.datetime, dt)
+        return {"units": f"seconds since {dt.strftime(dt.format)}", "calendar": dt.calendar}
+
+    if isinstance(dt, np.timedelta64):
+        return {"units": "seconds"}
+
+    from pandas import Timestamp
+
+    if isinstance(dt, np.datetime64):
+        dt = Timestamp(dt)
+
+    if isinstance(dt, (Timestamp, datetime)):
+        dt_cf = cftime.datetime(
+            year=dt.year,
+            month=dt.month,
+            day=dt.day,
+            hour=dt.hour,
+            minute=dt.minute,
+            second=dt.second,
+            microsecond=dt.microsecond,
+            calendar="gregorian",  # What is the cftime proleptic_gregorian calendar? is that relevant here?
+        )
+        return _get_cf_attrs(dt_cf)
+
+    raise NotImplementedError(f"Not implemented for time object {type(dt)=!r}")
 
 
 def is_compatible(

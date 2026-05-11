@@ -20,7 +20,7 @@ from parcels._core.utils.time import (
 )
 from parcels._core.warnings import ParticleSetWarning
 from parcels._logger import logger
-from parcels._reprs import _format_zarr_output_location, particleset_repr
+from parcels._reprs import particleset_repr
 
 __all__ = ["ParticleSet"]
 
@@ -49,8 +49,8 @@ class ParticleSet:
         Optional list of initial time values for particles. Default is fieldset.U.grid.time[0]
     repeatdt : datetime.timedelta or float, optional
         Optional interval on which to repeat the release of the ParticleSet. Either timedelta object, or float in seconds.
-    trajectory_ids :
-        Optional list of "trajectory" values (integers) for the particle IDs
+    particle_ids :
+        Optional list of "particle_id" values (integers) for the particle IDs
 
         Other Variables can be initialised using further arguments (e.g. v=... for a Variable named 'v')
     """
@@ -63,7 +63,7 @@ class ParticleSet:
         lat=None,
         z=None,
         time=None,
-        trajectory_ids=None,
+        particle_ids=None,
         **kwargs,
     ):
         self._data = None
@@ -74,8 +74,8 @@ class ParticleSet:
         lat = np.empty(shape=0) if lat is None else np.array(lat).flatten()
         time = np.empty(shape=0) if time is None else np.array(time).flatten()
 
-        if trajectory_ids is None:
-            trajectory_ids = np.arange(lon.size)
+        if particle_ids is None:
+            particle_ids = np.arange(lon.size)
 
         if z is None:
             minz = 0
@@ -111,13 +111,12 @@ class ParticleSet:
             pclass=pclass,
             nparticles=lon.size,
             ngrids=len(fieldset.gridset),
-            time_interval=fieldset.time_interval,
             initial=dict(
                 lon=lon,
                 lat=lat,
                 z=z,
                 time=time,
-                trajectory=trajectory_ids,
+                particle_id=particle_ids,
             ),
         )
         self._ptype = pclass
@@ -178,7 +177,7 @@ class ParticleSet:
         return particleset_repr(self)
 
     def __len__(self):
-        return len(self._data["trajectory"])
+        return len(self._data["particle_id"])
 
     def add(self, particles):
         """Add particles to the ParticleSet. Note that this is an
@@ -209,11 +208,11 @@ class ParticleSet:
             return
 
         if isinstance(particles, type(self)):
-            if len(self._data["trajectory"]) > 0:
-                offset = self._data["trajectory"].max() + 1
+            if len(self._data["particle_id"]) > 0:
+                offset = self._data["particle_id"].max() + 1
             else:
                 offset = 0
-            particles._data["trajectory"] = particles._data["trajectory"] + offset
+            particles._data["particle_id"] = particles._data["particle_id"] + offset
 
         for d in self._data:
             self._data[d] = np.concatenate((self._data[d], particles._data[d]))
@@ -415,7 +414,7 @@ class ParticleSet:
 
         # Set up pbar
         if output_file:
-            logger.info(f"Output files are stored in {_format_zarr_output_location(output_file.store)}")
+            logger.info(f"Output files are stored in {output_file.path}")
 
         if verbose_progress:
             pbar = tqdm(
@@ -458,6 +457,9 @@ class ParticleSet:
                 pbar.update(next_time - time)
 
             time = next_time
+
+        if output_file is not None:
+            output_file.close()
 
         if verbose_progress:
             pbar.close()

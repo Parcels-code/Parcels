@@ -694,7 +694,7 @@ def _grid3d_to_ascii(grid: Grid3DMetadata) -> str:
     return "\n".join(lines)
 
 
-def _attach_sgrid_metadata(ds, grid: Grid2DMetadata | Grid3DMetadata):
+def _attach_sgrid_metadata(ds: xr.Dataset, grid: Grid2DMetadata | Grid3DMetadata):
     """Copies the dataset and attaches the SGRID metadata in 'grid' variable. Modifies 'conventions' attribute."""
     ds = ds.copy()
     ds["grid"] = (

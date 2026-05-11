@@ -7,7 +7,6 @@ from typing import TYPE_CHECKING, Any, cast
 
 import numpy as np
 import xarray as xr
-from zarr.storage import DirectoryStore
 
 if TYPE_CHECKING:
     from parcels import Field, FieldSet, ParticleSet
@@ -98,7 +97,7 @@ def particleset_repr(pset: ParticleSet) -> str:
 def particlesetview_repr(pview: Any) -> str:
     """Return a pretty repr for ParticleSetView"""
     time_string = "not_yet_set" if pview.time is None or np.isnan(pview.time) else f"{pview.time:f}"
-    out = f"P[{pview.trajectory}]: time={time_string}, z={pview.z:f}, lat={pview.lat:f}, lon={pview.lon:f}"
+    out = f"P[{pview.particle_id}]: time={time_string}, z={pview.z:f}, lat={pview.lat:f}, lon={pview.lon:f}"
     vars = [v.name for v in pview._ptype.variables if v.to_write is True and v.name not in ["lon", "lat", "z", "time"]]
     for var in vars:
         out += f", {var}={getattr(pview, var):f}"
@@ -128,10 +127,8 @@ def timeinterval_repr(ti: Any) -> str:
 def particlefile_repr(pfile: Any) -> str:
     """Return a pretty repr for ParticleFile"""
     out = f"""<{type(pfile).__name__}>
-    store               : {_format_zarr_output_location(pfile.store)}
+    path                : {pfile.path}
     outputdt            : {pfile.outputdt!r}
-    chunks              : {pfile.chunks!r}
-    create_new_zarrfile : {pfile.create_new_zarrfile!r}
     metadata            :
 {_format_list_items_multiline(pfile.metadata, level=2, with_brackets=False)}
 """
@@ -176,12 +173,6 @@ def _format_list_items_multiline(items: list[str] | dict, level: int = 1, with_b
         return f"[\n{items_str}\n{indentation_str_end}]"
     else:
         return "\n".join([textwrap.indent(e, indentation_str) for e in entries])
-
-
-def _format_zarr_output_location(zarr_obj):
-    if isinstance(zarr_obj, DirectoryStore):
-        return zarr_obj.path
-    return repr(zarr_obj)
 
 
 def is_builtin_object(obj):

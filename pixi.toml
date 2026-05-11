@@ -23,15 +23,18 @@ python = ">=3.11"
 netcdf4 = ">=1.6.0"
 numpy = ">=2.1.0"
 tqdm = ">=4.50.0"
-xarray = ">=2024.5.0,<2026.4.0" # TODO: remove upper pin when https://github.com/UXARRAY/uxarray/issues/1490 is resolved
+xarray = ">=2024.5.0"
+pandas = ">=2.2"
+pyarrow = ">=20.0.0"
 holoviews = ">=1.22.0" # https://github.com/prefix-dev/rattler-build/issues/2326
-uxarray = ">=2025.3.0"
+uxarray = ">=2026.04.1"
 dask = ">=2024.5.1"
-zarr = ">=2.15.0,!=2.18.0,<3"
+zarr = ">=3"
 xgcm = { git = "https://github.com/xgcm/xgcm", rev = "master" } # TODO: Switch to release version after release is cut
 cf_xarray = ">=0.8.6"
 cftime = ">=1.6.3"
 pooch = ">=1.8.0"
+polars = ">=1.31.0"
 
 [dependencies]
 parcels = { path = "." }
@@ -51,13 +54,16 @@ netcdf4 = "1.6.*"
 numpy = "2.1.*"
 tqdm = "4.50.*"
 xarray = "2025.8.*"
-uxarray = "2025.3.*"
+pandas = "2.2.*"
+pyarrow = "20.0.*"
+uxarray = "==2026.04.1"
 dask = "2024.6.*"
-zarr = "2.18.*"
+zarr = "3.0.*"
 xgcm = { version = "0.9.*", channel = "conda-forge" }
 cf_xarray = "0.10.*"
 cftime = "1.6.*"
 pooch = "1.8.*"
+polars = "1.31.*"
 
 [feature.py311.dependencies]
 python = "3.11.*"
@@ -73,7 +79,7 @@ pytest-html = "*"
 pytest-cov = "*"
 
 [feature.test.tasks]
-tests = { cmd = "pytest", description = "Run the test suite." }
+tests = { cmd = "pytest -m 'not flaky'", description = "Run the test suite." }
 tests-notebooks = { cmd = "pytest --nbval-lax docs/user_guide/examples", description = "Run the user guide example notebooks as tests." }
 
 
@@ -137,10 +143,12 @@ numpydoc = "*"
 numpydoc-lint = { cmd = "python tools/numpydoc-public-api.py", description = "Lint public API docstrings with numpydoc." }
 
 [feature.typing.dependencies]
-ty = "*"
+mypy = "*"
+lxml = "*" # in CI
+types-tqdm = "*"
 
 [feature.typing.tasks]
-typing = { cmd = "ty check", description = "Run static type checking with ty." }
+typing = { cmd = "mypy src/parcels --install-types", description = "Run static type checking with mypy." }
 
 
 [environments]

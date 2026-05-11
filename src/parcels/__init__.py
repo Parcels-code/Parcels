@@ -11,7 +11,7 @@ import warnings as _stdlib_warnings
 
 from parcels._core.fieldset import FieldSet
 from parcels._core.particleset import ParticleSet
-from parcels._core.particlefile import ParticleFile
+from parcels._core.particlefile import ParticleFile, read_particlefile
 from parcels._core.particle import (
     Variable,
     Particle,
@@ -67,6 +67,7 @@ __all__ = [  # noqa: RUF022
     "ParticleSetWarning",
     # Utilities
     "logger",
+    "read_particlefile",
 ]
 
 _stdlib_warnings.warn(
