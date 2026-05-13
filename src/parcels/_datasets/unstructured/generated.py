@@ -165,14 +165,14 @@ def _build_delaunay_grid(nx, lon_range, lat_range):
     return uxgrid
 
 
-def _wrap_uvw_dataset(uxgrid, U, V, W, zc, zf, time, uv_dim, uv_location, description):
-    """Wrap (U, V, W) numpy arrays into a UxDataset following Parcels' UGRID conventions.
+def _wrap_uvw_dataset(uxgrid, u, v, w, zc, zf, time, uv_dim, uv_location, description):
+    """Wrap (u, v, w) numpy arrays into a UxDataset following Parcels' UGRID conventions.
 
-    U, V are placed on ``uv_dim`` (``"n_face"`` or ``"n_node"``) at vertical centres ``zc``.
-    W is always on ``n_node`` at vertical interfaces ``zf``.
+    u, v are placed on ``uv_dim`` (``"n_face"`` or ``"n_node"``) at vertical centres ``zc``.
+    w is always on ``n_node`` at vertical interfaces ``zf``.
     """
-    u = ux.UxDataArray(
-        data=U,
+    u_da = ux.UxDataArray(
+        data=u,
         name="U",
         uxgrid=uxgrid,
         dims=["time", "zc", uv_dim],
@@ -185,8 +185,8 @@ def _wrap_uvw_dataset(uxgrid, U, V, W, zc, zf, time, uv_dim, uv_location, descri
             Conventions="UGRID-1.0",
         ),
     )
-    v = ux.UxDataArray(
-        data=V,
+    v_da = ux.UxDataArray(
+        data=v,
         name="V",
         uxgrid=uxgrid,
         dims=["time", "zc", uv_dim],
@@ -199,8 +199,8 @@ def _wrap_uvw_dataset(uxgrid, U, V, W, zc, zf, time, uv_dim, uv_location, descri
             Conventions="UGRID-1.0",
         ),
     )
-    w = ux.UxDataArray(
-        data=W,
+    w_da = ux.UxDataArray(
+        data=w,
         name="W",
         uxgrid=uxgrid,
         dims=["time", "zf", "n_node"],
@@ -213,15 +213,15 @@ def _wrap_uvw_dataset(uxgrid, U, V, W, zc, zf, time, uv_dim, uv_location, descri
             Conventions="UGRID-1.0",
         ),
     )
-    return ux.UxDataset({"U": u, "V": v, "W": w}, uxgrid=uxgrid)
+    return ux.UxDataset({"U": u_da, "V": v_da, "W": w_da}, uxgrid=uxgrid)
 
 
-def uniform_translation_face_centered(nx=20, U0=0.001, V0=0.0005):
-    """T1-1 uniform translation, face-centered (U, V on ``n_face``).
+def uniform_translation_face_centered(nx=20, u0=0.001, v0=0.0005):
+    """T1-1 uniform translation, face-centered (u, v on ``n_face``).
 
-    Verification field `u = U_0`,`v = V_0` on a Delaunay triangulation of a
+    Verification field `u = u_0`,`v = v_0` on a Delaunay triangulation of a
     regular ``nx``-by-``nx`` point lattice over ``[0, 10] x [0, 10]``. Single vertical layer
-    spans ``z in [0, 1]``. ``W`` is identically zero on the corner nodes.
+    spans ``z in [0, 1]``. ``w`` is identically zero on the corner nodes.
     """
     uxgrid = _build_delaunay_grid(nx, (0.0, 10.0), (0.0, 10.0))
 
@@ -229,15 +229,15 @@ def uniform_translation_face_centered(nx=20, U0=0.001, V0=0.0005):
     zc = np.array([0.5], dtype=np.float64)
     time = xr.date_range("2000-01-01", periods=1, freq="2h")
 
-    U = np.full((1, zc.size, uxgrid.n_face), U0, dtype=np.float64)
-    V = np.full((1, zc.size, uxgrid.n_face), V0, dtype=np.float64)
-    W = np.zeros((1, zf.size, uxgrid.n_node), dtype=np.float64)
+    u = np.full((1, zc.size, uxgrid.n_face), u0, dtype=np.float64)
+    v = np.full((1, zc.size, uxgrid.n_face), v0, dtype=np.float64)
+    w = np.zeros((1, zf.size, uxgrid.n_node), dtype=np.float64)
 
-    return _wrap_uvw_dataset(uxgrid, U, V, W, zc, zf, time, "n_face", "face", "uniform translation")
+    return _wrap_uvw_dataset(uxgrid, u, v, w, zc, zf, time, "n_face", "face", "uniform translation")
 
 
-def uniform_translation_node_centered(nx=20, U0=0.001, V0=0.0005):
-    """T1-1 uniform translation, node-centered (U, V on ``n_node``).
+def uniform_translation_node_centered(nx=20, u0=0.001, v0=0.0005):
+    """T1-1 uniform translation, node-centered (u, v on ``n_node``).
 
     Same field as :func:`uniform_translation_face_centered` but with horizontal velocity
     sampled at corner nodes for use with barycentric (linear) interpolators.
@@ -248,19 +248,19 @@ def uniform_translation_node_centered(nx=20, U0=0.001, V0=0.0005):
     zc = np.array([0.5], dtype=np.float64)
     time = xr.date_range("2000-01-01", periods=1, freq="2h")
 
-    U = np.full((1, zc.size, uxgrid.n_node), U0, dtype=np.float64)
-    V = np.full((1, zc.size, uxgrid.n_node), V0, dtype=np.float64)
-    W = np.zeros((1, zf.size, uxgrid.n_node), dtype=np.float64)
+    u = np.full((1, zc.size, uxgrid.n_node), u0, dtype=np.float64)
+    v = np.full((1, zc.size, uxgrid.n_node), v0, dtype=np.float64)
+    w = np.zeros((1, zf.size, uxgrid.n_node), dtype=np.float64)
 
-    return _wrap_uvw_dataset(uxgrid, U, V, W, zc, zf, time, "n_node", "node", "uniform translation")
+    return _wrap_uvw_dataset(uxgrid, u, v, w, zc, zf, time, "n_node", "node", "uniform translation")
 
 
 def solid_body_rotation_face_centered(nx=40, omega=2.0 * math.pi / 3600.0):
-    """T1-2 2D solid-body rotation, face-centered (U, V on ``n_face``).
+    r"""T1-2 2D solid-body rotation, face-centered (u, v on ``n_face``).
 
-    Verification field :math:`u = -\\Omega y`, :math:`v = \\Omega x` on a Delaunay
+    Verification field :math:`u = -\Omega y`, :math:`v = \Omega x` on a Delaunay
     triangulation of a regular ``nx``-by-``nx`` point lattice over ``[-5, 5] x [-5, 5]``
-    centred on the rotation axis. Single vertical layer; ``W = 0``.
+    centred on the rotation axis. Single vertical layer; ``w = 0``.
     """
     uxgrid = _build_delaunay_grid(nx, (-5.0, 5.0), (-5.0, 5.0))
 
@@ -270,15 +270,15 @@ def solid_body_rotation_face_centered(nx=40, omega=2.0 * math.pi / 3600.0):
 
     u_vals = -omega * uxgrid.face_lat.values
     v_vals = omega * uxgrid.face_lon.values
-    U = np.broadcast_to(u_vals[np.newaxis, np.newaxis, :], (1, zc.size, uxgrid.n_face)).copy()
-    V = np.broadcast_to(v_vals[np.newaxis, np.newaxis, :], (1, zc.size, uxgrid.n_face)).copy()
-    W = np.zeros((1, zf.size, uxgrid.n_node), dtype=np.float64)
+    u = np.broadcast_to(u_vals[np.newaxis, np.newaxis, :], (1, zc.size, uxgrid.n_face)).copy()
+    v = np.broadcast_to(v_vals[np.newaxis, np.newaxis, :], (1, zc.size, uxgrid.n_face)).copy()
+    w = np.zeros((1, zf.size, uxgrid.n_node), dtype=np.float64)
 
-    return _wrap_uvw_dataset(uxgrid, U, V, W, zc, zf, time, "n_face", "face", "solid-body rotation")
+    return _wrap_uvw_dataset(uxgrid, u, v, w, zc, zf, time, "n_face", "face", "solid-body rotation")
 
 
 def solid_body_rotation_node_centered(nx=40, omega=2.0 * math.pi / 3600.0):
-    """T1-2 2D solid-body rotation, node-centered (U, V on ``n_node``).
+    """T1-2 2D solid-body rotation, node-centered (u, v on ``n_node``).
 
     Same field as :func:`solid_body_rotation_face_centered` but sampled at corner
     nodes. Because the field is linear in space, barycentric interpolation reproduces it
@@ -292,20 +292,20 @@ def solid_body_rotation_node_centered(nx=40, omega=2.0 * math.pi / 3600.0):
 
     u_vals = -omega * uxgrid.node_lat.values
     v_vals = omega * uxgrid.node_lon.values
-    U = np.broadcast_to(u_vals[np.newaxis, np.newaxis, :], (1, zc.size, uxgrid.n_node)).copy()
-    V = np.broadcast_to(v_vals[np.newaxis, np.newaxis, :], (1, zc.size, uxgrid.n_node)).copy()
-    W = np.zeros((1, zf.size, uxgrid.n_node), dtype=np.float64)
+    u = np.broadcast_to(u_vals[np.newaxis, np.newaxis, :], (1, zc.size, uxgrid.n_node)).copy()
+    v = np.broadcast_to(v_vals[np.newaxis, np.newaxis, :], (1, zc.size, uxgrid.n_node)).copy()
+    w = np.zeros((1, zf.size, uxgrid.n_node), dtype=np.float64)
 
-    return _wrap_uvw_dataset(uxgrid, U, V, W, zc, zf, time, "n_node", "node", "solid-body rotation")
+    return _wrap_uvw_dataset(uxgrid, u, v, w, zc, zf, time, "n_node", "node", "solid-body rotation")
 
 
-def solid_body_rotation_3d_face_centered(nx=40, nz=10, omega=2.0 * math.pi / 3600.0, W0=0.005):
-    """T1-3 3D helical motion, face-centered horizontal velocity.
+def solid_body_rotation_3d_face_centered(nx=40, nz=10, omega=2.0 * math.pi / 3600.0, w0=0.005):
+    r"""T1-3 3D helical motion, face-centered horizontal velocity.
 
-    Verification field :math:`u = -\\Omega y`, :math:`v = \\Omega x`, :math:`w = W_0` on a
+    Verification field :math:`u = -\Omega y`, :math:`v = \Omega x`, :math:`w = w_0` on a
     Delaunay triangulation of a regular ``nx``-by-``nx`` point lattice over
-    ``[-5, 5] x [-5, 5]`` with ``nz`` vertical layers spanning ``[0, 100]``. ``U`` and ``V``
-    are sampled at face centres; ``W`` is sampled at corner nodes on the layer interfaces.
+    ``[-5, 5] x [-5, 5]`` with ``nz`` vertical layers spanning ``[0, 100]``. ``u`` and ``v``
+    are sampled at face centres; ``w`` is sampled at corner nodes on the layer interfaces.
     """
     uxgrid = _build_delaunay_grid(nx, (-5.0, 5.0), (-5.0, 5.0))
 
@@ -315,15 +315,15 @@ def solid_body_rotation_3d_face_centered(nx=40, nz=10, omega=2.0 * math.pi / 360
 
     u_vals = -omega * uxgrid.face_lat.values
     v_vals = omega * uxgrid.face_lon.values
-    U = np.broadcast_to(u_vals[np.newaxis, np.newaxis, :], (1, zc.size, uxgrid.n_face)).copy()
-    V = np.broadcast_to(v_vals[np.newaxis, np.newaxis, :], (1, zc.size, uxgrid.n_face)).copy()
-    W = np.full((1, zf.size, uxgrid.n_node), W0, dtype=np.float64)
+    u = np.broadcast_to(u_vals[np.newaxis, np.newaxis, :], (1, zc.size, uxgrid.n_face)).copy()
+    v = np.broadcast_to(v_vals[np.newaxis, np.newaxis, :], (1, zc.size, uxgrid.n_face)).copy()
+    w = np.full((1, zf.size, uxgrid.n_node), w0, dtype=np.float64)
 
-    return _wrap_uvw_dataset(uxgrid, U, V, W, zc, zf, time, "n_face", "face", "3D solid-body rotation")
+    return _wrap_uvw_dataset(uxgrid, u, v, w, zc, zf, time, "n_face", "face", "3D solid-body rotation")
 
 
-def solid_body_rotation_3d_node_centered(nx=40, nz=10, omega=2.0 * math.pi / 3600.0, W0=0.005):
-    """T1-3 3D helical motion, node-centered (U, V, W on nodes).
+def solid_body_rotation_3d_node_centered(nx=40, nz=10, omega=2.0 * math.pi / 3600.0, w0=0.005):
+    """T1-3 3D helical motion, node-centered (u, v, w on nodes).
 
     Same field as :func:`solid_body_rotation_3d_face_centered` with horizontal velocity
     sampled at corner nodes. The horizontal field is linear and the vertical field is
@@ -337,8 +337,8 @@ def solid_body_rotation_3d_node_centered(nx=40, nz=10, omega=2.0 * math.pi / 360
 
     u_vals = -omega * uxgrid.node_lat.values
     v_vals = omega * uxgrid.node_lon.values
-    U = np.broadcast_to(u_vals[np.newaxis, np.newaxis, :], (1, zc.size, uxgrid.n_node)).copy()
-    V = np.broadcast_to(v_vals[np.newaxis, np.newaxis, :], (1, zc.size, uxgrid.n_node)).copy()
-    W = np.full((1, zf.size, uxgrid.n_node), W0, dtype=np.float64)
+    u = np.broadcast_to(u_vals[np.newaxis, np.newaxis, :], (1, zc.size, uxgrid.n_node)).copy()
+    v = np.broadcast_to(v_vals[np.newaxis, np.newaxis, :], (1, zc.size, uxgrid.n_node)).copy()
+    w = np.full((1, zf.size, uxgrid.n_node), w0, dtype=np.float64)
 
-    return _wrap_uvw_dataset(uxgrid, U, V, W, zc, zf, time, "n_node", "node", "3D solid-body rotation")
+    return _wrap_uvw_dataset(uxgrid, u, v, w, zc, zf, time, "n_node", "node", "3D solid-body rotation")
