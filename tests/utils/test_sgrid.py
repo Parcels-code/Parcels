@@ -219,6 +219,28 @@ def test_Grid3DMetadata_roundtrip(grid: sgrid.SGrid3DMetadata):
     assert parsed == grid
 
 
+@given(pst.sgrid.grid2Dmetadata(use_standard_names=True))
+def test_grid2Dmetadata_standard_names(grid: sgrid.SGrid2DMetadata):
+    assert grid.node_dimensions == ("node_dimension1", "node_dimension2")
+    assert grid.face_dimensions[0].face == "face_dimension1"
+    assert grid.face_dimensions[1].face == "face_dimension2"
+    if grid.node_coordinates is not None:
+        assert grid.node_coordinates == ("node_coordinates_var1", "node_coordinates_var2")
+    if grid.vertical_dimensions is not None:
+        assert grid.vertical_dimensions[0].face == "vertical_dimensions_face"
+        assert grid.vertical_dimensions[0].node == "vertical_dimensions_node"
+
+
+@given(pst.sgrid.grid3Dmetadata(use_standard_names=True))
+def test_grid3Dmetadata_standard_names(grid: sgrid.SGrid3DMetadata):
+    assert grid.node_dimensions == ("node_dimension1", "node_dimension2", "node_dimension3")
+    assert grid.volume_dimensions[0].face == "face_dimension1"
+    assert grid.volume_dimensions[1].face == "face_dimension2"
+    assert grid.volume_dimensions[2].face == "face_dimension3"
+    if grid.node_coordinates is not None:
+        assert grid.node_coordinates == ("node_coordinates_var1", "node_coordinates_var2", "node_coordinates_dim3")
+
+
 @given(pst.sgrid.grid_metadata)
 def test_parse_grid_attrs(grid: sgrid.AttrsSerializable):
     attrs = grid.to_attrs()

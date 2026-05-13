@@ -27,13 +27,24 @@ mappings = st.lists(face_node_padding | dimension_name).map(tuple)
 
 
 @st.composite
-def grid2Dmetadata(draw) -> sgrid.SGrid2DMetadata:
-    N = 8
-    names = draw(
-        st.lists(dimension_name, min_size=N, max_size=N, unique=True)
-        # Reserved, as 'grid' name is used in Parcels testing to store grid information
-        .filter(lambda names: "grid" not in names)
-    )
+def grid2Dmetadata(draw, use_standard_names=False) -> sgrid.SGrid2DMetadata:
+    names = [
+        "node_dimension1",
+        "node_dimension2",
+        "face_dimension1",
+        "face_dimension2",
+        "node_coordinates_var1",
+        "node_coordinates_var2",
+        "vertical_dimensions_face",
+        "vertical_dimensions_node",
+    ]
+    if not use_standard_names:
+        names = draw(
+            st.lists(dimension_name, min_size=len(names), max_size=len(names), unique=True)
+            # Reserved, as 'grid' name is used in Parcels testing to store grid information
+            .filter(lambda names: "grid" not in names)
+        )
+
     node_dimension1 = names[0]
     node_dimension2 = names[1]
     face_dimension1 = names[2]
@@ -76,13 +87,24 @@ def grid2Dmetadata(draw) -> sgrid.SGrid2DMetadata:
 
 
 @st.composite
-def grid3Dmetadata(draw) -> sgrid.SGrid3DMetadata:
-    N = 9
-    names = draw(
-        st.lists(dimension_name, min_size=N, max_size=N, unique=True)
-        # Reserved, as 'grid' name is used in Parcels testing to store grid information
-        .filter(lambda names: "grid" not in names)
-    )
+def grid3Dmetadata(draw, use_standard_names=False) -> sgrid.SGrid3DMetadata:
+    names = [
+        "node_dimension1",
+        "node_dimension2",
+        "node_dimension3",
+        "face_dimension1",
+        "face_dimension2",
+        "face_dimension3",
+        "node_coordinates_var1",
+        "node_coordinates_var2",
+        "node_coordinates_dim3",
+    ]
+    if not use_standard_names:
+        names = draw(
+            st.lists(dimension_name, min_size=len(names), max_size=len(names), unique=True)
+            # Reserved, as 'grid' name is used in Parcels testing to store grid information
+            .filter(lambda names: "grid" not in names)
+        )
     node_dimension1 = names[0]
     node_dimension2 = names[1]
     node_dimension3 = names[2]

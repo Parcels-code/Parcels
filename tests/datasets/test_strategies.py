@@ -20,6 +20,7 @@ from parcels._datasets.structured.strategies import _face_size, sgrid_dataset
 def test_face_size(n_nodes, padding, n_edges):
     assert _face_size(n_nodes, padding) == n_edges
 
+
 def test_sgrid_dataset_raises_when_no_node_coordinates():
     no_coords_grid = sgrid.SGrid2DMetadata(
         cf_role="grid_topology",
