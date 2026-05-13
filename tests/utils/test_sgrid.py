@@ -18,7 +18,7 @@ def create_example_grid2dmetadata(with_vertical_dimensions: bool, with_node_coor
     )
     node_coordinates = ("node_coordinates_var1", "node_coordinates_var2") if with_node_coordinates else None
 
-    return sgrid.Grid2DMetadata(
+    return sgrid.SGrid2DMetadata(
         cf_role="grid_topology",
         topology_dimension=2,
         node_dimensions=("node_dimension1", "node_dimension2"),
@@ -35,7 +35,7 @@ def create_example_grid3dmetadata(with_node_coordinates: bool):
     node_coordinates = (
         ("node_coordinates_var1", "node_coordinates_var2", "node_coordinates_dim3") if with_node_coordinates else None
     )
-    return sgrid.Grid3DMetadata(
+    return sgrid.SGrid3DMetadata(
         cf_role="grid_topology",
         topology_dimension=3,
         node_dimensions=("node_dimension1", "node_dimension2", "node_dimension3"),
@@ -72,20 +72,20 @@ grid3dmetadata = create_example_grid3dmetadata(with_node_coordinates=True)
         (grid3dmetadata, "type3", sgrid.Padding.LOW),
     ],
 )
-def test_get_value_by_id(sgrid_metadata: sgrid.Grid2DMetadata | sgrid.Grid3DMetadata, id, value):
+def test_get_value_by_id(sgrid_metadata: sgrid.SGrid2DMetadata | sgrid.SGrid3DMetadata, id, value):
     assert sgrid_metadata.get_value_by_id(id) == value
 
 
-def dummy_sgrid_ds(grid: sgrid.Grid2DMetadata | sgrid.Grid3DMetadata) -> xr.Dataset:
-    if isinstance(grid, sgrid.Grid2DMetadata):
+def dummy_sgrid_ds(grid: sgrid.SGrid2DMetadata | sgrid.SGrid3DMetadata) -> xr.Dataset:
+    if isinstance(grid, sgrid.SGrid2DMetadata):
         return dummy_sgrid_2d_ds(grid)
-    elif isinstance(grid, sgrid.Grid3DMetadata):
+    elif isinstance(grid, sgrid.SGrid3DMetadata):
         return dummy_sgrid_3d_ds(grid)
     else:
         raise NotImplementedError(f"Cannot create dummy SGrid dataset for grid type {type(grid)}")
 
 
-def dummy_sgrid_2d_ds(grid: sgrid.Grid2DMetadata) -> xr.Dataset:
+def dummy_sgrid_2d_ds(grid: sgrid.SGrid2DMetadata) -> xr.Dataset:
     ds = dummy_comodo_3d_ds()
 
     # Can't rename dimensions that already exist in the dataset
@@ -110,7 +110,7 @@ def dummy_sgrid_2d_ds(grid: sgrid.Grid2DMetadata) -> xr.Dataset:
     return ds
 
 
-def dummy_sgrid_3d_ds(grid: sgrid.Grid3DMetadata) -> xr.Dataset:
+def dummy_sgrid_3d_ds(grid: sgrid.SGrid3DMetadata) -> xr.Dataset:
     ds = dummy_comodo_3d_ds()
 
     # Can't rename dimensions that already exist in the dataset
@@ -205,17 +205,17 @@ def test_load_dump_mappings(input_, expected):
 
 @example(grid2dmetadata)
 @given(pst.sgrid.grid2Dmetadata())
-def test_Grid2DMetadata_roundtrip(grid: sgrid.Grid2DMetadata):
+def test_Grid2DMetadata_roundtrip(grid: sgrid.SGrid2DMetadata):
     attrs = grid.to_attrs()
-    parsed = sgrid.Grid2DMetadata.from_attrs(attrs)
+    parsed = sgrid.SGrid2DMetadata.from_attrs(attrs)
     assert parsed == grid
 
 
 @example(grid3dmetadata)
 @given(pst.sgrid.grid3Dmetadata())
-def test_Grid3DMetadata_roundtrip(grid: sgrid.Grid3DMetadata):
+def test_Grid3DMetadata_roundtrip(grid: sgrid.SGrid3DMetadata):
     attrs = grid.to_attrs()
-    parsed = sgrid.Grid3DMetadata.from_attrs(attrs)
+    parsed = sgrid.SGrid3DMetadata.from_attrs(attrs)
     assert parsed == grid
 
 
@@ -228,7 +228,7 @@ def test_parse_grid_attrs(grid: sgrid.AttrsSerializable):
 
 @example(grid2dmetadata)
 @given(pst.sgrid.grid2Dmetadata())
-def test_parse_sgrid_2d(grid_metadata: sgrid.Grid2DMetadata):
+def test_parse_sgrid_2d(grid_metadata: sgrid.SGrid2DMetadata):
     """Test the ingestion of datasets in XGCM to ensure that it matches the SGRID metadata provided"""
     ds = dummy_sgrid_2d_ds(grid_metadata)
 
@@ -250,7 +250,7 @@ def test_parse_sgrid_2d(grid_metadata: sgrid.Grid2DMetadata):
 
 
 @given(pst.sgrid.grid3Dmetadata())
-def test_parse_sgrid_3d(grid_metadata: sgrid.Grid3DMetadata):
+def test_parse_sgrid_3d(grid_metadata: sgrid.SGrid3DMetadata):
     """Test the ingestion of datasets in XGCM to ensure that it matches the SGRID metadata provided"""
     ds = dummy_sgrid_3d_ds(grid_metadata)
 
@@ -310,7 +310,7 @@ def test_rename_errors():
                 "grid": (
                     [],
                     np.array(0),
-                    sgrid.Grid2DMetadata(
+                    sgrid.SGrid2DMetadata(
                         cf_role="grid_topology",
                         topology_dimension=2,
                         node_dimensions=("XG", "YG"),

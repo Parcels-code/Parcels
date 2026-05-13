@@ -3,7 +3,7 @@ import xarray as xr
 
 from parcels._core.utils.sgrid import (
     FaceNodePadding,
-    Grid2DMetadata,
+    SGrid2DMetadata,
     Padding,
     _attach_sgrid_metadata,
 )
@@ -249,7 +249,7 @@ datasets_sgrid = {
         datasets["ds_2d_left"]
         .pipe(
             _attach_sgrid_metadata,
-            Grid2DMetadata(
+            SGrid2DMetadata(
                 cf_role="grid_topology",
                 topology_dimension=2,
                 node_dimensions=("XG", "YG"),
@@ -270,7 +270,7 @@ datasets_sgrid = {
         datasets["ds_2d_right"]
         .pipe(
             _attach_sgrid_metadata,
-            Grid2DMetadata(
+            SGrid2DMetadata(
                 cf_role="grid_topology",
                 topology_dimension=2,
                 node_dimensions=("XG", "YG"),

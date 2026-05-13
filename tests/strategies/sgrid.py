@@ -27,7 +27,7 @@ mappings = st.lists(dim_dim_padding | dimension_name).map(tuple)
 
 
 @st.composite
-def grid2Dmetadata(draw) -> sgrid.Grid2DMetadata:
+def grid2Dmetadata(draw) -> sgrid.SGrid2DMetadata:
     N = 8
     names = draw(
         st.lists(dimension_name, min_size=N, max_size=N, unique=True)
@@ -62,7 +62,7 @@ def grid2Dmetadata(draw) -> sgrid.Grid2DMetadata:
     else:
         vertical_dimensions = None
 
-    return sgrid.Grid2DMetadata(
+    return sgrid.SGrid2DMetadata(
         cf_role="grid_topology",
         topology_dimension=2,
         node_dimensions=(node_dimension1, node_dimension2),
@@ -76,7 +76,7 @@ def grid2Dmetadata(draw) -> sgrid.Grid2DMetadata:
 
 
 @st.composite
-def grid3Dmetadata(draw) -> sgrid.Grid3DMetadata:
+def grid3Dmetadata(draw) -> sgrid.SGrid3DMetadata:
     N = 9
     names = draw(
         st.lists(dimension_name, min_size=N, max_size=N, unique=True)
@@ -103,7 +103,7 @@ def grid3Dmetadata(draw) -> sgrid.Grid3DMetadata:
     else:
         node_coordinates = None
 
-    return sgrid.Grid3DMetadata(
+    return sgrid.SGrid3DMetadata(
         cf_role="grid_topology",
         topology_dimension=3,
         node_dimensions=(node_dimension1, node_dimension2, node_dimension3),

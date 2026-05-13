@@ -358,7 +358,7 @@ def nemo_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.Da
 
     ds["grid"] = xr.DataArray(
         0,
-        attrs=sgrid.Grid2DMetadata(
+        attrs=sgrid.SGrid2DMetadata(
             cf_role="grid_topology",
             topology_dimension=2,
             node_dimensions=("x", "y"),
@@ -426,7 +426,7 @@ def mitgcm_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.
 
     ds["grid"] = xr.DataArray(
         0,
-        attrs=sgrid.Grid2DMetadata(
+        attrs=sgrid.SGrid2DMetadata(
             cf_role="grid_topology",
             topology_dimension=2,
             node_dimensions=("lon", "lat"),
@@ -487,7 +487,7 @@ def croco_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.D
 
     ds["grid"] = xr.DataArray(
         0,
-        attrs=sgrid.Grid2DMetadata(
+        attrs=sgrid.SGrid2DMetadata(
             cf_role="grid_topology",
             topology_dimension=2,
             node_dimensions=("lon", "lat"),
@@ -551,7 +551,7 @@ def copernicusmarine_to_sgrid(
         )
     ds["grid"] = xr.DataArray(
         0,
-        attrs=sgrid.Grid2DMetadata(  # use dummy *_center dimensions - this is A grid data (all defined on nodes)
+        attrs=sgrid.SGrid2DMetadata(  # use dummy *_center dimensions - this is A grid data (all defined on nodes)
             cf_role="grid_topology",
             topology_dimension=2,
             node_dimensions=("lon", "lat"),
