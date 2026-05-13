@@ -21,7 +21,7 @@ def _face_size(node_size: int, padding: sgrid.Padding) -> int:
 def sgrid_dataset(draw, grid: sgrid.SGrid2DMetadata | None = None) -> xr.Dataset:
     """Strategy to create Xarray Sgrid datasets for testing"""
     if grid is None:
-        grid = draw(pst.sgrid.grid2Dmetadata().filter(lambda g: g.node_coordinates is not None))
+        grid = draw(pst.sgrid.grid2Dmetadata(use_standard_names=True).filter(lambda g: g.node_coordinates is not None))
     elif grid.node_coordinates is None:
         raise ValueError("grid must have node_coordinates set")
 
