@@ -17,13 +17,13 @@ padding = st.sampled_from(sgrid.Padding)
 dimension_name = xr_st.names().filter(
     lambda s: " " not in s
 )  # assuming for now spaces are allowed in dimension names in SGrid convention
-dim_dim_padding = (
+face_node_padding = (
     st.tuples(dimension_name, dimension_name, padding)
     .filter(lambda t: t[0] != t[1])
     .map(lambda t: sgrid.FaceNodePadding(*t))
 )
 
-mappings = st.lists(dim_dim_padding | dimension_name).map(tuple)
+mappings = st.lists(face_node_padding | dimension_name).map(tuple)
 
 
 @st.composite
