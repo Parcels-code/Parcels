@@ -6,7 +6,7 @@ import xarray as xr
 import xgcm
 from hypothesis import assume, example, given
 
-import tests.strategies as pst
+import parcels._strategies as pst
 from parcels._core.utils import sgrid
 
 

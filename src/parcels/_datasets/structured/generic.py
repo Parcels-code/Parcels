@@ -3,8 +3,8 @@ import xarray as xr
 
 from parcels._core.utils.sgrid import (
     FaceNodePadding,
-    SGrid2DMetadata,
     Padding,
+    SGrid2DMetadata,
     _attach_sgrid_metadata,
 )
 from parcels._core.utils.sgrid import (
