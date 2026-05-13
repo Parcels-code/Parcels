@@ -1,7 +1,10 @@
+import warnings
+
 import numpy as np
 import pytest
 import xarray as xr
 from hypothesis import given, settings
+from hypothesis.errors import NonInteractiveExampleWarning
 
 from parcels._core.utils import sgrid
 from parcels._core.utils.sgrid import get_grid_topology, parse_grid_attrs
@@ -22,18 +25,20 @@ def test_face_size(n_nodes, padding, n_edges):
 
 
 def test_sgrid_dataset_raises_when_no_node_coordinates():
-    no_coords_grid = sgrid.SGrid2DMetadata(
-        cf_role="grid_topology",
-        topology_dimension=2,
-        node_dimensions=("XG", "YG"),
-        face_dimensions=(
-            sgrid.FaceNodePadding("XC", "XG", sgrid.Padding.LOW),
-            sgrid.FaceNodePadding("YC", "YG", sgrid.Padding.LOW),
-        ),
-        node_coordinates=None,
-    )
-    with pytest.raises(ValueError, match="node_coordinates"):
-        sgrid_dataset(grid=no_coords_grid).example()
+    with warnings.catch_warnings():
+        warnings.filterwarnings("ignore", category=NonInteractiveExampleWarning)
+        no_coords_grid = sgrid.SGrid2DMetadata(
+            cf_role="grid_topology",
+            topology_dimension=2,
+            node_dimensions=("XG", "YG"),
+            face_dimensions=(
+                sgrid.FaceNodePadding("XC", "XG", sgrid.Padding.LOW),
+                sgrid.FaceNodePadding("YC", "YG", sgrid.Padding.LOW),
+            ),
+            node_coordinates=None,
+        )
+        with pytest.raises(ValueError, match="node_coordinates"):
+            sgrid_dataset(grid=no_coords_grid).example()
 
 
 @given(sgrid_dataset())

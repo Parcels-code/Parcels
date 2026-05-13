@@ -23,7 +23,7 @@ def sgrid_dataset(draw, grid: sgrid.SGrid2DMetadata | None = None) -> xr.Dataset
     if grid is None:
         grid = draw(pst.sgrid.grid2Dmetadata(use_standard_names=True).filter(lambda g: g.node_coordinates is not None))
     elif grid.node_coordinates is None:
-        raise ValueError("grid must have node_coordinates set")
+        raise ValueError("grid in Parcels must have node_coordinates set")
 
     N = draw(st.integers(min_value=5, max_value=100))
     M = draw(st.integers(min_value=5, max_value=100))
@@ -89,8 +89,3 @@ def sgrid_dataset(draw, grid: sgrid.SGrid2DMetadata | None = None) -> xr.Dataset
 
     ds = xr.Dataset(data_vars=data_vars, coords=coords)
     return _attach_sgrid_metadata(ds, grid)
-
-
-if __name__ == "__main__":
-    ex = sgrid_dataset().example()
-    breakpoint()
