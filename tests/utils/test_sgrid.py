@@ -89,7 +89,7 @@ def dummy_sgrid_2d_ds(grid: sgrid.SGrid2DMetadata) -> xr.Dataset:
     ds = dummy_comodo_3d_ds()
 
     # Can't rename dimensions that already exist in the dataset
-    assume(sgrid.get_unique_names(grid) & set(ds.dims) == set())
+    assume(sgrid._get_unique_names(grid) & set(ds.dims) == set())
 
     renamings = {}
     if grid.vertical_dimensions is None:
@@ -114,7 +114,7 @@ def dummy_sgrid_3d_ds(grid: sgrid.SGrid3DMetadata) -> xr.Dataset:
     ds = dummy_comodo_3d_ds()
 
     # Can't rename dimensions that already exist in the dataset
-    assume(sgrid.get_unique_names(grid) & set(ds.dims) == set())
+    assume(sgrid._get_unique_names(grid) & set(ds.dims) == set())
 
     renamings = {}
     for old, new in zip(["XG", "YG", "ZG"], grid.node_dimensions, strict=True):
@@ -242,7 +242,7 @@ def test_grid3Dmetadata_standard_names(grid: sgrid.SGrid3DMetadata):
 
 
 @given(pst.sgrid.grid_metadata)
-def test_parse_grid_attrs(grid: sgrid.AttrsSerializable):
+def test_parse_grid_attrs(grid: sgrid._AttrsSerializable):
     attrs = grid.to_attrs()
     parsed = sgrid.parse_grid_attrs(attrs)
     assert parsed == grid
@@ -254,7 +254,7 @@ def test_parse_sgrid_2d(grid_metadata: sgrid.SGrid2DMetadata):
     """Test the ingestion of datasets in XGCM to ensure that it matches the SGRID metadata provided"""
     ds = dummy_sgrid_2d_ds(grid_metadata)
 
-    _, xgcm_kwargs = sgrid.parse_sgrid(ds)
+    _, xgcm_kwargs = sgrid.xgcm_parse_sgrid(ds)
     grid = xgcm.Grid(ds, autoparse_metadata=False, **xgcm_kwargs)
 
     for obj, axis in zip(grid_metadata.face_dimensions, ["X", "Y"], strict=True):
@@ -276,7 +276,7 @@ def test_parse_sgrid_3d(grid_metadata: sgrid.SGrid3DMetadata):
     """Test the ingestion of datasets in XGCM to ensure that it matches the SGRID metadata provided"""
     ds = dummy_sgrid_3d_ds(grid_metadata)
 
-    ds, xgcm_kwargs = sgrid.parse_sgrid(ds)
+    ds, xgcm_kwargs = sgrid.xgcm_parse_sgrid(ds)
     grid = xgcm.Grid(ds, autoparse_metadata=False, **xgcm_kwargs)
 
     for obj, axis in zip(grid_metadata.volume_dimensions, ["X", "Y", "Z"], strict=True):
@@ -294,12 +294,12 @@ def test_parse_sgrid_3d(grid_metadata: sgrid.SGrid3DMetadata):
     + [create_example_grid3dmetadata(with_node_coordinates=i) for i in [False, True]],
 )
 def test_rename(grid):
-    dims = sgrid.get_unique_names(grid)
+    dims = sgrid._get_unique_names(grid)
     dims_dict = {dim: f"new_{dim}" for dim in dims}
     dims_dict_inv = {v: k for k, v in dims_dict.items()}
 
     grid_new = grid.rename(dims_dict)
-    assert dims & set(sgrid.get_unique_names(grid_new)) == set()
+    assert dims & set(sgrid._get_unique_names(grid_new)) == set()
 
     assert grid == grid_new.rename(dims_dict_inv)
 

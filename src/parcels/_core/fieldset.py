@@ -280,7 +280,7 @@ class FieldSet:
                 ds = ds.rename({time_dim: "time"})
 
         # Parse SGRID metadata and get xgcm kwargs
-        _, xgcm_kwargs = sgrid.parse_sgrid(ds)
+        _, xgcm_kwargs = sgrid.xgcm_parse_sgrid(ds)
 
         # Add time axis to xgcm_kwargs if present
         if "time" in ds.dims:
