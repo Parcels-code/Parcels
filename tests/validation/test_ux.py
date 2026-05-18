@@ -36,6 +36,8 @@ from parcels.kernels import (
     AdvectionRK4_3D,
 )
 
+pytestmark = pytest.mark.validation
+
 # Uniform translation parameters
 T1_1_U0 = 0.001
 T1_1_V0 = 0.0005

@@ -79,7 +79,7 @@ pytest-html = "*"
 pytest-cov = "*"
 
 [feature.test.tasks]
-tests = { cmd = "pytest -m 'not flaky'", description = "Run the test suite." }
+tests = { cmd = "pytest", description = "Run the test suite." }
 tests-notebooks = { cmd = "pytest --nbval-lax docs/user_guide/examples", description = "Run the user guide example notebooks as tests." }
 
 
