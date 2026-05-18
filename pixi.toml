@@ -80,6 +80,8 @@ pytest-cov = "*"
 
 [feature.test.tasks]
 tests = { cmd = "pytest", description = "Run the test suite." }
+tests-flaky = { cmd = "pytest -m 'flaky'", description = "Run flaky tests." }
+tests-validation = { cmd = "pytest -m 'flaky'", description = "Run validation tests." }
 tests-notebooks = { cmd = "pytest --nbval-lax docs/user_guide/examples", description = "Run the user guide example notebooks as tests." }
 
 
