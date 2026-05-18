@@ -6,7 +6,6 @@ SKIP_BY_DEFAULT = {"validation", "flaky"}
 def pytest_collection_modifyitems(config, items):
     if not config.getoption("-m"):
         for item in items:
-            print(item.keywords)
             skip_by_default = list(SKIP_BY_DEFAULT & set(item.keywords))
             if skip_by_default:
                 skip_marker = skip_by_default[0]  # get first marker in case of multiple
