@@ -24,6 +24,8 @@ def sgrid_dataset(draw, grid: sgrid.SGrid2DMetadata | None = None) -> xr.Dataset
         grid = draw(pst.sgrid.grid2Dmetadata(use_standard_names=True).filter(lambda g: g.node_coordinates is not None))
     elif grid.node_coordinates is None:
         raise ValueError("grid in Parcels must have node_coordinates set")
+    assert grid is not None
+    assert grid.node_coordinates is not None
 
     N = draw(st.integers(min_value=5, max_value=100))
     M = draw(st.integers(min_value=5, max_value=100))
@@ -34,8 +36,7 @@ def sgrid_dataset(draw, grid: sgrid.SGrid2DMetadata | None = None) -> xr.Dataset
     N_face = _face_size(N, grid.face_dimensions[0].padding)
     M_face = _face_size(M, grid.face_dimensions[1].padding)
 
-    has_vertical = grid.vertical_dimensions is not None
-    if has_vertical:
+    if has_vertical := grid.vertical_dimensions is not None:
         P = draw(st.integers(min_value=5, max_value=20))
         vert_node_dim = grid.vertical_dimensions[0].node
         vert_face_dim = grid.vertical_dimensions[0].face
@@ -64,6 +65,7 @@ def sgrid_dataset(draw, grid: sgrid.SGrid2DMetadata | None = None) -> xr.Dataset
         dim2 = draw(st.sampled_from([node_dim2, face_dim2]))
         size2 = M if dim2 == node_dim2 else M_face
 
+        shape: tuple[int, ...]
         if has_vertical and draw(st.booleans()):
             vert_dim = draw(st.sampled_from([vert_node_dim, vert_face_dim]))
             vert_size = P if vert_dim == vert_node_dim else P_face
