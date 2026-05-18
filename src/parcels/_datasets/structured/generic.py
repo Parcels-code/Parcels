@@ -1,15 +1,7 @@
 import numpy as np
 import xarray as xr
 
-from parcels._core.utils.sgrid import (
-    FaceNodePadding,
-    Padding,
-    SGrid2DMetadata,
-    _attach_sgrid_metadata,
-)
-from parcels._core.utils.sgrid import (
-    rename as sgrid_rename,
-)
+import parcels._sgrid as sgrid
 
 from . import T, X, Y, Z
 
@@ -248,42 +240,42 @@ datasets_sgrid = {
     "ds_2d_padded_high": (
         datasets["ds_2d_left"]
         .pipe(
-            _attach_sgrid_metadata,
-            SGrid2DMetadata(
+            sgrid._attach_sgrid_metadata,
+            sgrid.SGrid2DMetadata(
                 cf_role="grid_topology",
                 topology_dimension=2,
                 node_dimensions=("XG", "YG"),
                 face_dimensions=(
-                    FaceNodePadding("XC", "XG", Padding.HIGH),
-                    FaceNodePadding("YC", "YG", Padding.HIGH),
+                    sgrid.FaceNodePadding("XC", "XG", sgrid.Padding.HIGH),
+                    sgrid.FaceNodePadding("YC", "YG", sgrid.Padding.HIGH),
                 ),
                 node_coordinates=("lon", "lat"),
-                vertical_dimensions=(FaceNodePadding("ZC", "ZG", Padding.HIGH),),
+                vertical_dimensions=(sgrid.FaceNodePadding("ZC", "ZG", sgrid.Padding.HIGH),),
             ),
         )
         .pipe(
-            sgrid_rename,
+            sgrid.rename,
             _COMODO_TO_2D_SGRID,
         )
     ),
     "ds_2d_padded_low": (
         datasets["ds_2d_right"]
         .pipe(
-            _attach_sgrid_metadata,
-            SGrid2DMetadata(
+            sgrid._attach_sgrid_metadata,
+            sgrid.SGrid2DMetadata(
                 cf_role="grid_topology",
                 topology_dimension=2,
                 node_dimensions=("XG", "YG"),
                 face_dimensions=(
-                    FaceNodePadding("XC", "XG", Padding.LOW),
-                    FaceNodePadding("YC", "YG", Padding.LOW),
+                    sgrid.FaceNodePadding("XC", "XG", sgrid.Padding.LOW),
+                    sgrid.FaceNodePadding("YC", "YG", sgrid.Padding.LOW),
                 ),
                 node_coordinates=("lon", "lat"),
-                vertical_dimensions=(FaceNodePadding("ZC", "ZG", Padding.LOW),),
+                vertical_dimensions=(sgrid.FaceNodePadding("ZC", "ZG", sgrid.Padding.LOW),),
             ),
         )
         .pipe(
-            sgrid_rename,
+            sgrid.rename,
             _COMODO_TO_2D_SGRID,
         )
     ),

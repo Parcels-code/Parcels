@@ -3,10 +3,10 @@ import uxarray as ux
 import xarray as xr
 
 import parcels
+import parcels._sgrid as sgrid
 import parcels.convert as convert
 import parcels.tutorial
 from parcels import FieldSet
-from parcels._core.utils import sgrid
 from parcels._datasets.remote import open_remote_dataset
 from parcels._datasets.structured.circulation_models import datasets as datasets_circulation_models
 from parcels.interpolators._xinterpolators import _get_offsets_dictionary

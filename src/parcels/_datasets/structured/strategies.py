@@ -3,9 +3,8 @@ import xarray as xr
 from hypothesis import strategies as st
 from hypothesis.extra.numpy import arrays as np_arrays
 
+import parcels._sgrid as sgrid
 import parcels._strategies as pst
-from parcels._core.utils import sgrid
-from parcels._core.utils.sgrid import _attach_sgrid_metadata
 
 
 def _face_size(node_size: int, padding: sgrid.Padding) -> int:
@@ -90,4 +89,4 @@ def sgrid_dataset(draw, grid: sgrid.SGrid2DMetadata | None = None) -> xr.Dataset
     }
 
     ds = xr.Dataset(data_vars=data_vars, coords=coords)
-    return _attach_sgrid_metadata(ds, grid)
+    return sgrid._attach_sgrid_metadata(ds, grid)

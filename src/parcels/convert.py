@@ -20,7 +20,7 @@ from typing import cast
 import numpy as np
 import xarray as xr
 
-from parcels._core.utils import sgrid
+import parcels._sgrid as sgrid
 from parcels._logger import logger
 
 if typing.TYPE_CHECKING:
