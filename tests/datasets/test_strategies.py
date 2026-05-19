@@ -7,20 +7,7 @@ from hypothesis import given, settings
 from hypothesis.errors import NonInteractiveExampleWarning
 
 import parcels._sgrid as sgrid
-from parcels._datasets.structured.strategies import _face_size, sgrid_dataset
-
-
-@pytest.mark.parametrize(
-    "n_nodes, padding, n_edges",
-    [
-        (10, sgrid.Padding.NONE, 9),
-        (10, sgrid.Padding.LOW, 10),
-        (10, sgrid.Padding.HIGH, 10),
-        (10, sgrid.Padding.BOTH, 11),
-    ],
-)
-def test_face_size(n_nodes, padding, n_edges):
-    assert _face_size(n_nodes, padding) == n_edges
+from parcels._datasets.structured.strategies import sgrid_dataset
 
 
 def test_sgrid_dataset_raises_when_no_node_coordinates():

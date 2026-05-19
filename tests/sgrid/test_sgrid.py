@@ -1,5 +1,6 @@
 import itertools
 
+import hypothesis.strategies as st
 import numpy as np
 import pytest
 import xarray as xr
@@ -581,3 +582,10 @@ def test_face_node_padding_to_diagram(face_node_padding: sgrid.FaceNodePadding, 
     actual = face_node_padding.to_diagram()
     lines = actual.split("\n")
     assert lines == expected_lines
+
+
+@given(n=st.integers(min_value=1), padding=pst.sgrid.padding)
+def test_dim_sizes_roundtrip(n, padding):
+    n_faces = sgrid.get_n_nodes(n, padding)
+    n_nodes = sgrid.get_n_faces(n_faces, padding)
+    assert n_nodes == n

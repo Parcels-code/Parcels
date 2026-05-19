@@ -47,6 +47,28 @@ SGRID_PADDING_TO_XGCM_POSITION = {
 }
 
 
+def get_n_faces(n_nodes: int, padding: Padding) -> int:
+    """Get number of faces along a dimension"""
+    if padding in [Padding.LOW, Padding.HIGH]:
+        return n_nodes
+    if padding == Padding.NONE:
+        return n_nodes - 1
+    if padding == Padding.BOTH:
+        return n_nodes + 1
+    raise ValueError(f"Invalid {padding=!r}")
+
+
+def get_n_nodes(n_faces: int, padding: Padding) -> int:
+    """Get number of nodes along a dimension"""
+    if padding in [Padding.LOW, Padding.HIGH]:
+        return n_faces
+    if padding == Padding.NONE:
+        return n_faces + 1
+    if padding == Padding.BOTH:
+        return n_faces - 1
+    raise ValueError(f"Invalid {padding=!r}")
+
+
 class _AttrsSerializable(Protocol):
     def to_attrs(self) -> dict[str, str | int]: ...
 

@@ -7,15 +7,6 @@ import parcels._sgrid as sgrid
 import parcels._strategies as pst
 
 
-def _face_size(node_size: int, padding: sgrid.Padding) -> int:
-    if padding == sgrid.Padding.NONE:
-        return node_size - 1
-    elif padding in (sgrid.Padding.LOW, sgrid.Padding.HIGH):
-        return node_size
-    else:  # Padding.BOTH
-        return node_size + 1
-
-
 @st.composite
 def sgrid_dataset(draw, grid: sgrid.SGrid2DMetadata | None = None) -> xr.Dataset:
     """Strategy to create Xarray Sgrid datasets for testing"""
@@ -32,14 +23,14 @@ def sgrid_dataset(draw, grid: sgrid.SGrid2DMetadata | None = None) -> xr.Dataset
     node_dim1, node_dim2 = grid.node_dimensions
     face_dim1 = grid.face_dimensions[0].face
     face_dim2 = grid.face_dimensions[1].face
-    N_face = _face_size(N, grid.face_dimensions[0].padding)
-    M_face = _face_size(M, grid.face_dimensions[1].padding)
+    N_face = sgrid.get_n_faces(N, grid.face_dimensions[0].padding)
+    M_face = sgrid.get_n_faces(M, grid.face_dimensions[1].padding)
 
     if has_vertical := grid.vertical_dimensions is not None:
         P = draw(st.integers(min_value=5, max_value=20))
         vert_node_dim = grid.vertical_dimensions[0].node
         vert_face_dim = grid.vertical_dimensions[0].face
-        P_face = _face_size(P, grid.vertical_dimensions[0].padding)
+        P_face = sgrid.get_n_faces(P, grid.vertical_dimensions[0].padding)
 
     has_curvilinear_grid = draw(st.booleans())
     coord_name1, coord_name2 = grid.node_coordinates
