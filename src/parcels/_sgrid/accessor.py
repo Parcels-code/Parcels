@@ -52,12 +52,6 @@ class SgridAccessor:
 
         assert indexers is not None
 
-        for k, indexer in indexers.items():
-            if not isinstance(indexer, slice):
-                raise NotImplementedError(
-                    f"sgrid.isel() only works on `slice` objects for the timebeing. Got indexer {indexer!r} for {k!r}"
-                )
-
         metadata = self.metadata
 
         _assert_not_indexing_along_same_axis(indexers, metadata)

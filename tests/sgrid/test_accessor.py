@@ -87,16 +87,17 @@ def test_assert_metadata_ds_consistency_failures(ds, dim):
 
 
 @pytest.mark.parametrize("ds", [pytest.param(ds, id=id_) for id_, ds in datasets_sgrid.items()])
-@pytest.mark.parametrize("slice_", [slice(None, None, 3), slice(2, -3)])
+@pytest.mark.parametrize("indexer", [slice(None, None, 3), slice(2, -3), [0]])
 @pytest.mark.parametrize(
     "node_dim, face_dim", [("node_dimension1", "face_dimension1"), ("node_dimension2", "face_dimension2")]
 )
-def test_isel(ds, slice_, node_dim, face_dim):
+def test_isel(ds, indexer, node_dim, face_dim):
     # TODO: Extend to padding BOTH and NONE by updating datasets_sgrid
+    # TODO: Expand testing on types of indexers
 
     assert ds.dims[node_dim] == ds.dims[face_dim]
 
-    ds_trimmed = ds.sgrid.isel({node_dim: slice_})
+    ds_trimmed = ds.sgrid.isel({node_dim: indexer})
 
     assert ds_trimmed.dims[node_dim] == ds_trimmed.dims[face_dim]
 
@@ -105,6 +106,21 @@ def test_isel(ds, slice_, node_dim, face_dim):
         if dim in (node_dim, face_dim):
             continue
         size_after = ds_trimmed.dims[dim]
+        assert size_before == size_after
+
+@pytest.mark.parametrize("ds", [pytest.param(ds, id=id_) for id_, ds in datasets_sgrid.items()])
+def test_isel_drop_dim(ds):
+    ds = ds.copy()
+    assert ds.dims["node_dimension1"] == ds.dims["face_dimension1"]
+
+    ds_trimmed = ds.sgrid.isel({"node_dimension1": 0})
+
+    assert "node_dimension1" not in ds_trimmed.dims
+    assert "face_dimension1" not in ds_trimmed.dims
+
+    # Assert that other dims haven't been affected
+    for dim, size_after in ds_trimmed.dims.items():
+        size_before = ds.dims[dim]
         assert size_before == size_after
 
 
