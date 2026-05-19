@@ -108,6 +108,7 @@ def test_isel(ds, indexer, node_dim, face_dim):
         size_after = ds_trimmed.dims[dim]
         assert size_before == size_after
 
+
 @pytest.mark.parametrize("ds", [pytest.param(ds, id=id_) for id_, ds in datasets_sgrid.items()])
 def test_isel_drop_dim(ds):
     ds = ds.copy()
@@ -126,7 +127,9 @@ def test_isel_drop_dim(ds):
 
 @pytest.mark.parametrize("ds", [datasets_sgrid["ds_2d_padded_high"]])
 def test_isel_invalid(ds):
-    with pytest.raises(ValueError, match="Cannot use SGRID accessor to .isel non-spatial \(/SGRID related\) dimension.*"):
+    with pytest.raises(
+        ValueError, match=r"Cannot use SGRID accessor to .isel non-spatial \(/SGRID related\) dimension.*"
+    ):
         ds.sgrid.isel(time=slice(None))
 
     with pytest.raises(ValueError, match="Dims .* are on the same axis .* according to SGRID metadata.*"):

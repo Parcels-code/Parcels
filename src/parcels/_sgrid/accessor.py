@@ -1,12 +1,12 @@
 import itertools
-from collections.abc import Mapping, Sequence
-from typing import Any, Literal
+from collections.abc import Hashable, Mapping, Sequence
+from typing import Any, Literal, cast
 
 import xarray as xr
 
 from parcels._python import invert_non_unique_mapping
 
-from .core import SGrid2DMetadata, SGrid3DMetadata, get_n_faces, parse_grid_attrs
+from .core import FaceNodePadding, SGrid2DMetadata, SGrid3DMetadata, get_n_faces, parse_grid_attrs
 
 
 @xr.register_dataset_accessor("sgrid")
@@ -55,9 +55,9 @@ class SgridAccessor:
         metadata = self.metadata
 
         _assert_not_indexing_along_same_axis(indexers, metadata)
-        _assert_all_isel_along_axis(indexers.keys(), metadata)
+        _assert_all_isel_along_axis(list(indexers.keys()), metadata)
 
-        indexers = _complete_isel_indexing(indexers, metadata, self._ds.dims.keys())
+        indexers = _complete_isel_indexing(indexers, metadata, list(self._ds.dims.keys()))
 
         ds = self._ds.isel(indexers=indexers)
         assert_metadata_ds_consistency(ds, metadata)
@@ -65,7 +65,7 @@ class SgridAccessor:
 
 
 def assert_metadata_ds_consistency(ds: xr.Dataset, metadata: SGrid2DMetadata):
-    vertical_dimensions = metadata.vertical_dimensions or tuple()
+    vertical_dimensions: tuple[FaceNodePadding, ...] = metadata.vertical_dimensions or tuple()
 
     for obj in itertools.chain(metadata.face_dimensions, vertical_dimensions):
         face, node, padding = obj.face, obj.node, obj.padding
@@ -112,7 +112,7 @@ def _get_dim_to_axis_mapping(grid: SGrid2DMetadata) -> dict[str, Literal["X", "Y
     }
     if fnp_z is not None:
         d.update({fnp_z.node: "Z", fnp_z.face: "Z"})
-    return d
+    return cast(dict[str, Literal["X", "Y", "Z"]], d)
 
 
 def _assert_not_indexing_along_same_axis(indexers: Mapping[Any, Any], metadata: SGrid2DMetadata) -> None:
@@ -141,7 +141,7 @@ def _assert_all_isel_along_axis(index_dims: Sequence[str], metadata: SGrid2DMeta
 
 
 def _complete_isel_indexing(
-    indexers: Mapping[Any, Any], grid: SGrid2DMetadata, dims_in_dataset: Sequence[str]
+    indexers: Mapping[Any, Any], grid: SGrid2DMetadata, dims_in_dataset: Sequence[Hashable]
 ) -> Mapping[Any, Any]:
     """Copies indexers to the other dataset dimensions defined on the same axis."""
     ret = {}

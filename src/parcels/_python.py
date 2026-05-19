@@ -46,7 +46,7 @@ def assert_same_function_signature(f: Callable, *, ref: Callable, context: str) 
 
 
 def invert_non_unique_mapping(d: Mapping[K, V]) -> Mapping[V, list[K]]:
-    inv_map = {}
+    inv_map: dict[V, list[K]] = {}
     for k, v in d.items():
         inv_map[v] = inv_map.get(v, []) + [k]
     return inv_map
