@@ -36,27 +36,47 @@ def test_assert_metadata_ds_consistency(ds):
     assert_metadata_ds_consistency(ds, metadata)
 
 
-@given(sgrid_dataset())
-def test_assert_metadata_ds_consistency_dropped_dim(ds):
+@given(ds=sgrid_dataset(), dim=st.sampled_from(['face_dimension1', "face_dimension2", "vertical_dimension"]))
+def test_assert_metadata_ds_consistency_dropped_dim(ds, dim):
+    # dropping one of the SGRID dimensions still results in a consistent dataset
     metadata: SGrid2DMetadata = ds.sgrid.metadata
 
-    # dropping one of the SGRID dimensions is fine
-    first_face_dim = metadata.face_dimensions[0].face
+    if dim == "face_dimension1":
+        fnp = metadata.face_dimensions[0]
+    elif dim=="face_dimension2":
+        fnp = metadata.face_dimensions[1]
+    elif dim=="vertical_dimension":
+        assume(metadata.vertical_dimensions is not None)
+        assert metadata.vertical_dimensions is not None
+        fnp = metadata.vertical_dimensions[0]
+    else:
+        raise ValueError("Unexpected value for dim")
 
-    assume(first_face_dim in ds.dims)
+    assume(fnp.face in ds.dims)
 
-    ds = ds.isel({first_face_dim: 0})
+    ds = ds.isel({fnp.face: 0})
     assert_metadata_ds_consistency(ds, metadata)
 
 
-@given(ds=sgrid_dataset())
-def test_assert_metadata_ds_consistency_failures(ds):
+@given(ds=sgrid_dataset(), dim=st.sampled_from(['face_dimension1', "face_dimension2", "vertical_dimension"]))
+def test_assert_metadata_ds_consistency_failures(ds, dim):
     metadata: SGrid2DMetadata = ds.sgrid.metadata
-    first_face_dim = metadata.face_dimensions[0].face
 
-    assume(first_face_dim in ds.dims)
+    if dim == "face_dimension1":
+        fnp = metadata.face_dimensions[0]
+    elif dim=="face_dimension2":
+        fnp = metadata.face_dimensions[1]
+    elif dim=="vertical_dimension":
+        assume(metadata.vertical_dimensions is not None)
+        assert metadata.vertical_dimensions is not None
+        fnp = metadata.vertical_dimensions[0]
+    else:
+        raise ValueError("Unexpected value for dim")
 
-    ds = ds.isel({metadata.face_dimensions[0].face: slice(None, -1)})
+    assume(fnp.node in ds.dims)
+    assume(fnp.face in ds.dims)
+
+    ds = ds.isel({fnp.face: slice(None, -1)})
 
     with pytest.raises(
         SGridDatasetInconsistency,
