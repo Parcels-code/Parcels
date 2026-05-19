@@ -49,13 +49,13 @@ def test_sgrid_dataset_returns_dataset(ds):
 @given(sgrid_dataset())
 @settings(max_examples=20)
 def test_sgrid_dataset_has_grid_topology(ds):
-    assert sgrid.get_grid_topology(ds) is not None
+    ds.sgrid._get_grid_topology()  # shouldn't error
 
 
 @given(sgrid_dataset())
 @settings(max_examples=20)
 def test_sgrid_dataset_node_coordinates_present(ds):
-    meta = sgrid.parse_grid_attrs(sgrid.get_grid_topology(ds).attrs)
+    meta = ds.sgrid.metadata
     assert meta.node_coordinates is not None
     for coord_name in meta.node_coordinates:
         assert coord_name in ds.coords
@@ -64,7 +64,7 @@ def test_sgrid_dataset_node_coordinates_present(ds):
 @given(sgrid_dataset())
 @settings(max_examples=20)
 def test_sgrid_dataset_coordinate_shapes(ds):
-    meta = sgrid.parse_grid_attrs(sgrid.get_grid_topology(ds).attrs)
+    meta = ds.sgrid.metadata
     coord_name1, coord_name2 = meta.node_coordinates
     node_dim1, node_dim2 = meta.node_dimensions
     coord1 = ds.coords[coord_name1]
@@ -85,7 +85,7 @@ def test_sgrid_dataset_has_at_least_one_field(ds):
 @given(sgrid_dataset())
 @settings(max_examples=20)
 def test_sgrid_dataset_field_dims_are_valid(ds):
-    meta = sgrid.parse_grid_attrs(sgrid.get_grid_topology(ds).attrs)
+    meta = ds.sgrid.metadata
     valid_dims = set(meta.node_dimensions)
     valid_dims.add(meta.face_dimensions[0].face)
     valid_dims.add(meta.face_dimensions[1].face)

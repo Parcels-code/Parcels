@@ -445,24 +445,10 @@ def parse_grid_attrs(attrs: dict[str, Hashable]) -> SGrid2DMetadata | SGrid3DMet
     return grid
 
 
-def get_grid_topology(ds: xr.Dataset) -> xr.DataArray | None:
-    """Extracts grid topology DataArray from an xarray Dataset."""
-    for var_name in ds.variables:
-        if ds[var_name].attrs.get("cf_role") == "grid_topology":
-            return ds[var_name]
-    return None
-
-
 def xgcm_parse_sgrid(ds: xr.Dataset):
     # Function similar to that provided in `xgcm.metadata_parsers.
     # Might at some point be upstreamed to xgcm directly
-    try:
-        grid_topology = get_grid_topology(ds)
-        assert grid_topology is not None, "No grid_topology variable found in dataset"
-        grid = parse_grid_attrs(grid_topology.attrs)
-
-    except Exception as e:
-        raise SGridParsingException(f"Error parsing {grid_topology=!r}") from e
+    grid = ds.sgrid.metadata
 
     if isinstance(grid, SGrid2DMetadata):
         dimensions = grid.face_dimensions + (grid.vertical_dimensions or ())
@@ -482,21 +468,6 @@ def xgcm_parse_sgrid(ds: xr.Dataset):
         xgcm_coords[axis] = coords
 
     return (ds, {"coords": xgcm_coords})
-
-
-def rename(ds: xr.Dataset, name_dict: dict[str, str]) -> xr.Dataset:
-    grid_da = get_grid_topology(ds)
-    if grid_da is None:
-        raise ValueError(
-            "No variable found in dataset with 'cf_role' attribute set to 'grid_topology'. This doesn't look to be an SGrid dataset - please make your dataset conforms to SGrid conventions."
-        )
-
-    ds = ds.rename(name_dict)
-
-    # Update the metadata
-    grid = parse_grid_attrs(grid_da.attrs)
-    ds[grid_da.name].attrs = grid.rename(name_dict).to_attrs()
-    return ds
 
 
 def _get_unique_names(grid: SGrid2DMetadata | SGrid3DMetadata) -> set[str]:

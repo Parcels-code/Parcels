@@ -475,11 +475,7 @@ def _select_uxinterpolator(da: ux.UxDataArray):
 # TODO: Refactor later into something like `parcels._metadata.discover(dataset)` helper that can be used to discover important metadata like this. I think this whole metadata handling should be refactored into its own module.
 def _get_mesh_type_from_sgrid_dataset(ds_sgrid: xr.Dataset) -> Mesh:
     """Small helper to inspect SGRID metadata and dataset metadata to determine mesh type."""
-    grid_da = sgrid.get_grid_topology(ds_sgrid)
-    if grid_da is None:
-        raise ValueError("Dataset does not contain SGRID grid topology metadata (cf_role='grid_topology').")
-
-    sgrid_metadata = sgrid.parse_grid_attrs(grid_da.attrs)
+    sgrid_metadata = ds_sgrid.sgrid.metadata
 
     fpoint_x, fpoint_y = sgrid_metadata.node_coordinates
 

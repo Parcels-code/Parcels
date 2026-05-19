@@ -8,7 +8,7 @@ from hypothesis import assume, example, given
 
 import parcels._sgrid as sgrid
 import parcels._strategies as pst
-from parcels._sgrid.core import SGRID_PADDING_TO_XGCM_POSITION, _get_unique_names
+from parcels._sgrid.core import SGRID_PADDING_TO_XGCM_POSITION, _get_unique_names, parse_grid_attrs
 
 
 def create_example_grid2dmetadata(with_vertical_dimensions: bool, with_node_coordinates: bool):
@@ -245,7 +245,7 @@ def test_grid3Dmetadata_standard_names(grid: sgrid.SGrid3DMetadata):
 @given(pst.sgrid.grid_metadata)
 def test_parse_grid_attrs(grid):
     attrs = grid.to_attrs()
-    parsed = sgrid.parse_grid_attrs(attrs)
+    parsed = parse_grid_attrs(attrs)
     assert parsed == grid
 
 
@@ -357,14 +357,14 @@ def test_rename_errors():
 )
 def test_rename_dataset(ds):
     # Check renaming works for coordinates
-    ds_new = sgrid.rename(ds, {"lon": "lon_updated"})
-    grid_new = sgrid.parse_grid_attrs(ds_new["grid"].attrs)
+    ds_new = ds.sgrid.rename({"lon": "lon_updated"})
+    grid_new = ds_new.sgrid.metadata
     assert "lon_updated" in ds_new.coords
     assert "lon_updated" == grid_new.node_coordinates[0]
 
     # Check renaming works for dim
-    ds_new = sgrid.rename(ds, {"XC": "XC_updated"})
-    grid_new = sgrid.parse_grid_attrs(ds_new["grid"].attrs)
+    ds_new = ds.sgrid.rename({"XC": "XC_updated"})
+    grid_new = ds_new.sgrid.metadata
     assert "XC_updated" in ds_new.dims
     assert "XC" not in ds_new.dims
     assert "XC_updated" == grid_new.face_dimensions[0].face

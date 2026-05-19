@@ -253,8 +253,7 @@ datasets_sgrid = {
                 vertical_dimensions=(sgrid.FaceNodePadding("ZC", "ZG", sgrid.Padding.HIGH),),
             ),
         )
-        .pipe(
-            sgrid.rename,
+        .sgrid.rename(
             _COMODO_TO_2D_SGRID,
         )
     ),
@@ -274,8 +273,7 @@ datasets_sgrid = {
                 vertical_dimensions=(sgrid.FaceNodePadding("ZC", "ZG", sgrid.Padding.LOW),),
             ),
         )
-        .pipe(
-            sgrid.rename,
+        .sgrid.rename(
             _COMODO_TO_2D_SGRID,
         )
     ),
