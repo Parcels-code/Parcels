@@ -6,7 +6,7 @@ import xarray as xr
 
 from parcels._python import invert_non_unique_mapping
 
-from .core import FaceNodePadding, Padding, SGrid2DMetadata, SGrid3DMetadata, get_n_faces, parse_grid_attrs
+from .core import FaceNodePadding, Padding, SGrid2DMetadata, SGrid3DMetadata, get_n_faces, get_n_nodes, parse_grid_attrs
 
 
 @xr.register_dataset_accessor("sgrid")
@@ -73,18 +73,14 @@ def assert_metadata_ds_consistency(ds: xr.Dataset, metadata: SGrid2DMetadata):
 
         try:
             n_nodes = ds.dims[node]
-        except KeyError:
-            # node dimension is not in this dataset
+        except KeyError:  # node dimension is not in this dataset
             continue
-
         try:
             n_faces = ds.dims[face]
-        except KeyError:
-            # face dimension is not in this dataset
+        except KeyError:  # face dimension is not in this dataset
             continue
 
         expected_n_faces = get_n_faces(n_nodes, padding)
-
         if expected_n_faces != n_faces:
             raise SGridDatasetInconsistency(
                 f"Node dimension {node!r} has size {n_nodes}, and face dimension {face!r} has size of {n_faces}. "
@@ -174,10 +170,7 @@ def _derive_paired_indexer(
 
     # Adjust stop: positive stops reference from the start of the array, so ±1 is needed.
     if stop is not None and stop > 0:
-        if padding == Padding.NONE:
-            stop = stop - 1 if indexer_is_node else stop + 1
-        else:  # BOTH
-            stop = stop + 1 if indexer_is_node else stop - 1
+        stop = get_n_faces(stop, padding=padding) if indexer_is_node else get_n_nodes(stop, padding=padding)
 
     return normalized_user_indexer, slice(start, stop)
 
