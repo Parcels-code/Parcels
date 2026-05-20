@@ -1,22 +1,23 @@
 import hypothesis.strategies as st
+import numpy as np
 import pytest
 import xarray as xr
 from hypothesis import assume, given
 
+import parcels._sgrid as sgrid
 import parcels._strategies as pst
 from parcels._datasets.structured.generic import datasets_sgrid
 from parcels._datasets.structured.strategies import sgrid_dataset
-from parcels._sgrid import SGrid2DMetadata
 from parcels._sgrid.accessor import SGridDatasetInconsistency, assert_metadata_ds_consistency
 
 
 @st.composite
-def grid_and_dataset(draw) -> tuple[SGrid2DMetadata, xr.Dataset]:
+def grid_and_dataset(draw) -> tuple[sgrid.SGrid2DMetadata, xr.Dataset]:
     # used only for test_metadata - for all other tests we can simply do `ds.sgrid.metadata` to get the metadata
     metadata_2d = draw(
         pst.sgrid.grid_metadata.filter(
             # parcels can only generate 2D Sgrid datasets, that also have coordinates
-            lambda meta: isinstance(meta, SGrid2DMetadata) and meta.node_coordinates is not None
+            lambda meta: isinstance(meta, sgrid.SGrid2DMetadata) and meta.node_coordinates is not None
         )
     )
     ds = draw(sgrid_dataset(metadata_2d))
@@ -31,16 +32,63 @@ def test_metadata(metadata_ds):
     assert parsed_metadata == metadata
 
 
+@pytest.mark.parametrize(
+    "ds",
+    [
+        xr.Dataset(
+            {
+                "data_g": (["time", "ZG", "YG", "XG"], np.random.rand(10, 10, 10, 10)),
+                "data_c": (["time", "ZC", "YC", "XC"], np.random.rand(10, 10, 10, 10)),
+                "grid": (
+                    [],
+                    np.array(0),
+                    sgrid.SGrid2DMetadata(
+                        cf_role="grid_topology",
+                        topology_dimension=2,
+                        node_dimensions=("XG", "YG"),
+                        face_dimensions=(
+                            sgrid.FaceNodePadding("XC", "XG", sgrid.Padding.HIGH),
+                            sgrid.FaceNodePadding("YC", "YG", sgrid.Padding.HIGH),
+                        ),
+                        vertical_dimensions=(sgrid.FaceNodePadding("ZC", "ZG", sgrid.Padding.HIGH),),
+                        node_coordinates=("lon", "lat"),
+                    ).to_attrs(),
+                ),
+            },
+            coords={
+                "lon": (["XG"], 2 * np.pi / 10 * np.arange(0, 10)),
+                "lat": (["YG"], 2 * np.pi / (10) * np.arange(0, 10)),
+                "depth": (["ZG"], np.arange(10)),
+                "time": (["time"], xr.date_range("2000", "2001", 10), {"axis": "T"}),
+            },
+        ),
+    ],
+)
+def test_rename_dataset(ds):
+    # Check renaming works for coordinates
+    ds_new = ds.sgrid.rename({"lon": "lon_updated"})
+    grid_new = ds_new.sgrid.metadata
+    assert "lon_updated" in ds_new.coords
+    assert "lon_updated" == grid_new.node_coordinates[0]
+
+    # Check renaming works for dim
+    ds_new = ds.sgrid.rename({"XC": "XC_updated"})
+    grid_new = ds_new.sgrid.metadata
+    assert "XC_updated" in ds_new.dims
+    assert "XC" not in ds_new.dims
+    assert "XC_updated" == grid_new.face_dimensions[0].face
+
+
 @given(sgrid_dataset())
 def test_assert_metadata_ds_consistency(ds):
-    metadata: SGrid2DMetadata = ds.sgrid.metadata
+    metadata: sgrid.SGrid2DMetadata = ds.sgrid.metadata
     assert_metadata_ds_consistency(ds, metadata)
 
 
 @given(ds=sgrid_dataset(), dim=st.sampled_from(["face_dimension1", "face_dimension2", "vertical_dimension"]))
 def test_assert_metadata_ds_consistency_dropped_dim(ds, dim):
     # dropping one of the SGRID dimensions still results in a consistent dataset
-    metadata: SGrid2DMetadata = ds.sgrid.metadata
+    metadata: sgrid.SGrid2DMetadata = ds.sgrid.metadata
 
     if dim == "face_dimension1":
         fnp = metadata.face_dimensions[0]
@@ -61,7 +109,7 @@ def test_assert_metadata_ds_consistency_dropped_dim(ds, dim):
 
 @given(ds=sgrid_dataset(), dim=st.sampled_from(["face_dimension1", "face_dimension2", "vertical_dimension"]))
 def test_assert_metadata_ds_consistency_failures(ds, dim):
-    metadata: SGrid2DMetadata = ds.sgrid.metadata
+    metadata: sgrid.SGrid2DMetadata = ds.sgrid.metadata
 
     if dim == "face_dimension1":
         fnp = metadata.face_dimensions[0]

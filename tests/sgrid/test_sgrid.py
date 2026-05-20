@@ -325,53 +325,6 @@ def test_rename_errors():
 
 
 @pytest.mark.parametrize(
-    "ds",
-    [
-        xr.Dataset(
-            {
-                "data_g": (["time", "ZG", "YG", "XG"], np.random.rand(10, 10, 10, 10)),
-                "data_c": (["time", "ZC", "YC", "XC"], np.random.rand(10, 10, 10, 10)),
-                "grid": (
-                    [],
-                    np.array(0),
-                    sgrid.SGrid2DMetadata(
-                        cf_role="grid_topology",
-                        topology_dimension=2,
-                        node_dimensions=("XG", "YG"),
-                        face_dimensions=(
-                            sgrid.FaceNodePadding("XC", "XG", sgrid.Padding.HIGH),
-                            sgrid.FaceNodePadding("YC", "YG", sgrid.Padding.HIGH),
-                        ),
-                        vertical_dimensions=(sgrid.FaceNodePadding("ZC", "ZG", sgrid.Padding.HIGH),),
-                        node_coordinates=("lon", "lat"),
-                    ).to_attrs(),
-                ),
-            },
-            coords={
-                "lon": (["XG"], 2 * np.pi / 10 * np.arange(0, 10)),
-                "lat": (["YG"], 2 * np.pi / (10) * np.arange(0, 10)),
-                "depth": (["ZG"], np.arange(10)),
-                "time": (["time"], xr.date_range("2000", "2001", 10), {"axis": "T"}),
-            },
-        ),
-    ],
-)
-def test_rename_dataset(ds):
-    # Check renaming works for coordinates
-    ds_new = ds.sgrid.rename({"lon": "lon_updated"})
-    grid_new = ds_new.sgrid.metadata
-    assert "lon_updated" in ds_new.coords
-    assert "lon_updated" == grid_new.node_coordinates[0]
-
-    # Check renaming works for dim
-    ds_new = ds.sgrid.rename({"XC": "XC_updated"})
-    grid_new = ds_new.sgrid.metadata
-    assert "XC_updated" in ds_new.dims
-    assert "XC" not in ds_new.dims
-    assert "XC_updated" == grid_new.face_dimensions[0].face
-
-
-@pytest.mark.parametrize(
     ("metadata, expected"),
     [
         (
