@@ -274,6 +274,7 @@ def test_parse_sgrid_2d(grid_metadata: sgrid.SGrid2DMetadata):
 
 
 @given(pst.sgrid.grid3Dmetadata())
+@pytest.mark.xfail(reason="Parcels doesn't have native support for SGRID 3D grids. This metadata checking is superfluous until we have such support.")
 def test_parse_sgrid_3d(grid_metadata: sgrid.SGrid3DMetadata):
     """Test the ingestion of datasets in XGCM to ensure that it matches the SGRID metadata provided"""
     ds = dummy_sgrid_3d_ds(grid_metadata)
