@@ -59,6 +59,8 @@ class ParticleFile:
         Interval which dictates the update frequency of file output
         while ParticleFile is given as an argument of ParticleSet.execute()
         It is either a numpy.timedelta64, a datimetime.timedelta object or a positive float (in seconds).
+    compression : {"zstd", "gzip", "snappy", "brotli", None}, optional
+        Compression algorithm to use for the Parquet file. Default is "zstd".
 
     Returns
     -------
@@ -66,11 +68,14 @@ class ParticleFile:
         ParticleFile object that can be used to write particle data to file
     """
 
-    def __init__(self, path: PathLike, outputdt):
+    def __init__(
+        self, path: PathLike, outputdt, compression: Literal["zstd", "gzip", "snappy", "brotli", None] = "zstd"
+    ):
         if not isinstance(outputdt, (np.timedelta64, timedelta, float)):
             raise ValueError(
                 f"Expected outputdt to be a np.timedelta64, datetime.timedelta or float (in seconds), got {type(outputdt)}"
             )
+        self._compression = compression
 
         outputdt = timedelta_to_float(outputdt)
         path = Path(path)
@@ -139,7 +144,11 @@ class ParticleFile:
 
         if self._writer is None:
             assert not self.path.exists(), "If the file exists, the writer should already be set"
-            self._writer = pq.ParquetWriter(self.path, _get_schema(pclass, self.metadata, fieldset.time_interval))
+            self._writer = pq.ParquetWriter(
+                self.path,
+                _get_schema(pclass, self.metadata, fieldset.time_interval),
+                compression=self._compression,
+            )
 
         if isinstance(time, (np.timedelta64, np.datetime64)):
             time = timedelta_to_float(time - fieldset.time_interval.left)

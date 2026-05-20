@@ -7,7 +7,7 @@ import pytest
 from cftime import datetime as cftime_datetime
 from hypothesis import given
 
-import tests.strategies as pst  # parcels strategies
+import parcels._strategies as pst  # parcels strategies
 from parcels._core.utils.time import (
     TimeInterval,
     _get_cf_attrs,

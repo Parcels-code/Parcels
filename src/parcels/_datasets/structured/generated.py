@@ -5,8 +5,8 @@ import xarray as xr
 
 from parcels._core.utils.sgrid import (
     FaceNodePadding,
-    Grid2DMetadata,
     Padding,
+    SGrid2DMetadata,
     _attach_sgrid_metadata,
 )
 from parcels._core.utils.time import timedelta_to_float
@@ -30,7 +30,7 @@ def simple_UV_dataset(dims=(360, 2, 30, 4), maxdepth=1, mesh="spherical"):
         },
     ).pipe(
         _attach_sgrid_metadata,
-        Grid2DMetadata(
+        SGrid2DMetadata(
             cf_role="grid_topology",
             topology_dimension=2,
             node_dimensions=("XG", "YG"),

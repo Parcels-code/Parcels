@@ -56,7 +56,7 @@ class AttrsSerializable(Protocol):
 
 # Note that - for some optional attributes in the SGRID spec - these IDs are not available
 # hence this isn't full coverage
-_ID_FETCHERS_GRID2DMETADATA: dict[str, Callable[[Grid2DMetadata], Dim | Padding]] = {
+_ID_FETCHERS_GRID2DMETADATA: dict[str, Callable[[SGrid2DMetadata], Dim | Padding]] = {
     "node_dimension1": lambda meta: meta.node_dimensions[0],
     "node_dimension2": lambda meta: meta.node_dimensions[1],
     "face_dimension1": lambda meta: meta.face_dimensions[0].face,
@@ -65,7 +65,7 @@ _ID_FETCHERS_GRID2DMETADATA: dict[str, Callable[[Grid2DMetadata], Dim | Padding]
     "type2": lambda meta: meta.face_dimensions[1].padding,
 }
 
-_ID_FETCHERS_GRID3DMETADATA: dict[str, Callable[[Grid3DMetadata], Dim | Padding]] = {
+_ID_FETCHERS_GRID3DMETADATA: dict[str, Callable[[SGrid3DMetadata], Dim | Padding]] = {
     "node_dimension1": lambda meta: meta.node_dimensions[0],
     "node_dimension2": lambda meta: meta.node_dimensions[1],
     "node_dimension3": lambda meta: meta.node_dimensions[2],
@@ -78,7 +78,7 @@ _ID_FETCHERS_GRID3DMETADATA: dict[str, Callable[[Grid3DMetadata], Dim | Padding]
 }
 
 
-class Grid2DMetadata(AttrsSerializable):
+class SGrid2DMetadata(AttrsSerializable):
     def __init__(
         self,
         cf_role: Literal["grid_topology"],
@@ -152,7 +152,7 @@ class Grid2DMetadata(AttrsSerializable):
         return _grid2d_to_ascii(self)
 
     def __eq__(self, other: Any) -> bool:
-        if not isinstance(other, Grid2DMetadata):
+        if not isinstance(other, SGrid2DMetadata):
             return NotImplemented
         return self.to_attrs() == other.to_attrs()
 
@@ -200,7 +200,7 @@ class Grid2DMetadata(AttrsSerializable):
         return _ID_FETCHERS_GRID2DMETADATA[id](self)
 
 
-class Grid3DMetadata(AttrsSerializable):
+class SGrid3DMetadata(AttrsSerializable):
     def __init__(
         self,
         cf_role: Literal["grid_topology"],
@@ -268,7 +268,7 @@ class Grid3DMetadata(AttrsSerializable):
         return _grid3d_to_ascii(self)
 
     def __eq__(self, other: Any) -> bool:
-        if not isinstance(other, Grid3DMetadata):
+        if not isinstance(other, SGrid3DMetadata):
             return NotImplemented
         return self.to_attrs() == other.to_attrs()
 
@@ -431,14 +431,14 @@ class SGridParsingException(Exception):
     pass
 
 
-def parse_grid_attrs(attrs: dict[str, Hashable]) -> Grid2DMetadata | Grid3DMetadata:
-    grid: Grid2DMetadata | Grid3DMetadata
+def parse_grid_attrs(attrs: dict[str, Hashable]) -> SGrid2DMetadata | SGrid3DMetadata:
+    grid: SGrid2DMetadata | SGrid3DMetadata
     try:
-        grid = Grid2DMetadata.from_attrs(attrs)
+        grid = SGrid2DMetadata.from_attrs(attrs)
     except Exception as e:
         e.add_note("Failed to parse as 2D SGrid, trying 3D SGrid")
         try:
-            grid = Grid3DMetadata.from_attrs(attrs)
+            grid = SGrid3DMetadata.from_attrs(attrs)
         except Exception as e2:
             e2.add_note("Failed to parse as 3D SGrid")
             raise SGridParsingException("Failed to parse SGrid metadata as either 2D or 3D grid") from e2
@@ -464,10 +464,10 @@ def parse_sgrid(ds: xr.Dataset):
     except Exception as e:
         raise SGridParsingException(f"Error parsing {grid_topology=!r}") from e
 
-    if isinstance(grid, Grid2DMetadata):
+    if isinstance(grid, SGrid2DMetadata):
         dimensions = grid.face_dimensions + (grid.vertical_dimensions or ())
     else:
-        assert isinstance(grid, Grid3DMetadata)
+        assert isinstance(grid, SGrid3DMetadata)
         dimensions = grid.volume_dimensions
 
     xgcm_coords = {}
@@ -499,7 +499,7 @@ def rename(ds: xr.Dataset, name_dict: dict[str, str]) -> xr.Dataset:
     return ds
 
 
-def get_unique_names(grid: Grid2DMetadata | Grid3DMetadata) -> set[str]:
+def get_unique_names(grid: SGrid2DMetadata | SGrid3DMetadata) -> set[str]:
     dims = set()
     dims.update(set(grid.node_dimensions))
 
@@ -635,7 +635,7 @@ Staggered grid layout (XY cross-section; Z-faces not shown):
   · = cell centre"""
 
 
-def _grid2d_to_ascii(grid: Grid2DMetadata) -> str:
+def _grid2d_to_ascii(grid: SGrid2DMetadata) -> str:
     fd = grid.face_dimensions
     nd = grid.node_dimensions
     lines = [
@@ -667,7 +667,7 @@ def _grid2d_to_ascii(grid: Grid2DMetadata) -> str:
     return "\n".join(lines)
 
 
-def _grid3d_to_ascii(grid: Grid3DMetadata) -> str:
+def _grid3d_to_ascii(grid: SGrid3DMetadata) -> str:
     vd = grid.volume_dimensions
     nd = grid.node_dimensions
     lines = [
@@ -694,7 +694,7 @@ def _grid3d_to_ascii(grid: Grid3DMetadata) -> str:
     return "\n".join(lines)
 
 
-def _attach_sgrid_metadata(ds: xr.Dataset, grid: Grid2DMetadata | Grid3DMetadata):
+def _attach_sgrid_metadata(ds: xr.Dataset, grid: SGrid2DMetadata | SGrid3DMetadata) -> xr.Dataset:
     """Copies the dataset and attaches the SGRID metadata in 'grid' variable. Modifies 'conventions' attribute."""
     ds = ds.copy()
     ds["grid"] = (
@@ -707,11 +707,11 @@ def _attach_sgrid_metadata(ds: xr.Dataset, grid: Grid2DMetadata | Grid3DMetadata
 
 
 @overload
-def _metadata_rename(grid: Grid2DMetadata, names_dict: dict[str, str]) -> Grid2DMetadata: ...
+def _metadata_rename(grid: SGrid2DMetadata, names_dict: dict[str, str]) -> SGrid2DMetadata: ...
 
 
 @overload
-def _metadata_rename(grid: Grid3DMetadata, names_dict: dict[str, str]) -> Grid3DMetadata: ...
+def _metadata_rename(grid: SGrid3DMetadata, names_dict: dict[str, str]) -> SGrid3DMetadata: ...
 
 
 def _metadata_rename(grid, names_dict):
