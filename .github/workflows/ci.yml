@@ -90,7 +90,6 @@ jobs:
       - uses: prefix-dev/setup-pixi@fef5c9568ca6c4ff7707bf840ab0692ba3f08293 # v0.9.0
         with:
           pixi-version: ${{ needs.cache-pixi-lock.outputs.pixi-version }}
-          locked: false # TODO: Remove once v7 of the lock file is removed, or once we stop having external source dependencies https://github.com/Parcels-code/Parcels/pull/2550#issuecomment-4088660238
           cache: true
           cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
       # https://github.com/actions/cache/blob/main/tips-and-workarounds.md#update-a-cache
@@ -150,7 +149,6 @@ jobs:
       - uses: prefix-dev/setup-pixi@fef5c9568ca6c4ff7707bf840ab0692ba3f08293 # v0.9.0
         with:
           pixi-version: ${{ needs.cache-pixi-lock.outputs.pixi-version }}
-          locked: false # TODO: Remove once v7 of the lock file is removed, or once we stop having external source dependencies https://github.com/Parcels-code/Parcels/pull/2550#issuecomment-4088660238
           cache: true
           cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
       # https://github.com/actions/cache/blob/main/tips-and-workarounds.md#update-a-cache
@@ -205,7 +203,6 @@ jobs:
       - uses: prefix-dev/setup-pixi@fef5c9568ca6c4ff7707bf840ab0692ba3f08293 # v0.9.0
         with:
           pixi-version: ${{ needs.cache-pixi-lock.outputs.pixi-version }}
-          locked: false # TODO: Remove once v7 of the lock file is removed, or once we stop having external source dependencies https://github.com/Parcels-code/Parcels/pull/2550#issuecomment-4088660238
           cache: true
           cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
       # https://github.com/actions/cache/blob/main/tips-and-workarounds.md#update-a-cache
@@ -271,7 +268,6 @@ jobs:
       - uses: prefix-dev/setup-pixi@fef5c9568ca6c4ff7707bf840ab0692ba3f08293 # v0.9.0
         with:
           pixi-version: ${{ needs.cache-pixi-lock.outputs.pixi-version }}
-          locked: false # TODO: Remove once v7 of the lock file is removed, or once we stop having external source dependencies https://github.com/Parcels-code/Parcels/pull/2550#issuecomment-4088660238
           cache: true
           cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
       - name: Integration test
@@ -320,7 +316,6 @@ jobs:
       - uses: prefix-dev/setup-pixi@fef5c9568ca6c4ff7707bf840ab0692ba3f08293 # v0.9.0
         with:
           pixi-version: ${{ needs.cache-pixi-lock.outputs.pixi-version }}
-          locked: false # TODO: Remove once v7 of the lock file is removed, or once we stop having external source dependencies https://github.com/Parcels-code/Parcels/pull/2550#issuecomment-4088660238
           cache: true
           cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
       - name: Typechecking
@@ -350,7 +345,6 @@ jobs:
       - uses: prefix-dev/setup-pixi@fef5c9568ca6c4ff7707bf840ab0692ba3f08293 # v0.9.0
         with:
           pixi-version: ${{ needs.cache-pixi-lock.outputs.pixi-version }}
-          locked: false # TODO: Remove once v7 of the lock file is removed, or once we stop having external source dependencies https://github.com/Parcels-code/Parcels/pull/2550#issuecomment-4088660238
           cache: true
           cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
       - name: Find the alpha version of Parcels
