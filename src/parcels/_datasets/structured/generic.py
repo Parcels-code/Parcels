@@ -5,7 +5,7 @@ import parcels._sgrid as sgrid
 
 from . import T, X, Y, Z
 
-__all__ = ["T", "X", "Y", "Z", "datasets_comodo"]
+__all__ = ["T", "X", "Y", "Z", "datasets_comodo", "datasets_sgrid"]
 
 TIME = xr.date_range("2000", "2001", T)
 
