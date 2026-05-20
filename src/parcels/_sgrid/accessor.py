@@ -1,5 +1,5 @@
 import itertools
-from collections.abc import Hashable, Mapping, Sequence
+from collections.abc import Mapping, Sequence
 from typing import Any, Literal, cast
 
 import xarray as xr
@@ -58,8 +58,7 @@ class SgridAccessor:
         _assert_not_indexing_along_same_axis(indexers, metadata)
         _assert_all_isel_along_axis(list(indexers.keys()), metadata)
 
-        dim_sizes = dict(self._ds.sizes)
-        indexers = _complete_isel_indexing(indexers, metadata, list(self._ds.dims.keys()), dim_sizes)
+        indexers = _complete_isel_indexing(self._ds, indexers, metadata)
 
         ds = self._ds.isel(indexers=indexers)
         assert_metadata_ds_consistency(ds, metadata)
@@ -209,10 +208,9 @@ def _assert_all_isel_along_axis(index_dims: Sequence[str], metadata: SGrid2DMeta
 
 
 def _complete_isel_indexing(
+    ds: xr.Dataset,
     indexers: Mapping[Any, Any],
     grid: SGrid2DMetadata,
-    dims_in_dataset: Sequence[Hashable],
-    dim_sizes: Mapping[str, int],
 ) -> Mapping[Any, Any]:
     """For each user-supplied (dim, indexer), expand to both the face and node dim on that axis,
     deriving the paired indexer according to the padding type.
@@ -223,7 +221,7 @@ def _complete_isel_indexing(
     for user_dim, user_indexer in indexers.items():
         fnp, user_is_node = axis_info[user_dim]
 
-        n_user_dim = dim_sizes.get(user_dim)
+        n_user_dim = ds.sizes.get(user_dim)
         normalized_user, paired_indexer = _derive_paired_indexer(
             user_indexer, user_is_node, fnp.padding, dim_size=n_user_dim
         )
@@ -231,9 +229,9 @@ def _complete_isel_indexing(
         node_indexer = normalized_user if user_is_node else paired_indexer
         face_indexer = paired_indexer if user_is_node else normalized_user
 
-        if fnp.node in dims_in_dataset:
+        if fnp.node in ds.dims:
             ret[fnp.node] = node_indexer
-        if fnp.face in dims_in_dataset:
+        if fnp.face in ds.dims:
             ret[fnp.face] = face_indexer
 
     return ret
