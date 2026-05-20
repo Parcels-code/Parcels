@@ -6,7 +6,7 @@ import xarray as xr
 
 from parcels._python import invert_non_unique_mapping
 
-from .core import FaceNodePadding, SGrid2DMetadata, SGrid3DMetadata, get_n_faces, parse_grid_attrs
+from .core import FaceNodePadding, Padding, SGrid2DMetadata, SGrid3DMetadata, get_n_faces, parse_grid_attrs
 
 
 @xr.register_dataset_accessor("sgrid")
@@ -50,14 +50,16 @@ class SgridAccessor:
                 raise ValueError("Cannot provide both positional and keyword argument to .isel .")
             indexers = indexers_kwargs
 
-        assert indexers is not None
+        if indexers is None:
+            raise ValueError("Must provide indexers either as a positional argument or as keyword arguments.")
 
         metadata = self.metadata
 
         _assert_not_indexing_along_same_axis(indexers, metadata)
         _assert_all_isel_along_axis(list(indexers.keys()), metadata)
 
-        indexers = _complete_isel_indexing(indexers, metadata, list(self._ds.dims.keys()))
+        dim_sizes = dict(self._ds.sizes)
+        indexers = _complete_isel_indexing(indexers, metadata, list(self._ds.dims.keys()), dim_sizes)
 
         ds = self._ds.isel(indexers=indexers)
         assert_metadata_ds_consistency(ds, metadata)
@@ -115,6 +117,72 @@ def _get_dim_to_axis_mapping(grid: SGrid2DMetadata) -> dict[str, Literal["X", "Y
     return cast(dict[str, Literal["X", "Y", "Z"]], d)
 
 
+def _get_axis_info(grid: SGrid2DMetadata) -> dict[str, tuple[FaceNodePadding, bool]]:
+    """For each spatial dim, return (FaceNodePadding it belongs to, True if node dim)."""
+    result: dict[str, tuple[FaceNodePadding, bool]] = {}
+    all_fnps = list(grid.face_dimensions) + list(grid.vertical_dimensions or [])
+    for fnp in all_fnps:
+        result[fnp.node] = (fnp, True)
+        result[fnp.face] = (fnp, False)
+    return result
+
+
+def _derive_paired_indexer(
+    indexer: Any,
+    indexer_is_node: bool,
+    padding: Padding,
+    dim_size: int | None = None,
+) -> tuple[Any, Any]:
+    """Given a user's indexer for one side of a face-node pair, return ``(normalized_user_indexer, paired_indexer)``.
+
+    For HIGH/LOW padding, face and node dims are the same size so both the normalised user
+    indexer and the paired indexer are identical to the original ``user_indexer``.
+    For NONE/BOTH padding, the slice is first normalised to non-negative absolute indices (via
+    ``slice.indices``) and then the stop of the paired indexer is adjusted by ±1.
+
+    ``n_user_dim`` is required for NONE/BOTH padding so that negative starts and ``None`` stops
+    can be resolved to unambiguous absolute positions.
+
+    Scalar (integer) and list indexers raise for NONE/BOTH because there is no unambiguous
+    paired position.
+
+    Returns
+    -------
+    tuple[Any, Any]
+        ``(normalized_user_indexer, paired_indexer)`` — the first element is the user's indexer
+        after normalisation (unchanged for HIGH/LOW), the second is the derived indexer for the
+        other side of the face-node pair.
+    """
+    if padding in (Padding.HIGH, Padding.LOW):
+        return indexer, indexer
+
+    # NONE and BOTH: only slices with step in {None, 1} are supported
+    if not isinstance(indexer, slice):
+        raise ValueError(
+            f"Scalar and list indexers are not supported for NONE/BOTH padding. "
+            f"Got indexer {indexer!r}. Use a slice instead."
+        )
+    if indexer.step not in (None, 1):
+        raise ValueError(f"Slices with step != 1 are not supported for NONE/BOTH padding. Got step={indexer.step!r}.")
+    if dim_size is None:
+        raise ValueError("dim_size must be provided for NONE/BOTH padding to correctly handle slices.")
+
+    # Normalise to non-negative absolute indices so the arithmetic below is unambiguous.
+    abs_start, abs_stop, _ = indexer.indices(dim_size)
+    normalized_user_indexer = slice(abs_start, abs_stop)
+
+    start, stop = abs_start, abs_stop
+
+    # Adjust stop: positive stops reference from the start of the array, so ±1 is needed.
+    if stop is not None and stop > 0:
+        if padding == Padding.NONE:
+            stop = stop - 1 if indexer_is_node else stop + 1
+        else:  # BOTH
+            stop = stop + 1 if indexer_is_node else stop - 1
+
+    return normalized_user_indexer, slice(start, stop)
+
+
 def _assert_not_indexing_along_same_axis(indexers: Mapping[Any, Any], metadata: SGrid2DMetadata) -> None:
     dim_to_axis = _get_dim_to_axis_mapping(metadata)
     indexer_dim_to_axis = {dim: dim_to_axis.get(dim) for dim in indexers}
@@ -141,14 +209,31 @@ def _assert_all_isel_along_axis(index_dims: Sequence[str], metadata: SGrid2DMeta
 
 
 def _complete_isel_indexing(
-    indexers: Mapping[Any, Any], grid: SGrid2DMetadata, dims_in_dataset: Sequence[Hashable]
+    indexers: Mapping[Any, Any],
+    grid: SGrid2DMetadata,
+    dims_in_dataset: Sequence[Hashable],
+    dim_sizes: Mapping[str, int],
 ) -> Mapping[Any, Any]:
-    """Copies indexers to the other dataset dimensions defined on the same axis."""
-    ret = {}
-    dim_to_axis = _get_dim_to_axis_mapping(grid)
-    indexers_by_axis = {dim_to_axis[dim]: indexer for dim, indexer in indexers.items()}
+    """For each user-supplied (dim, indexer), expand to both the face and node dim on that axis,
+    deriving the paired indexer according to the padding type.
+    """
+    axis_info = _get_axis_info(grid)
+    ret: dict[Any, Any] = {}
 
-    for dim, axis in dim_to_axis.items():
-        if dim in dims_in_dataset and axis in indexers_by_axis:
-            ret[dim] = indexers_by_axis[axis]
+    for user_dim, user_indexer in indexers.items():
+        fnp, user_is_node = axis_info[user_dim]
+
+        n_user_dim = dim_sizes.get(user_dim)
+        normalized_user, paired_indexer = _derive_paired_indexer(
+            user_indexer, user_is_node, fnp.padding, dim_size=n_user_dim
+        )
+
+        node_indexer = normalized_user if user_is_node else paired_indexer
+        face_indexer = paired_indexer if user_is_node else normalized_user
+
+        if fnp.node in dims_in_dataset:
+            ret[fnp.node] = node_indexer
+        if fnp.face in dims_in_dataset:
+            ret[fnp.face] = face_indexer
+
     return ret

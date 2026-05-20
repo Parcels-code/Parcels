@@ -277,4 +277,52 @@ datasets_sgrid = {
             _COMODO_TO_2D_SGRID,
         )
     ),
+    "ds_2d_padded_none": xr.Dataset(
+        {
+            "data_g": (["node_dimension1", "node_dimension2"], np.random.rand(10, 10)),
+            "data_c": (["face_dimension1", "face_dimension2"], np.random.rand(9, 9)),
+            "grid": (
+                [],
+                np.array(0),
+                sgrid.SGrid2DMetadata(
+                    cf_role="grid_topology",
+                    topology_dimension=2,
+                    node_dimensions=("node_dimension1", "node_dimension2"),
+                    face_dimensions=(
+                        sgrid.FaceNodePadding("face_dimension1", "node_dimension1", sgrid.Padding.NONE),
+                        sgrid.FaceNodePadding("face_dimension2", "node_dimension2", sgrid.Padding.NONE),
+                    ),
+                    node_coordinates=("lon", "lat"),
+                ).to_attrs(),
+            ),
+        },
+        coords={
+            "lon": (["node_dimension1"], np.linspace(0, 1, 10)),
+            "lat": (["node_dimension2"], np.linspace(0, 1, 10)),
+        },
+    ),
+    "ds_2d_padded_both": xr.Dataset(
+        {
+            "data_g": (["node_dimension1", "node_dimension2"], np.random.rand(10, 10)),
+            "data_c": (["face_dimension1", "face_dimension2"], np.random.rand(11, 11)),
+            "grid": (
+                [],
+                np.array(0),
+                sgrid.SGrid2DMetadata(
+                    cf_role="grid_topology",
+                    topology_dimension=2,
+                    node_dimensions=("node_dimension1", "node_dimension2"),
+                    face_dimensions=(
+                        sgrid.FaceNodePadding("face_dimension1", "node_dimension1", sgrid.Padding.BOTH),
+                        sgrid.FaceNodePadding("face_dimension2", "node_dimension2", sgrid.Padding.BOTH),
+                    ),
+                    node_coordinates=("lon", "lat"),
+                ).to_attrs(),
+            ),
+        },
+        coords={
+            "lon": (["node_dimension1"], np.linspace(0, 1, 10)),
+            "lat": (["node_dimension2"], np.linspace(0, 1, 10)),
+        },
+    ),
 }
