@@ -3,7 +3,7 @@ import pytest
 
 from parcels import Field, FieldSet, Particle, ParticleSet, Variable, VectorField, XGrid
 from parcels._core.statuscodes import StatusCode
-from parcels._datasets.structured.generic import datasets as datasets_structured
+from parcels._datasets.structured.generic import datasets_comodo as datasets_structured
 from parcels.interpolators import XLinear, XLinear_Velocity
 
 

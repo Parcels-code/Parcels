@@ -21,7 +21,7 @@ from parcels import (
 )
 from parcels._core.utils.time import timedelta_to_float
 from parcels._datasets.structured.generated import simple_UV_dataset
-from parcels._datasets.structured.generic import datasets as datasets_structured
+from parcels._datasets.structured.generic import datasets_comodo as datasets_structured
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
 from parcels.interpolators import (
     Ux_Velocity,

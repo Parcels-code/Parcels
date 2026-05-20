@@ -10,7 +10,7 @@ import xarray as xr
 from parcels import Field, ParticleFile, ParticleSet, VectorField, XGrid, convert
 from parcels._core.fieldset import CalendarError, FieldSet, _datetime_to_msg
 from parcels._datasets.structured.generic import T as T_structured
-from parcels._datasets.structured.generic import datasets as datasets_structured
+from parcels._datasets.structured.generic import datasets_comodo as datasets_structured
 from parcels._datasets.structured.generic import datasets_sgrid
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
 from parcels.interpolators import XLinear, XLinear_Velocity

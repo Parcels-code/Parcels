@@ -15,7 +15,7 @@ from parcels import (
     Variable,
     XGrid,
 )
-from parcels._datasets.structured.generic import datasets as datasets_structured
+from parcels._datasets.structured.generic import datasets_comodo as datasets_structured
 from parcels.interpolators import XLinear
 from tests.common_kernels import DoNothing
 from tests.utils import round_and_hash_float_array

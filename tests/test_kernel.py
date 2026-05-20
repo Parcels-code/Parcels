@@ -8,7 +8,7 @@ from parcels import (
     XGrid,
 )
 from parcels._core.kernel import Kernel
-from parcels._datasets.structured.generic import datasets as datasets_structured
+from parcels._datasets.structured.generic import datasets_comodo as datasets_structured
 from parcels.interpolators import XLinear
 from parcels.kernels import AdvectionRK4, AdvectionRK45
 from tests.common_kernels import MoveEast, MoveNorth

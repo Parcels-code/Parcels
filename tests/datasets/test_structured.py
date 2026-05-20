@@ -1,12 +1,12 @@
 import xgcm
 
 from parcels._core.xgrid import _DEFAULT_XGCM_KWARGS
-from parcels._datasets.structured.generic import datasets
+from parcels._datasets.structured.generic import datasets_comodo
 
 
 def test_left_indexed_dataset():
     """Checks that 'ds_2d_left' is right indexed on all variables."""
-    ds = datasets["ds_2d_left"]
+    ds = datasets_comodo["ds_2d_left"]
     grid = xgcm.Grid(ds, **_DEFAULT_XGCM_KWARGS)
 
     for _axis_name, axis in grid.axes.items():
@@ -16,7 +16,7 @@ def test_left_indexed_dataset():
 
 def test_right_indexed_dataset():
     """Checks that 'ds_2d_right' is right indexed on all variables."""
-    ds = datasets["ds_2d_right"]
+    ds = datasets_comodo["ds_2d_right"]
     grid = xgcm.Grid(ds, **_DEFAULT_XGCM_KWARGS)
     for _axis_name, axis in grid.axes.items():
         for pos, _dim_name in axis.coords.items():

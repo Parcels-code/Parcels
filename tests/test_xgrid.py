@@ -17,24 +17,24 @@ from parcels._core.xgrid import (
     XGrid,
     _transpose_xfield_data_to_tzyx,
 )
-from parcels._datasets.structured.generic import X, Y, Z, datasets, datasets_sgrid
+from parcels._datasets.structured.generic import X, Y, Z, datasets_comodo, datasets_sgrid
 from parcels.interpolators import XLinear
 from tests import utils
 
 GridTestCase = namedtuple("GridTestCase", ["ds", "attr", "expected"])
 
 test_cases = [
-    GridTestCase(datasets["ds_2d_left"], "lon", datasets["ds_2d_left"].XG.values),
-    GridTestCase(datasets["ds_2d_left"], "lat", datasets["ds_2d_left"].YG.values),
-    GridTestCase(datasets["ds_2d_left"], "depth", datasets["ds_2d_left"].ZG.values),
+    GridTestCase(datasets_comodo["ds_2d_left"], "lon", datasets_comodo["ds_2d_left"].XG.values),
+    GridTestCase(datasets_comodo["ds_2d_left"], "lat", datasets_comodo["ds_2d_left"].YG.values),
+    GridTestCase(datasets_comodo["ds_2d_left"], "depth", datasets_comodo["ds_2d_left"].ZG.values),
     GridTestCase(
-        datasets["ds_2d_left"],
+        datasets_comodo["ds_2d_left"],
         "time",
-        datasets["ds_2d_left"].time.values.astype(np.float64) / 1e9,
+        datasets_comodo["ds_2d_left"].time.values.astype(np.float64) / 1e9,
     ),
-    GridTestCase(datasets["ds_2d_left"], "xdim", X - 1),
-    GridTestCase(datasets["ds_2d_left"], "ydim", Y - 1),
-    GridTestCase(datasets["ds_2d_left"], "zdim", Z - 1),
+    GridTestCase(datasets_comodo["ds_2d_left"], "xdim", X - 1),
+    GridTestCase(datasets_comodo["ds_2d_left"], "ydim", Y - 1),
+    GridTestCase(datasets_comodo["ds_2d_left"], "zdim", Z - 1),
 ]
 
 
@@ -48,7 +48,7 @@ def assert_equal(actual, expected):
         assert_allclose(actual, expected)
 
 
-@pytest.mark.parametrize("ds", [datasets["ds_2d_left"]])
+@pytest.mark.parametrize("ds", [datasets_comodo["ds_2d_left"]])
 def test_grid_init_param_types(ds):
     with pytest.raises(ValueError, match="Invalid value 'invalid'. Valid options are.*"):
         XGrid.from_dataset(ds, mesh="invalid")
@@ -61,25 +61,25 @@ def test_xgrid_properties_ground_truth(ds, attr, expected):
     assert_equal(actual, expected)
 
 
-@pytest.mark.parametrize("ds", [pytest.param(ds, id=key) for key, ds in datasets.items()])
+@pytest.mark.parametrize("ds", [pytest.param(ds, id=key) for key, ds in datasets_comodo.items()])
 def test_xgrid_from_dataset_on_generic_datasets(ds):
     XGrid.from_dataset(ds, mesh="flat")
 
 
-@pytest.mark.parametrize("ds", [datasets["ds_2d_left"]])
+@pytest.mark.parametrize("ds", [datasets_comodo["ds_2d_left"]])
 def test_xgrid_axes(ds):
     grid = XGrid.from_dataset(ds, mesh="flat")
     assert grid.axes == ["Z", "Y", "X"]
 
 
-@pytest.mark.parametrize("ds", [datasets["ds_2d_left"]])
+@pytest.mark.parametrize("ds", [datasets_comodo["ds_2d_left"]])
 @pytest.mark.parametrize("mesh", ["flat", "spherical"])
 def test_uxgrid_mesh(ds, mesh):
     grid = XGrid.from_dataset(ds, mesh=mesh)
     assert grid._mesh == mesh
 
 
-@pytest.mark.parametrize("ds", [datasets["ds_2d_left"]])
+@pytest.mark.parametrize("ds", [datasets_comodo["ds_2d_left"]])
 def test_transpose_xfield_data_to_tzyx(ds):
     da = ds["data_g"]
     grid = XGrid.from_dataset(ds, mesh="flat")
@@ -93,7 +93,7 @@ def test_transpose_xfield_data_to_tzyx(ds):
         utils.assert_valid_field_data(da_test, grid)
 
 
-@pytest.mark.parametrize("ds", [datasets["ds_2d_left"]])
+@pytest.mark.parametrize("ds", [datasets_comodo["ds_2d_left"]])
 def test_xgrid_get_axis_dim(ds):
     grid = XGrid.from_dataset(ds, mesh="flat")
     assert grid.get_axis_dim("Z") == Z - 1
@@ -108,7 +108,7 @@ def test_invalid_xgrid_field_array():
 
 def test_invalid_lon_lat():
     """Stress test the grid initialiser by creating incompatible datasets that test the edge cases"""
-    ds = datasets["ds_2d_left"].copy()
+    ds = datasets_comodo["ds_2d_left"].copy()
     ds["lon"], ds["lat"] = xr.broadcast(ds["YC"], ds["XC"])
 
     with pytest.raises(
@@ -117,7 +117,7 @@ def test_invalid_lon_lat():
     ):
         XGrid.from_dataset(ds, mesh="flat")
 
-    ds = datasets["ds_2d_left"].copy()
+    ds = datasets_comodo["ds_2d_left"].copy()
     ds["lon"], _ = xr.broadcast(ds["YG"], ds["XG"])
     with pytest.raises(
         ValueError,
@@ -125,7 +125,7 @@ def test_invalid_lon_lat():
     ):
         XGrid.from_dataset(ds, mesh="flat")
 
-    ds = datasets["ds_2d_left"].copy()
+    ds = datasets_comodo["ds_2d_left"].copy()
     ds["lon"], ds["lat"] = xr.broadcast(ds["YG"], ds["XG"])
     ds["lon"], ds["lat"] = ds["lon"].transpose(), ds["lat"].transpose()
 
@@ -137,7 +137,7 @@ def test_invalid_lon_lat():
 
 
 def test_invalid_depth():
-    ds = datasets["ds_2d_left"].copy()
+    ds = datasets_comodo["ds_2d_left"].copy()
     ds = ds.reindex({"ZG": ds.ZG[::-1]})
 
     with pytest.raises(ValueError, match="Depth DataArray .* must be strictly increasing*"):
@@ -202,8 +202,8 @@ def test_time1D_field():
 @pytest.mark.parametrize(
     "ds",
     [
-        pytest.param(datasets["ds_2d_left"], id="1D lon/lat"),
-        pytest.param(datasets["2d_left_rotated"], id="2D lon/lat"),
+        pytest.param(datasets_comodo["ds_2d_left"], id="1D lon/lat"),
+        pytest.param(datasets_comodo["2d_left_rotated"], id="2D lon/lat"),
     ],
 )  # for key, ds in datasets.items()])
 def test_xgrid_search_cpoints(ds):
@@ -282,7 +282,7 @@ def test_search_1d_array_some_out_of_bounds(array, x, expected_xi):
     "ds, da_name, expected",
     [
         pytest.param(
-            datasets["ds_2d_left"],
+            datasets_comodo["ds_2d_left"],
             "U_C_grid",
             {
                 "XG": (np.int64(0), np.float64(0.0)),
@@ -292,7 +292,7 @@ def test_search_1d_array_some_out_of_bounds(array, x, expected_xi):
             id="MITgcm indexing style U_C_grid",
         ),
         pytest.param(
-            datasets["ds_2d_left"],
+            datasets_comodo["ds_2d_left"],
             "V_C_grid",
             {
                 "XC": (np.int64(-1), np.float64(0.5)),
@@ -302,7 +302,7 @@ def test_search_1d_array_some_out_of_bounds(array, x, expected_xi):
             id="MITgcm indexing style V_C_grid",
         ),
         pytest.param(
-            datasets["ds_2d_right"],
+            datasets_comodo["ds_2d_right"],
             "U_C_grid",
             {
                 "XG": (np.int64(0), np.float64(0.0)),
@@ -312,7 +312,7 @@ def test_search_1d_array_some_out_of_bounds(array, x, expected_xi):
             id="NEMO indexing style U_C_grid",
         ),
         pytest.param(
-            datasets["ds_2d_right"],
+            datasets_comodo["ds_2d_right"],
             "V_C_grid",
             {
                 "XC": (np.int64(0), np.float64(0.5)),
