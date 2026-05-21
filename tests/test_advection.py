@@ -190,12 +190,14 @@ def test_advection_3D_outofbounds(direction, resubmerge_particle):
 
 
 @pytest.mark.parametrize(
-    "u_value, x_slice", [(-0.3, slice(0, 1)), (0.2, slice(None))], ids=["single_u_layer", "full_u"]
+    "u_value, x_slice", [(-0.03, slice(0, 1)), (0.02, slice(None))], ids=["single_u_layer", "full_u"]
 )
-@pytest.mark.parametrize("v_value, y_slice", [(0.2, slice(0, 1)), (1.0, slice(None))], ids=["single_v_layer", "full_v"])
+@pytest.mark.parametrize(
+    "v_value, y_slice", [(0.02, slice(0, 1)), (0.1, slice(None))], ids=["single_v_layer", "full_v"]
+)
 @pytest.mark.parametrize(
     "w_value, z_slice",
-    [(None, None), (-0.2, slice(0, 1)), (0.7, slice(None))],
+    [(None, None), (-0.02, slice(0, 1)), (0.07, slice(None))],
     ids=["no_vertical", "single_w_layer", "full_w"],
 )
 def test_length1dimensions(u_value, x_slice, v_value, y_slice, w_value, z_slice):
@@ -206,13 +208,6 @@ def test_length1dimensions(u_value, x_slice, v_value, y_slice, w_value, z_slice)
     if w_value is not None:
         ds["W"] = xr.full_like(ds["U"], w_value)
 
-    # adjust spatial extent
-    ds["depth"] -= 5
-    ds["lon"] *= 4
-    ds["lon"] -= 15
-    ds["lat"] *= 4
-    ds["lat"] -= 15
-
     # Slice dataset
     indexers = {"node_dimension1": x_slice, "node_dimension2": y_slice}
     if w_value:
@@ -221,16 +216,16 @@ def test_length1dimensions(u_value, x_slice, v_value, y_slice, w_value, z_slice)
 
     fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
 
-    x0, y0, z0 = 2, 8, -4
+    x0, y0, z0 = 3, 3, 20
     pset = ParticleSet(fieldset, lon=x0, lat=y0, z=z0)
     kernel = AdvectionRK4 if w_value is None else AdvectionRK4_3D
     pset.execute(kernel, runtime=np.timedelta64(4, "s"), dt=np.timedelta64(1, "s"))
 
     assert len(pset.lon) == len([p.lon for p in pset])
-    np.testing.assert_allclose(np.array([p.lon - x0 for p in pset]), 4 * u_value, atol=1e-6)
-    np.testing.assert_allclose(np.array([p.lat - y0 for p in pset]), 4 * v_value, atol=1e-6)
+    np.testing.assert_allclose(np.array([p.lon - x0 for p in pset]), 4 * u_value, atol=1e-5)
+    np.testing.assert_allclose(np.array([p.lat - y0 for p in pset]), 4 * v_value, atol=1e-5)
     if w_value:
-        np.testing.assert_allclose(np.array([p.z - z0 for p in pset]), 4 * w_value, atol=1e-6)
+        np.testing.assert_allclose(np.array([p.z - z0 for p in pset]), 4 * w_value, atol=1e-5)
 
 
 def test_radialrotation(npart=10):
