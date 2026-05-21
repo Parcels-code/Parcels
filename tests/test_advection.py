@@ -6,15 +6,12 @@ import xarray as xr
 import parcels
 import parcels.tutorial
 from parcels import (
-    Field,
     FieldSet,
     Particle,
     ParticleFile,
     ParticleSet,
     StatusCode,
     Variable,
-    VectorField,
-    XGrid,
     convert,
 )
 from parcels._core.utils.time import timedelta_to_float
@@ -27,7 +24,6 @@ from parcels._datasets.structured.generated import (
     stommel_gyre_dataset,
 )
 from parcels._datasets.structured.generic import datasets_sgrid
-from parcels.interpolators import CGrid_Velocity, XLinear, XLinear_Velocity
 from parcels.kernels import (
     AdvectionDiffusionEM,
     AdvectionDiffusionM1,
@@ -230,11 +226,7 @@ def test_length1dimensions(u_value, x_slice, v_value, y_slice, w_value, z_slice)
 
 def test_radialrotation(npart=10):
     ds = radial_rotation_dataset()
-    grid = XGrid.from_dataset(ds, mesh="flat")
-    U = parcels.Field("U", ds["U"], grid, interp_method=XLinear)
-    V = parcels.Field("V", ds["V"], grid, interp_method=XLinear)
-    UV = parcels.VectorField("UV", U, V, vector_interp_method=XLinear_Velocity)
-    fieldset = parcels.FieldSet([U, V, UV])
+    fieldset = parcels.FieldSet.from_sgrid_conventions(ds, mesh="flat")
 
     dt = np.timedelta64(30, "s")
     lon = np.linspace(32, 50, npart)
@@ -268,22 +260,18 @@ def test_radialrotation(npart=10):
 )
 def test_moving_eddy(kernel, rtol):
     ds = moving_eddy_dataset()
-    grid = XGrid.from_dataset(ds, mesh="flat")
-    U = Field("U", ds["U"], grid, interp_method=XLinear)
-    V = Field("V", ds["V"], grid, interp_method=XLinear)
     if kernel in [AdvectionRK2_3D, AdvectionRK4_3D]:
         # Using W to test 3D advection (assuming same velocity as V)
-        W = Field("W", ds["V"], grid, interp_method=XLinear)
-        UVW = VectorField("UVW", U, V, W, vector_interp_method=XLinear_Velocity)
-        fieldset = FieldSet([U, V, W, UVW])
-    else:
-        UV = VectorField("UV", U, V, vector_interp_method=XLinear_Velocity)
-        fieldset = FieldSet([U, V, UV])
+        ds["W"] = ds["V"]
+
     if kernel in [AdvectionDiffusionEM, AdvectionDiffusionM1]:
         # Add zero diffusivity field for diffusion kernels
-        ds["Kh"] = (["time", "depth", "YG", "XG"], np.full(ds["U"].shape, 0))
-        fieldset.add_field(Field("Kh", ds["Kh"], grid, interp_method=XLinear), "Kh_zonal")
-        fieldset.add_field(Field("Kh", ds["Kh"], grid, interp_method=XLinear), "Kh_meridional")
+        ds["Kh_zonal"] = (["time", "depth", "YG", "XG"], np.full(ds["U"].shape, 0))
+        ds["Kh_meridional"] = ds["Kh_zonal"]
+
+    fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
+
+    if kernel in [AdvectionDiffusionEM, AdvectionDiffusionM1]:
         fieldset.add_constant("dres", 0.1)
 
     start_lon, start_lat, start_z = 12000, 12500, 12500
@@ -322,11 +310,7 @@ def test_moving_eddy(kernel, rtol):
 )
 def test_decaying_moving_eddy(kernel, rtol):
     ds = decaying_moving_eddy_dataset()
-    grid = XGrid.from_dataset(ds, mesh="flat")
-    U = Field("U", ds["U"], grid, interp_method=XLinear)
-    V = Field("V", ds["V"], grid, interp_method=XLinear)
-    UV = VectorField("UV", U, V, vector_interp_method=XLinear_Velocity)
-    fieldset = FieldSet([U, V, UV])
+    fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
 
     start_lon, start_lat = 10000, 10000
     dt = np.timedelta64(60, "m")
@@ -371,14 +355,7 @@ def test_decaying_moving_eddy(kernel, rtol):
 @pytest.mark.parametrize("grid_type", ["A", "C"])
 def test_stommelgyre_fieldset(kernel, rtol, grid_type):
     npart = 2
-    ds = stommel_gyre_dataset(grid_type=grid_type)
-    grid = XGrid.from_dataset(ds, mesh="flat")
-    vector_interp_method = XLinear_Velocity if grid_type == "A" else CGrid_Velocity
-    U = Field("U", ds["U"], grid, interp_method=XLinear)
-    V = Field("V", ds["V"], grid, interp_method=XLinear)
-    P = Field("P", ds["P"], grid, interp_method=XLinear)
-    UV = VectorField("UV", U, V, vector_interp_method=vector_interp_method)
-    fieldset = FieldSet([U, V, P, UV])
+    fieldset = FieldSet.from_sgrid_conventions(stommel_gyre_dataset(grid_type=grid_type), mesh="flat")
 
     dt = np.timedelta64(30, "m")
     runtime = np.timedelta64(1, "D")
@@ -413,12 +390,7 @@ def test_stommelgyre_fieldset(kernel, rtol, grid_type):
 def test_peninsula_fieldset(kernel, rtol, grid_type):
     npart = 2
     ds = peninsula_dataset(grid_type=grid_type)
-    grid = XGrid.from_dataset(ds, mesh="flat")
-    U = Field("U", ds["U"], grid, interp_method=XLinear)
-    V = Field("V", ds["V"], grid, interp_method=XLinear)
-    P = Field("P", ds["P"], grid, interp_method=XLinear)
-    UV = VectorField("UV", U, V, vector_interp_method=XLinear_Velocity)
-    fieldset = FieldSet([U, V, P, UV])
+    fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
 
     dt = np.timedelta64(30, "m")
     runtime = np.timedelta64(23, "h")
