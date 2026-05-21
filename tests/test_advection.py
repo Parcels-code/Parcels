@@ -26,6 +26,7 @@ from parcels._datasets.structured.generated import (
     simple_UV_dataset,
     stommel_gyre_dataset,
 )
+from parcels._datasets.structured.generic import datasets_sgrid
 from parcels.interpolators import CGrid_Velocity, XLinear, XLinear_Velocity
 from parcels.kernels import (
     AdvectionDiffusionEM,
@@ -188,61 +189,48 @@ def test_advection_3D_outofbounds(direction, resubmerge_particle):
         assert len(pset) == 0
 
 
-@pytest.mark.parametrize("u", [-0.3, np.array(0.2)])
-@pytest.mark.parametrize("v", [0.2, np.array(1)])
-@pytest.mark.parametrize("w", [None, -0.2, np.array(0.7)])
-def test_length1dimensions(u, v, w):  # TODO: Refactor this test to be more readable (and isolate test setup)
-    (lon, xdim) = (np.linspace(-10, 10, 21), 21) if isinstance(u, np.ndarray) else (np.array([0]), 1)
-    (lat, ydim) = (np.linspace(-15, 15, 31), 31) if isinstance(v, np.ndarray) else (np.array([-4]), 1)
-    (depth, zdim) = (
-        (np.linspace(-5, 5, 11), 11) if (isinstance(w, np.ndarray) and w is not None) else (np.array([3]), 1)
-    )
+@pytest.mark.parametrize(
+    "u_value, x_slice", [(-0.3, slice(0, 1)), (0.2, slice(None))], ids=["single_u_layer", "full_u"]
+)
+@pytest.mark.parametrize("v_value, y_slice", [(0.2, slice(0, 1)), (1.0, slice(None))], ids=["single_v_layer", "full_v"])
+@pytest.mark.parametrize(
+    "w_value, z_slice",
+    [(None, None), (-0.2, slice(0, 1)), (0.7, slice(None))],
+    ids=["no_vertical", "single_w_layer", "full_w"],
+)
+def test_length1dimensions(u_value, x_slice, v_value, y_slice, w_value, z_slice):
+    ds = datasets_sgrid["ds_2d_padded_high"].copy()[["U_A_grid", "grid"]]
+    ds = ds.rename({"U_A_grid": "U"})
+    ds["U"] = xr.full_like(ds["U"], u_value)
+    ds["V"] = xr.full_like(ds["U"], v_value)
+    if w_value is not None:
+        ds["W"] = xr.full_like(ds["U"], w_value)
 
-    tdim = 2  # TODO make this also work for length-1 time dimensions
-    dims = (tdim, zdim, ydim, xdim)
-    U = u * np.ones(dims, dtype=np.float32)
-    V = v * np.ones(dims, dtype=np.float32)
-    if w is not None:
-        W = w * np.ones(dims, dtype=np.float32)
+    # adjust spatial extent
+    ds["depth"] -= 5
+    ds["lon"] *= 4
+    ds["lon"] -= 15
+    ds["lat"] *= 4
+    ds["lat"] -= 15
 
-    ds = xr.Dataset(
-        {
-            "U": (["time", "depth", "YG", "XG"], U),
-            "V": (["time", "depth", "YG", "XG"], V),
-        },
-        coords={
-            "time": (["time"], [np.timedelta64(0, "s"), np.timedelta64(10, "s")], {"axis": "T"}),
-            "depth": (["depth"], depth, {"axis": "Z"}),
-            "YC": (["YC"], np.arange(ydim) + 0.5, {"axis": "Y"}),
-            "YG": (["YG"], np.arange(ydim), {"axis": "Y", "c_grid_axis_shift": -0.5}),
-            "XC": (["XC"], np.arange(xdim) + 0.5, {"axis": "X"}),
-            "XG": (["XG"], np.arange(xdim), {"axis": "X", "c_grid_axis_shift": -0.5}),
-            "lat": (["YG"], lat, {"axis": "Y", "c_grid_axis_shift": 0.5}),
-            "lon": (["XG"], lon, {"axis": "X", "c_grid_axis_shift": -0.5}),
-        },
-    )
-    if w:
-        ds["W"] = (["time", "depth", "YG", "XG"], W)
+    # Slice dataset
+    indexers = {"node_dimension1": x_slice, "node_dimension2": y_slice}
+    if w_value:
+        indexers.update({"vertical_dimensions_dim1": z_slice})
+    ds = ds.sgrid.isel(indexers)
 
-    grid = XGrid.from_dataset(ds, mesh="flat")
-    U = Field("U", ds["U"], grid, interp_method=XLinear)
-    V = Field("V", ds["V"], grid, interp_method=XLinear)
-    fields = [U, V, VectorField("UV", U, V, vector_interp_method=XLinear_Velocity)]
-    if w:
-        W = Field("W", ds["W"], grid, interp_method=XLinear)
-        fields.append(VectorField("UVW", U, V, W, vector_interp_method=XLinear_Velocity))
-    fieldset = FieldSet(fields)
+    fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
 
     x0, y0, z0 = 2, 8, -4
     pset = ParticleSet(fieldset, lon=x0, lat=y0, z=z0)
-    kernel = AdvectionRK4 if w is None else AdvectionRK4_3D
+    kernel = AdvectionRK4 if w_value is None else AdvectionRK4_3D
     pset.execute(kernel, runtime=np.timedelta64(4, "s"), dt=np.timedelta64(1, "s"))
 
     assert len(pset.lon) == len([p.lon for p in pset])
-    np.testing.assert_allclose(np.array([p.lon - x0 for p in pset]), 4 * u, atol=1e-6)
-    np.testing.assert_allclose(np.array([p.lat - y0 for p in pset]), 4 * v, atol=1e-6)
-    if w:
-        np.testing.assert_allclose(np.array([p.z - z0 for p in pset]), 4 * w, atol=1e-6)
+    np.testing.assert_allclose(np.array([p.lon - x0 for p in pset]), 4 * u_value, atol=1e-6)
+    np.testing.assert_allclose(np.array([p.lat - y0 for p in pset]), 4 * v_value, atol=1e-6)
+    if w_value:
+        np.testing.assert_allclose(np.array([p.z - z0 for p in pset]), 4 * w_value, atol=1e-6)
 
 
 def test_radialrotation(npart=10):
