@@ -253,17 +253,17 @@ def peninsula_dataset(xdim=100, ydim=50, mesh="flat", grid_type="A"):
         V[:, :] = -2 * u0 * R**2 * ((x - x0) * y) / (((x - x0) ** 2 + y**2) ** 2)
         U[landpoints] = 0.0
         V[landpoints] = 0.0
-        Udims = ["YC", "XG"]
-        Vdims = ["YG", "XC"]
+        Udims = ["YG", "XG"]
+        Vdims = ["YG", "XG"]
     elif grid_type == "C":
         U = np.zeros(P.shape)
         V = np.zeros(P.shape)
         V[:, 1:] = (P[:, 1:] - P[:, :-1]) / (La[1] - La[0])
         U[1:, :] = -(P[1:, :] - P[:-1, :]) / (Wa[1] - Wa[0])
-        Udims = ["YG", "XG"]
-        Vdims = ["YG", "XG"]
+        Udims = ["YC", "XG"]
+        Vdims = ["YG", "XC"]
     else:
-        raise RuntimeError(f"Grid_type {grid_type} is not a valid option")
+        raise ValueError(f"Grid_type {grid_type} is not a valid option")
 
     # Convert from m to lat/lon for spherical meshes
     lon = La / 1852.0 / 60.0 if mesh == "spherical" else La
