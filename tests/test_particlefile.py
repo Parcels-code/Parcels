@@ -77,8 +77,7 @@ def test_compression(fieldset, tmp_parquet, compression):
 def test_write_fieldset_without_time(tmp_parquet):
     ds = peninsula_dataset()  # DataSet without time
     assert "time" not in ds.dims
-    grid = XGrid.from_dataset(ds, mesh="flat")
-    fieldset = FieldSet([Field("U", ds["U"], grid, XLinear)])
+    fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
 
     pset = ParticleSet(fieldset, pclass=Particle, lon=0, lat=0)
 
