@@ -23,7 +23,7 @@ class SgridAccessor:
         return grid
 
     def rename(self, name_dict: dict[str, str]) -> xr.Dataset:
-        """Similar to Xarray's rename functionality - but also updates the SGRID metadata attributes."""
+        """Similar to Xarray's rename functionality - but also updates attached SGRID metadata."""
         ds = self._ds.copy()
         ds = ds.rename(name_dict)
 
@@ -44,7 +44,33 @@ class SgridAccessor:
         return grid_da
 
     def isel(self, indexers: Mapping[str, Any] | None = None, **indexers_kwargs):
-        """TODO: Docstring"""
+        """Index the dataset along SGRID spatial dimensions, keeping face and node dimensions consistent.
+
+        For a provided index, this function derives the paired index from SGRID metadata, applies the indexes, and asserts the restulting dataset still complies with the SGRID metadata.
+
+        Behaviour:
+
+        - Only spatial (SGRID-registered) dimensions may be indexed.
+        - Simultaneously indexing along two dimensions that belong to the same axis is not allowed.
+        - For NONE/BOTH padding, only contiguous regions are supported (i.e., ``slice``
+        indexers with ``step`` of ``None`` or ``1``). Indexing discontiguous regions are not well defined.
+
+
+        Parameters
+        ----------
+        indexers : Mapping[str, Any], optional
+            A mapping of dimension name to indexer, e.g. ``{"node_dimension1": slice(0, 10)}``.
+            Mutually exclusive with ``**indexers_kwargs``.
+        **indexers_kwargs
+            Dimension-to-indexer pairs as keyword arguments. Mutually exclusive with
+            ``indexers``.
+
+        Returns
+        -------
+        xr.Dataset
+            A new dataset indexed along the requested dimensions with all paired face/node
+            dimensions adjusted accordingly.
+        """
         if indexers_kwargs != {}:
             if indexers is not None:
                 raise ValueError("Cannot provide both positional and keyword argument to .isel .")
