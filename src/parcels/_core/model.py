@@ -127,19 +127,23 @@ class UnstructuredModel(Model):
     def construct_fields(self) -> list[Field | VectorField]:
         ds = self.data
         grid = self.grid
-        fields = {}
+        single_fields: dict[str, Field] = {}
+        vector_fields: dict[str, VectorField] = {}
         if "U" in ds.data_vars and "V" in ds.data_vars:
-            fields["U"] = Field("U", ds["U"], grid, _select_uxinterpolator(ds["U"]))
-            fields["V"] = Field("V", ds["V"], grid, _select_uxinterpolator(ds["V"]))
-            fields["UV"] = VectorField("UV", fields["U"], fields["V"], vector_interp_method=Ux_Velocity)
+            single_fields["U"] = Field("U", ds["U"], grid, _select_uxinterpolator(ds["U"]))
+            single_fields["V"] = Field("V", ds["V"], grid, _select_uxinterpolator(ds["V"]))
+            vector_fields["UV"] = VectorField(
+                "UV", single_fields["U"], single_fields["V"], vector_interp_method=Ux_Velocity
+            )
 
             if "W" in ds.data_vars:
-                fields["W"] = Field("W", ds["W"], grid, _select_uxinterpolator(ds["W"]))
-                fields["UVW"] = VectorField(
-                    "UVW", fields["U"], fields["V"], fields["W"], vector_interp_method=Ux_Velocity
+                single_fields["W"] = Field("W", ds["W"], grid, _select_uxinterpolator(ds["W"]))
+                vector_fields["UVW"] = VectorField(
+                    "UVW", single_fields["U"], single_fields["V"], single_fields["W"], vector_interp_method=Ux_Velocity
                 )
 
-        for varname in set(ds.data_vars) - set(fields.keys()):
+        fields: dict[str, Field | VectorField] = {**single_fields, **vector_fields}
+        for varname in set(ds.data_vars) - set(single_fields.keys()):
             fields[varname] = Field(str(varname), ds[varname], grid, _select_uxinterpolator(ds[varname]))
 
         return list(fields.values())
