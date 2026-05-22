@@ -46,8 +46,8 @@ As a user with access to your dataset, you would do:
 
 # Generate an example dataset to zip. The user would use their own.
 import xarray as xr
-from parcels._datasets.structured.generic import datasets
-datasets['ds_2d_left'].to_netcdf("my_dataset.nc")
+from parcels._datasets.structured.generic import datasets_comodo
+datasets_comodo['ds_2d_left'].to_netcdf("my_dataset.nc")
 ```
 
 ```{code-cell}
