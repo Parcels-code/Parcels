@@ -198,6 +198,7 @@ def test_advection_3D_outofbounds(direction, resubmerge_particle):
 )
 def test_length1dimensions(u_value, x_slice, v_value, y_slice, w_value, z_slice):
     ds = datasets_sgrid["ds_2d_padded_high"].copy()[["U_A_grid", "grid"]]
+    ds = ds.isel(time=slice(2)) # TODO make this also work for length-1 time dimensions
     ds = ds.rename({"U_A_grid": "U"})
     ds["U"] = xr.full_like(ds["U"], u_value)
     ds["V"] = xr.full_like(ds["U"], v_value)
