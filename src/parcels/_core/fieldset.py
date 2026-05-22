@@ -11,21 +11,14 @@ import xarray as xr
 import xgcm
 
 from parcels._core.field import Field, VectorField
-from parcels._core.model import StructuredModel
+from parcels._core.model import StructuredModel, UnstructuredModel
 from parcels._core.utils.string import _assert_str_and_python_varname
 from parcels._core.utils.time import get_datetime_type_calendar
 from parcels._core.utils.time import is_compatible as datetime_is_compatible
-from parcels._core.uxgrid import UxGrid
 from parcels._core.xgrid import _DEFAULT_XGCM_KWARGS, XGrid
 from parcels._reprs import fieldset_repr
 from parcels._typing import Mesh
-from parcels.convert import _ds_rename_using_standard_names
 from parcels.interpolators import (
-    Ux_Velocity,
-    UxConstantFaceConstantZC,
-    UxConstantFaceLinearZF,
-    UxLinearNodeConstantZC,
-    UxLinearNodeLinearZF,
     XConstantField,
 )
 
@@ -197,31 +190,8 @@ class FieldSet:
         FieldSet
             FieldSet object containing the fields from the dataset that can be used for a Parcels simulation.
         """
-        ds_dims = list(ds.dims)
-        if not all(dim in ds_dims for dim in ["time", "zf", "zc"]):
-            raise ValueError(
-                f"Dataset missing one of the required dimensions 'time', 'zf', or 'zc' for uxDataset. Found dimensions {ds_dims}"
-            )
-
-        grid = UxGrid(ds.uxgrid, z=ds.coords["zf"], mesh=mesh)
-        ds = _discover_ux_U_and_V(ds)
-
-        fields = {}
-        if "U" in ds.data_vars and "V" in ds.data_vars:
-            fields["U"] = Field("U", ds["U"], grid, _select_uxinterpolator(ds["U"]))
-            fields["V"] = Field("V", ds["V"], grid, _select_uxinterpolator(ds["V"]))
-            fields["UV"] = VectorField("UV", fields["U"], fields["V"], vector_interp_method=Ux_Velocity)
-
-            if "W" in ds.data_vars:
-                fields["W"] = Field("W", ds["W"], grid, _select_uxinterpolator(ds["W"]))
-                fields["UVW"] = VectorField(
-                    "UVW", fields["U"], fields["V"], fields["W"], vector_interp_method=Ux_Velocity
-                )
-
-        for varname in set(ds.data_vars) - set(fields.keys()):
-            fields[varname] = Field(str(varname), ds[varname], grid, _select_uxinterpolator(ds[varname]))
-
-        return cls(list(fields.values()))
+        model = UnstructuredModel.from_ugrid_conventions(ds, mesh)
+        return cls(list(model.construct_fields()))
 
     @classmethod
     def from_sgrid_conventions(
@@ -325,85 +295,6 @@ _COPERNICUS_MARINE_CF_STANDARD_NAME_FALLBACKS = {
     ],
     "W": ["upward_sea_water_velocity", "vertical_sea_water_velocity"],
 }
-
-
-def _discover_ux_U_and_V(ds: ux.UxDataset) -> ux.UxDataset:
-    # Common variable names for U and V found in UxDatasets
-    common_ux_UV = [("unod", "vnod"), ("u", "v")]
-    common_ux_W = ["w"]
-
-    if "W" not in ds:
-        for common_W in common_ux_W:
-            if common_W in ds:
-                ds = _ds_rename_using_standard_names(ds, {common_W: "W"})
-                break
-
-    if "U" in ds and "V" in ds:
-        return ds  # U and V already present
-    elif "U" in ds or "V" in ds:
-        raise ValueError(
-            "Dataset has only one of the two variables 'U' and 'V'. Please rename the appropriate variable in your dataset to have both 'U' and 'V' for Parcels simulation."
-        )
-
-    for common_U, common_V in common_ux_UV:
-        if common_U in ds:
-            if common_V not in ds:
-                raise ValueError(
-                    f"Dataset has variable with standard name {common_U!r}, "
-                    f"but not the matching variable with standard name {common_V!r}. "
-                    "Please rename the appropriate variables in your dataset to have both 'U' and 'V' for Parcels simulation."
-                )
-            else:
-                ds = _ds_rename_using_standard_names(ds, {common_U: "U", common_V: "V"})
-                break
-
-        else:
-            if common_V in ds:
-                raise ValueError(
-                    f"Dataset has variable with standard name {common_V!r}, "
-                    f"but not the matching variable with standard name {common_U!r}. "
-                    "Please rename the appropriate variables in your dataset to have both 'U' and 'V' for Parcels simulation."
-                )
-            continue
-
-    return ds
-
-
-def _select_uxinterpolator(da: ux.UxDataArray):
-    """Selects the appropriate uxarray interpolator for a given uxarray UxDataArray"""
-    supported_uxinterp_mapping = {
-        # (zc,n_face): face-center laterally, layer centers vertically — piecewise constant
-        "zc,n_face": UxConstantFaceConstantZC,
-        # (zc,n_node): node/corner laterally, layer centers vertically — barycentric lateral & piecewise constant vertical
-        "zc,n_node": UxLinearNodeConstantZC,
-        # (zf,n_node): node/corner laterally, layer interfaces vertically — barycentric lateral & linear vertical
-        "zf,n_node": UxLinearNodeLinearZF,
-        # (zf,n_face): face-center laterally, layer interfaces vertically — piecewise constant lateral & linear vertical
-        "zf,n_face": UxConstantFaceLinearZF,
-    }
-    # Extract only spatial dimensions, neglecting time
-    da_spatial_dims = tuple(d for d in da.dims if d not in ("time",))
-    if len(da_spatial_dims) != 2:
-        raise ValueError(
-            "Fields on unstructured grids must have two spatial dimensions, one vertical (zf or zc) and one lateral (n_face, n_edge, or n_node)"
-        )
-
-    # Construct key (string) for mapping to interpolator
-    # Find vertical and lateral tokens
-    vdim = None
-    ldim = None
-    for d in da_spatial_dims:
-        if d in ("zf", "zc"):
-            vdim = d
-        if d in ("n_face", "n_node"):
-            ldim = d
-    # Map to supported interpolators
-    if vdim and ldim:
-        key = f"{vdim},{ldim}"
-        if key in supported_uxinterp_mapping.keys():
-            return supported_uxinterp_mapping[key]
-
-    return None
 
 
 def _is_agrid(ds: xr.Dataset) -> bool:
