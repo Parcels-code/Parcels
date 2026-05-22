@@ -3,11 +3,13 @@ from __future__ import annotations
 import warnings
 from collections.abc import Callable, Sequence
 from datetime import datetime
+from typing import Any
 
 import numpy as np
 import uxarray as ux
 import xarray as xr
 
+from parcels._core.basegrid import BaseGrid
 from parcels._core.index_search import GRID_SEARCH_ERROR, LEFT_OUT_OF_BOUNDS, RIGHT_OUT_OF_BOUNDS, _search_time_index
 from parcels._core.particlesetview import ParticleSetView
 from parcels._core.statuscodes import (
@@ -86,8 +88,8 @@ class Field:
     def __init__(
         self,
         name: str,
-        data: xr.DataArray | ux.UxDataArray,
-        grid: UxGrid | XGrid,
+        data: Any,
+        grid: BaseGrid,
         interp_method: Callable,
     ):
         if not isinstance(data, (ux.UxDataArray, xr.DataArray)):

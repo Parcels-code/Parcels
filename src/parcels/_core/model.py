@@ -43,19 +43,27 @@ class StructuredModel(Model):
             if self.data[var].attrs.get("cf_role") == "grid_topology":
                 skip_vars.add(var)
 
-        fields = {}
+        single_fields: dict[str, Field] = {}
+        vector_fields: dict[str, VectorField] = {}
         if "U" in self.data.data_vars and "V" in self.data.data_vars:
             vector_interp_method = XLinear_Velocity if _is_agrid(self.data) else CGrid_Velocity
-            fields["U"] = Field("U", self.data["U"], self.grid, XLinear)
-            fields["V"] = Field("V", self.data["V"], self.grid, XLinear)
-            fields["UV"] = VectorField("UV", fields["U"], fields["V"], vector_interp_method=vector_interp_method)
+            single_fields["U"] = Field("U", self.data["U"], self.grid, XLinear)
+            single_fields["V"] = Field("V", self.data["V"], self.grid, XLinear)
+            vector_fields["UV"] = VectorField(
+                "UV", single_fields["U"], single_fields["V"], vector_interp_method=vector_interp_method
+            )
 
             if "W" in self.data.data_vars:
-                fields["W"] = Field("W", self.data["W"], self.grid, XLinear)
-                fields["UVW"] = VectorField(
-                    "UVW", fields["U"], fields["V"], fields["W"], vector_interp_method=vector_interp_method
+                single_fields["W"] = Field("W", self.data["W"], self.grid, XLinear)
+                vector_fields["UVW"] = VectorField(
+                    "UVW",
+                    single_fields["U"],
+                    single_fields["V"],
+                    single_fields["W"],
+                    vector_interp_method=vector_interp_method,
                 )
 
+        fields: dict[str, Field | VectorField] = {**single_fields, **vector_fields}
         for varname in set(self.data.data_vars) - set(fields.keys()) - skip_vars:
             fields[varname] = Field(str(varname), self.data[varname], self.grid, XLinear)
 
