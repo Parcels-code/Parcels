@@ -11,7 +11,7 @@ import xarray as xr
 import xgcm
 
 from parcels._core.field import Field, VectorField
-from parcels._core.model import StructuredModel, UnstructuredModel
+from parcels._core.model import Model, StructuredModel, UnstructuredModel
 from parcels._core.utils.string import _assert_str_and_python_varname
 from parcels._core.utils.time import get_datetime_type_calendar
 from parcels._core.utils.time import is_compatible as datetime_is_compatible
@@ -58,14 +58,28 @@ class FieldSet:
 
     """
 
-    def __init__(self, fields: list[Field | VectorField]):
-        for field in fields:
-            if not isinstance(field, (Field, VectorField)):
-                raise ValueError(f"Expected `field` to be a Field or VectorField object. Got {field}")
-        assert_compatible_calendars(fields)
+    def __init__(self, models: list[Model]):
+        for model in models:
+            if not isinstance(model, Model):
+                raise ValueError(f"Expected `model` to be a Model object. Got {model}")
+        # assert_compatible_calendars(fields)
 
-        self.fields = {f.name: f for f in fields}
+        self.models = list(models)
+        self._fields: dict[str, Field | VectorField] | None = None
         self.constants: dict[str, float] = {}
+
+    @property
+    def fields(self):
+        if self._fields is None:
+            self.reconstruct_fields()
+        assert self._fields is not None
+        return self._fields
+
+    def reconstruct_fields(self):
+        fields = []
+        for model in self.models:
+            fields += model.construct_fields()
+        self._fields = {f.name: f for f in fields}
 
     def __getattr__(self, name):
         """Get the field by name. If the field is not found, check if it's a constant."""
@@ -191,7 +205,7 @@ class FieldSet:
             FieldSet object containing the fields from the dataset that can be used for a Parcels simulation.
         """
         model = UnstructuredModel.from_ugrid_conventions(ds, mesh)
-        return cls(list(model.construct_fields()))
+        return cls([model])
 
     @classmethod
     def from_sgrid_conventions(
@@ -225,7 +239,7 @@ class FieldSet:
         See https://sgrid.github.io/ for more information on the SGRID conventions.
         """
         model = StructuredModel.from_sgrid_conventions(ds, mesh)
-        return cls(model.construct_fields())
+        return cls([model])
 
 
 class CalendarError(Exception):  # TODO: Move to a parcels errors module
