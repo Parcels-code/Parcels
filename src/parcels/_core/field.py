@@ -17,7 +17,6 @@ from parcels._core.statuscodes import (
     StatusCode,
 )
 from parcels._core.utils.string import _assert_str_and_python_varname
-from parcels._core.utils.time import TimeInterval
 from parcels._core.uxgrid import UxGrid
 from parcels._core.xgrid import XGrid, _transpose_xfield_data_to_tzyx, assert_all_field_dims_have_axis
 from parcels._python import assert_same_function_signature
@@ -113,14 +112,6 @@ class Field:
         self.grid = grid
 
         try:
-            self.time_interval = _get_time_interval(data)
-        except ValueError as e:
-            e.add_note(
-                f"Error getting time interval for field {name!r}. Are you sure that the time dimension on the xarray dataset is stored as timedelta, datetime or cftime datetime objects?"
-            )
-            raise e
-
-        try:
             if isinstance(data, ux.UxDataArray):
                 _assert_valid_uxdataarray(data)
                 # TODO: For unstructured grids, validate that `data.uxgrid` is the same as `grid`
@@ -139,6 +130,9 @@ class Field:
         if self.data.shape[0] > 1:
             if "time" not in self.data.coords:
                 raise ValueError("Field data is missing a 'time' coordinate.")
+
+    @property
+    def time_interval(self): ...  # return model.time_interval
 
     def __repr__(self):
         return field_repr(self)
@@ -406,13 +400,6 @@ def _assert_compatible_combination(data: xr.DataArray | ux.UxDataArray, grid: Ux
             raise ValueError(
                 f"Incompatible data-grid combination. Data is a xarray.DataArray, expected `grid` to be a parcels Grid object, got {type(grid)}."
             )
-
-
-def _get_time_interval(data: xr.DataArray | ux.UxDataArray) -> TimeInterval | None:
-    if data.shape[0] == 1:
-        return None
-
-    return TimeInterval(data.time.values[0], data.time.values[-1])
 
 
 def _assert_same_time_interval(fields: Sequence[Field]) -> None:

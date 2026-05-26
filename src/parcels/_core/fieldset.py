@@ -99,7 +99,7 @@ class FieldSet:
         which is the intersection of the time intervals of all fields
         in the FieldSet.
         """
-        time_intervals = (f.time_interval for f in self.fields.values())
+        time_intervals = (m.time_interval for m in self.models)
 
         # Filter out Nones from constant Fields
         time_intervals = [t for t in time_intervals if t is not None]

@@ -11,6 +11,7 @@ import xgcm
 import parcels._sgrid as sgrid
 from parcels._core.basegrid import BaseGrid
 from parcels._core.field import Field, VectorField
+from parcels._core.utils.time import TimeInterval
 from parcels._core.uxgrid import UxGrid
 from parcels._core.xgrid import _DEFAULT_XGCM_KWARGS, XGrid
 from parcels._logger import logger
@@ -34,6 +35,17 @@ class Model(ABC):
 
     @abstractmethod
     def construct_fields(self) -> list[Field | VectorField]: ...
+
+    @property
+    def time_interval(self) -> TimeInterval | None:
+        try:
+            time_interval = _get_time_interval(self.data)
+        except ValueError as e:
+            e.add_note(
+                f"Error getting time interval for model with data {self.data!r}. Are you sure that the time dimension on the xarray dataset is stored as timedelta, datetime or cftime datetime objects?"
+            )
+            raise e
+        return time_interval
 
 
 class StructuredModel(Model):
@@ -273,3 +285,10 @@ def _is_agrid(ds: xr.Dataset) -> bool:
     # check if U and V are defined on the same dimensions
     # if yes, interpret as A grid
     return set(ds["U"].dims) == set(ds["V"].dims)
+
+
+def _get_time_interval(data: xr.DataArray | ux.UxDataArray) -> TimeInterval | None:
+    if data.shape[0] == 1:
+        return None
+
+    return TimeInterval(data.time.values[0], data.time.values[-1])
