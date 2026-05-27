@@ -174,16 +174,17 @@ def test_dim_with_duplicate_axis():
         FieldSet.from_sgrid_conventions(ds)
 
 
-def test_vertical1D_field():
-    nz = 11
-    ds = xr.Dataset(
-        {"z1d": (["depth"], np.linspace(0, 10, nz))},
-        coords={"depth": (["depth"], np.linspace(0, 1, nz), {"axis": "Z"})},
-    )
-    grid = XGrid.from_dataset(ds, mesh="flat")
-    field = Field("z1d", ds["z1d"], grid, XLinear)
+@pytest.mark.parametrize("ds", [datasets["ds_2d_left"]])
+def test_vertical1D_field(ds):
+    ds = ds.drop(set(ds.data_vars) - {"grid"})
+    ds["depth"] = (["ZG"], np.linspace(0, 1, ds["depth"].size), {"axis": "Z"})
+    ds["z1d"] = xr.DataArray(np.linspace(0, 10, ds["depth"].size), dims=("ZG",))
+    ds = ds.reset_coords("z1d")
 
-    assert field.eval(np.timedelta64(0, "s"), 0.45, 0, 0) == 4.5
+    fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
+    field = fieldset.z1d
+
+    np.testing.assert_almost_equal(field.eval(np.timedelta64(0, "s"), 0.45, 0, 0), np.array([4.5]))
 
 
 def test_time1D_field():
