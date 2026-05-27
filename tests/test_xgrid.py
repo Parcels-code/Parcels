@@ -207,7 +207,8 @@ def test_time1D_field():
     ],
 )  # for key, ds in datasets.items()])
 def test_xgrid_search_cpoints(ds):
-    grid = XGrid.from_dataset(ds, mesh="flat")
+    fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
+    grid = fieldset.U_A_grid.grid
     lat_array, lon_array = get_2d_fpoint_mesh(grid)
     lat_array, lon_array = corner_to_cell_center_points(lat_array, lon_array)
 

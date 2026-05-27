@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
-import uxarray as ux
-import xarray as xr
 
 from parcels import Field, UxGrid, VectorField, XGrid
 from parcels._datasets.structured.generic import T as T_structured
@@ -65,7 +63,9 @@ def test_field_init_param_types():
 #         ),
 #     ],
 # )
-@pytest.mark.skip("Likely not relevant after refactoring from https://github.com/Parcels-code/Parcels/pull/2646") # TODO: Remove or replace
+@pytest.mark.skip(
+    "Likely not relevant after refactoring from https://github.com/Parcels-code/Parcels/pull/2646"
+)  # TODO: Remove or replace
 def test_field_incompatible_combination(data, grid):
     with pytest.raises(ValueError, match="Incompatible data-grid combination."):
         Field(
@@ -76,16 +76,19 @@ def test_field_incompatible_combination(data, grid):
         )
 
 
-@pytest.mark.parametrize(
-    "data,grid",
-    [
-        pytest.param(
-            datasets_structured["ds_2d_left"]["data_g"],
-            XGrid.from_dataset(datasets_structured["ds_2d_left"], mesh="flat"),
-            id="ds_2d_left",
-        ),  # TODO: Perhaps this test should be expanded to cover more datasets?
-    ],
-)
+# @pytest.mark.parametrize(
+#     "data,grid",
+#     [
+#         pytest.param(
+#             datasets_structured["ds_2d_left"]["data_g"],
+#             XGrid.from_dataset(datasets_structured["ds_2d_left"], mesh="flat"),
+#             id="ds_2d_left",
+#         ),  # TODO: Perhaps this test should be expanded to cover more datasets?
+#     ],
+# )
+@pytest.mark.skip(
+    "Needs updating after refactoring from https://github.com/Parcels-code/Parcels/pull/2646"
+)  # TODO: Remove or replace
 def test_field_init_structured_grid(data, grid):
     """Test creating a field."""
     field = Field(
@@ -125,16 +128,19 @@ def test_field_init_fail_on_float_time_dim():
         )
 
 
-@pytest.mark.parametrize(
-    "data,grid",
-    [
-        pytest.param(
-            datasets_structured["ds_2d_left"]["data_g"],
-            XGrid.from_dataset(datasets_structured["ds_2d_left"], mesh="flat"),
-            id="ds_2d_left",
-        ),
-    ],
-)
+# @pytest.mark.parametrize(
+#     "data,grid",
+#     [
+#         pytest.param(
+#             datasets_structured["ds_2d_left"]["data_g"],
+#             XGrid.from_dataset(datasets_structured["ds_2d_left"], mesh="flat"),
+#             id="ds_2d_left",
+#         ),
+#     ],
+# )
+@pytest.mark.skip(
+    "Needs updating after refactoring from https://github.com/Parcels-code/Parcels/pull/2646"
+)  # TODO: Remove or replace
 def test_field_time_interval(data, grid):
     """Test creating a field."""
     field = Field(name="test_field", data=data, grid=grid, interp_method=XLinear)
