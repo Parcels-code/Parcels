@@ -133,18 +133,6 @@ class XGrid(BaseGrid):
         ptyping.assert_valid_mesh(mesh)
         self._ds = ds
 
-    @classmethod
-    def from_dataset(cls, ds: xr.Dataset, mesh, xgcm_kwargs=None):
-        """WARNING: unstable API, subject to change in future versions."""  # TODO v4: make private or remove warning on v4 release
-        if xgcm_kwargs is None:
-            xgcm_kwargs = {}
-
-        xgcm_kwargs = {**_DEFAULT_XGCM_KWARGS, **xgcm_kwargs}
-
-        ds = _drop_field_data(ds)
-        grid = xgcm.Grid(ds, **xgcm_kwargs)
-        return cls(grid, mesh=mesh)
-
     def __repr__(self):
         return xgrid_repr(self)
 

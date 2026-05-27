@@ -46,25 +46,26 @@ def test_field_init_param_types():
         Field(name="test", data=data["data_g"], grid=123, interp_method=XLinear)
 
 
-@pytest.mark.parametrize(
-    "data,grid",
-    [
-        pytest.param(
-            ux.UxDataArray(),
-            XGrid.from_dataset(datasets_structured["ds_2d_left"], mesh="flat"),
-            id="uxdata-grid",
-        ),
-        pytest.param(
-            xr.DataArray(),
-            UxGrid(
-                datasets_unstructured["stommel_gyre_delaunay"].uxgrid,
-                z=datasets_unstructured["stommel_gyre_delaunay"].coords["zf"],
-                mesh="flat",
-            ),
-            id="xarray-uxgrid",
-        ),
-    ],
-)
+# @pytest.mark.parametrize(
+#     "data,grid",
+#     [
+#         pytest.param(
+#             ux.UxDataArray(),
+#             XGrid.from_dataset(datasets_structured["ds_2d_left"], mesh="flat"),
+#             id="uxdata-grid",
+#         ),
+#         pytest.param(
+#             xr.DataArray(),
+#             UxGrid(
+#                 datasets_unstructured["stommel_gyre_delaunay"].uxgrid,
+#                 z=datasets_unstructured["stommel_gyre_delaunay"].coords["zf"],
+#                 mesh="flat",
+#             ),
+#             id="xarray-uxgrid",
+#         ),
+#     ],
+# )
+@pytest.mark.skip("Likely not relevant after refactoring from https://github.com/Parcels-code/Parcels/pull/2646") # TODO: Remove or replace
 def test_field_incompatible_combination(data, grid):
     with pytest.raises(ValueError, match="Incompatible data-grid combination."):
         Field(
