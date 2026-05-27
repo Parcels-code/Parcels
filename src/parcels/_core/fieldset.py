@@ -66,6 +66,7 @@ class FieldSet:
 
         self.models = list(models)
         self._fields: dict[str, Field | VectorField] | None = None
+        self.reconstruct_fields()
         self.constants: dict[str, float] = {}
 
     @property
@@ -83,8 +84,8 @@ class FieldSet:
 
     def __getattr__(self, name):
         """Get the field by name. If the field is not found, check if it's a constant."""
-        if name in self.fields:
-            return self.fields[name]
+        if name in self._fields:
+            return self._fields[name]
         elif name in self.constants:
             return self.constants[name]
         else:

@@ -13,7 +13,11 @@ from parcels._core.basegrid import BaseGrid
 from parcels._core.field import Field, VectorField
 from parcels._core.utils.time import TimeInterval
 from parcels._core.uxgrid import UxGrid
-from parcels._core.xgrid import _DEFAULT_XGCM_KWARGS, XGrid
+from parcels._core.xgrid import (
+    _DEFAULT_XGCM_KWARGS,
+    XGrid,
+    assert_all_field_dims_have_axis,
+)
 from parcels._logger import logger
 from parcels._typing import Mesh
 from parcels.convert import _ds_rename_using_standard_names
@@ -67,29 +71,46 @@ class Model(ABC):
 
 class StructuredModel(Model):
     def __init__(self, data: xr.Dataset, grid: XGrid):
+        if not isinstance(data, xr.Dataset):
+            raise ValueError(f"Expected `data` to be an xarray.Dataset . Got {type(data)}")
+
+        if not isinstance(grid, XGrid):
+            raise ValueError(f"Expected `grid` to be a parcels XGrid object. Got {type(grid)}.")
+
+        # data = _transpose_xfield_data_to_tzyx(data, grid.xgcm_grid) # TODO PR: Implement for datasets (this used to be just Field code in field.py)
+
         self.data = data
         self.grid = grid
+        self.assert_valid_model_data()
 
-    def construct_fields(self) -> list[Field | VectorField]:
+    def assert_valid_field_data(self, field_data: xr.DataArray) -> None:
+        assert_all_field_dims_have_axis(field_data, self.grid.xgcm_grid)
+        _assert_has_time_coordinate(field_data)
+
+    @property
+    def scalar_field_names(self) -> list[str]:
         # Create fields from data variables, skipping grid metadata variables
         # Skip variables that are SGRID metadata (have cf_role='grid_topology')
         skip_vars = set()
         for var in self.data.data_vars:
             if self.data[var].attrs.get("cf_role") == "grid_topology":
                 skip_vars.add(var)
+        return list(set(self.data.data_vars) - skip_vars)
 
+    def construct_fields(self) -> list[Field | VectorField]:
         single_fields: dict[str, Field] = {}
         vector_fields: dict[str, VectorField] = {}
-        if "U" in self.data.data_vars and "V" in self.data.data_vars:
+        scalar_field_names = self.scalar_field_names
+        if "U" in scalar_field_names and "V" in scalar_field_names:
             vector_interp_method = XLinear_Velocity if _is_agrid(self.data) else CGrid_Velocity
-            single_fields["U"] = Field("U", self.data["U"], self.grid, XLinear)
-            single_fields["V"] = Field("V", self.data["V"], self.grid, XLinear)
+            single_fields["U"] = Field("U", self, XLinear)
+            single_fields["V"] = Field("V", self, XLinear)
             vector_fields["UV"] = VectorField(
                 "UV", single_fields["U"], single_fields["V"], vector_interp_method=vector_interp_method
             )
 
-            if "W" in self.data.data_vars:
-                single_fields["W"] = Field("W", self.data["W"], self.grid, XLinear)
+            if "W" in scalar_field_names:
+                single_fields["W"] = Field("W", self, XLinear)
                 vector_fields["UVW"] = VectorField(
                     "UVW",
                     single_fields["U"],
@@ -99,8 +120,8 @@ class StructuredModel(Model):
                 )
 
         fields: dict[str, Field | VectorField] = {**single_fields, **vector_fields}
-        for varname in set(self.data.data_vars) - set(fields.keys()) - skip_vars:
-            fields[varname] = Field(str(varname), self.data[varname], self.grid, XLinear)
+        for varname in set(scalar_field_names) - set(fields.keys()):
+            fields[varname] = Field(str(varname), self, XLinear)
 
         return list(fields.values())
 
@@ -150,32 +171,46 @@ class StructuredModel(Model):
 
 class UnstructuredModel(Model):
     def __init__(self, data: ux.UxDataset, grid: UxGrid):
+        if not isinstance(data, ux.UxDataset):
+            raise ValueError(f"Expected `data` to be an uxarray.UxDataset . Got {type(data)}")
+
+        if not isinstance(grid, UxGrid):
+            raise ValueError(f"Expected `grid` to be a parcels UxGrid object. Got {type(grid)}.")
+
         self.data = data
         self.grid = grid
 
     def construct_fields(self) -> list[Field | VectorField]:
         ds = self.data
-        grid = self.grid
         single_fields: dict[str, Field] = {}
         vector_fields: dict[str, VectorField] = {}
-        if "U" in ds.data_vars and "V" in ds.data_vars:
-            single_fields["U"] = Field("U", ds["U"], grid, _select_uxinterpolator(ds["U"]))
-            single_fields["V"] = Field("V", ds["V"], grid, _select_uxinterpolator(ds["V"]))
+        scalar_field_names = self.scalar_field_names
+        if "U" in scalar_field_names and "V" in scalar_field_names:
+            single_fields["U"] = Field("U", self, _select_uxinterpolator(ds["U"]))
+            single_fields["V"] = Field("V", self, _select_uxinterpolator(ds["V"]))
             vector_fields["UV"] = VectorField(
                 "UV", single_fields["U"], single_fields["V"], vector_interp_method=Ux_Velocity
             )
 
-            if "W" in ds.data_vars:
-                single_fields["W"] = Field("W", ds["W"], grid, _select_uxinterpolator(ds["W"]))
+            if "W" in scalar_field_names:
+                single_fields["W"] = Field("W", self, _select_uxinterpolator(ds["W"]))
                 vector_fields["UVW"] = VectorField(
                     "UVW", single_fields["U"], single_fields["V"], single_fields["W"], vector_interp_method=Ux_Velocity
                 )
 
         fields: dict[str, Field | VectorField] = {**single_fields, **vector_fields}
-        for varname in set(ds.data_vars) - set(single_fields.keys()):
-            fields[varname] = Field(str(varname), ds[varname], grid, _select_uxinterpolator(ds[varname]))
+        for varname in set(scalar_field_names) - set(single_fields.keys()):
+            fields[varname] = Field(str(varname), self, _select_uxinterpolator(ds[varname]))
 
         return list(fields.values())
+
+    def assert_valid_field_data(self, field_data: ux.UxDataArray) -> None:
+        _assert_valid_uxdataarray(field_data)
+        _assert_has_time_coordinate(field_data)
+
+    @property
+    def scalar_field_names(self) -> list[str]:
+        return list(self.data.data_vars)
 
     @classmethod
     def from_ugrid_conventions(cls, ds: ux.UxDataset, mesh: str = "spherical"):
@@ -305,7 +340,32 @@ def _is_agrid(ds: xr.Dataset) -> bool:
 
 
 def _get_time_interval(data: xr.DataArray | ux.UxDataArray) -> TimeInterval | None:
-    if data.shape[0] == 1:
+    if "time" not in data:
         return None
 
     return TimeInterval(data.time.values[0], data.time.values[-1])
+
+
+def _assert_valid_uxdataarray(data: ux.UxDataArray):
+    """Verifies that all the required attributes are present in the xarray.DataArray or
+    uxarray.UxDataArray object.
+    """
+    # Validate dimensions
+    if not ("zf" in data.dims or "zc" in data.dims):
+        raise ValueError(
+            "Field is missing a 'zf' or 'zc' dimension in the field's metadata. "
+            "This attribute is required for xarray.DataArray objects."
+        )
+
+    if "time" not in data.dims:
+        raise ValueError(
+            "Field is missing a 'time' dimension in the field's metadata. "
+            "This attribute is required for xarray.DataArray objects."
+        )
+
+
+def _assert_has_time_coordinate(da: xr.DataArray) -> None:
+    if da.shape[0] > 1:
+        if "time" not in da.coords:
+            raise ValueError("Field data is missing a 'time' coordinate.")
+    return
