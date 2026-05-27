@@ -113,11 +113,11 @@ class Field:
         return self.model.data[self.name]
 
     @property
-    def grid(self): # TODO PR: Remove in favour of referencing model grid directly
+    def grid(self):  # TODO PR: Remove in favour of referencing model grid directly
         return self.model.grid
 
     @property
-    def time_interval(self): # TODO PR: Remove in favour of referencing model time_interval directly
+    def time_interval(self):  # TODO PR: Remove in favour of referencing model time_interval directly
         return self.model.time_interval
 
     def __repr__(self):
