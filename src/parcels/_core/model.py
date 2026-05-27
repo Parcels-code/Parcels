@@ -37,6 +37,23 @@ class Model(ABC):
     def construct_fields(self) -> list[Field | VectorField]: ...
 
     @property
+    @abstractmethod
+    def scalar_field_names(self) -> list[str]: ...
+
+    @abstractmethod
+    def assert_valid_field_data(self, field_data: Any) -> None: ...
+
+    def assert_valid_model_data(self) -> None:
+        for field_name in self.scalar_field_names:
+            field_data = self.data[field_name]
+            try:
+                self.assert_valid_field_data(field_data)
+            except Exception as e:
+                e.add_note(f"Error validating field {field_name!r}.")
+                raise e
+        return
+
+    @property
     def time_interval(self) -> TimeInterval | None:
         try:
             time_interval = _get_time_interval(self.data)
