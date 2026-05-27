@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Literal
 
 import numpy as np
 import xarray as xr
@@ -13,12 +13,12 @@ import parcels._typing as ptyping
 
 if TYPE_CHECKING:
     from parcels._core.field import Field, VectorField
-    from parcels._core.xgrid import XgridAxis
+    from parcels._core.xgrid import XGrid
 
 
 def ZeroInterpolator(
     particle_positions: dict[str, float | np.ndarray],
-    grid_positions: dict[XgridAxis, dict[str, int | float | np.ndarray]],
+    grid_positions: dict[ptyping.XgridAxis, dict[str, int | float | np.ndarray]],
     field: Field,
 ) -> np.float32 | np.float64:
     """Template function used for the signature check of the lateral interpolation methods."""
@@ -27,7 +27,7 @@ def ZeroInterpolator(
 
 def ZeroInterpolator_Vector(
     particle_positions: dict[str, float | np.ndarray],
-    grid_positions: dict[XgridAxis, dict[str, int | float | np.ndarray]],
+    grid_positions: dict[ptyping.XgridAxis, dict[str, int | float | np.ndarray]],
     vectorfield: VectorField,
 ) -> np.float32 | np.float64:
     """Template function used for the signature check of the interpolation methods for velocity fields."""
@@ -43,7 +43,7 @@ def _get_corner_data_Agrid(
     lenT: int,  # noqa: N803
     lenZ: int,  # noqa: N803
     npart: int,
-    axis_dim: dict[ptyping.XgridAxis, str],
+    axis_dim: dict[ptyping.ptyping.XgridAxis, str],
 ) -> np.ndarray:
     """Helper function to get the corner data for a given A-grid field and position."""
     # Time coordinates: 8 points at ti, then 8 points at ti+1
@@ -82,7 +82,7 @@ def _get_corner_data_Agrid(
     return data.isel(selection_dict).data.reshape(lenT, lenZ, 2, 2, npart)
 
 
-def _get_offsets_dictionary(grid):
+def _get_offsets_dictionary(grid: XGrid) -> dict[ptyping.CfAxisSpatial, Literal[1, 0]]:
     offsets = {}
     for axis in ["X", "Y"]:
         axis_coords = grid.xgcm_grid.axes[axis].coords.keys()
@@ -97,7 +97,7 @@ def _get_offsets_dictionary(grid):
 
 def XLinear(
     particle_positions: dict[str, float | np.ndarray],
-    grid_positions: dict[XgridAxis, dict[str, int | float | np.ndarray]],
+    grid_positions: dict[ptyping.XgridAxis, dict[str, int | float | np.ndarray]],
     field: Field,
 ):
     """Trilinear interpolation on a regular grid."""
@@ -137,7 +137,7 @@ def XLinear(
 
 def XConstantField(
     particle_positions: dict[str, float | np.ndarray],
-    grid_positions: dict[XgridAxis, dict[str, int | float | np.ndarray]],
+    grid_positions: dict[ptyping.XgridAxis, dict[str, int | float | np.ndarray]],
     field: Field,
 ):
     """Returning the single value of a Constant Field (with a size=(1,1,1,1) array)"""
@@ -146,7 +146,7 @@ def XConstantField(
 
 def XLinear_Velocity(
     particle_positions: dict[str, float | np.ndarray],
-    grid_positions: dict[XgridAxis, dict[str, int | float | np.ndarray]],
+    grid_positions: dict[ptyping.XgridAxis, dict[str, int | float | np.ndarray]],
     vectorfield: VectorField,
 ):
     """Trilinear interpolation on a regular grid for VectorFields of velocity."""
@@ -165,7 +165,7 @@ def XLinear_Velocity(
 
 def CGrid_Velocity(
     particle_positions: dict[str, float | np.ndarray],
-    grid_positions: dict[XgridAxis, dict[str, int | float | np.ndarray]],
+    grid_positions: dict[ptyping.XgridAxis, dict[str, int | float | np.ndarray]],
     vectorfield: VectorField,
 ):
     """
@@ -329,7 +329,7 @@ def CGrid_Velocity(
 
 def CGrid_Tracer(
     particle_positions: dict[str, float | np.ndarray],
-    grid_positions: dict[XgridAxis, dict[str, int | float | np.ndarray]],
+    grid_positions: dict[ptyping.XgridAxis, dict[str, int | float | np.ndarray]],
     field: Field,
 ):
     """Interpolation kernel for tracer fields on a C-Grid.
@@ -383,7 +383,7 @@ def CGrid_Tracer(
 
 def _Spatialslip(
     particle_positions: dict[str, float | np.ndarray],
-    grid_positions: dict[XgridAxis, dict[str, int | float | np.ndarray]],
+    grid_positions: dict[ptyping.XgridAxis, dict[str, int | float | np.ndarray]],
     vectorfield: VectorField,
     a: np.float32,
     b: np.float32,
@@ -495,7 +495,7 @@ def _Spatialslip(
 
 def XFreeslip(
     particle_positions: dict[str, float | np.ndarray],
-    grid_positions: dict[XgridAxis, dict[str, int | float | np.ndarray]],
+    grid_positions: dict[ptyping.XgridAxis, dict[str, int | float | np.ndarray]],
     vectorfield: VectorField,
 ):
     """Free-slip boundary condition interpolation for velocity fields."""
@@ -504,7 +504,7 @@ def XFreeslip(
 
 def XPartialslip(
     particle_positions: dict[str, float | np.ndarray],
-    grid_positions: dict[XgridAxis, dict[str, int | float | np.ndarray]],
+    grid_positions: dict[ptyping.XgridAxis, dict[str, int | float | np.ndarray]],
     vectorfield: VectorField,
 ):
     """Partial-slip boundary condition interpolation for velocity fields."""
@@ -513,7 +513,7 @@ def XPartialslip(
 
 def XNearest(
     particle_positions: dict[str, float | np.ndarray],
-    grid_positions: dict[XgridAxis, dict[str, int | float | np.ndarray]],
+    grid_positions: dict[ptyping.XgridAxis, dict[str, int | float | np.ndarray]],
     field: Field,
 ):
     """
@@ -572,7 +572,7 @@ def XNearest(
 
 def XLinearInvdistLandTracer(
     particle_positions: dict[str, float | np.ndarray],
-    grid_positions: dict[XgridAxis, dict[str, int | float | np.ndarray]],
+    grid_positions: dict[ptyping.XgridAxis, dict[str, int | float | np.ndarray]],
     field: Field,
 ):
     """Linear spatial interpolation on a regular grid, where points on land are not used."""
