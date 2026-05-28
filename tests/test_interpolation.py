@@ -2,8 +2,8 @@ import numpy as np
 import pytest
 import xarray as xr
 
+import parcels._sgrid as sgrid
 from parcels import (
-    Field,
     FieldSet,
     Particle,
     ParticleFile,
@@ -11,7 +11,6 @@ from parcels import (
     StatusCode,
     Variable,
     VectorField,
-    XGrid,
 )
 from parcels._core.index_search import _search_time_index
 from parcels._datasets.structured.generated import simple_UV_dataset
@@ -51,8 +50,24 @@ def field():
             "x": (["x"], [0.5, 1.5, 2.5, 3.5], {"axis": "X"}),
             "y": (["y"], [0.5, 1.5, 2.5, 3.5], {"axis": "Y"}),
         },
+    ).pipe(
+        sgrid._attach_sgrid_metadata,
+        sgrid.SGrid2DMetadata(
+            cf_role="grid_topology",
+            topology_dimension=2,
+            node_dimensions=("lon", "lat"),
+            face_dimensions=(
+                sgrid.FaceNodePadding("x", "lon", sgrid.Padding.LOW),
+                sgrid.FaceNodePadding("y", "lat", sgrid.Padding.LOW),
+            ),
+            node_coordinates=("lon", "lat"),
+            vertical_dimensions=(sgrid.FaceNodePadding("ZC", "depth", sgrid.Padding.HIGH),),
+        ),
     )
-    return Field("U", ds["U"], XGrid.from_dataset(ds, mesh="flat"), interp_method=XLinear)
+    field = FieldSet.from_sgrid_conventions(ds, mesh="flat").U
+    assert field.interp_method == XLinear
+
+    return field
 
 
 @pytest.mark.parametrize(
@@ -218,13 +233,25 @@ def test_interp_regression_v3(interp_name):
             "lat": (["YG"], ds_input["lat"].values, {"axis": "Y", "c_grid_axis_shift": 0.5}),
             "lon": (["XG"], ds_input["lon"].values, {"axis": "X", "c_grid_axis_shift": -0.5}),
         },
+    ).pipe(
+        sgrid._attach_sgrid_metadata,
+        sgrid.SGrid2DMetadata(
+            cf_role="grid_topology",
+            topology_dimension=2,
+            node_dimensions=("XG", "YG"),
+            face_dimensions=(
+                sgrid.FaceNodePadding("XC", "XG", sgrid.Padding.HIGH),
+                sgrid.FaceNodePadding("YC", "YG", sgrid.Padding.HIGH),
+            ),
+            node_coordinates=("lon", "lat"),
+            vertical_dimensions=(sgrid.FaceNodePadding("ZC", "depth", sgrid.Padding.HIGH),),
+        ),
     )
 
-    grid = XGrid.from_dataset(ds, mesh="flat")
-    U = Field("U", ds["U"], grid, interp_method=interp_methods[interp_name])
-    V = Field("V", ds["V"], grid, interp_method=interp_methods[interp_name])
-    W = Field("W", ds["W"], grid, interp_method=interp_methods[interp_name])
-    fieldset = FieldSet([U, V, W, VectorField("UVW", U, V, W)])
+    fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
+    assert fieldset.U.interp_method == interp_methods[interp_name]
+    assert fieldset.V.interp_method == interp_methods[interp_name]
+    assert fieldset.W.interp_method == interp_methods[interp_name]
 
     x, y, z = np.meshgrid(np.linspace(0, 1, 7), np.linspace(0, 1, 13), np.linspace(0, 1, 5))
 
