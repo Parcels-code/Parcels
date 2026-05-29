@@ -7,27 +7,13 @@ import pytest
 import xarray as xr
 
 from parcels import (
-    Field,
-    FieldSet,
     Particle,
     ParticleSet,
     ParticleSetWarning,
     Variable,
-    XGrid,
 )
-from parcels._datasets.structured.generic import datasets as datasets_structured
-from parcels.interpolators import XLinear
 from tests.common_kernels import DoNothing
 from tests.utils import round_and_hash_float_array
-
-
-@pytest.fixture
-def fieldset() -> FieldSet:
-    ds = datasets_structured["ds_2d_left"]
-    grid = XGrid.from_dataset(ds, mesh="flat")
-    U = Field("U", ds["U_A_grid"], grid, interp_method=XLinear)
-    V = Field("V", ds["V_A_grid"], grid, interp_method=XLinear)
-    return FieldSet([U, V])
 
 
 def test_pset_create_lon_lat(fieldset):

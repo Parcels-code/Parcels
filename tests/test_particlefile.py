@@ -19,32 +19,15 @@ from parcels import (
     ParticleSetWarning,
     StatusCode,
     Variable,
-    VectorField,
-    XGrid,
 )
 from parcels._core.particle import Particle, get_default_particle
 from parcels._core.particlefile import _get_schema
 from parcels._core.utils.time import TimeInterval, timedelta_to_float
 from parcels._datasets.structured.generated import peninsula_dataset
-from parcels._datasets.structured.generic import datasets
 from parcels.convert import copernicusmarine_to_sgrid
-from parcels.interpolators import XLinear, XLinear_Velocity
+from parcels.interpolators import XLinear
 from parcels.kernels import AdvectionRK4
 from tests.common_kernels import DoNothing
-
-
-@pytest.fixture
-def fieldset() -> FieldSet:  # TODO v4: Move into a `conftest.py` file and remove duplicates
-    """Fixture to create a FieldSet object for testing."""
-    ds = datasets["ds_2d_left"]
-    grid = XGrid.from_dataset(ds, mesh="flat")
-    U = Field("U", ds["U_A_grid"], grid, XLinear)
-    V = Field("V", ds["V_A_grid"], grid, XLinear)
-    UV = VectorField("UV", U, V, vector_interp_method=XLinear_Velocity)
-
-    return FieldSet(
-        [U, V, UV],
-    )
 
 
 def test_metadata(fieldset, tmp_parquet):
@@ -77,8 +60,7 @@ def test_compression(fieldset, tmp_parquet, compression):
 def test_write_fieldset_without_time(tmp_parquet):
     ds = peninsula_dataset()  # DataSet without time
     assert "time" not in ds.dims
-    grid = XGrid.from_dataset(ds, mesh="flat")
-    fieldset = FieldSet([Field("U", ds["U"], grid, XLinear)])
+    fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
 
     pset = ParticleSet(fieldset, pclass=Particle, lon=0, lat=0)
 

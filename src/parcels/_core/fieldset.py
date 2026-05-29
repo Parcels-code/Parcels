@@ -10,8 +10,8 @@ import uxarray as ux
 import xarray as xr
 import xgcm
 
+import parcels._sgrid as sgrid
 from parcels._core.field import Field, VectorField
-from parcels._core.utils import sgrid
 from parcels._core.utils.string import _assert_str_and_python_varname
 from parcels._core.utils.time import get_datetime_type_calendar
 from parcels._core.utils.time import is_compatible as datetime_is_compatible
@@ -280,7 +280,7 @@ class FieldSet:
                 ds = ds.rename({time_dim: "time"})
 
         # Parse SGRID metadata and get xgcm kwargs
-        _, xgcm_kwargs = sgrid.parse_sgrid(ds)
+        _, xgcm_kwargs = sgrid.xgcm_parse_sgrid(ds)
 
         # Add time axis to xgcm_kwargs if present
         if "time" in ds.dims:
@@ -475,11 +475,7 @@ def _select_uxinterpolator(da: ux.UxDataArray):
 # TODO: Refactor later into something like `parcels._metadata.discover(dataset)` helper that can be used to discover important metadata like this. I think this whole metadata handling should be refactored into its own module.
 def _get_mesh_type_from_sgrid_dataset(ds_sgrid: xr.Dataset) -> Mesh:
     """Small helper to inspect SGRID metadata and dataset metadata to determine mesh type."""
-    grid_da = sgrid.get_grid_topology(ds_sgrid)
-    if grid_da is None:
-        raise ValueError("Dataset does not contain SGRID grid topology metadata (cf_role='grid_topology').")
-
-    sgrid_metadata = sgrid.parse_grid_attrs(grid_da.attrs)
+    sgrid_metadata = ds_sgrid.sgrid.metadata
 
     fpoint_x, fpoint_y = sgrid_metadata.node_coordinates
 

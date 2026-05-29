@@ -1,19 +1,19 @@
 import numpy as np
 
-from parcels import XGrid
+from parcels._core.fieldset import FieldSet
 from parcels._datasets.structured.generic import datasets
 
 
 def test_spatialhash_init():
     ds = datasets["2d_left_rotated"]
-    grid = XGrid.from_dataset(ds, mesh="flat")
+    grid = FieldSet.from_sgrid_conventions(ds, mesh="flat").data_g.grid
     spatialhash = grid.get_spatial_hash()
     assert spatialhash is not None
 
 
 def test_invalid_positions():
     ds = datasets["2d_left_rotated"]
-    grid = XGrid.from_dataset(ds, mesh="flat")
+    grid = FieldSet.from_sgrid_conventions(ds, mesh="flat").data_g.grid
 
     j, i, _ = grid.get_spatial_hash().query([np.nan, np.inf], [np.nan, np.inf])
     assert np.all(j == -3)
@@ -22,7 +22,7 @@ def test_invalid_positions():
 
 def test_mixed_positions():
     ds = datasets["2d_left_rotated"]
-    grid = XGrid.from_dataset(ds, mesh="flat")
+    grid = FieldSet.from_sgrid_conventions(ds, mesh="flat").data_g.grid
     lat = grid.lat.mean()
     lon = grid.lon.mean()
     y = [lat, np.nan]

@@ -4,7 +4,7 @@ try:
     import hypothesis  # noqa: F401
 except ImportError as err:
     err.add_note(
-        "To use strategies you must have hypothesis installed. Install it from PyPI, Conda, or using your preffered package manager."
+        "To use strategies you must have hypothesis installed. Install it from PyPI, Conda, or using your preferred package manager."
     )
     raise err
 

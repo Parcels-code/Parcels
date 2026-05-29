@@ -142,32 +142,6 @@ class Field:
         return field_repr(self)
 
     @property
-    def xdim(self):
-        if type(self.data) is xr.DataArray:
-            return self.grid.xdim
-        else:
-            raise NotImplementedError("xdim not implemented for unstructured grids")
-
-    @property
-    def ydim(self):
-        if type(self.data) is xr.DataArray:
-            return self.grid.ydim
-        else:
-            raise NotImplementedError("ydim not implemented for unstructured grids")
-
-    @property
-    def zdim(self):
-        if type(self.data) is xr.DataArray:
-            return self.grid.zdim
-        else:
-            if "nz1" in self.data.dims:
-                return self.data.sizes["nz1"]
-            elif "nz" in self.data.dims:
-                return self.data.sizes["nz"]
-            else:
-                return 0
-
-    @property
     def interp_method(self):
         return self._interp_method
 

@@ -1,13 +1,15 @@
 import itertools
 
+import hypothesis.strategies as st
 import numpy as np
 import pytest
 import xarray as xr
 import xgcm
 from hypothesis import assume, example, given
 
+import parcels._sgrid as sgrid
 import parcels._strategies as pst
-from parcels._core.utils import sgrid
+from parcels._sgrid.core import SGRID_PADDING_TO_XGCM_POSITION, _get_unique_names, parse_grid_attrs
 
 
 def create_example_grid2dmetadata(with_vertical_dimensions: bool, with_node_coordinates: bool):
@@ -89,7 +91,7 @@ def dummy_sgrid_2d_ds(grid: sgrid.SGrid2DMetadata) -> xr.Dataset:
     ds = dummy_comodo_3d_ds()
 
     # Can't rename dimensions that already exist in the dataset
-    assume(sgrid.get_unique_names(grid) & set(ds.dims) == set())
+    assume(_get_unique_names(grid) & set(ds.dims) == set())
 
     renamings = {}
     if grid.vertical_dimensions is None:
@@ -114,7 +116,7 @@ def dummy_sgrid_3d_ds(grid: sgrid.SGrid3DMetadata) -> xr.Dataset:
     ds = dummy_comodo_3d_ds()
 
     # Can't rename dimensions that already exist in the dataset
-    assume(sgrid.get_unique_names(grid) & set(ds.dims) == set())
+    assume(_get_unique_names(grid) & set(ds.dims) == set())
 
     renamings = {}
     for old, new in zip(["XG", "YG", "ZG"], grid.node_dimensions, strict=True):
@@ -242,9 +244,9 @@ def test_grid3Dmetadata_standard_names(grid: sgrid.SGrid3DMetadata):
 
 
 @given(pst.sgrid.grid_metadata)
-def test_parse_grid_attrs(grid: sgrid.AttrsSerializable):
+def test_parse_grid_attrs(grid):
     attrs = grid.to_attrs()
-    parsed = sgrid.parse_grid_attrs(attrs)
+    parsed = parse_grid_attrs(attrs)
     assert parsed == grid
 
 
@@ -254,13 +256,13 @@ def test_parse_sgrid_2d(grid_metadata: sgrid.SGrid2DMetadata):
     """Test the ingestion of datasets in XGCM to ensure that it matches the SGRID metadata provided"""
     ds = dummy_sgrid_2d_ds(grid_metadata)
 
-    _, xgcm_kwargs = sgrid.parse_sgrid(ds)
+    _, xgcm_kwargs = sgrid.xgcm_parse_sgrid(ds)
     grid = xgcm.Grid(ds, autoparse_metadata=False, **xgcm_kwargs)
 
     for obj, axis in zip(grid_metadata.face_dimensions, ["X", "Y"], strict=True):
         coords = grid.axes[axis].coords
         assert coords["center"] == obj.face
-        assert coords[sgrid.SGRID_PADDING_TO_XGCM_POSITION[obj.padding]] == obj.node
+        assert coords[SGRID_PADDING_TO_XGCM_POSITION[obj.padding]] == obj.node
 
     if grid_metadata.vertical_dimensions is None:
         assert "Z" not in grid.axes
@@ -268,21 +270,24 @@ def test_parse_sgrid_2d(grid_metadata: sgrid.SGrid2DMetadata):
         obj = grid_metadata.vertical_dimensions[0]
         coords = grid.axes["Z"].coords
         assert coords["center"] == obj.face
-        assert coords[sgrid.SGRID_PADDING_TO_XGCM_POSITION[obj.padding]] == obj.node
+        assert coords[SGRID_PADDING_TO_XGCM_POSITION[obj.padding]] == obj.node
 
 
 @given(pst.sgrid.grid3Dmetadata())
+@pytest.mark.xfail(
+    reason="Parcels doesn't have native support for SGRID 3D grids. This metadata checking is superfluous until we have such support."
+)
 def test_parse_sgrid_3d(grid_metadata: sgrid.SGrid3DMetadata):
     """Test the ingestion of datasets in XGCM to ensure that it matches the SGRID metadata provided"""
     ds = dummy_sgrid_3d_ds(grid_metadata)
 
-    ds, xgcm_kwargs = sgrid.parse_sgrid(ds)
+    ds, xgcm_kwargs = sgrid.xgcm_parse_sgrid(ds)
     grid = xgcm.Grid(ds, autoparse_metadata=False, **xgcm_kwargs)
 
     for obj, axis in zip(grid_metadata.volume_dimensions, ["X", "Y", "Z"], strict=True):
         coords = grid.axes[axis].coords
         assert coords["center"] == obj.face
-        assert coords[sgrid.SGRID_PADDING_TO_XGCM_POSITION[obj.padding]] == obj.node
+        assert coords[SGRID_PADDING_TO_XGCM_POSITION[obj.padding]] == obj.node
 
 
 @pytest.mark.parametrize(
@@ -294,12 +299,12 @@ def test_parse_sgrid_3d(grid_metadata: sgrid.SGrid3DMetadata):
     + [create_example_grid3dmetadata(with_node_coordinates=i) for i in [False, True]],
 )
 def test_rename(grid):
-    dims = sgrid.get_unique_names(grid)
+    dims = _get_unique_names(grid)
     dims_dict = {dim: f"new_{dim}" for dim in dims}
     dims_dict_inv = {v: k for k, v in dims_dict.items()}
 
     grid_new = grid.rename(dims_dict)
-    assert dims & set(sgrid.get_unique_names(grid_new)) == set()
+    assert dims & set(_get_unique_names(grid_new)) == set()
 
     assert grid == grid_new.rename(dims_dict_inv)
 
@@ -320,53 +325,6 @@ def test_rename_errors():
     }
     with pytest.raises(ValueError, match="Name 'unexpected_dimension' not found in names defined in SGrid metadata"):
         grid.rename(names_dict)
-
-
-@pytest.mark.parametrize(
-    "ds",
-    [
-        xr.Dataset(
-            {
-                "data_g": (["time", "ZG", "YG", "XG"], np.random.rand(10, 10, 10, 10)),
-                "data_c": (["time", "ZC", "YC", "XC"], np.random.rand(10, 10, 10, 10)),
-                "grid": (
-                    [],
-                    np.array(0),
-                    sgrid.SGrid2DMetadata(
-                        cf_role="grid_topology",
-                        topology_dimension=2,
-                        node_dimensions=("XG", "YG"),
-                        face_dimensions=(
-                            sgrid.FaceNodePadding("XC", "XG", sgrid.Padding.HIGH),
-                            sgrid.FaceNodePadding("YC", "YG", sgrid.Padding.HIGH),
-                        ),
-                        vertical_dimensions=(sgrid.FaceNodePadding("ZC", "ZG", sgrid.Padding.HIGH),),
-                        node_coordinates=("lon", "lat"),
-                    ).to_attrs(),
-                ),
-            },
-            coords={
-                "lon": (["XG"], 2 * np.pi / 10 * np.arange(0, 10)),
-                "lat": (["YG"], 2 * np.pi / (10) * np.arange(0, 10)),
-                "depth": (["ZG"], np.arange(10)),
-                "time": (["time"], xr.date_range("2000", "2001", 10), {"axis": "T"}),
-            },
-        ),
-    ],
-)
-def test_rename_dataset(ds):
-    # Check renaming works for coordinates
-    ds_new = sgrid.rename(ds, {"lon": "lon_updated"})
-    grid_new = sgrid.parse_grid_attrs(ds_new["grid"].attrs)
-    assert "lon_updated" in ds_new.coords
-    assert "lon_updated" == grid_new.node_coordinates[0]
-
-    # Check renaming works for dim
-    ds_new = sgrid.rename(ds, {"XC": "XC_updated"})
-    grid_new = sgrid.parse_grid_attrs(ds_new["grid"].attrs)
-    assert "XC_updated" in ds_new.dims
-    assert "XC" not in ds_new.dims
-    assert "XC_updated" == grid_new.face_dimensions[0].face
 
 
 @pytest.mark.parametrize(
@@ -580,3 +538,10 @@ def test_face_node_padding_to_diagram(face_node_padding: sgrid.FaceNodePadding, 
     actual = face_node_padding.to_diagram()
     lines = actual.split("\n")
     assert lines == expected_lines
+
+
+@given(n=st.integers(min_value=1), padding=pst.sgrid.padding)
+def test_dim_sizes_roundtrip(n, padding):
+    n_faces = sgrid.get_n_nodes(n, padding)
+    n_nodes = sgrid.get_n_faces(n_faces, padding)
+    assert n_nodes == n

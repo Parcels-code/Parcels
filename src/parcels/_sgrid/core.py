@@ -22,7 +22,7 @@ import xarray as xr
 
 from parcels._python import repr_from_dunder_dict
 
-RE_FACE_NODE_PADDING = r"(\w+):(\w+)\s*\(padding:\s*(\w+)\)"
+_RE_FACE_NODE_PADDING = r"(\w+):(\w+)\s*\(padding:\s*(\w+)\)"
 
 Dim = str
 
@@ -47,38 +47,36 @@ SGRID_PADDING_TO_XGCM_POSITION = {
 }
 
 
-class AttrsSerializable(Protocol):
+def get_n_faces(n_nodes: int, padding: Padding) -> int:
+    """Get number of faces along a dimension"""
+    if padding in [Padding.LOW, Padding.HIGH]:
+        return n_nodes
+    if padding == Padding.NONE:
+        return n_nodes - 1
+    if padding == Padding.BOTH:
+        return n_nodes + 1
+    raise ValueError(f"Invalid {padding=!r}")
+
+
+def get_n_nodes(n_faces: int, padding: Padding) -> int:
+    """Get number of nodes along a dimension"""
+    if padding in [Padding.LOW, Padding.HIGH]:
+        return n_faces
+    if padding == Padding.NONE:
+        return n_faces + 1
+    if padding == Padding.BOTH:
+        return n_faces - 1
+    raise ValueError(f"Invalid {padding=!r}")
+
+
+class _AttrsSerializable(Protocol):
     def to_attrs(self) -> dict[str, str | int]: ...
 
     @classmethod
     def from_attrs(cls, d: dict[str, Hashable]) -> Self: ...
 
 
-# Note that - for some optional attributes in the SGRID spec - these IDs are not available
-# hence this isn't full coverage
-_ID_FETCHERS_GRID2DMETADATA: dict[str, Callable[[SGrid2DMetadata], Dim | Padding]] = {
-    "node_dimension1": lambda meta: meta.node_dimensions[0],
-    "node_dimension2": lambda meta: meta.node_dimensions[1],
-    "face_dimension1": lambda meta: meta.face_dimensions[0].face,
-    "face_dimension2": lambda meta: meta.face_dimensions[1].face,
-    "type1": lambda meta: meta.face_dimensions[0].padding,
-    "type2": lambda meta: meta.face_dimensions[1].padding,
-}
-
-_ID_FETCHERS_GRID3DMETADATA: dict[str, Callable[[SGrid3DMetadata], Dim | Padding]] = {
-    "node_dimension1": lambda meta: meta.node_dimensions[0],
-    "node_dimension2": lambda meta: meta.node_dimensions[1],
-    "node_dimension3": lambda meta: meta.node_dimensions[2],
-    "face_dimension1": lambda meta: meta.volume_dimensions[0].face,
-    "face_dimension2": lambda meta: meta.volume_dimensions[1].face,
-    "face_dimension3": lambda meta: meta.volume_dimensions[2].face,
-    "type1": lambda meta: meta.volume_dimensions[0].padding,
-    "type2": lambda meta: meta.volume_dimensions[1].padding,
-    "type3": lambda meta: meta.volume_dimensions[2].padding,
-}
-
-
-class SGrid2DMetadata(AttrsSerializable):
+class SGrid2DMetadata(_AttrsSerializable):
     def __init__(
         self,
         cf_role: Literal["grid_topology"],
@@ -157,26 +155,26 @@ class SGrid2DMetadata(AttrsSerializable):
         return self.to_attrs() == other.to_attrs()
 
     @classmethod
-    def from_attrs(cls, attrs):  # type: ignore[override]
+    def from_attrs(cls, attrs):
         try:
             return cls(
                 cf_role=attrs["cf_role"],
                 topology_dimension=attrs["topology_dimension"],
                 node_dimensions=cast(tuple[Dim, Dim], load_mappings(attrs["node_dimensions"])),
                 face_dimensions=cast(tuple[FaceNodePadding, FaceNodePadding], load_mappings(attrs["face_dimensions"])),
-                node_coordinates=maybe_load_mappings(attrs.get("node_coordinates")),
-                vertical_dimensions=maybe_load_mappings(attrs.get("vertical_dimensions")),
+                node_coordinates=_maybe_load_mappings(attrs.get("node_coordinates")),
+                vertical_dimensions=_maybe_load_mappings(attrs.get("vertical_dimensions")),
             )
         except Exception as e:
             raise SGridParsingException(f"Failed to parse Grid2DMetadata from {attrs=!r}") from e
 
     def to_attrs(self) -> dict[str, str | int]:
-        d = dict(
-            cf_role=self.cf_role,
-            topology_dimension=self.topology_dimension,
-            node_dimensions=dump_mappings(self.node_dimensions),
-            face_dimensions=dump_mappings(self.face_dimensions),
-        )
+        d: dict[str, str | int] = {
+            "cf_role": self.cf_role,
+            "topology_dimension": self.topology_dimension,
+            "node_dimensions": dump_mappings(self.node_dimensions),
+            "face_dimensions": dump_mappings(self.face_dimensions),
+        }
         if self.node_coordinates is not None:
             d["node_coordinates"] = dump_mappings(self.node_coordinates)
         if self.vertical_dimensions is not None:
@@ -200,7 +198,7 @@ class SGrid2DMetadata(AttrsSerializable):
         return _ID_FETCHERS_GRID2DMETADATA[id](self)
 
 
-class SGrid3DMetadata(AttrsSerializable):
+class SGrid3DMetadata(_AttrsSerializable):
     def __init__(
         self,
         cf_role: Literal["grid_topology"],
@@ -273,7 +271,7 @@ class SGrid3DMetadata(AttrsSerializable):
         return self.to_attrs() == other.to_attrs()
 
     @classmethod
-    def from_attrs(cls, attrs):  # type: ignore[override]
+    def from_attrs(cls, attrs):
         try:
             return cls(
                 cf_role=attrs["cf_role"],
@@ -282,18 +280,18 @@ class SGrid3DMetadata(AttrsSerializable):
                 volume_dimensions=cast(
                     tuple[FaceNodePadding, FaceNodePadding, FaceNodePadding], load_mappings(attrs["volume_dimensions"])
                 ),
-                node_coordinates=maybe_load_mappings(attrs.get("node_coordinates")),
+                node_coordinates=_maybe_load_mappings(attrs.get("node_coordinates")),
             )
         except Exception as e:
             raise SGridParsingException(f"Failed to parse Grid3DMetadata from {attrs=!r}") from e
 
     def to_attrs(self) -> dict[str, str | int]:
-        d = dict(
-            cf_role=self.cf_role,
-            topology_dimension=self.topology_dimension,
-            node_dimensions=dump_mappings(self.node_dimensions),
-            volume_dimensions=dump_mappings(self.volume_dimensions),
-        )
+        d: dict[str, str | int] = {
+            "cf_role": self.cf_role,
+            "topology_dimension": self.topology_dimension,
+            "node_dimensions": dump_mappings(self.node_dimensions),
+            "volume_dimensions": dump_mappings(self.volume_dimensions),
+        }
         if self.node_coordinates is not None:
             d["node_coordinates"] = dump_mappings(self.node_coordinates)
         return d
@@ -313,6 +311,30 @@ class SGrid3DMetadata(AttrsSerializable):
         "low"
         """
         return _ID_FETCHERS_GRID3DMETADATA[id](self)
+
+
+# Note that - for some optional attributes in the SGRID spec - these IDs are not available
+# hence this isn't full coverage
+_ID_FETCHERS_GRID2DMETADATA: dict[str, Callable[[SGrid2DMetadata], Dim | Padding]] = {
+    "node_dimension1": lambda meta: meta.node_dimensions[0],
+    "node_dimension2": lambda meta: meta.node_dimensions[1],
+    "face_dimension1": lambda meta: meta.face_dimensions[0].face,
+    "face_dimension2": lambda meta: meta.face_dimensions[1].face,
+    "type1": lambda meta: meta.face_dimensions[0].padding,
+    "type2": lambda meta: meta.face_dimensions[1].padding,
+}
+
+_ID_FETCHERS_GRID3DMETADATA: dict[str, Callable[[SGrid3DMetadata], Dim | Padding]] = {
+    "node_dimension1": lambda meta: meta.node_dimensions[0],
+    "node_dimension2": lambda meta: meta.node_dimensions[1],
+    "node_dimension3": lambda meta: meta.node_dimensions[2],
+    "face_dimension1": lambda meta: meta.volume_dimensions[0].face,
+    "face_dimension2": lambda meta: meta.volume_dimensions[1].face,
+    "face_dimension3": lambda meta: meta.volume_dimensions[2].face,
+    "type1": lambda meta: meta.volume_dimensions[0].padding,
+    "type2": lambda meta: meta.volume_dimensions[1].padding,
+    "type3": lambda meta: meta.volume_dimensions[2].padding,
+}
 
 
 @dataclass
@@ -336,7 +358,7 @@ class FaceNodePadding:
 
     @classmethod
     def load(cls, s: str) -> Self:
-        match = re.match(RE_FACE_NODE_PADDING, s)
+        match = re.match(_RE_FACE_NODE_PADDING, s)
         if not match:
             raise ValueError(f"String {s!r} does not match expected format for FaceNodePadding")
         face = match.group(1)
@@ -359,12 +381,12 @@ def dump_mappings(parts: Iterable[FaceNodePadding | Dim]) -> str:
 
 
 @overload
-def maybe_dump_mappings(parts: None) -> None: ...
+def _maybe_dump_mappings(parts: None) -> None: ...
 @overload
-def maybe_dump_mappings(parts: Iterable[FaceNodePadding | Dim]) -> str: ...
+def _maybe_dump_mappings(parts: Iterable[FaceNodePadding | Dim]) -> str: ...
 
 
-def maybe_dump_mappings(parts):
+def _maybe_dump_mappings(parts):
     if parts is None:
         return None
     return dump_mappings(parts)
@@ -383,15 +405,15 @@ def load_mappings(s: str) -> tuple[FaceNodePadding | Dim, ...]:
     ret = []
     while s:
         # find next part
-        match = re.match(RE_FACE_NODE_PADDING, s)
+        match = re.match(_RE_FACE_NODE_PADDING, s)
         if match and match.start() == 0:
             # match found at start, take that as next part
             part = match.group(0)
             s_new = s[match.end() :].lstrip()
         else:
             # no FaceNodePadding match at start, assume just a Dim until next space
-            part, *s_new = s.split(" ", 1)
-            s_new = "".join(s_new)
+            part, *rest = s.split(" ", 1)
+            s_new = "".join(rest)
 
         assert s != s_new, f"SGrid parsing did not advance, stuck at {s!r}"
 
@@ -414,12 +436,12 @@ def load_mappings(s: str) -> tuple[FaceNodePadding | Dim, ...]:
 
 
 @overload
-def maybe_load_mappings(s: None) -> None: ...
+def _maybe_load_mappings(s: None) -> None: ...
 @overload
-def maybe_load_mappings(s: Hashable) -> tuple[FaceNodePadding | Dim, ...]: ...
+def _maybe_load_mappings(s: str) -> tuple[FaceNodePadding | Dim, ...]: ...
 
 
-def maybe_load_mappings(s):
+def _maybe_load_mappings(s):
     if s is None:
         return None
     return load_mappings(s)
@@ -445,24 +467,10 @@ def parse_grid_attrs(attrs: dict[str, Hashable]) -> SGrid2DMetadata | SGrid3DMet
     return grid
 
 
-def get_grid_topology(ds: xr.Dataset) -> xr.DataArray | None:
-    """Extracts grid topology DataArray from an xarray Dataset."""
-    for var_name in ds.variables:
-        if ds[var_name].attrs.get("cf_role") == "grid_topology":
-            return ds[var_name]
-    return None
-
-
-def parse_sgrid(ds: xr.Dataset):
+def xgcm_parse_sgrid(ds: xr.Dataset):
     # Function similar to that provided in `xgcm.metadata_parsers.
     # Might at some point be upstreamed to xgcm directly
-    try:
-        grid_topology = get_grid_topology(ds)
-        assert grid_topology is not None, "No grid_topology variable found in dataset"
-        grid = parse_grid_attrs(grid_topology.attrs)
-
-    except Exception as e:
-        raise SGridParsingException(f"Error parsing {grid_topology=!r}") from e
+    grid = ds.sgrid.metadata
 
     if isinstance(grid, SGrid2DMetadata):
         dimensions = grid.face_dimensions + (grid.vertical_dimensions or ())
@@ -484,22 +492,7 @@ def parse_sgrid(ds: xr.Dataset):
     return (ds, {"coords": xgcm_coords})
 
 
-def rename(ds: xr.Dataset, name_dict: dict[str, str]) -> xr.Dataset:
-    grid_da = get_grid_topology(ds)
-    if grid_da is None:
-        raise ValueError(
-            "No variable found in dataset with 'cf_role' attribute set to 'grid_topology'. This doesn't look to be an SGrid dataset - please make your dataset conforms to SGrid conventions."
-        )
-
-    ds = ds.rename(name_dict)
-
-    # Update the metadata
-    grid = parse_grid_attrs(grid_da.attrs)
-    ds[grid_da.name].attrs = grid.rename(name_dict).to_attrs()
-    return ds
-
-
-def get_unique_names(grid: SGrid2DMetadata | SGrid3DMetadata) -> set[str]:
+def _get_unique_names(grid: SGrid2DMetadata | SGrid3DMetadata) -> set[str]:
     dims = set()
     dims.update(set(grid.node_dimensions))
 
@@ -724,7 +717,7 @@ def _metadata_rename(grid, names_dict):
     names_dict = names_dict.copy()
     assert len(names_dict) == len(set(names_dict.values())), "names_dict contains duplicate target dimension names"
 
-    existing_names = get_unique_names(grid)
+    existing_names = _get_unique_names(grid)
     for name in names_dict.keys():
         if name not in existing_names:
             raise ValueError(f"Name {name!r} not found in names defined in SGrid metadata {existing_names!r}")

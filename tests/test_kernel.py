@@ -2,25 +2,11 @@ import numpy as np
 import pytest
 
 from parcels import (
-    Field,
-    FieldSet,
     ParticleSet,
-    XGrid,
 )
 from parcels._core.kernel import Kernel
-from parcels._datasets.structured.generic import datasets as datasets_structured
-from parcels.interpolators import XLinear
 from parcels.kernels import AdvectionRK4, AdvectionRK45
 from tests.common_kernels import MoveEast, MoveNorth
-
-
-@pytest.fixture
-def fieldset() -> FieldSet:
-    ds = datasets_structured["ds_2d_left"]
-    grid = XGrid.from_dataset(ds, mesh="flat")
-    U = Field("U", ds["U_A_grid"], grid, interp_method=XLinear)
-    V = Field("V", ds["V_A_grid"], grid, interp_method=XLinear)
-    return FieldSet([U, V])
 
 
 def test_unknown_var_in_kernel(fieldset):

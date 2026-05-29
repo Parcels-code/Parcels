@@ -6,22 +6,8 @@ import xarray as xr
 from hypothesis import given, settings
 from hypothesis.errors import NonInteractiveExampleWarning
 
-from parcels._core.utils import sgrid
-from parcels._core.utils.sgrid import get_grid_topology, parse_grid_attrs
-from parcels._datasets.structured.strategies import _face_size, sgrid_dataset
-
-
-@pytest.mark.parametrize(
-    "n_nodes, padding, n_edges",
-    [
-        (10, sgrid.Padding.NONE, 9),
-        (10, sgrid.Padding.LOW, 10),
-        (10, sgrid.Padding.HIGH, 10),
-        (10, sgrid.Padding.BOTH, 11),
-    ],
-)
-def test_face_size(n_nodes, padding, n_edges):
-    assert _face_size(n_nodes, padding) == n_edges
+import parcels._sgrid as sgrid
+from parcels._datasets.structured.strategies import sgrid_dataset
 
 
 def test_sgrid_dataset_raises_when_no_node_coordinates():
@@ -50,13 +36,13 @@ def test_sgrid_dataset_returns_dataset(ds):
 @given(sgrid_dataset())
 @settings(max_examples=20)
 def test_sgrid_dataset_has_grid_topology(ds):
-    assert get_grid_topology(ds) is not None
+    ds.sgrid._get_grid_topology()  # shouldn't error
 
 
 @given(sgrid_dataset())
 @settings(max_examples=20)
 def test_sgrid_dataset_node_coordinates_present(ds):
-    meta = parse_grid_attrs(get_grid_topology(ds).attrs)
+    meta = ds.sgrid.metadata
     assert meta.node_coordinates is not None
     for coord_name in meta.node_coordinates:
         assert coord_name in ds.coords
@@ -65,7 +51,7 @@ def test_sgrid_dataset_node_coordinates_present(ds):
 @given(sgrid_dataset())
 @settings(max_examples=20)
 def test_sgrid_dataset_coordinate_shapes(ds):
-    meta = parse_grid_attrs(get_grid_topology(ds).attrs)
+    meta = ds.sgrid.metadata
     coord_name1, coord_name2 = meta.node_coordinates
     node_dim1, node_dim2 = meta.node_dimensions
     coord1 = ds.coords[coord_name1]
@@ -86,7 +72,7 @@ def test_sgrid_dataset_has_at_least_one_field(ds):
 @given(sgrid_dataset())
 @settings(max_examples=20)
 def test_sgrid_dataset_field_dims_are_valid(ds):
-    meta = parse_grid_attrs(get_grid_topology(ds).attrs)
+    meta = ds.sgrid.metadata
     valid_dims = set(meta.node_dimensions)
     valid_dims.add(meta.face_dimensions[0].face)
     valid_dims.add(meta.face_dimensions[1].face)

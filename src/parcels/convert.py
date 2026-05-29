@@ -20,7 +20,7 @@ from typing import cast
 import numpy as np
 import xarray as xr
 
-from parcels._core.utils import sgrid
+import parcels._sgrid as sgrid
 from parcels._logger import logger
 
 if typing.TYPE_CHECKING:
@@ -376,7 +376,7 @@ def nemo_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.Da
     ds["gphif"].attrs["units"] = "degrees"
 
     # Update to use lon and lat for internal naming
-    ds = sgrid.rename(ds, {"gphif": "lat", "glamf": "lon"})  # TODO: Logging message about rename
+    ds = ds.sgrid.rename({"gphif": "lat", "glamf": "lon"})  # TODO: Logging message about rename
     return ds
 
 
