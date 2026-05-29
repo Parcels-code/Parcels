@@ -695,7 +695,7 @@ def _attach_sgrid_metadata(ds: xr.Dataset, grid: SGrid2DMetadata | SGrid3DMetada
         0,
         grid.to_attrs(),
     )
-    # ds.attrs["Conventions"] = "SGRID" # TODO: re-enable once XGrid.from_dataset is gone
+    ds.attrs["Conventions"] = "SGRID"
     return ds
 
 
