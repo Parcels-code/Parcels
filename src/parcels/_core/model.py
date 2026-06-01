@@ -77,13 +77,12 @@ def preprocess_sgrid_model_data(ds: xr.Dataset) -> xr.Dataset:
 
 
 class StructuredModel(Model):
-    def __init__(self, data: xr.Dataset, grid: XGrid):
+    def __init__(self, data: xr.Dataset, mesh: Mesh):
         if not isinstance(data, xr.Dataset):
             raise ValueError(f"Expected `data` to be an xarray.Dataset . Got {type(data)}")
 
         data = preprocess_sgrid_model_data(data)
-        if not isinstance(grid, XGrid):
-            raise ValueError(f"Expected `grid` to be a parcels XGrid object. Got {type(grid)}.")
+        grid = XGrid(data, mesh)
 
         self.data = data
         self.grid = grid
@@ -159,8 +158,7 @@ class StructuredModel(Model):
         #     ds["lon"] = ds[node_dimensions[0]]
         #     ds["lat"] = ds[node_dimensions[1]]
 
-        grid = XGrid(ds, mesh=mesh)
-        return cls(ds, grid)
+        return cls(ds, mesh=mesh)
 
 
 class UnstructuredModel(Model):
