@@ -7,6 +7,7 @@ import cf_xarray  # noqa: F401
 import uxarray as ux
 import xarray as xr
 
+import parcels._sgrid as sgrid
 from parcels._core.basegrid import BaseGrid
 from parcels._core.field import Field, VectorField
 from parcels._core.utils.time import TimeInterval
@@ -67,15 +68,23 @@ class Model(ABC):
         return time_interval
 
 
+def preprocess_sgrid_model_data(ds: xr.Dataset) -> xr.Dataset:
+    metadata: sgrid.SGrid2DMetadata = ds.sgrid.metadata
+
+    for field_name in set(ds.data_vars) - {ds.sgrid._get_grid_topology().name}:
+        ds[field_name] = _transpose_xfield_data_to_tzyx(ds[field_name], metadata)
+    return ds
+
+
 class StructuredModel(Model):
     def __init__(self, data: xr.Dataset, grid: XGrid):
         if not isinstance(data, xr.Dataset):
             raise ValueError(f"Expected `data` to be an xarray.Dataset . Got {type(data)}")
 
+        data = preprocess_sgrid_model_data(data)
         if not isinstance(grid, XGrid):
             raise ValueError(f"Expected `grid` to be a parcels XGrid object. Got {type(grid)}.")
 
-        data = _transpose_xfield_data_to_tzyx(data, data.sgrid.metadata)
         self.data = data
         self.grid = grid
         self.assert_valid_model_data()
