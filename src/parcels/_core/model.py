@@ -13,6 +13,7 @@ from parcels._core.utils.time import TimeInterval
 from parcels._core.uxgrid import UxGrid
 from parcels._core.xgrid import (
     XGrid,
+    _transpose_xfield_data_to_tzyx,
     assert_all_field_dims_have_axis,
 )
 from parcels._logger import logger
@@ -74,8 +75,7 @@ class StructuredModel(Model):
         if not isinstance(grid, XGrid):
             raise ValueError(f"Expected `grid` to be a parcels XGrid object. Got {type(grid)}.")
 
-        # data = _transpose_xfield_data_to_tzyx(data, grid.xgcm_grid) # TODO PR: Implement for datasets (this used to be just Field code in field.py)
-
+        data = _transpose_xfield_data_to_tzyx(data, data.sgrid.metadata)
         self.data = data
         self.grid = grid
         self.assert_valid_model_data()

@@ -13,6 +13,7 @@ import parcels._typing as ptyping
 from parcels._core.basegrid import BaseGrid
 from parcels._core.index_search import _search_1d_array, _search_indices_curvilinear_2d
 from parcels._reprs import xgrid_repr
+from parcels._sgrid.accessor import _get_dim_to_axis_mapping
 from parcels._sgrid.core import SGRID_PADDING_TO_XGCM_POSITION
 
 _FIELD_DATA_ORDERING: Sequence[ptyping.XgcmAxisDirection] = "TZYX"
@@ -71,37 +72,40 @@ def assert_all_field_dims_have_axis(da: xr.DataArray, xgcm_grid: xgcm.Grid) -> N
     return
 
 
-def _transpose_xfield_data_to_tzyx(da: xr.DataArray, xgcm_grid: xgcm.Grid) -> xr.DataArray:
+def _transpose_xfield_data_to_tzyx(da: xr.DataArray, sgrid_metadata: sgrid.SGrid2DMetadata) -> xr.DataArray:
     """
     Transpose a DataArray of any shape into a 4D array of order TZYX. Uses xgcm to determine
     the axes, and inserts mock dimensions of size 1 for any axes not present in the DataArray.
     """
-    ax_dims = [(get_axis_from_dim_name(xgcm_grid.axes, dim), dim) for dim in da.dims]
+    dim_to_axis = _get_dim_to_axis_mapping(sgrid_metadata) | {"time": "T"}
 
-    if all(ax_dim[0] is None for ax_dim in ax_dims):
+    # filter to only dims in da
+    dim_to_axis = {dim: axis for dim, axis in dim_to_axis.items() if dim in da.dims}
+
+    if dim_to_axis == {}:
         # Assuming its a 1D constant field (hence has no axes)
         assert da.shape == (1, 1, 1, 1)
         return da.rename({old_dim: f"mock{axis}" for old_dim, axis in zip(da.dims, _FIELD_DATA_ORDERING, strict=True)})
 
     # All dimensions must be associated with an axis in the grid
-    if any(ax_dim[0] is None for ax_dim in ax_dims):
+    if set(dim_to_axis) != set(da.dims):
         raise ValueError(
             f"DataArray {da.name!r} with dims {da.dims} has dimensions that are not associated with a direction on the provided grid."
         )
 
-    axes_not_in_field = set(_FIELD_DATA_ORDERING) - set(ax_dim[0] for ax_dim in ax_dims)
+    axes_not_in_field = set(_FIELD_DATA_ORDERING).difference(set(dim_to_axis.values()))
 
     mock_dims_to_create = {}
     for ax in axes_not_in_field:
         mock_dims_to_create[f"mock{ax}"] = 1
-        ax_dims.append((ax, f"mock{ax}"))
+        dim_to_axis[f"mock{ax}"] = ax
 
     if mock_dims_to_create:
         da = da.expand_dims(mock_dims_to_create, create_index_for_new_dim=False)
 
-    ax_dims = sorted(ax_dims, key=lambda x: _FIELD_DATA_ORDERING.index(x[0]))
+    ax_dims = sorted(dim_to_axis.items(), key=lambda x: _FIELD_DATA_ORDERING.index(x[1]))
 
-    return da.transpose(*[ax_dim[1] for ax_dim in ax_dims])
+    return da.transpose(*[ax_dim[0] for ax_dim in ax_dims])
 
 
 @dataclass
