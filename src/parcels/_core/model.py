@@ -151,11 +151,6 @@ class StructuredModel(Model):
         # Parse SGRID metadata and get xgcm kwargs
         _, xgcm_kwargs = sgrid.xgcm_parse_sgrid(ds)
 
-        # Add time axis to xgcm_kwargs if present
-        if "time" in ds.dims:
-            if "T" not in xgcm_kwargs["coords"]:
-                xgcm_kwargs["coords"]["T"] = {"center": "time"}
-
         if "lon" not in ds.coords or "lat" not in ds.coords:
             node_dimensions = sgrid.load_mappings(ds.grid.node_dimensions)
             ds["lon"] = ds[node_dimensions[0]]

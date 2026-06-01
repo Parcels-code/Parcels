@@ -1,4 +1,5 @@
 from collections.abc import Hashable, Sequence
+from dataclasses import dataclass
 from functools import cached_property
 from typing import Any, Literal, cast
 
@@ -7,10 +8,12 @@ import numpy.typing as npt
 import xarray as xr
 import xgcm
 
+import parcels._sgrid as sgrid
 import parcels._typing as ptyping
 from parcels._core.basegrid import BaseGrid
 from parcels._core.index_search import _search_1d_array, _search_indices_curvilinear_2d
 from parcels._reprs import xgrid_repr
+from parcels._sgrid.core import SGRID_PADDING_TO_XGCM_POSITION
 
 _FIELD_DATA_ORDERING: Sequence[ptyping.XgcmAxisDirection] = "TZYX"
 _XGRID_AXES_ORDERING: Sequence[ptyping.XgridAxis] = "ZYX"
@@ -101,6 +104,52 @@ def _transpose_xfield_data_to_tzyx(da: xr.DataArray, xgcm_grid: xgcm.Grid) -> xr
     return da.transpose(*[ax_dim[1] for ax_dim in ax_dims])
 
 
+@dataclass
+class XgcmLikeAxis:
+    coords: dict[ptyping.XgcmAxisPosition, str]
+
+
+class XgcmLikeGrid:
+    """Adapter class to circumvent XGCM as a dep.
+
+
+    This is only used as a temporary class for the moment. Down the line we should refactor to remove XGCM entirely and work with SGRID metadata (especially since COMODO metadata isn't standard, and nor is the xgcm data model).
+    """
+
+    def __init__(self, sgrid_metadata: sgrid.SGrid2DMetadata, model_data: xr.Dataset):
+        self.axes: dict[ptyping.CfAxisSpatial, XgcmLikeAxis] = construct_xgcm_axes_object(sgrid_metadata, model_data)
+
+
+def construct_xgcm_axes_object(metadata: sgrid.SGrid2DMetadata, model_data: xr.Dataset) -> dict[str, XgcmLikeAxis]:
+    lst: list[tuple[ptyping.CfAxis, str, ptyping.XgcmAxisPosition]] = []
+
+    for fnp, axis in zip(metadata.face_dimensions, ("X", "Y"), strict=True):
+        lst.append((axis, fnp.face, "center"))
+        lst.append((axis, fnp.node, SGRID_PADDING_TO_XGCM_POSITION[fnp.padding]))
+
+    if metadata.vertical_dimensions is not None:
+        assert len(metadata.vertical_dimensions) == 1
+        fnp = metadata.vertical_dimensions[0]
+        axis = "Z"
+        lst.append((axis, fnp.face, "center"))
+        lst.append((axis, fnp.node, SGRID_PADDING_TO_XGCM_POSITION[fnp.padding]))
+
+    # filter so that only dims in the dataset itself are mentioned
+    lst = [i for i in lst if i[1] in model_data.dims]
+
+    # Add time axis to xgcm_kwargs if present
+    if "time" in model_data.dims:
+        lst.append(("T", "time", "center"))
+
+    ret = {}
+    for axis, dim, position in lst:
+        if axis not in ret:
+            ret[axis] = XgcmLikeAxis({})
+        ret[axis].coords[position] = dim
+
+    return ret
+
+
 class XGrid(BaseGrid):
     """
     Class to represent a structured grid in Parcels. Wraps a xgcm-like Grid object (we use a trimmed down version of the xgcm.Grid class that is vendored with Parcels).
@@ -112,11 +161,14 @@ class XGrid(BaseGrid):
 
     """
 
-    def __init__(self, grid: xgcm.Grid, mesh):
+    def __init__(self, model_data: xr.Dataset, mesh):
+        self.sgrid_metadata = model_data.sgrid.metadata
+        self._ds = model_data
+        grid = XgcmLikeGrid(self.sgrid_metadata, model_data)
         self.xgcm_grid = grid
         self._mesh = mesh
         self._spatialhash = None
-        ds = grid._ds
+        ds = model_data
 
         # Set the coordinates for the dataset (needed to be done explicitly for curvilinear grids)
         if "lon" in ds:
