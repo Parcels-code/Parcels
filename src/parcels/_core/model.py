@@ -6,15 +6,12 @@ from typing import Any, Self
 import cf_xarray  # noqa: F401
 import uxarray as ux
 import xarray as xr
-import xgcm
 
-import parcels._sgrid as sgrid
 from parcels._core.basegrid import BaseGrid
 from parcels._core.field import Field, VectorField
 from parcels._core.utils.time import TimeInterval
 from parcels._core.uxgrid import UxGrid
 from parcels._core.xgrid import (
-    _DEFAULT_XGCM_KWARGS,
     XGrid,
     assert_all_field_dims_have_axis,
 )
@@ -148,19 +145,12 @@ class StructuredModel(Model):
                 logger.debug(f"Renaming time axis coordinate from {time_dim} to 'time'.")
                 ds = ds.rename({time_dim: "time"})
 
-        # Parse SGRID metadata and get xgcm kwargs
-        _, xgcm_kwargs = sgrid.xgcm_parse_sgrid(ds)
+        # if "lon" not in ds.coords or "lat" not in ds.coords:
+        #     node_dimensions = sgrid.load_mappings(ds.grid.node_dimensions)
+        #     ds["lon"] = ds[node_dimensions[0]]
+        #     ds["lat"] = ds[node_dimensions[1]]
 
-        if "lon" not in ds.coords or "lat" not in ds.coords:
-            node_dimensions = sgrid.load_mappings(ds.grid.node_dimensions)
-            ds["lon"] = ds[node_dimensions[0]]
-            ds["lat"] = ds[node_dimensions[1]]
-
-        # Create xgcm Grid object
-        xgcm_grid = xgcm.Grid(ds, autoparse_metadata=False, **xgcm_kwargs, **_DEFAULT_XGCM_KWARGS)
-
-        # Wrap in XGrid
-        grid = XGrid(xgcm_grid, mesh=mesh)
+        grid = XGrid(ds, mesh=mesh)
         return cls(ds, grid)
 
 

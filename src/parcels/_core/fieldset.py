@@ -8,14 +8,14 @@ import cf_xarray  # noqa: F401
 import numpy as np
 import uxarray as ux
 import xarray as xr
-import xgcm
 
+import parcels._sgrid as sgrid
 from parcels._core.field import Field, VectorField
 from parcels._core.model import Model, StructuredModel, UnstructuredModel
 from parcels._core.utils.string import _assert_str_and_python_varname
 from parcels._core.utils.time import get_datetime_type_calendar
 from parcels._core.utils.time import is_compatible as datetime_is_compatible
-from parcels._core.xgrid import _DEFAULT_XGCM_KWARGS, XGrid
+from parcels._core.xgrid import XGrid
 from parcels._reprs import fieldset_repr
 from parcels._typing import Mesh
 from parcels.interpolators import (
@@ -150,11 +150,19 @@ class FieldSet:
         ds = xr.Dataset(
             {name: (["lat", "lon"], np.full((1, 1), value))},
             coords={"lat": (["lat"], [0], {"axis": "Y"}), "lon": (["lon"], [0], {"axis": "X"})},
+        ).pipe(
+            sgrid._attach_sgrid_metadata,
+            sgrid.SGrid2DMetadata(
+                cf_role="grid_topology",
+                topology_dimension=2,
+                node_dimensions=("lon", "lat"),
+                face_dimensions=(
+                    sgrid.FaceNodePadding("XC", "lon", sgrid.Padding.LOW),
+                    sgrid.FaceNodePadding("YC", "lat", sgrid.Padding.LOW),
+                ),
+            ),
         )
-        xgrid = xgcm.Grid(
-            ds, coords={"X": {"left": "lon"}, "Y": {"left": "lat"}}, autoparse_metadata=False, **_DEFAULT_XGCM_KWARGS
-        )
-        grid = XGrid(xgrid, mesh=mesh)
+        grid = XGrid(ds, mesh=mesh)
         self.add_field(Field(name, ds[name], grid, interp_method=XConstantField))
 
     def add_constant(self, name, value):
