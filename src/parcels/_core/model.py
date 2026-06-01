@@ -332,7 +332,7 @@ def _is_agrid(ds: xr.Dataset) -> bool:
 
 
 def _get_time_interval(data: xr.DataArray | ux.UxDataArray) -> TimeInterval | None:
-    if "time" not in data:
+    if "time" not in data or data["time"].size == 1:
         return None
 
     return TimeInterval(data.time.values[0], data.time.values[-1])
