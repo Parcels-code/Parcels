@@ -107,15 +107,15 @@ class StructuredModel(Model):
         vector_fields: dict[str, VectorField] = {}
         scalar_field_names = self.scalar_field_names
         if "U" in scalar_field_names and "V" in scalar_field_names:
-            vector_interp_method = XLinear_Velocity if _is_agrid(self.data) else CGrid_Velocity
-            single_fields["U"] = Field("U", self, XLinear)
-            single_fields["V"] = Field("V", self, XLinear)
+            vector_interp_method = XLinear_Velocity() if _is_agrid(self.data) else CGrid_Velocity()
+            single_fields["U"] = Field("U", self, XLinear())
+            single_fields["V"] = Field("V", self, XLinear())
             vector_fields["UV"] = VectorField(
                 "UV", single_fields["U"], single_fields["V"], vector_interp_method=vector_interp_method
             )
 
             if "W" in scalar_field_names:
-                single_fields["W"] = Field("W", self, XLinear)
+                single_fields["W"] = Field("W", self, XLinear())
                 vector_fields["UVW"] = VectorField(
                     "UVW",
                     single_fields["U"],
@@ -126,7 +126,7 @@ class StructuredModel(Model):
 
         fields: dict[str, Field | VectorField] = {**single_fields, **vector_fields}
         for varname in set(scalar_field_names) - set(fields.keys()):
-            fields[varname] = Field(str(varname), self, XLinear)
+            fields[varname] = Field(str(varname), self, XLinear())
 
         return list(fields.values())
 

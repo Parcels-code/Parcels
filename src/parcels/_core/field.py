@@ -16,13 +16,9 @@ from parcels._core.statuscodes import (
 from parcels._core.utils.string import _assert_str_and_python_varname
 from parcels._core.uxgrid import UxGrid
 from parcels._core.xgrid import XGrid
-from parcels._python import assert_same_function_signature
 from parcels._reprs import field_repr, vectorfield_repr
 from parcels._typing import VectorType
-from parcels.interpolators import (
-    ZeroInterpolator,
-    ZeroInterpolator_Vector,
-)
+from parcels.interpolators._base import ScalarInterpolator, VectorInterpolator
 
 if TYPE_CHECKING:
     from parcels._core.model import Model
@@ -89,7 +85,7 @@ class Field:
         self,
         name: str,
         model: Model,
-        interp_method: Callable,
+        interp_method: ScalarInterpolator,
     ):
         # TODO PR: Enable isinstance check once Model is moved to abc.Model
         # if not isinstance(model, "Model"):
@@ -103,7 +99,8 @@ class Field:
         self.model = model
 
         # Setting the interpolation method dynamically
-        assert_same_function_signature(interp_method, ref=ZeroInterpolator, context="Interpolation")
+        if not isinstance(interp_method, ScalarInterpolator):
+            raise ValueError(f"interp_method must be a `ScalarInterpolator` object. Got {type(interp_method)=!r}")
         self._interp_method = interp_method
 
         self.igrid = -1  # Default the grid index to -1
@@ -128,8 +125,9 @@ class Field:
         return self._interp_method
 
     @interp_method.setter
-    def interp_method(self, method: Callable):
-        assert_same_function_signature(method, ref=ZeroInterpolator, context="Interpolation")
+    def interp_method(self, method: ScalarInterpolator):
+        if not isinstance(method, ScalarInterpolator):
+            raise ValueError(f"method must be a `ScalarInterpolator` object. Got {type(method)=!r}")
         self._interp_method = method
 
     def _check_velocitysampling(self):
@@ -175,7 +173,7 @@ class Field:
 
         particle_positions, grid_positions = _get_positions(self, time, z, y, x, particles, _ei)
 
-        value = self._interp_method(particle_positions, grid_positions, self)
+        value = self._interp_method.interp(particle_positions, grid_positions, self)
 
         _update_particle_states_interp_value(particles, value)
 
@@ -201,7 +199,7 @@ class VectorField:
         U: Field,  # noqa: N803
         V: Field,  # noqa: N803
         W: Field | None = None,  # noqa: N803
-        vector_interp_method: Callable | None = None,
+        vector_interp_method: VectorInterpolator | None = None,
     ):
         if vector_interp_method is None:
             raise ValueError("vector_interp_method must be provided for VectorField initialization.")
@@ -226,7 +224,11 @@ class VectorField:
         else:
             self.vector_type = "2D"
 
-        assert_same_function_signature(vector_interp_method, ref=ZeroInterpolator_Vector, context="Interpolation")
+        if not isinstance(vector_interp_method, VectorInterpolator):
+            raise ValueError(
+                f"vector_interp_method must be a `VectorInterpolator` object. Got {type(vector_interp_method)=!r}"
+            )
+
         self._vector_interp_method = vector_interp_method
 
     def __repr__(self):
@@ -238,7 +240,8 @@ class VectorField:
 
     @vector_interp_method.setter
     def vector_interp_method(self, method: Callable):
-        assert_same_function_signature(method, ref=ZeroInterpolator_Vector, context="Interpolation")
+        if not isinstance(method, VectorInterpolator):
+            raise ValueError(f"method must be a `VectorInterpolator` object. Got {type(method)=!r}")
         self._vector_interp_method = method
 
     def eval(self, time: datetime, z, y, x, particles=None):
@@ -277,7 +280,7 @@ class VectorField:
 
         particle_positions, grid_positions = _get_positions(self.U, time, z, y, x, particles, _ei)
 
-        (u, v, w) = self._vector_interp_method(particle_positions, grid_positions, self)
+        (u, v, w) = self._vector_interp_method.interp(particle_positions, grid_positions, self)
 
         for vel in (u, v, w):
             _update_particle_states_interp_value(particles, vel)
