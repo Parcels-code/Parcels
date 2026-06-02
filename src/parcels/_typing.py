@@ -41,8 +41,9 @@ TimeLike = datetime | cftime_datetime | np.datetime64
 
 KernelFunction = Callable[..., None]
 
-XgridAxis = Literal["X", "Y", "Z"]
-XgcmAxisDirection = Literal["X", "Y", "Z", "T"]
+CfAxisSpatial = Literal["X", "Y", "Z"]
+XgridAxis = CfAxisSpatial
+XgcmAxisDirection = CfAxisSpatial | Literal["T"]
 CfAxis = XgcmAxisDirection
 XgcmAxisPosition = Literal["center", "left", "right", "inner", "outer"]
 XgcmAxes = Mapping[XgcmAxisDirection, "xgcm.Axis"]
