@@ -61,6 +61,11 @@ class ParticleFile:
         It is either a numpy.timedelta64, a datimetime.timedelta object or a positive float (in seconds).
     compression : {"zstd", "gzip", "snappy", "brotli", None}, optional
         Compression algorithm to use for the Parquet file. Default is "zstd".
+    if_exists : {"error", "overwrite", "append"}, optional
+        Behavior when the output file already exists.
+        - "error" (default): raise a ValueError.
+        - "overwrite": remove the existing file before writing.
+        - "append": preserve existing rows and append new rows.
 
     Returns
     -------
@@ -69,7 +74,11 @@ class ParticleFile:
     """
 
     def __init__(
-        self, path: PathLike, outputdt, compression: Literal["zstd", "gzip", "snappy", "brotli", None] = "zstd"
+        self,
+        path: PathLike,
+        outputdt,
+        compression: Literal["zstd", "gzip", "snappy", "brotli", None] = "zstd",
+        if_exists: Literal["error", "overwrite", "append"] = "error",
     ):
         if not isinstance(outputdt, (np.timedelta64, timedelta, float)):
             raise ValueError(
@@ -89,12 +98,24 @@ class ParticleFile:
             raise ValueError(f"outputdt must be positive/non-zero. Got {outputdt=!r}")
 
         self._outputdt = outputdt
+        self._if_exists = if_exists
 
         self._path = path  # TODO v4: Consider https://arrow.apache.org/docs/python/getstarted.html#working-with-large-data - though a significant question becomes how to partition, perhaps using a particle variable "partition"?
         self._writer: pq.ParquetWriter | None = None
+        self._tmp_path: Path | None = None
+
+        if self._if_exists not in {"error", "overwrite", "append"}:
+            raise ValueError(
+                f"Invalid if_exists value {self._if_exists!r}. Expected one of 'error', 'overwrite', or 'append'."
+            )
+
         if path.exists():
-            # TODO: Add logic for recovering/appending to existing parquet file
-            raise ValueError(f"{path=!r} already exists. Either delete this file or use a path that doesn't exist.")
+            if self._if_exists == "error":
+                raise ValueError(
+                    f"{path=!r} already exists. Use if_exists='overwrite' or if_exists='append', or use a new path."
+                )
+            if self._if_exists == "overwrite":
+                path.unlink()
         if not path.parent.exists():
             raise ValueError(f"Folder location for {path=!r} does not exist. Create the folder location first.")
 
@@ -143,12 +164,42 @@ class ParticleFile:
         particle_data = pset._data
 
         if self._writer is None:
-            assert not self.path.exists(), "If the file exists, the writer should already be set"
-            self._writer = pq.ParquetWriter(
-                self.path,
-                _get_schema(pclass, self.metadata, fieldset.time_interval),
-                compression=self._compression,
-            )
+            schema = _get_schema(pclass, self.metadata, fieldset.time_interval)
+
+            if self._if_exists == "append" and self.path.exists():
+                existing_file = pq.ParquetFile(self.path)
+                existing_schema = existing_file.schema_arrow
+
+                if schema.names != existing_schema.names:
+                    raise ValueError(
+                        "Cannot append to existing parquet file because schema columns do not match the new output schema. "
+                        f"Existing={existing_schema.names}, new={schema.names}."
+                    )
+
+                for field_name in schema.names:
+                    if schema.field(field_name).type != existing_schema.field(field_name).type:
+                        raise ValueError(
+                            "Cannot append to existing parquet file because schema field types do not match. "
+                            f"Field {field_name!r}: existing={existing_schema.field(field_name).type}, "
+                            f"new={schema.field(field_name).type}."
+                        )
+
+                self._tmp_path = self.path.with_name(f"{self.path.stem}.append_tmp{self.path.suffix}")
+                if self._tmp_path.exists():
+                    self._tmp_path.unlink()
+
+                self._writer = pq.ParquetWriter(self._tmp_path, existing_schema, compression=self._compression)
+
+                # Parquet can't directly append, so we need to rewrite the existing data along with the new data.
+                for batch in existing_file.iter_batches():
+                    self._writer.write_table(pa.Table.from_batches([batch], schema=existing_schema))
+            else:
+                assert not self.path.exists(), "If the file exists, the writer should already be set"
+                self._writer = pq.ParquetWriter(
+                    self.path,
+                    schema,
+                    compression=self._compression,
+                )
 
         if isinstance(time, (np.timedelta64, np.datetime64)):
             time = timedelta_to_float(time - fieldset.time_interval.left)
@@ -166,6 +217,9 @@ class ParticleFile:
         if self._writer is not None:
             self._writer.close()
             self._writer = None
+            if self._tmp_path is not None:
+                self._tmp_path.replace(self.path)
+                self._tmp_path = None
 
 
 def _get_vars_to_write(particle: ParticleClass) -> list[Variable]:
