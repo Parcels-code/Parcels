@@ -143,6 +143,42 @@ class ParticleFile:
     def path(self):
         return self._path
 
+    def _initialize_writer(self, schema: pa.Schema):
+        if self._if_exists == "append" and self.path.exists():
+            existing_file = pq.ParquetFile(self.path)
+            existing_schema = existing_file.schema_arrow
+
+            if schema.names != existing_schema.names:
+                raise ValueError(
+                    "Cannot append to existing parquet file because schema columns do not match the new output schema. "
+                    f"Existing={existing_schema.names}, new={schema.names}."
+                )
+
+            for field_name in schema.names:
+                if schema.field(field_name).type != existing_schema.field(field_name).type:
+                    raise ValueError(
+                        "Cannot append to existing parquet file because schema field types do not match. "
+                        f"Field {field_name!r}: existing={existing_schema.field(field_name).type}, "
+                        f"new={schema.field(field_name).type}."
+                    )
+
+            self._tmp_path = self.path.with_name(f"{self.path.stem}.append_tmp{self.path.suffix}")
+            if self._tmp_path.exists():
+                self._tmp_path.unlink()
+
+            self._writer = pq.ParquetWriter(self._tmp_path, existing_schema, compression=self._compression)
+
+            # Parquet can't directly append, so we need to rewrite the existing data along with the new data.
+            for batch in existing_file.iter_batches():
+                self._writer.write_table(pa.Table.from_batches([batch], schema=existing_schema))
+        else:
+            assert not self.path.exists(), "If the file exists, the writer should already be set"
+            self._writer = pq.ParquetWriter(
+                self.path,
+                schema,
+                compression=self._compression,
+            )
+
     def write(self, pset: ParticleSet | ParticleSetView, time, fieldset=None, indices=None):
         """Write all data from one time step to the zarr file,
         before the particle locations are updated.
@@ -165,41 +201,7 @@ class ParticleFile:
 
         if self._writer is None:
             schema = _get_schema(pclass, self.metadata, fieldset.time_interval)
-
-            if self._if_exists == "append" and self.path.exists():
-                existing_file = pq.ParquetFile(self.path)
-                existing_schema = existing_file.schema_arrow
-
-                if schema.names != existing_schema.names:
-                    raise ValueError(
-                        "Cannot append to existing parquet file because schema columns do not match the new output schema. "
-                        f"Existing={existing_schema.names}, new={schema.names}."
-                    )
-
-                for field_name in schema.names:
-                    if schema.field(field_name).type != existing_schema.field(field_name).type:
-                        raise ValueError(
-                            "Cannot append to existing parquet file because schema field types do not match. "
-                            f"Field {field_name!r}: existing={existing_schema.field(field_name).type}, "
-                            f"new={schema.field(field_name).type}."
-                        )
-
-                self._tmp_path = self.path.with_name(f"{self.path.stem}.append_tmp{self.path.suffix}")
-                if self._tmp_path.exists():
-                    self._tmp_path.unlink()
-
-                self._writer = pq.ParquetWriter(self._tmp_path, existing_schema, compression=self._compression)
-
-                # Parquet can't directly append, so we need to rewrite the existing data along with the new data.
-                for batch in existing_file.iter_batches():
-                    self._writer.write_table(pa.Table.from_batches([batch], schema=existing_schema))
-            else:
-                assert not self.path.exists(), "If the file exists, the writer should already be set"
-                self._writer = pq.ParquetWriter(
-                    self.path,
-                    schema,
-                    compression=self._compression,
-                )
+            self._initialize_writer(schema)
 
         if isinstance(time, (np.timedelta64, np.datetime64)):
             time = timedelta_to_float(time - fieldset.time_interval.left)
