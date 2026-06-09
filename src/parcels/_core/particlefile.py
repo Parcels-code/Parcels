@@ -159,9 +159,12 @@ class ParticleFile:
         particle_data = pset._data
 
         if self._writer is None:
-            schema = _get_schema(pclass, self.metadata, fieldset.time_interval)
             assert not self.path.exists(), "If the file exists, the writer should already be set"
-            self._writer = pq.ParquetWriter(self.path, schema, compression=self._compression)
+            self._writer = pq.ParquetWriter(
+                self.path,
+                _get_schema(pclass, self.metadata, fieldset.time_interval),
+                compression=self._compression,
+            )
 
         if isinstance(time, (np.timedelta64, np.datetime64)):
             time = timedelta_to_float(time - fieldset.time_interval.left)
