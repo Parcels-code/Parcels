@@ -418,28 +418,22 @@ def test_particlefile_init_existing_path_modes(fieldset, tmp_parquet):
     first_file = ParticleFile(tmp_parquet, outputdt=np.timedelta64(1, "s"))
     pset.execute(DoNothing, runtime=np.timedelta64(10, "s"), dt=np.timedelta64(1, "s"), output_file=first_file)
 
+    df_first = pd.read_parquet(tmp_parquet)
+
     with pytest.raises(ValueError, match="already exists"):
         ParticleFile(tmp_parquet, outputdt=np.timedelta64(1, "s"))
 
-    append_file = ParticleFile(tmp_parquet, outputdt=np.timedelta64(1, "s"), if_exists="append")
-    pset.execute(DoNothing, runtime=np.timedelta64(10, "s"), dt=np.timedelta64(1, "s"), output_file=append_file)
-
-    df_append = pd.read_parquet(tmp_parquet)
-    np.testing.assert_equal(df_append["time"].tolist(), list(range(0, 21, 1)))
-
-    overwrite_file = ParticleFile(tmp_parquet, outputdt=np.timedelta64(1, "s"), if_exists="overwrite")
+    overwrite_file = ParticleFile(tmp_parquet, outputdt=np.timedelta64(1, "s"), mode="w")
     pset.execute(DoNothing, runtime=np.timedelta64(10, "s"), dt=np.timedelta64(1, "s"), output_file=overwrite_file)
 
     df_overwrite = pd.read_parquet(tmp_parquet)
 
-    assert (
-        len(df_append) == 2 * len(df_overwrite) - 1
-    )  # because the first time step of second run is the same as the last time step of the first run
+    assert len(df_first) == len(df_overwrite)
 
 
-def test_particlefile_init_invalid_if_exists(tmp_parquet):
-    with pytest.raises(ValueError, match="Invalid if_exists value"):
-        ParticleFile(tmp_parquet, outputdt=np.timedelta64(1, "s"), if_exists="something-else")
+def test_particlefile_init_invalid_mode(tmp_parquet):
+    with pytest.raises(ValueError, match="Invalid mode value"):
+        ParticleFile(tmp_parquet, outputdt=np.timedelta64(1, "s"), mode="something-else")
 
 
 @pytest.mark.parametrize("name", ["path", "outputdt"])
