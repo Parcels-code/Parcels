@@ -97,18 +97,17 @@ class ParticleFile:
             raise ValueError(f"outputdt must be positive/non-zero. Got {outputdt=!r}")
 
         self._outputdt = outputdt
-        self._mode = mode
 
         self._path = path  # TODO v4: Consider https://arrow.apache.org/docs/python/getstarted.html#working-with-large-data - though a significant question becomes how to partition, perhaps using a particle variable "partition"?
         self._writer: pq.ParquetWriter | None = None
 
-        if self._mode not in {None, "w"}:
-            raise ValueError(f"Invalid mode value {self._mode!r}. Expected one of None or 'w'.")
+        if mode not in {None, "w"}:
+            raise ValueError(f"Invalid mode value {mode!r}. Expected one of None or 'w'.")
 
         if path.exists():
-            if self._mode is None:
+            if mode is None:
                 raise ValueError(f"{path=!r} already exists. Use mode='w' or use a new path.")
-            if self._mode == "w":
+            if mode == "w":
                 path.unlink()
         if not path.parent.exists():
             raise ValueError(f"Folder location for {path=!r} does not exist. Create the folder location first.")
