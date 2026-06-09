@@ -101,7 +101,6 @@ class ParticleFile:
 
         self._path = path  # TODO v4: Consider https://arrow.apache.org/docs/python/getstarted.html#working-with-large-data - though a significant question becomes how to partition, perhaps using a particle variable "partition"?
         self._writer: pq.ParquetWriter | None = None
-        self._tmp_path: Path | None = None
 
         if self._mode not in {None, "w"}:
             raise ValueError(f"Invalid mode value {self._mode!r}. Expected one of None or 'w'.")
@@ -182,9 +181,6 @@ class ParticleFile:
         if self._writer is not None:
             self._writer.close()
             self._writer = None
-            if self._tmp_path is not None:
-                self._tmp_path.replace(self.path)
-                self._tmp_path = None
 
 
 def _get_vars_to_write(particle: ParticleClass) -> list[Variable]:
