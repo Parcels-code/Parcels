@@ -418,7 +418,7 @@ class ParticleSet:
 
         if verbose_progress:
             pbar = tqdm(
-                total=end_time - start_time,
+                total=sign_dt * (end_time - start_time),
                 file=sys.stdout,
                 bar_format="{desc} {percentage:3.0f}%|{bar}| [{elapsed}<{remaining}, {rate_fmt}]",
             )
@@ -454,7 +454,7 @@ class ParticleSet:
                 pbar.set_description_str(
                     "Integration time: " + str(float_to_datelike(time, self.fieldset.time_interval))
                 )
-                pbar.update(next_time - time)
+                pbar.update(sign_dt * (next_time - time))
 
             time = next_time
 
