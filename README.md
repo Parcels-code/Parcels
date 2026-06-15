@@ -43,6 +43,7 @@ See [parcels-code.org](http://parcels-code.org/) for further information about [
 
 ### Contributors
 
+
 <a href="https://github.com/parcels-code/parcels/graphs/contributors">
   <img src="https://contrib.rocks/image?repo=parcels-code/parcels" />
 </a>
