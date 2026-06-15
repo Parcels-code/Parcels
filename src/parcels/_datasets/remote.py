@@ -52,6 +52,7 @@ _ODIE_REGISTRY_FILES: list[str] = (
         "data/CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-cur_anfc_0.083deg_P1D-m_uo-vo_31.00E-33.00E_33.00S-30.00S_0.49-2225.08m_2024-01-01-2024-02-01.nc",
         "data/CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-so_anfc_0.083deg_P1D-m_so_31.00E-33.00E_33.00S-30.00S_0.49-2225.08m_2024-01-01-2024-02-01.nc",
         "data/CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-thetao_anfc_0.083deg_P1D-m_thetao_31.00E-33.00E_33.00S-30.00S_0.49-2225.08m_2024-01-01-2024-02-01.nc",
+        "data/CopernicusMarine_data_for_Argo_tutorial/cmems_obs-wind_glo_phy_my_l4_0.125deg_PT1H_multi-vars_31.06E-32.94E_32.94S-30.06S_2024-01-01-2024-02-01.nc",
     ]
     + [
         "data/DecayingMovingEddy_data/decaying_moving_eddyU.nc",
@@ -216,6 +217,7 @@ _DATASET_KEYS_AND_CONFIGS: dict[str, tuple[_ParcelsDataset, _Purpose]] = dict([
     ("Peninsula_data/T", (_V3Dataset(_ODIE,"data/Peninsula_data/peninsulaT.nc"), _Purpose.TUTORIAL)),
     ("GlobCurrent_example_data/data", (_V3Dataset(_ODIE,"data/GlobCurrent_example_data/*000000-GLOBCURRENT-L4-CUReul_hs-ALT_SUM-v02.0-fv01.0.nc", pre_decode_cf_callable=patch_dataset_v4_compat), _Purpose.TUTORIAL)),
     ("CopernicusMarine_data_for_Argo_tutorial/data", (_V3Dataset(_ODIE,"data/CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-*.nc"), _Purpose.TUTORIAL)),
+    ("CopernicusMarine_data_for_Argo_tutorial/data_wind", (_V3Dataset(_ODIE,"data/CopernicusMarine_data_for_Argo_tutorial/cmems_obs-wind_glo_phy*.nc"), _Purpose.TUTORIAL)),
     ("DecayingMovingEddy_data/U", (_V3Dataset(_ODIE,"data/DecayingMovingEddy_data/decaying_moving_eddyU.nc"), _Purpose.TUTORIAL)),
     ("DecayingMovingEddy_data/V", (_V3Dataset(_ODIE,"data/DecayingMovingEddy_data/decaying_moving_eddyV.nc"), _Purpose.TUTORIAL)),
     ("FESOM_periodic_channel/fesom_channel", (_V3Dataset(_ODIE,"data/FESOM_periodic_channel/fesom_channel.nc"), _Purpose.TUTORIAL)),
