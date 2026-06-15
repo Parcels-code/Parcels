@@ -305,16 +305,14 @@ class FieldSet:
 
         fields = {}
         if "U" in ds.data_vars and "V" in ds.data_vars:
-            vector_interp_method = XLinear_Velocity if _is_agrid(ds) else CGrid_Velocity
+            interp_method = XLinear_Velocity if _is_agrid(ds) else CGrid_Velocity
             fields["U"] = Field("U", ds["U"], grid, XLinear)
             fields["V"] = Field("V", ds["V"], grid, XLinear)
-            fields["UV"] = VectorField("UV", fields["U"], fields["V"], interp_method=vector_interp_method)
+            fields["UV"] = VectorField("UV", fields["U"], fields["V"], interp_method=interp_method)
 
             if "W" in ds.data_vars:
                 fields["W"] = Field("W", ds["W"], grid, XLinear)
-                fields["UVW"] = VectorField(
-                    "UVW", fields["U"], fields["V"], fields["W"], interp_method=vector_interp_method
-                )
+                fields["UVW"] = VectorField("UVW", fields["U"], fields["V"], fields["W"], interp_method=interp_method)
 
         for varname in set(ds.data_vars) - set(fields.keys()) - skip_vars:
             fields[varname] = Field(str(varname), ds[varname], grid, XLinear)
