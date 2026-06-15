@@ -191,7 +191,7 @@ def test_vectorfield_invalid_interpolator():
             name="UV",
             U=U,
             V=V,
-            vector_interp_method=invalid_interpolator_wrong_signature,
+            interp_method=invalid_interpolator_wrong_signature,
         )
 
 
