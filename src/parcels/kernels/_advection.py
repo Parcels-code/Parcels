@@ -32,15 +32,19 @@ def _constrain_dt_to_within_time_interval(time_interval, time, dt):
     return dt
 
 
+def rhs_uv(fieldset, time, depth, lat, lon, particles):
+    return fieldset.UV[time, depth, lat, lon, particles]
+
+
+def rhs_uvw(fieldset, time, depth, lat, lon, particles):
+    return fieldset.UVW[time, depth, lat, lon, particles]
+
+
 def AdvectionRK2(particles, fieldset):  # pragma: no cover
     """Advection of particles using second-order Runge-Kutta integration."""
     dt = _constrain_dt_to_within_time_interval(fieldset.time_interval, particles.time, particles.dt)
 
-    def rhs(fieldset, time, depth, lat, lon, particles):
-        return fieldset.UV[time, depth, lat, lon, particles]
-
-    u, v = RK2(fieldset, particles, rhs)
-
+    u, v = RK2(fieldset, particles, rhs_uv)
     particles.dlon += u * dt
     particles.dlat += v * dt
 
@@ -49,11 +53,7 @@ def AdvectionRK2_3D(particles, fieldset):  # pragma: no cover
     """Advection of particles using second-order Runge-Kutta integration including vertical velocity."""
     dt = _constrain_dt_to_within_time_interval(fieldset.time_interval, particles.time, particles.dt)
 
-    def rhs(fieldset, time, depth, lat, lon, particles):
-        return fieldset.UVW[time, depth, lat, lon, particles]
-
-    u, v, w = RK2(fieldset, particles, rhs)
-
+    u, v, w = RK2(fieldset, particles, rhs_uvw)
     particles.dlon += u * dt
     particles.dlat += v * dt
     particles.dz += w * dt
@@ -63,10 +63,7 @@ def AdvectionRK4(particles, fieldset):  # pragma: no cover
     """Advection of particles using fourth-order Runge-Kutta integration."""
     dt = _constrain_dt_to_within_time_interval(fieldset.time_interval, particles.time, particles.dt)
 
-    def rhs(fieldset, time, depth, lat, lon, particles):
-        return fieldset.UV[time, depth, lat, lon, particles]
-
-    u, v = RK4(fieldset, particles, rhs)
+    u, v = RK4(fieldset, particles, rhs_uv)
     particles.dlon += u * dt
     particles.dlat += v * dt
 
@@ -75,10 +72,7 @@ def AdvectionRK4_3D(particles, fieldset):  # pragma: no cover
     """Advection of particles using fourth-order Runge-Kutta integration including vertical velocity."""
     dt = _constrain_dt_to_within_time_interval(fieldset.time_interval, particles.time, particles.dt)
 
-    def rhs(fieldset, time, depth, lat, lon, particles):
-        return fieldset.UVW[time, depth, lat, lon, particles]
-
-    u, v, w = RK4(fieldset, particles, rhs)
+    u, v, w = RK4(fieldset, particles, rhs_uvw)
     particles.dlon += u * dt
     particles.dlat += v * dt
     particles.dz += w * dt
