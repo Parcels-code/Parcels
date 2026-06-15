@@ -358,10 +358,10 @@ def _format_calendar_error_message(field: Field | VectorField, reference_datetim
 
 
 _COPERNICUS_MARINE_AXIS_VARNAMES = {
-    "X": "lon",
-    "Y": "lat",
-    "Z": "depth",
     "T": "time",
+    "Z": "depth",
+    "Y": "lat",
+    "X": "lon",
 }
 
 
