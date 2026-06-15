@@ -57,7 +57,7 @@ def vectorfield_repr(vector_field: VectorField, from_fieldset_repr=False) -> str
     out = f"""<{type(vector_field).__name__} {vector_field.name!r}>
     Parcels attributes:
         name                  : {vector_field.name!r}
-        vector_interp_method  : {vector_field.vector_interp_method!r}
+        interp_method         : {vector_field.interp_method!r}
         vector_type           : {vector_field.vector_type!r}
     {field_repr(vector_field.U, level=1) if not from_fieldset_repr else ""}
     {field_repr(vector_field.V, level=1) if not from_fieldset_repr else ""}

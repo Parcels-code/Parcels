@@ -83,7 +83,7 @@ windvector = parcels.VectorField(
     "Wind",
     fieldset.UWind,
     fieldset.VWind,
-    vector_interp_method=parcels.interpolators.XLinear_Velocity
+    interp_method=parcels.interpolators.XLinear_Velocity
 )
 fieldset.add_field(windvector)
 ```

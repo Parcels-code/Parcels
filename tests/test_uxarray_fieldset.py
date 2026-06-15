@@ -56,7 +56,7 @@ def uv_fesom_channel(ds_fesom_channel) -> VectorField:
             grid=UxGrid(ds_fesom_channel.uxgrid, z=ds_fesom_channel.coords["zc"], mesh="flat"),
             interp_method=UxConstantFaceConstantZC,
         ),
-        vector_interp_method=Ux_Velocity,
+        interp_method=Ux_Velocity,
     )
     return UV
 
@@ -83,7 +83,7 @@ def uvw_fesom_channel(ds_fesom_channel) -> VectorField:
             grid=UxGrid(ds_fesom_channel.uxgrid, z=ds_fesom_channel.coords["zf"], mesh="flat"),
             interp_method=UxLinearNodeLinearZF,
         ),
-        vector_interp_method=Ux_Velocity,
+        interp_method=Ux_Velocity,
     )
     return UVW
 
@@ -130,7 +130,7 @@ def test_fesom2_square_delaunay_uniform_z_coordinate_eval():
         U=Field(name="U", data=ds.U, grid=grid, interp_method=UxConstantFaceConstantZC),
         V=Field(name="V", data=ds.V, grid=grid, interp_method=UxConstantFaceConstantZC),
         W=Field(name="W", data=ds.W, grid=grid, interp_method=UxLinearNodeLinearZF),
-        vector_interp_method=Ux_Velocity,
+        interp_method=Ux_Velocity,
     )
     P = Field(name="p", data=ds.p, grid=grid, interp_method=UxLinearNodeLinearZF)
     fieldset = FieldSet([UVW, P, UVW.U, UVW.V, UVW.W])
