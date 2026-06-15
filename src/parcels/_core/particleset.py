@@ -252,7 +252,7 @@ class ParticleSet:
                     "X": grid_positions["X"]["index"],
                     "Y": grid_positions["Y"]["index"],
                     "Z": grid_positions["Z"]["index"],
-                } # TODO check if reordering to Z,Y,X for dimension order consistency is possible
+                }  # TODO check if reordering to Z,Y,X for dimension order consistency is possible
             )
 
     @classmethod
