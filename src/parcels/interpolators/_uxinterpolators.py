@@ -24,8 +24,6 @@ def UxConstantFaceConstantZC(
         grid_positions["T"]["index"], grid_positions["Z"]["index"], grid_positions["FACE"]["index"]
     )
 
-    # Index lazily (one pointwise ``isel`` per particle) instead of materializing the whole field
-    # with ``.values``, so dask-backed (out-of-core) fields are never fully read into memory.
     tdim, zdim, fdim = field.data.dims
     selection_dict = {
         tdim: xr.DataArray(ti, dims="points"),
@@ -90,16 +88,13 @@ def UxLinearNodeConstantZC(
     bcoords = xr.DataArray(grid_positions["FACE"]["bcoord"], dims=("points", "nodes"))
     node_ids = field.grid.uxgrid.face_node_connectivity[fi, :].values
 
-    # The node ids form a (npart, n_nodes_per_face) block; index it pointwise with ``isel`` so only the
-    # touched nodes are read (rather than materializing the whole field with ``.values``).
     tdim, zdim, ndim = field.data.dims
     selection_dict = {
         tdim: xr.DataArray(ti, dims="points"),
         zdim: xr.DataArray(zi, dims="points"),
         ndim: xr.DataArray(node_ids, dims=("points", "nodes")),
     }
-    # Reduce over the "nodes" dimension by name (rather than a positional axis) so the result does
-    # not depend on the dimension order that vectorized ``isel`` happens to return.
+
     node_data = field.data.isel(selection_dict, ignore_grid=True)
     value = (node_data * bcoords).sum("nodes").data  # Barycentric interpolation in the lateral direction
     return value.compute() if is_dask_collection(value) else value
