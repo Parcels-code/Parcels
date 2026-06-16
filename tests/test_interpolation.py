@@ -146,12 +146,12 @@ def test_spatial_slip_interpolation(field, func, t, z, y, x, expected):
 
 
 @pytest.mark.parametrize(
-    "func, t, z, y, x, expected",
+    "interpolator, t, z, y, x, expected",
     [
-        (XLinearInvdistLandTracer, 1, 0, 0.5, 0.5, 1.0),
-        (XLinearInvdistLandTracer, 1, 0, 1.5, 1.5, 0.0),
+        (XLinearInvdistLandTracer(), 1, 0, 0.5, 0.5, 1.0),
+        (XLinearInvdistLandTracer(), 1, 0, 1.5, 1.5, 0.0),
         (
-            XLinearInvdistLandTracer,
+            XLinearInvdistLandTracer(),
             [0, 1],
             [0, 2],
             [0.5, 0.5],
@@ -159,7 +159,7 @@ def test_spatial_slip_interpolation(field, func, t, z, y, x, expected):
             1.0,
         ),
         (
-            XLinearInvdistLandTracer,
+            XLinearInvdistLandTracer(),
             [0, 1],
             [0, 2],
             [0.5, 1.5],
@@ -168,10 +168,10 @@ def test_spatial_slip_interpolation(field, func, t, z, y, x, expected):
         ),
     ],
 )
-def test_invdistland_interpolation(field, func, t, z, y, x, expected):
+def test_invdistland_interpolation(field, interpolator, t, z, y, x, expected):
     field.data[:] = 1.0
     field.data[:, :, 1:3, 1:3] = 0  # Set NaN land value to test inv_dist
-    field.interp_method = func
+    field.interp_method = interpolator
 
     value = field[t, z, y, x]
     np.testing.assert_array_almost_equal(value, expected)
