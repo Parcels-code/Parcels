@@ -83,9 +83,7 @@ class FieldSet:
         context = self.__dict__.get("context")
 
         if context is not None and name in context:
-            raise AttributeError(
-                f"Cannot assign '{name}' directly. Use fieldset.context['{name}'] instead."
-            )
+            raise AttributeError(f"Cannot assign '{name}' directly. Use fieldset.context['{name}'] instead.")
         # Handle setting of attributes not in context per default
         super().__setattr__(name, value)
 

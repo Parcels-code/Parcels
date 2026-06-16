@@ -32,7 +32,7 @@ def test_fieldset_add_context(fieldset):
 def test_fieldset_add_context_int_name(fieldset):
     with pytest.raises(TypeError, match="Expected a string for variable name, got int instead."):
         fieldset.add_context(123, 1.0)
-        
+
 
 def test_fieldset_setattr_new(fieldset):
     fieldset.context = {"new_field": 1.0}
