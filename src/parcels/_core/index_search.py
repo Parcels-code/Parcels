@@ -12,9 +12,9 @@ if TYPE_CHECKING:
     from parcels._core.xgrid import XGrid
 
 
-GRID_SEARCH_ERROR = -3
-LEFT_OUT_OF_BOUNDS = -2
-RIGHT_OUT_OF_BOUNDS = -1
+GRID_SEARCH_ERROR = np.iinfo(np.int32).max - 3
+LEFT_OUT_OF_BOUNDS = np.iinfo(np.int32).max - 2
+RIGHT_OUT_OF_BOUNDS = np.iinfo(np.int32).max - 1
 
 
 def _search_1d_array(
