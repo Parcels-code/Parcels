@@ -652,7 +652,7 @@ def test_sampling_multigrids_non_vectorfield_from_file(npart, tmpdir):
     dimensions = {"lon": "nav_lon", "lat": "nav_lat"}
     fieldset = FieldSet.from_netcdf(files, variables, dimensions, timestamps=timestamps, allow_time_extrapolation=True)
 
-    fieldset.add_constant("sample_depth", 2.5)
+    fieldset.add_context("sample_depth", 2.5)
     assert fieldset.U.grid is fieldset.V.grid
     assert fieldset.U.grid is not fieldset.B.grid
 
@@ -693,7 +693,7 @@ def test_sampling_multigrids_non_vectorfield(npart):
     )
     fieldset = FieldSet(U, V)
     fieldset.add_field(B, "B")
-    fieldset.add_constant("sample_depth", 2.5)
+    fieldset.add_context("sample_depth", 2.5)
     assert fieldset.U.grid is fieldset.V.grid
     assert fieldset.U.grid is not fieldset.B.grid
 

@@ -153,7 +153,7 @@ class FieldSet:
         grid = XGrid(xgrid, mesh=mesh)
         self.add_field(Field(name, ds[name], grid, interp_method=XConstantField))
 
-    def add_constant(self, name, value):
+    def add_context(self, name, value):
         """Add a constant to the FieldSet.
 
         Parameters
