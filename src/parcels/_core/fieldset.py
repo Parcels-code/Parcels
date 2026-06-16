@@ -131,16 +131,11 @@ class FieldSet:
         """Wrap dask-backed field data in a rolling time-window cache.
 
         Opt-in optimization for forward-marching simulations where all particles
-        share a single clock. For each dask-backed, time-leading field, ``isel``
-        then samples a resident NumPy window (each time level loaded once and
-        evicted as the clock advances) instead of re-reading chunks and paying the
-        dask scheduling overhead on every kernel step. The wrapper is transparent:
-        it forwards all attributes, intercepts only ``isel``, and returns
-        NumPy-backed results so the interpolators' ``is_dask_collection()`` guards
-        skip ``.compute()``.
+        share a single clock. For each dask-backed field ``isel`` then samples
+        a resident NumPy window instead of re-reading chunks and paying the
+        dask scheduling overhead on every kernel step. 
 
-        NumPy-backed (eager) fields and fields without a leading ``time`` dimension
-        are left unchanged, and re-wrapping is idempotent, so this is safe to call
+        NumPy-backed fields are left unchanged, so this is safe to call
         more than once.
 
         Parameters
