@@ -14,26 +14,21 @@ def open_raw_zarr(store: Store):
     """Open a Zarr dataset in an Xarray dataset, bypassing Dask."""
     with xr.open_zarr(store) as ds:
         var_to_dims = {name: var.dims for name, var in ds.variables.items()}
-        coord_names = list(ds.coords)
+        var_to_attrs = {name: var.attrs for name, var in ds.variables.items()}
+        coords = {name: ds[name].variable.load() for name in ds.coords}
+        ds_attrs = ds.attrs
 
     group = zarr.open(store, mode="r")
     assert isinstance(group, zarr.Group)
 
     data_vars = {}
-    coords = {}
     for name, array in group.members():
         if not isinstance(array, zarr.Array):
             raise ValueError("Discovered a zarr.Group in the root group. open_raw_zarr doesn't work with nested groups")
-        is_coord = name in coord_names
+        if name in coords:
+            continue
 
-        if not is_coord:
-            array.__array_function__ = _not_implemented  # trick xarray to prevent coersion to a numpy array
+        array.__array_function__ = _not_implemented  # trick xarray to prevent coersion to a numpy array
+        data_vars[name] = xr.Variable(var_to_dims[name], array, attrs=var_to_attrs[name])
 
-        var = xr.Variable(var_to_dims[name], array)
-
-        if is_coord:
-            coords[name] = var
-        else:  # name is a data var
-            data_vars[name] = var
-
-    return xr.Dataset(data_vars, coords)
+    return xr.Dataset(data_vars, coords, attrs=ds_attrs)
