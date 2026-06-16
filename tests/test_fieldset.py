@@ -32,6 +32,17 @@ def test_fieldset_add_context(fieldset):
 def test_fieldset_add_context_int_name(fieldset):
     with pytest.raises(TypeError, match="Expected a string for variable name, got int instead."):
         fieldset.add_context(123, 1.0)
+        
+
+def test_fieldset_setattr_new(fieldset):
+    fieldset.new_field = 1.0
+    assert fieldset.new_field == 1.0
+
+
+def test_fieldset_setattr_context(fieldset):
+    fieldset.add_context("test_context", 1.0)
+    with pytest.raises(AttributeError, match="Tried to set attribute from context using setattr. Should use `fieldset.add_context` or fieldset[`name`] = value instead."):
+        fieldset.test_context = 2.0
 
 
 @pytest.mark.parametrize("name", ["a b", "123", "while"])

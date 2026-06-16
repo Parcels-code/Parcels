@@ -78,6 +78,17 @@ class FieldSet:
         self.fields = {f.name: f for f in fields}
         self.context: dict[str, float] = {}
 
+    def __setattr__(self, name, value):
+        """Set field attribute by name. If context exists and name in context, raise error to prevent overwriting context."""
+        context = self.__dict__.get("context")
+
+        if context is not None and name in context:
+            raise AttributeError(
+                f"Cannot assign '{name}' directly. Use fieldset.context['{name}'] instead."
+            )
+        # Handle setting of attributes not in context per default
+        super().__setattr__(name, value)
+
     def __getattr__(self, name):
         """Get the field by name. If the field is not found, check if it's a context."""
         if name in self.fields:
