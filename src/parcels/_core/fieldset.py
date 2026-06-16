@@ -11,6 +11,7 @@ import xarray as xr
 import xgcm
 
 import parcels._sgrid as sgrid
+from parcels._core._windowed_array import maybe_windowed
 from parcels._core.field import Field, VectorField
 from parcels._core.utils.string import _assert_str_and_python_varname
 from parcels._core.utils.time import get_datetime_type_calendar
@@ -125,6 +126,40 @@ class FieldSet:
             raise ValueError(f"FieldSet already has a Field with name '{name}'")
 
         self.fields[name] = field
+
+    def to_windowed_arrays(self, *, max_levels: int | None = None):
+        """Wrap dask-backed field data in a rolling time-window cache.
+
+        Opt-in optimization for forward-marching simulations where all particles
+        share a single clock. For each dask-backed, time-leading field, ``isel``
+        then samples a resident NumPy window (each time level loaded once and
+        evicted as the clock advances) instead of re-reading chunks and paying the
+        dask scheduling overhead on every kernel step. The wrapper is transparent:
+        it forwards all attributes, intercepts only ``isel``, and returns
+        NumPy-backed results so the interpolators' ``is_dask_collection()`` guards
+        skip ``.compute()``.
+
+        NumPy-backed (eager) fields and fields without a leading ``time`` dimension
+        are left unchanged, and re-wrapping is idempotent, so this is safe to call
+        more than once.
+
+        Parameters
+        ----------
+        max_levels : int, optional
+            Cap on the number of time levels kept resident per field. ``None``
+            (default) retains every level that the advancing clock still brackets.
+
+        Returns
+        -------
+        FieldSet
+            ``self``, to allow chaining.
+        """
+        for field in self.fields.values():
+            components = (field.U, field.V, field.W) if isinstance(field, VectorField) else (field,)
+            for component in components:
+                if component is not None:
+                    component.data = maybe_windowed(component.data, max_levels=max_levels)
+        return self
 
     def add_constant_field(self, name: str, value, mesh: Mesh = "spherical"):
         """Wrapper function to add a Field that is constant in space,
