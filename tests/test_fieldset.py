@@ -25,8 +25,8 @@ def test_fieldset_init_wrong_types():
 
 
 def test_fieldset_add_context(fieldset):
-    fieldset.add_context("test_constant", 1.0)
-    assert fieldset.test_constant == 1.0
+    fieldset.add_context("test_context", 1.0)
+    assert fieldset.test_context == 1.0
 
 
 def test_fieldset_add_context_int_name(fieldset):
