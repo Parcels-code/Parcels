@@ -133,7 +133,7 @@ class FieldSet:
         Opt-in optimization for forward-marching simulations where all particles
         share a single clock. For each dask-backed field ``isel`` then samples
         a resident NumPy window instead of re-reading chunks and paying the
-        dask scheduling overhead on every kernel step. 
+        dask scheduling overhead on every kernel step.
 
         NumPy-backed fields are left unchanged, so this is safe to call
         more than once.

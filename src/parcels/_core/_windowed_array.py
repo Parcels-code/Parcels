@@ -39,8 +39,10 @@ class WindowedArray:
         return getattr(object.__getattribute__(self, "_data"), name)
 
     def __repr__(self):
-        return (f"WindowedArray(time_dim={self._tdim!r}, cached_levels={sorted(self._cache)}, "
-                f"loads={self.loads})\n{self._data!r}")
+        return (
+            f"WindowedArray(time_dim={self._tdim!r}, cached_levels={sorted(self._cache)}, "
+            f"loads={self.loads})\n{self._data!r}"
+        )
 
     # -- window management ----------------------------------------------------
     def _read_level(self, lvl: int) -> np.ndarray:
@@ -78,7 +80,7 @@ class WindowedArray:
 
         # stack the resident levels into one small NumPy block; remap to local indices
         block = np.stack([self._cache[int(l)] for l in levels])  # (nlevels, *rest)
-        nda = xr.DataArray(block, dims=self._data.dims)          # NumPy-backed, original dim order
+        nda = xr.DataArray(block, dims=self._data.dims)  # NumPy-backed, original dim order
         local = np.searchsorted(levels, t_vals)
         sel[self._tdim] = xr.DataArray(local, dims=getattr(t_ind, "dims", ()))
         return nda.isel(sel)  # plain vectorised gather in NumPy (no ignore_grid needed)

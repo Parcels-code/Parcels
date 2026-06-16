@@ -1,12 +1,10 @@
 """Tests for the transparent rolling time-window cache (WindowedArray)."""
 
-import dask.array as da
 import numpy as np
 import pytest
-import xarray as xr
 
 from parcels import FieldSet, ParticleSet
-from parcels._core._windowed_array import WindowedArray, maybe_windowed
+from parcels._core._windowed_array import WindowedArray
 from parcels._datasets.structured.generated import simple_UV_dataset
 from parcels.kernels import AdvectionRK2
 
@@ -24,10 +22,12 @@ def test_to_windowed_arrays_is_idempotent_and_forwards_max_levels():
     fs.to_windowed_arrays(max_levels=3)
     assert fs.U.data is first
 
+
 @pytest.mark.parametrize("mesh", ["flat", "spherical"])
 def test_dask_advection_matches_numpy(mesh):
     """An identical advection must give identical trajectories whether the field
-    is numpy-backed or dask-backed (windowed)."""
+    is numpy-backed or dask-backed (windowed).
+    """
     ds = simple_UV_dataset(mesh=mesh)
     ds["U"].data[:] = 1.0  # steady zonal flow -> in-bounds, deterministic
 
