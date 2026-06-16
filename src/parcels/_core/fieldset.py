@@ -76,14 +76,14 @@ class FieldSet:
         assert_compatible_calendars(fields)
 
         self.fields = {f.name: f for f in fields}
-        self.constants: dict[str, float] = {}
+        self.context: dict[str, float] = {}
 
     def __getattr__(self, name):
-        """Get the field by name. If the field is not found, check if it's a constant."""
+        """Get the field by name. If the field is not found, check if it's a context."""
         if name in self.fields:
             return self.fields[name]
-        elif name in self.constants:
-            return self.constants[name]
+        elif name in self.context:
+            return self.context[name]
         else:
             raise AttributeError(f"FieldSet has no attribute '{name}'")
 
@@ -154,23 +154,23 @@ class FieldSet:
         self.add_field(Field(name, ds[name], grid, interp_method=XConstantField))
 
     def add_context(self, name, value):
-        """Add a constant to the FieldSet.
+        """Add context to the FieldSet.
 
         Parameters
         ----------
         name : str
-            Name of the constant
+            Name of the context
         value :
-            Value of the constant
+            Value of the context
 
         """
         _assert_str_and_python_varname(name)
 
-        if name in self.constants:
-            raise ValueError(f"FieldSet already has a constant with name '{name}'")
+        if name in self.context:
+            raise ValueError(f"FieldSet already has a context with name '{name}'")
         if not isinstance(value, (float, np.floating, int, np.integer)):
-            raise ValueError(f"FieldSet constants have to be of type float or int, got a {type(value)}")
-        self.constants[name] = value
+            raise ValueError(f"FieldSet contexts have to be of type float or int, got a {type(value)}")
+        self.context[name] = value
 
     @property
     def gridset(self) -> list[BaseGrid]:
