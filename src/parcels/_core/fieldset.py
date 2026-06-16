@@ -94,6 +94,7 @@ class FieldSet:
     def __add__(self, other: FieldSet) -> FieldSet:
         if not isinstance(other, FieldSet):
             return NotImplemented
+        assert_compatible_fieldsets(self, other)
         combined = FieldSet(self.models + other.models)
         combined.constants = {**self.constants, **other.constants}
         return combined
@@ -256,6 +257,28 @@ class FieldSet:
         """
         model = StructuredModel.from_sgrid_conventions(ds, mesh)
         return cls([model])
+
+
+def assert_compatible_fieldsets(left: FieldSet, right: FieldSet) -> None:
+    """Assert that two FieldSets can be combined without name conflicts.
+
+    Parameters
+    ----------
+    left, right : FieldSet
+        The two FieldSets to check.
+
+    Raises
+    ------
+    ValueError
+        If the FieldSets share field names or constant names.
+    """
+    overlapping_fields = set(left.fields) & set(right.fields)
+    if overlapping_fields:
+        raise ValueError(f"Cannot add FieldSets with overlapping field names: {sorted(overlapping_fields)}")
+
+    overlapping_constants = set(left.constants) & set(right.constants)
+    if overlapping_constants:
+        raise ValueError(f"Cannot add FieldSets with overlapping constant names: {sorted(overlapping_constants)}")
 
 
 class CalendarError(Exception):  # TODO: Move to a parcels errors module

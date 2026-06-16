@@ -297,6 +297,33 @@ def test_fieldset_add():
     assert "V2" in fset.fields
 
 
+def test_fieldset_add_overlapping_fields():
+    """Test that adding FieldSets with overlapping field names raises a ValueError."""
+    ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "grid"]].rename({"U_A_grid": "U"})
+    ds2 = datasets_structured["ds_2d_left"][["V_A_grid", "grid"]].rename({"V_A_grid": "U"})
+
+    fset1 = FieldSet.from_sgrid_conventions(ds1, mesh="flat")
+    fset2 = FieldSet.from_sgrid_conventions(ds2, mesh="flat")
+
+    with pytest.raises(ValueError, match="overlapping field names.*'U'"):
+        fset1 + fset2
+
+
+def test_fieldset_add_overlapping_constants():
+    """Test that adding FieldSets with overlapping constant names raises a ValueError."""
+    ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "grid"]].rename({"U_A_grid": "U1"})
+    ds2 = datasets_structured["ds_2d_left"][["V_A_grid", "grid"]].rename({"V_A_grid": "V2"})
+
+    fset1 = FieldSet.from_sgrid_conventions(ds1, mesh="flat")
+    fset1.add_constant("kh", 1.0)
+
+    fset2 = FieldSet.from_sgrid_conventions(ds2, mesh="flat")
+    fset2.add_constant("kh", 2.0)
+
+    with pytest.raises(ValueError, match="overlapping constant names.*'kh'"):
+        fset1 + fset2
+
+
 def test_fieldset_add_constants():
     """Test that constants from both FieldSets are present in the combined FieldSet."""
     ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "grid"]].rename({"U_A_grid": "U1"})
