@@ -163,7 +163,7 @@ def test_varname_as_fieldname():
     """Tests for error thrown if variable has same name as Field."""
     fset = create_fieldset_unit_mesh(mesh="spherical")
     fset.add_field(Field("speed", 10, lon=0, lat=0))
-    fset.add_context("vertical_speed", 0.1)
+    fset.add_constant("vertical_speed", 0.1)
     particle = Particle.add_variable("speed")
     pset = ParticleSet(fset, pclass=particle, lon=0, lat=0)
 

@@ -206,8 +206,8 @@ def test_fieldset_constant():
     fieldset = FieldSet.from_data(data, dimensions)  # TODO : Remove from_data
     westval = -0.2
     eastval = 0.3
-    fieldset.add_context("movewest", westval)
-    fieldset.add_context("moveeast", eastval)
+    fieldset.add_constant("movewest", westval)
+    fieldset.add_constant("moveeast", eastval)
     assert fieldset.movewest == westval
 
     pset = ParticleSet.from_line(fieldset, size=1, pclass=Particle, start=(0.5, 0.5), finish=(0.5, 0.5))
