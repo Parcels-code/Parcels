@@ -25,6 +25,7 @@ from parcels._datasets.structured.generated import (
 )
 from parcels._datasets.structured.generic import datasets_sgrid
 from parcels.kernels import (
+    AdvectionAnalytical,
     AdvectionDiffusionEM,
     AdvectionDiffusionM1,
     AdvectionEE,
@@ -488,3 +489,45 @@ def test_mitgcm():
         28349.16658616,
     ]
     np.testing.assert_allclose(pset.lon, lon_v3, atol=10)
+
+
+def test_analyticalAgrid():
+    lon = np.arange(0, 15, dtype=np.float32)
+    lat = np.arange(0, 15, dtype=np.float32)
+    U = np.ones((lat.size, lon.size), dtype=np.float32)
+    V = np.ones((lat.size, lon.size), dtype=np.float32)
+    fieldset = FieldSet.from_data({"U": U, "V": V}, {"lon": lon, "lat": lat}, mesh="flat")
+    pset = ParticleSet(fieldset, pclass=Particle, lon=1, lat=1)
+
+    with pytest.raises(NotImplementedError):
+        pset.execute(AdvectionAnalytical, runtime=1)
+
+
+@pytest.mark.parametrize("u", [1, -0.2, -0.3, 0])
+@pytest.mark.parametrize("v", [1, -0.3, 0, -1])
+@pytest.mark.parametrize("w", [None, 1, -0.3, 0, -1])
+@pytest.mark.parametrize("direction", [1, -1])
+def test_uniform_analytical(u, v, w, direction, tmp_parquet):
+    ds = simple_UV_dataset(mesh="flat")
+    ds["U"].data[:] = u
+    ds["V"].data[:] = v
+    if w is not None:
+        ds["W"].data[:] = w
+    fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
+
+    x0, y0, z0 = 6.1, 6.2, 20
+    pset = ParticleSet(fieldset, pclass=Particle, lon=x0, lat=y0, depth=z0)
+
+    outfile = pset.ParticleFile(tmp_parquet, outputdt=1, chunks=(1, 1))
+    pset.execute(AdvectionAnalytical, runtime=4, dt=direction, output_file=outfile)
+    assert np.abs(pset.lon - x0 - pset.time * u) < 1e-6
+    assert np.abs(pset.lat - y0 - pset.time * v) < 1e-6
+    if w is not None:
+        assert np.abs(pset.depth - z0 - pset.time * w) < 1e-4
+
+    df = pd.read_parquet(tmp_parquet)
+    times = (direction * df["time"]).values.astype("timedelta64[s]")[0]
+    timeref = np.arange(1, 5).astype("timedelta64[s]")
+    assert np.allclose(times, timeref, atol=np.timedelta64(1, "ms"))
+    lons = df["lon"].values
+    assert np.allclose(lons, x0 + direction * u * np.arange(1, 5))
