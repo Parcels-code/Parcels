@@ -59,10 +59,10 @@ class ParticleSet:
         self,
         fieldset,
         pclass=Particle,
-        lon=None,
-        lat=None,
-        z=None,
         time=None,
+        z=None,
+        lat=None,
+        lon=None,
         particle_ids=None,
         **kwargs,
     ):
@@ -70,9 +70,9 @@ class ParticleSet:
         self._kernel = None
 
         self.fieldset = fieldset
-        lon = np.empty(shape=0) if lon is None else np.array(lon).flatten()
-        lat = np.empty(shape=0) if lat is None else np.array(lat).flatten()
         time = np.empty(shape=0) if time is None else np.array(time).flatten()
+        lat = np.empty(shape=0) if lat is None else np.array(lat).flatten()
+        lon = np.empty(shape=0) if lon is None else np.array(lon).flatten()
 
         if particle_ids is None:
             particle_ids = np.arange(lon.size)
@@ -112,10 +112,10 @@ class ParticleSet:
             nparticles=lon.size,
             ngrids=len(fieldset.gridset),
             initial=dict(
-                lon=lon,
-                lat=lat,
-                z=z,
                 time=time,
+                z=z,
+                lat=lat,
+                lon=lon,
                 particle_id=particle_ids,
             ),
         )

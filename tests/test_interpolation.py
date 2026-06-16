@@ -139,7 +139,7 @@ def test_spatial_slip_interpolation(field, func, t, z, y, x, expected):
     field.data[:, :, 1:3, 1:3] = 0.0  # Set zero land value to test spatial slip
     U = field
     V = field
-    UV = VectorField("UV", U, V, vector_interp_method=func)
+    UV = VectorField("UV", U, V, interp_method=func)
 
     velocities = UV[t, z, y, x]
     np.testing.assert_array_almost_equal(velocities, expected)

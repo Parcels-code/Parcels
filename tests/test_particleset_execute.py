@@ -490,7 +490,7 @@ def test_uxstommelgyre_pset_execute():
         grid=grid,
         interp_method=UxConstantFaceConstantZC,
     )
-    UV = VectorField(name="UV", U=U, V=V, vector_interp_method=Ux_Velocity)
+    UV = VectorField(name="UV", U=U, V=V, interp_method=Ux_Velocity)
     fieldset = FieldSet([UV, UV.U, UV.V, P])
     pset = ParticleSet(
         fieldset,
@@ -536,7 +536,7 @@ def test_uxstommelgyre_multiparticle_pset_execute():
         grid=grid,
         interp_method=UxConstantFaceConstantZC,
     )
-    UVW = VectorField(name="UVW", U=U, V=V, W=W, vector_interp_method=Ux_Velocity)
+    UVW = VectorField(name="UVW", U=U, V=V, W=W, interp_method=Ux_Velocity)
     fieldset = FieldSet([UVW, UVW.U, UVW.V, UVW.W, P])
     pset = ParticleSet(
         fieldset,
@@ -575,7 +575,7 @@ def test_uxstommelgyre_pset_execute_output():
         grid=grid,
         interp_method=UxConstantFaceConstantZC,
     )
-    UV = VectorField(name="UV", U=U, V=V, vector_interp_method=Ux_Velocity)
+    UV = VectorField(name="UV", U=U, V=V, interp_method=Ux_Velocity)
     fieldset = FieldSet([UV, UV.U, UV.V, P])
     pset = ParticleSet(
         fieldset,
