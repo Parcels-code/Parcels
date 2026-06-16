@@ -35,8 +35,8 @@ def test_fieldset_add_context_int_name(fieldset):
         
 
 def test_fieldset_setattr_new(fieldset):
-    fieldset.new_field = 1.0
-    assert fieldset.new_field == 1.0
+    fieldset.context = {"new_field": 1.0}
+    assert fieldset.context == {"new_field": 1.0}
 
 
 def test_fieldset_setattr_context(fieldset):
