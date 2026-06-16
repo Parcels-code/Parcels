@@ -5,6 +5,7 @@ import pytest
 
 from parcels import Field, UxGrid, VectorField, XGrid
 from parcels._core.fieldset import FieldSet
+from parcels._datasets.structured.generated import simple_UV_dataset
 from parcels._datasets.structured.generic import T as T_structured
 from parcels._datasets.structured.generic import datasets as datasets_structured
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
@@ -268,6 +269,21 @@ def test_field_constant_in_time():
         x=[30.0],
     )
     assert np.isclose(P1, P2)
+
+
+def test_field_eval_out_of_bounds():
+    """Test that Field.eval returns IndexError when queried outside the grid boundaries."""
+    ds = simple_UV_dataset(mesh="flat")
+    fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
+
+    with pytest.raises(IndexError, match=".* is out of bounds.*"):
+        fieldset.U.eval(0.0, 0.0, 0.0, 5e6)
+
+    with pytest.raises(IndexError, match=".* is out of bounds.*"):
+        fieldset.U.eval(0.0, 0.0, 5e6, 0.0)
+
+    with pytest.raises(IndexError, match=".* is out of bounds.*"):
+        fieldset.U.eval(0.0, 5e6, 0.0, 0.0)
 
 
 def test_field_unstructured_grid_creation(): ...
