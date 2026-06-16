@@ -85,7 +85,6 @@ class Field:
         self,
         name: str,
         model: Model,
-        interp_method: ScalarInterpolator,
     ):
         # TODO PR: Enable isinstance check once Model is moved to abc.Model
         # if not isinstance(model, "Model"):
@@ -97,11 +96,6 @@ class Field:
 
         self.name = name
         self.model = model
-
-        # Setting the interpolation method dynamically
-        if not isinstance(interp_method, ScalarInterpolator):
-            raise ValueError(f"interp_method must be a `ScalarInterpolator` object. Got {type(interp_method)=!r}")
-        self._interp_method = interp_method
 
         self.igrid = -1  # Default the grid index to -1
 
@@ -122,13 +116,19 @@ class Field:
 
     @property
     def interp_method(self):
-        return self._interp_method
+        try:
+            return self.model.field_to_interpolator[self.name]
+        except KeyError as e:
+            raise AttributeError(
+                f"{type(self).__name__} doesn't have an interp_method defined for it. Use `.interp_method = ...`"
+            ) from e
 
     @interp_method.setter
-    def interp_method(self, method: ScalarInterpolator):
-        if not isinstance(method, ScalarInterpolator):
-            raise ValueError(f"method must be a `ScalarInterpolator` object. Got {type(method)=!r}")
-        self._interp_method = method
+    def interp_method(self, value):
+        # Setting the interpolation method dynamically
+        if not isinstance(value, ScalarInterpolator):
+            raise ValueError(f"interp_method must be a `ScalarInterpolator` object. Got {type(value)=!r}")
+        self.model.field_to_interpolator[self.name] = value
 
     def _check_velocitysampling(self):
         if self.name in ["U", "V", "W"]:
@@ -173,7 +173,7 @@ class Field:
 
         particle_positions, grid_positions = _get_positions(self, time, z, y, x, particles, _ei)
 
-        value = self._interp_method.interp(particle_positions, grid_positions, self)
+        value = self.interp_method.interp(particle_positions, grid_positions, self)
 
         _update_particle_states_interp_value(particles, value)
 

@@ -30,11 +30,13 @@ from parcels.interpolators import (
     XLinear,
     XLinear_Velocity,
 )
+from parcels.interpolators._base import ScalarInterpolator, VectorInterpolator
 
 
 class Model(ABC):
     data: Any
     grid: BaseGrid
+    field_to_interpolator: dict[str, ScalarInterpolator | VectorInterpolator]
 
     @abstractmethod
     def construct_fields(self) -> list[Field | VectorField]: ...
@@ -86,6 +88,8 @@ class StructuredModel(Model):
 
         self.data = data
         self.grid = grid
+        self.field_to_interpolator = {}
+        self._fields: list[Field | VectorField] | None = None
         self.assert_valid_model_data()
 
     def assert_valid_field_data(self, field_data: xr.DataArray) -> None:
@@ -108,14 +112,14 @@ class StructuredModel(Model):
         scalar_field_names = self.scalar_field_names
         if "U" in scalar_field_names and "V" in scalar_field_names:
             vector_interp_method = XLinear_Velocity() if _is_agrid(self.data) else CGrid_Velocity()
-            single_fields["U"] = Field("U", self, XLinear())
-            single_fields["V"] = Field("V", self, XLinear())
+            single_fields["U"] = Field("U", self)
+            single_fields["V"] = Field("V", self)
             vector_fields["UV"] = VectorField(
                 "UV", single_fields["U"], single_fields["V"], vector_interp_method=vector_interp_method
             )
 
             if "W" in scalar_field_names:
-                single_fields["W"] = Field("W", self, XLinear())
+                single_fields["W"] = Field("W", self)
                 vector_fields["UVW"] = VectorField(
                     "UVW",
                     single_fields["U"],
@@ -126,7 +130,7 @@ class StructuredModel(Model):
 
         fields: dict[str, Field | VectorField] = {**single_fields, **vector_fields}
         for varname in set(scalar_field_names) - set(fields.keys()):
-            fields[varname] = Field(str(varname), self, XLinear())
+            fields[varname] = Field(str(varname), self)
 
         return list(fields.values())
 
@@ -158,7 +162,12 @@ class StructuredModel(Model):
         #     ds["lon"] = ds[node_dimensions[0]]
         #     ds["lat"] = ds[node_dimensions[1]]
 
-        return cls(ds, mesh=mesh)
+        model = cls(ds, mesh=mesh)
+        model._fields = model.construct_fields()
+        for f in model._fields:
+            if isinstance(f, Field):
+                f.interp_method = XLinear()
+        return model
 
 
 class UnstructuredModel(Model):
