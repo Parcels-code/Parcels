@@ -65,15 +65,15 @@ def field():
         ),
     )
     field = FieldSet.from_sgrid_conventions(ds, mesh="flat").U
-    assert field.interp_method == XLinear
+    assert isinstance(field.interp_method, XLinear)
 
     return field
 
 
 @pytest.mark.parametrize(
-    "func, t, z, y, x, expected",
+    "interpolator, t, z, y, x, expected",
     [
-        pytest.param(ZeroInterpolator, 1, 2.5, 0.49, 0.51, 0, id="Zero"),
+        pytest.param(ZeroInterpolator(), 1, 2.5, 0.49, 0.51, 0, id="Zero"),
         pytest.param(
             XLinear,
             [0, 1],
@@ -83,7 +83,7 @@ def field():
             [1.49, 6.49],
             id="Linear-1",
         ),
-        pytest.param(XLinear, 1, 2.5, 0.49, 0.51, 13.99, id="Linear-2"),
+        pytest.param(XLinear(), 1, 2.5, 0.49, 0.51, 13.99, id="Linear-2"),
         pytest.param(
             XLinear,
             [0, 1, 1],
@@ -93,7 +93,7 @@ def field():
             [1.49, 6.49, 13.99],
             id="Linear-3",
         ),
-        pytest.param(XLinearInvdistLandTracer, 1, 2.5, 0.49, 0.51, 13.99, id="LinearInvDistLand"),
+        pytest.param(XLinearInvdistLandTracer(), 1, 2.5, 0.49, 0.51, 13.99, id="LinearInvDistLand"),
         pytest.param(
             XNearest,
             [0, 3],
@@ -105,13 +105,13 @@ def field():
         ),
     ],
 )
-def test_raw_2d_interpolation(field, func, t, z, y, x, expected):
+def test_raw_2d_interpolation(field, interpolator, t, z, y, x, expected):
     """Test the interpolation functions on the Field."""
     particle_positions = {"time": t, "z": z, "lat": y, "lon": x}
     grid_positions = field.grid.search(z, y, x)
     grid_positions.update(_search_time_index(field, t))
 
-    value = func(particle_positions, grid_positions, field)
+    value = interpolator.interp(particle_positions, grid_positions, field)
     np.testing.assert_equal(value, expected)
 
 
