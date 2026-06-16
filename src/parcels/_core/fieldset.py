@@ -91,6 +91,13 @@ class FieldSet:
         else:
             raise AttributeError(f"FieldSet has no attribute '{name}'")
 
+    def __add__(self, other: FieldSet) -> FieldSet:
+        if not isinstance(other, FieldSet):
+            return NotImplemented
+        combined = FieldSet(self.models + other.models)
+        combined.constants = {**self.constants, **other.constants}
+        return combined
+
     def __repr__(self):
         return fieldset_repr(self)
 

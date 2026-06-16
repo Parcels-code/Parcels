@@ -280,3 +280,35 @@ def test_fieldset_from_sgrid_conventions(ds_name):
     fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
     assert isinstance(fieldset, FieldSet)
     assert len(fieldset.fields) > 0
+
+
+def test_fieldset_add():
+    """Test that two FieldSets can be combined with + (fset1 + fset2)."""
+    ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "grid"]].rename({"U_A_grid": "U1"})
+    ds2 = datasets_structured["ds_2d_left"][["V_A_grid", "grid"]].rename({"V_A_grid": "V2"})
+
+    fset1 = FieldSet.from_sgrid_conventions(ds1, mesh="flat")
+    fset2 = FieldSet.from_sgrid_conventions(ds2, mesh="flat")
+
+    fset = fset1 + fset2
+
+    assert len(fset.models) == len(fset1.models) + len(fset2.models)
+    assert "U1" in fset.fields
+    assert "V2" in fset.fields
+
+
+def test_fieldset_add_constants():
+    """Test that constants from both FieldSets are present in the combined FieldSet."""
+    ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "grid"]].rename({"U_A_grid": "U1"})
+    ds2 = datasets_structured["ds_2d_left"][["V_A_grid", "grid"]].rename({"V_A_grid": "V2"})
+
+    fset1 = FieldSet.from_sgrid_conventions(ds1, mesh="flat")
+    fset1.add_constant("c1", 1.0)
+
+    fset2 = FieldSet.from_sgrid_conventions(ds2, mesh="flat")
+    fset2.add_constant("c2", 2.0)
+
+    fset = fset1 + fset2
+
+    assert fset.constants["c1"] == 1.0
+    assert fset.constants["c2"] == 2.0
