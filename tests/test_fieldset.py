@@ -41,7 +41,7 @@ def test_fieldset_setattr_new(fieldset):
 
 def test_fieldset_setattr_context(fieldset):
     fieldset.add_context("test_context", 1.0)
-    with pytest.raises(AttributeError, match="Tried to set attribute from context using setattr. Should use `fieldset.add_context` or fieldset[`name`] = value instead."):
+    with pytest.raises(AttributeError, match=r"Cannot assign .* directly.*context"):
         fieldset.test_context = 2.0
 
 
