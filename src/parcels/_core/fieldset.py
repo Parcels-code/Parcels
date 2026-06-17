@@ -8,29 +8,18 @@ import cf_xarray  # noqa: F401
 import numpy as np
 import uxarray as ux
 import xarray as xr
-import xgcm
 
 import parcels._sgrid as sgrid
 from parcels._core.field import Field, VectorField
+from parcels._core.model import Model, StructuredModel, UnstructuredModel
 from parcels._core.utils.string import _assert_str_and_python_varname
 from parcels._core.utils.time import get_datetime_type_calendar
 from parcels._core.utils.time import is_compatible as datetime_is_compatible
-from parcels._core.uxgrid import UxGrid
-from parcels._core.xgrid import _DEFAULT_XGCM_KWARGS, XGrid
-from parcels._logger import logger
+from parcels._core.xgrid import XGrid
 from parcels._reprs import fieldset_repr
 from parcels._typing import Mesh
-from parcels.convert import _ds_rename_using_standard_names
 from parcels.interpolators import (
-    CGrid_Velocity,
-    Ux_Velocity,
-    UxConstantFaceConstantZC,
-    UxConstantFaceLinearZF,
-    UxLinearNodeConstantZC,
-    UxLinearNodeLinearZF,
     XConstantField,
-    XLinear,
-    XLinear_Velocity,
 )
 
 if TYPE_CHECKING:
@@ -69,23 +58,46 @@ class FieldSet:
 
     """
 
-    def __init__(self, fields: list[Field | VectorField]):
-        for field in fields:
-            if not isinstance(field, (Field, VectorField)):
-                raise ValueError(f"Expected `field` to be a Field or VectorField object. Got {field}")
-        assert_compatible_calendars(fields)
+    def __init__(self, models: list[Model]):
+        for model in models:
+            if not isinstance(model, Model):
+                raise ValueError(f"Expected `model` to be a Model object. Got {model}")
+        # assert_compatible_calendars(fields)
 
-        self.fields = {f.name: f for f in fields}
+        self.models = list(models)
+        self._fields: dict[str, Field | VectorField] | None = None
+        self.reconstruct_fields()
         self.constants: dict[str, float] = {}
+
+    @property
+    def fields(self):
+        if self._fields is None:
+            self.reconstruct_fields()
+        assert self._fields is not None
+        return self._fields
+
+    def reconstruct_fields(self):
+        fields = []
+        for model in self.models:
+            fields += model.construct_fields()
+        self._fields = {f.name: f for f in fields}
 
     def __getattr__(self, name):
         """Get the field by name. If the field is not found, check if it's a constant."""
-        if name in self.fields:
-            return self.fields[name]
+        if name in self._fields:
+            return self._fields[name]
         elif name in self.constants:
             return self.constants[name]
         else:
             raise AttributeError(f"FieldSet has no attribute '{name}'")
+
+    def __add__(self, other: FieldSet) -> FieldSet:
+        if not isinstance(other, FieldSet):
+            return NotImplemented
+        assert_compatible_fieldsets(self, other)
+        combined = FieldSet(self.models + other.models)
+        combined.constants = {**self.constants, **other.constants}
+        return combined
 
     def __repr__(self):
         return fieldset_repr(self)
@@ -96,7 +108,7 @@ class FieldSet:
         which is the intersection of the time intervals of all fields
         in the FieldSet.
         """
-        time_intervals = (f.time_interval for f in self.fields.values())
+        time_intervals = (m.time_interval for m in self.models)
 
         # Filter out Nones from constant Fields
         time_intervals = [t for t in time_intervals if t is not None]
@@ -146,11 +158,19 @@ class FieldSet:
         ds = xr.Dataset(
             {name: (["lat", "lon"], np.full((1, 1), value))},
             coords={"lat": (["lat"], [0], {"axis": "Y"}), "lon": (["lon"], [0], {"axis": "X"})},
+        ).pipe(
+            sgrid._attach_sgrid_metadata,
+            sgrid.SGrid2DMetadata(
+                cf_role="grid_topology",
+                topology_dimension=2,
+                node_dimensions=("lon", "lat"),
+                face_dimensions=(
+                    sgrid.FaceNodePadding("XC", "lon", sgrid.Padding.LOW),
+                    sgrid.FaceNodePadding("YC", "lat", sgrid.Padding.LOW),
+                ),
+            ),
         )
-        xgrid = xgcm.Grid(
-            ds, coords={"X": {"left": "lon"}, "Y": {"left": "lat"}}, autoparse_metadata=False, **_DEFAULT_XGCM_KWARGS
-        )
-        grid = XGrid(xgrid, mesh=mesh)
+        grid = XGrid(ds, mesh=mesh)
         self.add_field(Field(name, ds[name], grid, interp_method=XConstantField))
 
     def add_constant(self, name, value):
@@ -201,29 +221,8 @@ class FieldSet:
         FieldSet
             FieldSet object containing the fields from the dataset that can be used for a Parcels simulation.
         """
-        ds_dims = list(ds.dims)
-        if not all(dim in ds_dims for dim in ["time", "zf", "zc"]):
-            raise ValueError(
-                f"Dataset missing one of the required dimensions 'time', 'zf', or 'zc' for uxDataset. Found dimensions {ds_dims}"
-            )
-
-        grid = UxGrid(ds.uxgrid, z=ds.coords["zf"], mesh=mesh)
-        ds = _discover_ux_U_and_V(ds)
-
-        fields = {}
-        if "U" in ds.data_vars and "V" in ds.data_vars:
-            fields["U"] = Field("U", ds["U"], grid, _select_uxinterpolator(ds["U"]))
-            fields["V"] = Field("V", ds["V"], grid, _select_uxinterpolator(ds["V"]))
-            fields["UV"] = VectorField("UV", fields["U"], fields["V"], interp_method=Ux_Velocity)
-
-            if "W" in ds.data_vars:
-                fields["W"] = Field("W", ds["W"], grid, _select_uxinterpolator(ds["W"]))
-                fields["UVW"] = VectorField("UVW", fields["U"], fields["V"], fields["W"], interp_method=Ux_Velocity)
-
-        for varname in set(ds.data_vars) - set(fields.keys()):
-            fields[varname] = Field(str(varname), ds[varname], grid, _select_uxinterpolator(ds[varname]))
-
-        return cls(list(fields.values()))
+        model = UnstructuredModel.from_ugrid_conventions(ds, mesh)
+        return cls([model])
 
     @classmethod
     def from_sgrid_conventions(
@@ -256,68 +255,30 @@ class FieldSet:
 
         See https://sgrid.github.io/ for more information on the SGRID conventions.
         """
-        ds = ds.copy()
-        if mesh is None:
-            mesh = _get_mesh_type_from_sgrid_dataset(ds)
+        model = StructuredModel.from_sgrid_conventions(ds, mesh)
+        return cls([model])
 
-        # Ensure time dimension has axis attribute if present
-        if "time" in ds.dims and "time" in ds.coords:
-            if "axis" not in ds["time"].attrs:
-                logger.debug(
-                    "Dataset contains 'time' dimension but no 'axis' attribute. Setting 'axis' attribute to 'T'."
-                )
-                ds["time"].attrs["axis"] = "T"
 
-        # Find time dimension based on axis attribute and rename to `time`
-        if (time_dims := ds.cf.axes.get("T")) is not None:
-            if len(time_dims) > 1:
-                raise ValueError("Multiple time coordinates found in dataset. This is not supported by Parcels.")
-            (time_dim,) = time_dims
-            if time_dim != "time":
-                logger.debug(f"Renaming time axis coordinate from {time_dim} to 'time'.")
-                ds = ds.rename({time_dim: "time"})
+def assert_compatible_fieldsets(left: FieldSet, right: FieldSet) -> None:
+    """Assert that two FieldSets can be combined without name conflicts.
 
-        # Parse SGRID metadata and get xgcm kwargs
-        _, xgcm_kwargs = sgrid.xgcm_parse_sgrid(ds)
+    Parameters
+    ----------
+    left, right : FieldSet
+        The two FieldSets to check.
 
-        # Add time axis to xgcm_kwargs if present
-        if "time" in ds.dims:
-            if "T" not in xgcm_kwargs["coords"]:
-                xgcm_kwargs["coords"]["T"] = {"center": "time"}
+    Raises
+    ------
+    ValueError
+        If the FieldSets share field names or constant names.
+    """
+    overlapping_fields = set(left.fields) & set(right.fields)
+    if overlapping_fields:
+        raise ValueError(f"Cannot add FieldSets with overlapping field names: {sorted(overlapping_fields)}")
 
-        if "lon" not in ds.coords or "lat" not in ds.coords:
-            node_dimensions = sgrid.load_mappings(ds.grid.node_dimensions)
-            ds["lon"] = ds[node_dimensions[0]]
-            ds["lat"] = ds[node_dimensions[1]]
-
-        # Create xgcm Grid object
-        xgcm_grid = xgcm.Grid(ds, autoparse_metadata=False, **xgcm_kwargs, **_DEFAULT_XGCM_KWARGS)
-
-        # Wrap in XGrid
-        grid = XGrid(xgcm_grid, mesh=mesh)
-
-        # Create fields from data variables, skipping grid metadata variables
-        # Skip variables that are SGRID metadata (have cf_role='grid_topology')
-        skip_vars = set()
-        for var in ds.data_vars:
-            if ds[var].attrs.get("cf_role") == "grid_topology":
-                skip_vars.add(var)
-
-        fields = {}
-        if "U" in ds.data_vars and "V" in ds.data_vars:
-            interp_method = XLinear_Velocity if _is_agrid(ds) else CGrid_Velocity
-            fields["U"] = Field("U", ds["U"], grid, XLinear)
-            fields["V"] = Field("V", ds["V"], grid, XLinear)
-            fields["UV"] = VectorField("UV", fields["U"], fields["V"], interp_method=interp_method)
-
-            if "W" in ds.data_vars:
-                fields["W"] = Field("W", ds["W"], grid, XLinear)
-                fields["UVW"] = VectorField("UVW", fields["U"], fields["V"], fields["W"], interp_method=interp_method)
-
-        for varname in set(ds.data_vars) - set(fields.keys()) - skip_vars:
-            fields[varname] = Field(str(varname), ds[varname], grid, XLinear)
-
-        return cls(list(fields.values()))
+    overlapping_constants = set(left.constants) & set(right.constants)
+    if overlapping_constants:
+        raise ValueError(f"Cannot add FieldSets with overlapping constant names: {sorted(overlapping_constants)}")
 
 
 class CalendarError(Exception):  # TODO: Move to a parcels errors module
@@ -389,115 +350,7 @@ _COPERNICUS_MARINE_CF_STANDARD_NAME_FALLBACKS = {
 }
 
 
-def _discover_ux_U_and_V(ds: ux.UxDataset) -> ux.UxDataset:
-    # Common variable names for U and V found in UxDatasets
-    common_ux_UV = [("unod", "vnod"), ("u", "v")]
-    common_ux_W = ["w"]
-
-    if "W" not in ds:
-        for common_W in common_ux_W:
-            if common_W in ds:
-                ds = _ds_rename_using_standard_names(ds, {common_W: "W"})
-                break
-
-    if "U" in ds and "V" in ds:
-        return ds  # U and V already present
-    elif "U" in ds or "V" in ds:
-        raise ValueError(
-            "Dataset has only one of the two variables 'U' and 'V'. Please rename the appropriate variable in your dataset to have both 'U' and 'V' for Parcels simulation."
-        )
-
-    for common_U, common_V in common_ux_UV:
-        if common_U in ds:
-            if common_V not in ds:
-                raise ValueError(
-                    f"Dataset has variable with standard name {common_U!r}, "
-                    f"but not the matching variable with standard name {common_V!r}. "
-                    "Please rename the appropriate variables in your dataset to have both 'U' and 'V' for Parcels simulation."
-                )
-            else:
-                ds = _ds_rename_using_standard_names(ds, {common_U: "U", common_V: "V"})
-                break
-
-        else:
-            if common_V in ds:
-                raise ValueError(
-                    f"Dataset has variable with standard name {common_V!r}, "
-                    f"but not the matching variable with standard name {common_U!r}. "
-                    "Please rename the appropriate variables in your dataset to have both 'U' and 'V' for Parcels simulation."
-                )
-            continue
-
-    return ds
-
-
-def _select_uxinterpolator(da: ux.UxDataArray):
-    """Selects the appropriate uxarray interpolator for a given uxarray UxDataArray"""
-    supported_uxinterp_mapping = {
-        # (zc,n_face): face-center laterally, layer centers vertically — piecewise constant
-        "zc,n_face": UxConstantFaceConstantZC,
-        # (zc,n_node): node/corner laterally, layer centers vertically — barycentric lateral & piecewise constant vertical
-        "zc,n_node": UxLinearNodeConstantZC,
-        # (zf,n_node): node/corner laterally, layer interfaces vertically — barycentric lateral & linear vertical
-        "zf,n_node": UxLinearNodeLinearZF,
-        # (zf,n_face): face-center laterally, layer interfaces vertically — piecewise constant lateral & linear vertical
-        "zf,n_face": UxConstantFaceLinearZF,
-    }
-    # Extract only spatial dimensions, neglecting time
-    da_spatial_dims = tuple(d for d in da.dims if d not in ("time",))
-    if len(da_spatial_dims) != 2:
-        raise ValueError(
-            "Fields on unstructured grids must have two spatial dimensions, one vertical (zf or zc) and one lateral (n_face, n_edge, or n_node)"
-        )
-
-    # Construct key (string) for mapping to interpolator
-    # Find vertical and lateral tokens
-    vdim = None
-    ldim = None
-    for d in da_spatial_dims:
-        if d in ("zf", "zc"):
-            vdim = d
-        if d in ("n_face", "n_node"):
-            ldim = d
-    # Map to supported interpolators
-    if vdim and ldim:
-        key = f"{vdim},{ldim}"
-        if key in supported_uxinterp_mapping.keys():
-            return supported_uxinterp_mapping[key]
-
-    return None
-
-
-# TODO: Refactor later into something like `parcels._metadata.discover(dataset)` helper that can be used to discover important metadata like this. I think this whole metadata handling should be refactored into its own module.
-def _get_mesh_type_from_sgrid_dataset(ds_sgrid: xr.Dataset) -> Mesh:
-    """Small helper to inspect SGRID metadata and dataset metadata to determine mesh type."""
-    sgrid_metadata = ds_sgrid.sgrid.metadata
-
-    fpoint_x, fpoint_y = sgrid_metadata.node_coordinates
-
-    if _is_coordinate_in_degrees(ds_sgrid[fpoint_x]) ^ _is_coordinate_in_degrees(ds_sgrid[fpoint_x]):
-        msg = (
-            f"Mismatch in units between X and Y coordinates.\n"
-            f"  Coordinate {ds_sgrid[fpoint_x]!r} attrs: {ds_sgrid[fpoint_x].attrs}\n"
-            f"  Coordinate {ds_sgrid[fpoint_y]!r} attrs: {ds_sgrid[fpoint_y].attrs}\n"
-        )
-        raise ValueError(msg)
-
-    return "spherical" if _is_coordinate_in_degrees(ds_sgrid[fpoint_x]) else "flat"
-
-
 def _is_agrid(ds: xr.Dataset) -> bool:
     # check if U and V are defined on the same dimensions
     # if yes, interpret as A grid
     return set(ds["U"].dims) == set(ds["V"].dims)
-
-
-def _is_coordinate_in_degrees(da: xr.DataArray) -> bool:
-    units = da.attrs.get("units")
-    if units is None:
-        raise ValueError(
-            f"Coordinate {da.name!r} of your dataset has no 'units' attribute - we don't know what the spatial units are."
-        )
-    if isinstance(units, str) and "degree" in units.lower():
-        return True
-    return False

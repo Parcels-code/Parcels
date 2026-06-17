@@ -1,12 +1,11 @@
 from __future__ import annotations
 
 import warnings
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 from datetime import datetime
+from typing import TYPE_CHECKING
 
 import numpy as np
-import uxarray as ux
-import xarray as xr
 
 from parcels._core.index_search import GRID_SEARCH_ERROR, LEFT_OUT_OF_BOUNDS, RIGHT_OUT_OF_BOUNDS, _search_time_index
 from parcels._core.particlesetview import ParticleSetView
@@ -15,16 +14,15 @@ from parcels._core.statuscodes import (
     StatusCode,
 )
 from parcels._core.utils.string import _assert_str_and_python_varname
-from parcels._core.utils.time import TimeInterval
 from parcels._core.uxgrid import UxGrid
-from parcels._core.xgrid import XGrid, _transpose_xfield_data_to_tzyx, assert_all_field_dims_have_axis
-from parcels._python import assert_same_function_signature
+from parcels._core.xgrid import XGrid
 from parcels._reprs import field_repr, vectorfield_repr
 from parcels._typing import VectorType
-from parcels.interpolators import (
-    ZeroInterpolator,
-    ZeroInterpolator_Vector,
-)
+from parcels.interpolators._base import ScalarInterpolator, VectorInterpolator
+
+if TYPE_CHECKING:
+    from parcels._core.model import Model
+
 
 __all__ = ["Field", "VectorField"]
 
@@ -86,69 +84,51 @@ class Field:
     def __init__(
         self,
         name: str,
-        data: xr.DataArray | ux.UxDataArray,
-        grid: UxGrid | XGrid,
-        interp_method: Callable,
+        model: Model,
     ):
-        if not isinstance(data, (ux.UxDataArray, xr.DataArray)):
-            raise ValueError(
-                f"Expected `data` to be a uxarray.UxDataArray or xarray.DataArray object, got {type(data)}."
-            )
+        # TODO PR: Enable isinstance check once Model is moved to abc.Model
+        # if not isinstance(model, "Model"):
+        #     raise ValueError(
+        #         f"Expected `model` to be a parcels Model object. Got {type(model)}."
+        #     )
 
         _assert_str_and_python_varname(name)
 
-        if not isinstance(grid, (UxGrid, XGrid)):
-            raise ValueError(f"Expected `grid` to be a parcels UxGrid, or parcels XGrid object, got {type(grid)}.")
-
-        _assert_compatible_combination(data, grid)
-
-        if isinstance(grid, XGrid):
-            assert_all_field_dims_have_axis(data, grid.xgcm_grid)
-            data = _transpose_xfield_data_to_tzyx(data, grid.xgcm_grid)
-
         self.name = name
-        self.data = data
-        self.grid = grid
-
-        try:
-            self.time_interval = _get_time_interval(data)
-        except ValueError as e:
-            e.add_note(
-                f"Error getting time interval for field {name!r}. Are you sure that the time dimension on the xarray dataset is stored as timedelta, datetime or cftime datetime objects?"
-            )
-            raise e
-
-        try:
-            if isinstance(data, ux.UxDataArray):
-                _assert_valid_uxdataarray(data)
-                # TODO: For unstructured grids, validate that `data.uxgrid` is the same as `grid`
-            else:
-                pass  # TODO v4: Add validation for xr.DataArray objects
-        except Exception as e:
-            e.add_note(f"Error validating field {name!r}.")
-            raise e
-
-        # Setting the interpolation method dynamically
-        assert_same_function_signature(interp_method, ref=ZeroInterpolator, context="Interpolation")
-        self._interp_method = interp_method
+        self.model = model
 
         self.igrid = -1  # Default the grid index to -1
 
-        if self.data.shape[0] > 1:
-            if "time" not in self.data.coords:
-                raise ValueError("Field data is missing a 'time' coordinate.")
+    @property
+    def data(self):
+        return self.model.data[self.name]
+
+    @property
+    def grid(self):  # TODO PR: Remove in favour of referencing model grid directly
+        return self.model.grid
+
+    @property
+    def time_interval(self):  # TODO PR: Remove in favour of referencing model time_interval directly
+        return self.model.time_interval
 
     def __repr__(self):
         return field_repr(self)
 
     @property
     def interp_method(self):
-        return self._interp_method
+        try:
+            return self.model.field_to_interpolator[self.name]
+        except KeyError as e:
+            raise AttributeError(
+                f"{type(self).__name__} doesn't have an interp_method defined for it. Use `.interp_method = ...`"
+            ) from e
 
     @interp_method.setter
-    def interp_method(self, method: Callable):
-        assert_same_function_signature(method, ref=ZeroInterpolator, context="Interpolation")
-        self._interp_method = method
+    def interp_method(self, value):
+        # Setting the interpolation method dynamically
+        if not isinstance(value, ScalarInterpolator):
+            raise ValueError(f"interp_method must be a `ScalarInterpolator` object. Got {type(value)=!r}")
+        self.model.field_to_interpolator[self.name] = value
 
     def _check_velocitysampling(self):
         if self.name in ["U", "V", "W"]:
@@ -193,7 +173,7 @@ class Field:
 
         particle_positions, grid_positions = _get_positions(self, time, z, y, x, particles, _ei)
 
-        value = self._interp_method(particle_positions, grid_positions, self)
+        value = self.interp_method.interp(particle_positions, grid_positions, self)
 
         _update_particle_states_interp_value(particles, value)
 
@@ -219,7 +199,7 @@ class VectorField:
         U: Field,  # noqa: N803
         V: Field,  # noqa: N803
         W: Field | None = None,  # noqa: N803
-        interp_method: Callable | None = None,
+        interp_method: VectorInterpolator | None = None,
     ):
         if interp_method is None:
             raise ValueError("interp_method must be provided for VectorField initialization.")
@@ -244,7 +224,11 @@ class VectorField:
         else:
             self.vector_type = "2D"
 
-        assert_same_function_signature(interp_method, ref=ZeroInterpolator_Vector, context="Interpolation")
+        if not isinstance(interp_method, VectorInterpolator):
+            raise ValueError(
+                f"vector_interp_method must be a `VectorInterpolator` object. Got {type(interp_method)=!r}"
+            )
+
         self._interp_method = interp_method
 
     def __repr__(self):
@@ -255,8 +239,9 @@ class VectorField:
         return self._interp_method
 
     @interp_method.setter
-    def interp_method(self, method: Callable):
-        assert_same_function_signature(method, ref=ZeroInterpolator_Vector, context="Interpolation")
+    def interp_method(self, method: VectorInterpolator):
+        if not isinstance(method, VectorInterpolator):
+            raise ValueError(f"method must be a `VectorInterpolator` object. Got {type(method)=!r}")
         self._interp_method = method
 
     def eval(self, time: datetime, z, y, x, particles=None):
@@ -295,7 +280,7 @@ class VectorField:
 
         particle_positions, grid_positions = _get_positions(self.U, time, z, y, x, particles, _ei)
 
-        (u, v, w) = self._interp_method(particle_positions, grid_positions, self)
+        (u, v, w) = self._interp_method.interp(particle_positions, grid_positions, self)
 
         for vel in (u, v, w):
             _update_particle_states_interp_value(particles, vel)
@@ -373,44 +358,6 @@ def _update_particle_states_interp_value(particles, value):
         particles.state = np.maximum(
             np.where(np.isnan(value), StatusCode.ErrorInterpolation, particles.state), particles.state
         )
-
-
-def _assert_valid_uxdataarray(data: ux.UxDataArray):
-    """Verifies that all the required attributes are present in the xarray.DataArray or
-    uxarray.UxDataArray object.
-    """
-    # Validate dimensions
-    if not ("zf" in data.dims or "zc" in data.dims):
-        raise ValueError(
-            "Field is missing a 'zf' or 'zc' dimension in the field's metadata. "
-            "This attribute is required for xarray.DataArray objects."
-        )
-
-    if "time" not in data.dims:
-        raise ValueError(
-            "Field is missing a 'time' dimension in the field's metadata. "
-            "This attribute is required for xarray.DataArray objects."
-        )
-
-
-def _assert_compatible_combination(data: xr.DataArray | ux.UxDataArray, grid: UxGrid | XGrid):
-    if isinstance(data, ux.UxDataArray):
-        if not isinstance(grid, UxGrid):
-            raise ValueError(
-                f"Incompatible data-grid combination. Data is a uxarray.UxDataArray, expected `grid` to be a UxGrid object, got {type(grid)}."
-            )
-    elif isinstance(data, xr.DataArray):
-        if not isinstance(grid, XGrid):
-            raise ValueError(
-                f"Incompatible data-grid combination. Data is a xarray.DataArray, expected `grid` to be a parcels Grid object, got {type(grid)}."
-            )
-
-
-def _get_time_interval(data: xr.DataArray | ux.UxDataArray) -> TimeInterval | None:
-    if data.shape[0] == 1:
-        return None
-
-    return TimeInterval(data.time.values[0], data.time.values[-1])
 
 
 def _assert_same_time_interval(fields: Sequence[Field]) -> None:
