@@ -158,5 +158,5 @@ def Ux_Velocity(
     if "3D" in vectorfield.vector_type:
         w = vectorfield.W._interp_method(particle_positions, grid_positions, vectorfield.W)
     else:
-        w = 0.0
+        w = np.zeros_like(u)
     return u, v, w

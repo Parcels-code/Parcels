@@ -275,15 +275,20 @@ def test_field_eval_out_of_bounds():
     """Test that Field.eval returns IndexError when queried outside the grid boundaries."""
     ds = simple_UV_dataset(mesh="flat")
     fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
+    fieldset.U.data[:] = 1.0
+    fieldset.V.data[:] = 2.0
 
-    with pytest.raises(IndexError, match=".* is out of bounds.*"):
-        fieldset.U.eval(0.0, 0.0, 0.0, 5e6)
+    # eval inside bounds should work
+    np.testing.assert_allclose(fieldset.U.eval(0.0, 0.0, 0.0, 0.0), 1.0)
+    np.testing.assert_allclose(fieldset.UV.eval(0.0, 0.0, 0.0, 0.0), [[1.0], [2.0]])
 
-    with pytest.raises(IndexError, match=".* is out of bounds.*"):
-        fieldset.U.eval(0.0, 0.0, 5e6, 0.0)
-
-    with pytest.raises(IndexError, match=".* is out of bounds.*"):
-        fieldset.U.eval(0.0, 5e6, 0.0, 0.0)
+    # eval outside of bounds should return 0.0
+    np.testing.assert_allclose(fieldset.U.eval(0.0, 0.0, 0.0, 5e6), 0.0)
+    np.testing.assert_allclose(fieldset.UV.eval(0.0, 0.0, 0.0, 5e6), [[0.0], [0.0]])
+    np.testing.assert_allclose(fieldset.U.eval(0.0, 0.0, 5e6, 0.0), 0.0)
+    np.testing.assert_allclose(fieldset.UV.eval(0.0, 0.0, 5e6, 0.0), [[0.0], [0.0]])
+    np.testing.assert_allclose(fieldset.U.eval(0.0, 5e6, 0.0, 0.0), 0.0)
+    np.testing.assert_allclose(fieldset.UV.eval(0.0, 5e6, 0.0, 0.0), [[0.0], [0.0]])
 
 
 def test_field_unstructured_grid_creation(): ...

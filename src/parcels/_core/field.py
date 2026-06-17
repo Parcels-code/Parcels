@@ -196,6 +196,7 @@ class Field:
         value = self._interp_method(particle_positions, grid_positions, self)
 
         _update_particle_states_interp_value(particles, value)
+        _mask_outofbounds_values(grid_positions, value)
 
         return value
 
@@ -299,6 +300,7 @@ class VectorField:
 
         for vel in (u, v, w):
             _update_particle_states_interp_value(particles, vel)
+            _mask_outofbounds_values(grid_positions, vel)
 
         if "3D" in self.vector_type:
             return (u, v, w)
@@ -365,6 +367,18 @@ def _update_particle_states_position(particles, grid_positions: dict):
                 ),
                 particles.state,
             )
+
+
+def _mask_outofbounds_values(grid_positions: dict, value):
+    print(value)
+    mask = np.zeros(value.shape, dtype=bool)
+    print(grid_positions)
+    for dim in ["X", "Y", "Z"]:
+        if dim in grid_positions:
+            print(mask, grid_positions[dim]["index"])
+            mask[grid_positions[dim]["index"] < 0] = True
+    if np.any(mask):
+        value[mask] = 0
 
 
 def _update_particle_states_interp_value(particles, value):

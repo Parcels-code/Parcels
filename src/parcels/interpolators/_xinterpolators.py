@@ -22,7 +22,7 @@ def ZeroInterpolator(
     field: Field,
 ) -> np.float32 | np.float64:
     """Template function used for the signature check of the lateral interpolation methods."""
-    return 0.0
+    return np.zeros_like(particle_positions["lon"])
 
 
 def ZeroInterpolator_Vector(
@@ -31,7 +31,7 @@ def ZeroInterpolator_Vector(
     vectorfield: VectorField,
 ) -> np.float32 | np.float64:
     """Template function used for the signature check of the interpolation methods for velocity fields."""
-    return 0.0
+    return np.zeros_like(particle_positions["lon"])
 
 
 def _get_corner_data_Agrid(
@@ -140,8 +140,8 @@ def XConstantField(
     grid_positions: dict[XgridAxis, dict[str, int | float | np.ndarray]],
     field: Field,
 ):
-    """Returning the single value of a Constant Field (with a size=(1,1,1,1) array)"""
-    return field.data[0, 0, 0, 0].values
+    """Returning the value of a Constant Field (with a size=(1,1,1,1) array)"""
+    return field.data[0, 0, 0, 0].values * np.ones_like(particle_positions["lon"])
 
 
 def XLinear_Velocity(
@@ -159,7 +159,7 @@ def XLinear_Velocity(
     if vectorfield.W:
         w = XLinear(particle_positions, grid_positions, vectorfield.W)
     else:
-        w = 0.0
+        w = np.zeros_like(u)
     return u, v, w
 
 
@@ -489,7 +489,7 @@ def _Spatialslip(
 
         w *= f_w
     else:
-        w = None
+        w = np.zeros_like(u)
     return u, v, w
 
 
