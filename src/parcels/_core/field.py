@@ -371,11 +371,11 @@ def _update_particle_states_position(particles, grid_positions: dict):
 
 def _mask_outofbounds_values(grid_positions: dict, value):
     mask = np.zeros(value.shape, dtype=bool)
-    for dim in ["X", "Y", "Z"]:
+    for dim in ["X", "Y", "Z", "FACE"]:
         if dim in grid_positions:
             mask[grid_positions[dim]["index"] < 0] = True
     if np.any(mask):
-        value[mask] = 0
+        value[mask] = 0.0
 
 
 def _update_particle_states_interp_value(particles, value):

@@ -8,6 +8,7 @@ from parcels._core.fieldset import FieldSet
 from parcels._datasets.structured.generated import simple_UV_dataset
 from parcels._datasets.structured.generic import T as T_structured
 from parcels._datasets.structured.generic import datasets as datasets_structured
+from parcels._datasets.unstructured.generic import _ux_constant_flow_face_centered_2D
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
 from parcels.interpolators import (
     UxConstantFaceConstantZC,
@@ -271,10 +272,30 @@ def test_field_constant_in_time():
     assert np.isclose(P1, P2)
 
 
-def test_field_eval_out_of_bounds():
+def test_field_eval_out_of_bounds_structured():
     """Test that Field.eval returns IndexError when queried outside the grid boundaries."""
     ds = simple_UV_dataset(mesh="flat")
     fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
+    fieldset.U.data[:] = 1.0
+    fieldset.V.data[:] = 2.0
+
+    # eval inside bounds should work
+    np.testing.assert_allclose(fieldset.U.eval(0.0, 0.0, 0.0, 0.0), 1.0)
+    np.testing.assert_allclose(fieldset.UV.eval(0.0, 0.0, 0.0, 0.0), [[1.0], [2.0]])
+
+    # eval outside of bounds should return 0.0
+    np.testing.assert_allclose(fieldset.U.eval(0.0, 0.0, 0.0, 5e6), 0.0)
+    np.testing.assert_allclose(fieldset.UV.eval(0.0, 0.0, 0.0, 5e6), [[0.0], [0.0]])
+    np.testing.assert_allclose(fieldset.U.eval(0.0, 0.0, 5e6, 0.0), 0.0)
+    np.testing.assert_allclose(fieldset.UV.eval(0.0, 0.0, 5e6, 0.0), [[0.0], [0.0]])
+    np.testing.assert_allclose(fieldset.U.eval(0.0, 5e6, 0.0, 0.0), 0.0)
+    np.testing.assert_allclose(fieldset.UV.eval(0.0, 5e6, 0.0, 0.0), [[0.0], [0.0]])
+
+
+def test_field_eval_out_of_bounds_unstructured():
+    """Test that Field.eval returns IndexError when queried outside the grid boundaries."""
+    ds = _ux_constant_flow_face_centered_2D()
+    fieldset = FieldSet.from_ugrid_conventions(ds, mesh="flat")
     fieldset.U.data[:] = 1.0
     fieldset.V.data[:] = 2.0
 
