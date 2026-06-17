@@ -76,14 +76,23 @@ class FieldSet:
         assert_compatible_calendars(fields)
 
         self.fields = {f.name: f for f in fields}
-        self.constants: dict[str, float] = {}
+        self.context: dict[str, float] = {}
+
+    def __setattr__(self, name, value):
+        """Set field attribute by name. If context exists and name in context, raise error to prevent overwriting context variable."""
+        context = self.__dict__.get("context")
+
+        if context is not None and name in context:
+            raise AttributeError(f"Cannot assign '{name}' directly. Use fieldset.context['{name}'] instead.")
+        # Handle setting of attributes not in context per default
+        super().__setattr__(name, value)
 
     def __getattr__(self, name):
-        """Get the field by name. If the field is not found, check if it's a constant."""
+        """Get the field by name. If the field is not found, check if it's a context variable."""
         if name in self.fields:
             return self.fields[name]
-        elif name in self.constants:
-            return self.constants[name]
+        elif name in self.context:
+            return self.context[name]
         else:
             raise AttributeError(f"FieldSet has no attribute '{name}'")
 
@@ -153,24 +162,24 @@ class FieldSet:
         grid = XGrid(xgrid, mesh=mesh)
         self.add_field(Field(name, ds[name], grid, interp_method=XConstantField))
 
-    def add_constant(self, name, value):
-        """Add a constant to the FieldSet.
+    def add_context(self, name, value):
+        """Add context variable to the FieldSet.
 
         Parameters
         ----------
         name : str
-            Name of the constant
+            Name of the context variable
         value :
-            Value of the constant
+            Value of the context variable
 
         """
         _assert_str_and_python_varname(name)
 
-        if name in self.constants:
-            raise ValueError(f"FieldSet already has a constant with name '{name}'")
+        if name in self.context:
+            raise ValueError(f"FieldSet already has a context with name '{name}'")
         if not isinstance(value, (float, np.floating, int, np.integer)):
-            raise ValueError(f"FieldSet constants have to be of type float or int, got a {type(value)}")
-        self.constants[name] = value
+            raise ValueError(f"FieldSet context variables have to be of type float or int, got a {type(value)}")
+        self.context[name] = value
 
     @property
     def gridset(self) -> list[BaseGrid]:
@@ -354,10 +363,10 @@ def _format_calendar_error_message(field: Field | VectorField, reference_datetim
 
 
 _COPERNICUS_MARINE_AXIS_VARNAMES = {
-    "X": "lon",
-    "Y": "lat",
-    "Z": "depth",
     "T": "time",
+    "Z": "depth",
+    "Y": "lat",
+    "X": "lon",
 }
 
 

@@ -148,7 +148,7 @@ def test_write_dtypes_pfile(fieldset, tmp_parquet):
 def test_pset_repeated_release_delayed_adding_deleting(fieldset, tmp_parquet, dt, maxvar):
     """Tests that if particles are released and deleted based on age that resulting output file is correct."""
     npart = 10
-    fieldset.add_constant("maxvar", maxvar)
+    fieldset.add_context("maxvar", maxvar)
 
     MyParticle = Particle.add_variable(
         [Variable("sample_var", initial=0.0), Variable("v_once", dtype=np.float64, initial=0.0)]

@@ -273,14 +273,14 @@ def test_moving_eddy(kernel, rtol):
     fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
 
     if kernel in [AdvectionDiffusionEM, AdvectionDiffusionM1]:
-        fieldset.add_constant("dres", 0.1)
+        fieldset.add_context("dres", 0.1)
 
     start_lon, start_lat, start_z = 12000, 12500, 12500
     dt = np.timedelta64(30, "m")
     endtime = np.timedelta64(1, "h")
 
     if kernel == AdvectionRK45:
-        fieldset.add_constant("RK45_tol", rtol)
+        fieldset.add_context("RK45_tol", rtol)
 
     pset = ParticleSet(
         fieldset, pclass=DEFAULT_PARTICLES[kernel], lon=start_lon, lat=start_lat, z=start_z, time=np.timedelta64(0, "s")
@@ -318,8 +318,8 @@ def test_decaying_moving_eddy(kernel, rtol):
     endtime = np.timedelta64(23, "h")
 
     if kernel == AdvectionRK45:
-        fieldset.add_constant("RK45_tol", rtol)
-        fieldset.add_constant("RK45_min_dt", 10 * 60)
+        fieldset.add_context("RK45_tol", rtol)
+        fieldset.add_context("RK45_min_dt", 10 * 60)
 
     pset = ParticleSet(
         fieldset, pclass=DEFAULT_PARTICLES[kernel], lon=start_lon, lat=start_lat, time=np.timedelta64(0, "s")
@@ -368,7 +368,7 @@ def test_stommelgyre_fieldset(kernel, rtol, grid_type):
     )
 
     if kernel == AdvectionRK45:
-        fieldset.add_constant("RK45_tol", rtol)
+        fieldset.add_context("RK45_tol", rtol)
 
     def UpdateP(particles, fieldset):  # pragma: no cover
         particles.p = fieldset.P[particles.time, particles.z, particles.lat, particles.lon]
@@ -403,7 +403,7 @@ def test_peninsula_fieldset(kernel, rtol, grid_type):
     )
 
     if kernel == AdvectionRK45:
-        fieldset.add_constant("RK45_tol", rtol)
+        fieldset.add_context("RK45_tol", rtol)
 
     def UpdateP(particles, fieldset):  # pragma: no cover
         particles.p = fieldset.P[particles.time, particles.z, particles.lat, particles.lon]

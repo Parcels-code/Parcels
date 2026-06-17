@@ -59,10 +59,10 @@ class ParticleSet:
         self,
         fieldset,
         pclass=Particle,
-        lon=None,
-        lat=None,
-        z=None,
         time=None,
+        z=None,
+        lat=None,
+        lon=None,
         particle_ids=None,
         **kwargs,
     ):
@@ -70,9 +70,9 @@ class ParticleSet:
         self._kernel = None
 
         self.fieldset = fieldset
-        lon = np.empty(shape=0) if lon is None else np.array(lon).flatten()
-        lat = np.empty(shape=0) if lat is None else np.array(lat).flatten()
         time = np.empty(shape=0) if time is None else np.array(time).flatten()
+        lat = np.empty(shape=0) if lat is None else np.array(lat).flatten()
+        lon = np.empty(shape=0) if lon is None else np.array(lon).flatten()
 
         if particle_ids is None:
             particle_ids = np.arange(lon.size)
@@ -112,14 +112,14 @@ class ParticleSet:
             nparticles=lon.size,
             ngrids=len(fieldset.gridset),
             initial=dict(
-                lon=lon,
-                lat=lat,
-                z=z,
                 time=time,
+                z=z,
+                lat=lat,
+                lon=lon,
                 particle_id=particle_ids,
             ),
         )
-        self._ptype = pclass
+        self._pclass = pclass
 
         # update initial values provided on ParticleSet creation # TODO: Wrap this into create_particle_data
         particle_variables = [v.name for v in pclass.variables]
@@ -159,7 +159,7 @@ class ParticleSet:
 
     def __getitem__(self, index):
         """Get a single particle by index."""
-        return ParticleSetView(self._data, index=index, ptype=self._ptype)
+        return ParticleSetView(self._data, index=index, pclass=self._pclass)
 
     def __setattr__(self, name, value):
         if name in ["_data"]:
