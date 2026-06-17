@@ -370,12 +370,9 @@ def _update_particle_states_position(particles, grid_positions: dict):
 
 
 def _mask_outofbounds_values(grid_positions: dict, value):
-    print(value)
     mask = np.zeros(value.shape, dtype=bool)
-    print(grid_positions)
     for dim in ["X", "Y", "Z"]:
         if dim in grid_positions:
-            print(mask, grid_positions[dim]["index"])
             mask[grid_positions[dim]["index"] < 0] = True
     if np.any(mask):
         value[mask] = 0
