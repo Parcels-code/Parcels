@@ -38,9 +38,6 @@ def test_fieldset_add_constant_invalid_name(fieldset, name):
         fieldset.add_constant(name, 1.0)
 
 
-@pytest.mark.skip(
-    "TODO restructure: add_constant_field has a src bug (still calls Field with old data/grid/interp_method constructor); cannot test until fixed"
-)
 def test_fieldset_add_constant_field(fieldset):
     fieldset.add_constant_field("test_constant_field", 1.0)
 
@@ -59,9 +56,6 @@ def test_fieldset_gridset(fieldset):
     assert fieldset.fields["UV"].grid in fieldset.gridset
     assert len(fieldset.gridset) == 1
 
-    pytest.skip(
-        "TODO restructure: add_constant_field has a src bug (still uses old Field constructor); gridset growth not testable"
-    )
     fieldset.add_constant_field("constant_field", 1.0)
     assert len(fieldset.gridset) == 2
 
@@ -112,9 +106,6 @@ def test_fieldset_time_interval():
     assert fieldset.time_interval.right == np.datetime64("2001-01-01")
 
 
-@pytest.mark.xfail(
-    reason="TODO restructure: add_constant_field has a src bug (still uses old Field constructor); cannot test until fixed"
-)
 def test_fieldset_time_interval_constant_fields():
     fieldset = FieldSet([])
     fieldset.add_constant_field("constant_field", 1.0)
