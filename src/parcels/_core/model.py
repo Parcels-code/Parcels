@@ -208,26 +208,27 @@ class UnstructuredModel(Model):
 
         self.data = data
         self.grid = grid
+        self.field_to_interpolator = {}
+        self._fields: list[Field | VectorField] | None = None
 
     def construct_fields(self) -> list[Field | VectorField]:
-        ds = self.data
         single_fields: dict[str, Field] = {}
         vector_fields: dict[str, VectorField] = {}
         scalar_field_names = self.scalar_field_names
         if "U" in scalar_field_names and "V" in scalar_field_names:
-            single_fields["U"] = Field("U", self, _select_uxinterpolator(ds["U"]))
-            single_fields["V"] = Field("V", self, _select_uxinterpolator(ds["V"]))
-            vector_fields["UV"] = VectorField("UV", single_fields["U"], single_fields["V"], interp_method=Ux_Velocity)
+            single_fields["U"] = Field("U", self)
+            single_fields["V"] = Field("V", self)
+            vector_fields["UV"] = VectorField("UV", single_fields["U"], single_fields["V"], interp_method=Ux_Velocity())
 
             if "W" in scalar_field_names:
-                single_fields["W"] = Field("W", self, _select_uxinterpolator(ds["W"]))
+                single_fields["W"] = Field("W", self)
                 vector_fields["UVW"] = VectorField(
-                    "UVW", single_fields["U"], single_fields["V"], single_fields["W"], interp_method=Ux_Velocity
+                    "UVW", single_fields["U"], single_fields["V"], single_fields["W"], interp_method=Ux_Velocity()
                 )
 
         fields: dict[str, Field | VectorField] = {**single_fields, **vector_fields}
         for varname in set(scalar_field_names) - set(single_fields.keys()):
-            fields[varname] = Field(str(varname), self, _select_uxinterpolator(ds[varname]))
+            fields[varname] = Field(str(varname), self)
 
         return list(fields.values())
 
@@ -249,7 +250,14 @@ class UnstructuredModel(Model):
 
         grid = UxGrid(ds.uxgrid, z=ds.coords["zf"], mesh=mesh)
         ds = _discover_ux_U_and_V(ds)
-        return cls(ds, grid)
+        model = cls(ds, grid)
+        model._fields = model.construct_fields()
+        for f in model._fields:
+            if isinstance(f, Field):
+                interp_cls = _select_uxinterpolator(model.data[f.name])
+                if interp_cls is not None:
+                    f.interp_method = interp_cls()
+        return model
 
 
 # TODO: Refactor later into something like `parcels._metadata.discover(dataset)` helper that can be used to discover important metadata like this. I think this whole metadata handling should be refactored into its own module.
