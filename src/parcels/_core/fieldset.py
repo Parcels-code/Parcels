@@ -16,7 +16,6 @@ from parcels._core.utils.string import _assert_str_and_python_varname
 from parcels._core.utils.time import get_datetime_type_calendar
 from parcels._core.utils.time import is_compatible as datetime_is_compatible
 from parcels._core.xgrid import XGrid
-from parcels._reprs import fieldset_repr
 from parcels._typing import Mesh
 from parcels.interpolators import (
     XConstantField,
@@ -99,8 +98,8 @@ class FieldSet:
         combined.constants = {**self.constants, **other.constants}
         return combined
 
-    def __repr__(self):
-        return fieldset_repr(self)
+    # def __repr__(self):
+    #     return fieldset_repr(self)
 
     @property
     def time_interval(self):

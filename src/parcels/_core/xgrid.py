@@ -12,7 +12,6 @@ import parcels._sgrid as sgrid
 import parcels._typing as ptyping
 from parcels._core.basegrid import BaseGrid
 from parcels._core.index_search import _search_1d_array, _search_indices_curvilinear_2d
-from parcels._reprs import xgrid_repr
 from parcels._sgrid.accessor import _get_dim_to_axis_mapping
 from parcels._sgrid.core import SGRID_PADDING_TO_XGCM_POSITION
 
@@ -189,8 +188,8 @@ class XGrid(BaseGrid):
         ptyping.assert_valid_mesh(mesh)
         self._ds = ds
 
-    def __repr__(self):
-        return xgrid_repr(self)
+    # def __repr__(self):
+    #     return xgrid_repr(self)
 
     @property
     def axes(self) -> list[ptyping.XgridAxis]:

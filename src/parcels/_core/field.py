@@ -16,7 +16,6 @@ from parcels._core.statuscodes import (
 from parcels._core.utils.string import _assert_str_and_python_varname
 from parcels._core.uxgrid import UxGrid
 from parcels._core.xgrid import XGrid
-from parcels._reprs import field_repr, vectorfield_repr
 from parcels._typing import VectorType
 from parcels.interpolators._base import ScalarInterpolator, VectorInterpolator
 
@@ -112,7 +111,7 @@ class Field:
         return self.model.time_interval
 
     def __repr__(self):
-        return field_repr(self)
+        return f"Field(name={self.name}, model={self.model})"
 
     @property
     def interp_method(self):
@@ -231,8 +230,8 @@ class VectorField:
 
         self._interp_method = interp_method
 
-    def __repr__(self):
-        return vectorfield_repr(self)
+    # def __repr__(self):
+    #     return vectorfield_repr(self)
 
     @property
     def interp_method(self):
