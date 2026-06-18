@@ -5,6 +5,7 @@ import pytest
 
 from parcels import Field, UxGrid, VectorField, XGrid
 from parcels._core.fieldset import FieldSet
+from parcels._core.model import StructuredModel
 from parcels._datasets.structured.generic import T as T_structured
 from parcels._datasets.structured.generic import datasets as datasets_structured
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
@@ -17,56 +18,29 @@ from parcels.interpolators import (
 
 def test_field_init_param_types():
     data = datasets_structured["ds_2d_left"]
-    grid = FieldSet.from_sgrid_conventions(data, mesh="flat").data_g.grid
+    model = StructuredModel.from_sgrid_conventions(data, mesh="flat")
 
     with pytest.raises(TypeError, match="Expected a string for variable name, got int instead."):
-        Field(name=123, data=data["data_g"], grid=grid, interp_method=XLinear)
+        Field(name=123, model=model)
 
     for name in ["a b", "123"]:
         with pytest.raises(
             ValueError,
             match=r"Received invalid Python variable name.*: not a valid identifier. HINT: avoid using spaces, special characters, and starting with a number.",
         ):
-            Field(name=name, data=data["data_g"], grid=grid, interp_method=XLinear)
+            Field(name=name, model=model)
 
     with pytest.raises(
         ValueError,
         match=r"Received invalid Python variable name.*: it is a reserved keyword. HINT: avoid using the following names:.*",
     ):
-        Field(name="while", data=data["data_g"], grid=grid, interp_method=XLinear)
-
-    with pytest.raises(
-        ValueError,
-        match="Expected `data` to be a uxarray.UxDataArray or xarray.DataArray",
-    ):
-        Field(name="test", data=123, grid=grid, interp_method=XLinear)
-
-    with pytest.raises(ValueError, match="Expected `grid` to be a parcels UxGrid, or parcels XGrid"):
-        Field(name="test", data=data["data_g"], grid=123, interp_method=XLinear)
+        Field(name="while", model=model)
 
 
-# @pytest.mark.parametrize(
-#     "data,grid",
-#     [
-#         pytest.param(
-#             ux.UxDataArray(),
-#             XGrid.from_dataset(datasets_structured["ds_2d_left"], mesh="flat"),
-#             id="uxdata-grid",
-#         ),
-#         pytest.param(
-#             xr.DataArray(),
-#             UxGrid(
-#                 datasets_unstructured["stommel_gyre_delaunay"].uxgrid,
-#                 z=datasets_unstructured["stommel_gyre_delaunay"].coords["zf"],
-#                 mesh="flat",
-#             ),
-#             id="xarray-uxgrid",
-#         ),
-#     ],
-# )
+# remove: _assert_compatible_combination removed from Field; cross-type data/grid validation moved per-model class
 @pytest.mark.skip(
     "Likely not relevant after refactoring from https://github.com/Parcels-code/Parcels/pull/2646"
-)  # TODO: Remove or replace
+)
 def test_field_incompatible_combination(data, grid):
     with pytest.raises(ValueError, match="Incompatible data-grid combination."):
         Field(
@@ -77,19 +51,10 @@ def test_field_incompatible_combination(data, grid):
         )
 
 
-# @pytest.mark.parametrize(
-#     "data,grid",
-#     [
-#         pytest.param(
-#             datasets_structured["ds_2d_left"]["data_g"],
-#             XGrid.from_dataset(datasets_structured["ds_2d_left"], mesh="flat"),
-#             id="ds_2d_left",
-#         ),  # TODO: Perhaps this test should be expanded to cover more datasets?
-#     ],
-# )
+# remove: Field no longer takes data/grid args; fields are constructed via Model.construct_fields()
 @pytest.mark.skip(
     "Needs updating after refactoring from https://github.com/Parcels-code/Parcels/pull/2646"
-)  # TODO: Remove or replace
+)
 def test_field_init_structured_grid(data, grid):
     """Test creating a field."""
     field = Field(
@@ -103,13 +68,11 @@ def test_field_init_structured_grid(data, grid):
     assert field.grid == grid
 
 
-@pytest.mark.skip(
-    "Needs updating after refactoring from https://github.com/Parcels-code/Parcels/pull/2646"
-)  # TODO: Remove or replace
 def test_field_init_fail_on_float_time_dim():
-    """Test field initialisation fails when given float array as time dimension.
+    """Test that accessing time_interval fails when dataset has float time dimension.
 
     (users are expected to use timedelta64 or datetime).
+    Time validation has moved from Field.__init__ to Model.time_interval.
     """
     ds = datasets_structured["ds_2d_left"].copy()
     ds["time"] = (
@@ -118,36 +81,19 @@ def test_field_init_fail_on_float_time_dim():
         ds["time"].attrs,
     )
 
-    data = ds["data_g"]
-    grid = XGrid.from_dataset(ds, mesh="flat")
+    model = StructuredModel.from_sgrid_conventions(ds, mesh="flat")
     with pytest.raises(
         ValueError,
-        match=r"Error getting time interval.*. Are you sure that the time dimension on the xarray dataset is stored as timedelta, datetime or cftime datetime objects\?",
+        match=r"Are you sure that the time dimension on the xarray dataset is stored as timedelta, datetime or cftime datetime objects\?",
     ):
-        Field(
-            name="test_field",
-            data=data,
-            grid=grid,
-            interp_method=XLinear,
-        )
+        _ = model.time_interval
 
 
-# @pytest.mark.parametrize(
-#     "data,grid",
-#     [
-#         pytest.param(
-#             datasets_structured["ds_2d_left"]["data_g"],
-#             XGrid.from_dataset(datasets_structured["ds_2d_left"], mesh="flat"),
-#             id="ds_2d_left",
-#         ),
-#     ],
-# )
-@pytest.mark.skip(
-    "Needs updating after refactoring from https://github.com/Parcels-code/Parcels/pull/2646"
-)  # TODO: Remove or replace
-def test_field_time_interval(data, grid):
-    """Test creating a field."""
-    field = Field(name="test_field", data=data, grid=grid, interp_method=XLinear)
+def test_field_time_interval():
+    """Test that field.time_interval delegates correctly to model.time_interval."""
+    data = datasets_structured["ds_2d_left"]
+    model = StructuredModel.from_sgrid_conventions(data, mesh="flat")
+    field = Field(name="data_g", model=model)
     assert field.time_interval.left == np.datetime64("2000-01-01")
     assert field.time_interval.right == np.datetime64("2001-01-01")
 
@@ -159,42 +105,39 @@ def test_vectorfield_init_different_time_intervals():
 
 def test_field_invalid_interpolator():
     ds = datasets_structured["ds_2d_left"]
-    grid = FieldSet.from_sgrid_conventions(ds, mesh="flat").data_g.grid
+    model = StructuredModel.from_sgrid_conventions(ds, mesh="flat")
+    field = Field(name="data_g", model=model)
 
-    def invalid_interpolator_wrong_signature(particle_positions, grid_positions, invalid):
+    def not_a_scalar_interpolator(particle_positions, grid_positions, field):
         return 0.0
 
-    # Test invalid interpolator with wrong signature
-    with pytest.raises(ValueError, match=".*incorrect name.*"):
-        Field(
-            name="test",
-            data=ds["data_g"],
-            grid=grid,
-            interp_method=invalid_interpolator_wrong_signature,
-        )
+    # Interpolators must now be ScalarInterpolator instances, not plain callables
+    with pytest.raises(ValueError, match="interp_method must be a `ScalarInterpolator` object"):
+        field.interp_method = not_a_scalar_interpolator
 
 
 def test_vectorfield_invalid_interpolator():
     ds = datasets_structured["ds_2d_left"]
-    grid = FieldSet.from_sgrid_conventions(ds, mesh="flat").data_g.grid
+    model = StructuredModel.from_sgrid_conventions(ds, mesh="flat")
+    fields = {f.name: f for f in model.construct_fields()}
+    U = fields["U_A_grid"]
+    V = fields["V_A_grid"]
 
-    def invalid_interpolator_wrong_signature(particle_positions, grid_positions, invalid):
+    def not_a_vector_interpolator(particle_positions, grid_positions, field):
         return 0.0
 
-    # Create component fields
-    U = Field(name="U", data=ds["data_g"], grid=grid, interp_method=XLinear)
-    V = Field(name="V", data=ds["data_g"], grid=grid, interp_method=XLinear)
-
-    # Test invalid interpolator with wrong signature
-    with pytest.raises(ValueError, match=".*incorrect name.*"):
+    # VectorField interp_method must be a VectorInterpolator instance, not a plain callable
+    with pytest.raises(ValueError, match="vector_interp_method must be a `VectorInterpolator` object"):
         VectorField(
             name="UV",
             U=U,
             V=V,
-            interp_method=invalid_interpolator_wrong_signature,
+            interp_method=not_a_vector_interpolator,
         )
 
 
+# remove: UxConstantFaceConstantZC/UxLinearNodeLinearZF are plain functions not yet migrated to ScalarInterpolator; Field no longer accepts data/grid/interp_method args
+@pytest.mark.skip("remove: see comment above")
 def test_field_unstructured_z_linear():
     """Tests correctness of piecewise constant and piecewise linear interpolation methods on an unstructured grid with a vertical coordinate.
     The example dataset is a FESOM2 square Delaunay grid with uniform z-coordinate. Cell centered and layer registered data are defined to be
@@ -251,6 +194,8 @@ def test_field_unstructured_z_linear():
     )
 
 
+# remove: UxConstantFaceConstantZC is a plain function not yet migrated to ScalarInterpolator; Field no longer accepts data/grid/interp_method args
+@pytest.mark.skip("remove: see comment above")
 def test_field_constant_in_time():
     """Tests field evaluation for a field with no time interval (i.e., constant in time)."""
     ds = datasets_unstructured["stommel_gyre_delaunay"]

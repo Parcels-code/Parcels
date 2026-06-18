@@ -75,7 +75,7 @@ def field():
     [
         pytest.param(ZeroInterpolator(), 1, 2.5, 0.49, 0.51, 0, id="Zero"),
         pytest.param(
-            XLinear,
+            XLinear(),
             [0, 1],
             [0, 0],
             [0.49, 0.49],
@@ -85,7 +85,7 @@ def field():
         ),
         pytest.param(XLinear(), 1, 2.5, 0.49, 0.51, 13.99, id="Linear-2"),
         pytest.param(
-            XLinear,
+            XLinear(),
             [0, 1, 1],
             [0, 0, 2.5],
             [0.49, 0.49, 0.49],
@@ -95,7 +95,7 @@ def field():
         ),
         pytest.param(XLinearInvdistLandTracer(), 1, 2.5, 0.49, 0.51, 13.99, id="LinearInvDistLand"),
         pytest.param(
-            XNearest,
+            XNearest(),
             [0, 3],
             [0.2, 0.2],
             [0.2, 0.2],
@@ -118,14 +118,14 @@ def test_raw_2d_interpolation(field, interpolator, t, z, y, x, expected):
 @pytest.mark.parametrize(
     "func, t, z, y, x, expected",
     [
-        (XPartialslip, 1, 0, 0, 0.0, [[1], [1]]),
-        (XFreeslip, 1, 0, 0.5, 1.5, [[1], [0.5]]),
-        (XPartialslip, 1, 0, 2.5, 1.5, [[0.75], [0.5]]),
-        (XFreeslip, 1, 0, 2.5, 1.5, [[1], [0.5]]),
-        (XPartialslip, 1, 0, 1.5, 0.5, [[0.5], [0.75]]),
-        (XFreeslip, 1, 0, 1.5, 0.5, [[0.5], [1]]),
+        (XPartialslip(), 1, 0, 0, 0.0, [[1], [1]]),
+        (XFreeslip(), 1, 0, 0.5, 1.5, [[1], [0.5]]),
+        (XPartialslip(), 1, 0, 2.5, 1.5, [[0.75], [0.5]]),
+        (XFreeslip(), 1, 0, 2.5, 1.5, [[1], [0.5]]),
+        (XPartialslip(), 1, 0, 1.5, 0.5, [[0.5], [0.75]]),
+        (XFreeslip(), 1, 0, 1.5, 0.5, [[0.5], [1]]),
         (
-            XFreeslip,
+            XFreeslip(),
             [1, 0],
             [0, 2],
             [1.5, 1.5],
