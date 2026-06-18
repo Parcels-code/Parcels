@@ -200,18 +200,12 @@ def test_vertical1D_field(ds):
     np.testing.assert_almost_equal(field.eval(np.timedelta64(0, "s"), 0.45, 0, 0), np.array([4.5]))
 
 
-@pytest.mark.skip(
-    "TODO restructure: Update ingestion. Uses old Field(name, data, grid, interp_method) constructor; XGrid.from_dataset no longer exists"
-)
 def test_time1D_field():
-    timerange = xr.date_range("2000-01-01", "2000-01-20")
-    ds = xr.Dataset(
-        {"t1d": (["time"], np.arange(0, len(timerange)))},
-        coords={"time": (["time"], timerange, {"axis": "T"})},
-    )
-    grid = XGrid.from_dataset(ds, mesh="flat")
-    field = Field("t1d", ds["t1d"], grid, XLinear)
+    ds = datasets["ds_2d_left"].sgrid.isel(XC=0, YC=0, ZC=0)[["data_g", "grid"]]
+    ds["data_g"] = (["time"], np.arange(0, ds["time"].size))
+    ds["time"] = xr.date_range("2000-01-01", "2000-01-13")
 
+    field = FieldSet.from_sgrid_conventions(ds, mesh="flat").data_g
     time = timedelta_to_float(np.datetime64("2000-01-10T12:00:00") - field.time_interval.left)
     assert field.eval(time, -20, 5, 6) == 9.5
 
