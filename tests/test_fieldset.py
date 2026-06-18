@@ -157,9 +157,6 @@ def test_fieldset_add_field_after_pset():
     ...
 
 
-@pytest.mark.xfail(
-    reason="TODO restructure: UnstructuredModel.construct_fields() has a src bug passing 3 args to Field (expects 2); cannot test until fixed"
-)
 def test_fieldset_from_icon():
     ds = convert.icon_to_ugrid(datasets_unstructured["icon_square_delaunay_uniform_z_coordinate"])
     fieldset = FieldSet.from_ugrid_conventions(ds)
@@ -168,9 +165,6 @@ def test_fieldset_from_icon():
     assert "UVW" in fieldset.fields
 
 
-@pytest.mark.xfail(
-    reason="TODO restructure: UnstructuredModel.construct_fields() has a src bug passing 3 args to Field (expects 2); cannot test until fixed"
-)
 def test_fieldset_from_fesom2():
     ds = convert.fesom_to_ugrid(datasets_unstructured["fesom2_square_delaunay_uniform_z_coordinate"])
     fieldset = FieldSet.from_ugrid_conventions(ds)

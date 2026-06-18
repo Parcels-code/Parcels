@@ -105,7 +105,6 @@ def test_vectorfield_invalid_interpolator():
         )
 
 
-@pytest.mark.skip("TODO restructure: Migrate UxLinearNodeLinearZF/UxConstantFaceConstantZC to ScalarInterpolaror")
 def test_field_unstructured_z_linear():
     """Tests correctness of piecewise constant and piecewise linear interpolation methods on an unstructured grid with a vertical coordinate.
     The example dataset is a FESOM2 square Delaunay grid with uniform z-coordinate. Cell centered and layer registered data are defined to be
@@ -162,7 +161,6 @@ def test_field_unstructured_z_linear():
     )
 
 
-@pytest.mark.skip("TODO restructure: Migrate UxLinearNodeLinearZF/UxConstantFaceConstantZC to ScalarInterpolaror")
 def test_field_constant_in_time():
     """Tests field evaluation for a field with no time interval (i.e., constant in time)."""
     ds = datasets_unstructured["stommel_gyre_delaunay"]

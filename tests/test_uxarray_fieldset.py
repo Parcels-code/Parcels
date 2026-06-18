@@ -90,9 +90,6 @@ def uvw_fesom_channel(ds_fesom_channel) -> VectorField:
     return UVW
 
 
-@pytest.mark.skip(
-    "TODO restructure: fixture uses old Field constructor; FieldSet now takes Models not Fields/VectorFields"
-)
 def test_fesom_fieldset(ds_fesom_channel, uv_fesom_channel):
     fieldset = FieldSet([uv_fesom_channel, uv_fesom_channel.U, uv_fesom_channel.V])
     # Check that the fieldset has the expected properties
@@ -100,9 +97,6 @@ def test_fesom_fieldset(ds_fesom_channel, uv_fesom_channel):
     assert (fieldset.V.data == ds_fesom_channel.V).all()
 
 
-@pytest.mark.skip(
-    "TODO restructure: fixture uses old Field constructor; FieldSet now takes Models not Fields/VectorFields"
-)
 def test_fesom_in_particleset(ds_fesom_channel, uv_fesom_channel):
     fieldset = FieldSet([uv_fesom_channel, uv_fesom_channel.U, uv_fesom_channel.V])
 
@@ -113,9 +107,6 @@ def test_fesom_in_particleset(ds_fesom_channel, uv_fesom_channel):
     assert pset.fieldset == fieldset
 
 
-@pytest.mark.skip(
-    "TODO restructure: fixture uses old Field constructor; UxConstantFaceConstantZC is a function not ScalarInterpolator so setter would fail"
-)
 def test_set_interp_methods(ds_fesom_channel, uv_fesom_channel):
     fieldset = FieldSet([uv_fesom_channel, uv_fesom_channel.U, uv_fesom_channel.V])
     # Check that the fieldset has the expected properties
@@ -127,9 +118,6 @@ def test_set_interp_methods(ds_fesom_channel, uv_fesom_channel):
     fieldset.V.interp_method = UxConstantFaceConstantZC
 
 
-@pytest.mark.skip(
-    "TODO restructure: uses old Field(name, data, grid, interp_method) constructor and Ux interpolators as callables; FieldSet([VectorField, ...]) no longer valid"
-)
 def test_fesom2_square_delaunay_uniform_z_coordinate_eval():
     """
     Test the evaluation of a fieldset with a FESOM2 square Delaunay grid and uniform z-coordinate.
@@ -178,9 +166,6 @@ def test_fesom2_square_delaunay_uniform_z_coordinate_eval():
     )
 
 
-@pytest.mark.skip(
-    "TODO restructure: uses old Field(name, data, grid, interp_method) constructor and FieldSet([Field]) no longer valid"
-)
 def test_fesom2_square_delaunay_antimeridian_eval():
     """
     Test the evaluation of a fieldset with a FESOM2 square Delaunay grid that crosses the antimeridian.
@@ -203,9 +188,6 @@ def test_fesom2_square_delaunay_antimeridian_eval():
     assert np.isclose(fieldset.p.eval(time=[0], z=[1.0], y=[30.0], x=[170.0]), 1.0)
 
 
-@pytest.mark.skip(
-    "TODO restructure: UnstructuredModel.construct_fields() has a src bug passing 3 args to Field; cannot test until fixed"
-)
 def test_icon_evals():
     ds = datasets_unstructured["icon_square_delaunay_uniform_z_coordinate"].copy(deep=True)
     ds = icon_to_ugrid(ds)

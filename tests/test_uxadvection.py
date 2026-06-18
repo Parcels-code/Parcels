@@ -11,9 +11,6 @@ from parcels.kernels import (
 )
 
 
-@pytest.mark.skip(
-    "TODO restructure: UnstructuredModel.construct_fields() has a src bug passing 3 args to Field (expects 2); cannot test until fixed"
-)
 @pytest.mark.parametrize("integrator", [AdvectionEE, AdvectionRK2, AdvectionRK4])
 def test_ux_constant_flow_face_centered_2D(integrator, tmp_parquet):
     ds = datasets_unstructured["ux_constant_flow_face_centered_2D"]
