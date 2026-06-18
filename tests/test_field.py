@@ -3,8 +3,7 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from parcels import Field, UxGrid, VectorField, XGrid
-from parcels._core.fieldset import FieldSet
+from parcels import Field, UxGrid, VectorField
 from parcels._core.model import StructuredModel
 from parcels._datasets.structured.generic import T as T_structured
 from parcels._datasets.structured.generic import datasets as datasets_structured
@@ -12,7 +11,6 @@ from parcels._datasets.unstructured.generic import datasets as datasets_unstruct
 from parcels.interpolators import (
     UxConstantFaceConstantZC,
     UxLinearNodeLinearZF,
-    XLinear,
 )
 
 
@@ -37,37 +35,7 @@ def test_field_init_param_types():
         Field(name="while", model=model)
 
 
-# remove: _assert_compatible_combination removed from Field; cross-type data/grid validation moved per-model class
-@pytest.mark.skip(
-    "Likely not relevant after refactoring from https://github.com/Parcels-code/Parcels/pull/2646"
-)
-def test_field_incompatible_combination(data, grid):
-    with pytest.raises(ValueError, match="Incompatible data-grid combination."):
-        Field(
-            name="test_field",
-            data=data,
-            grid=grid,
-            interp_method=XLinear,
-        )
-
-
-# remove: Field no longer takes data/grid args; fields are constructed via Model.construct_fields()
-@pytest.mark.skip(
-    "Needs updating after refactoring from https://github.com/Parcels-code/Parcels/pull/2646"
-)
-def test_field_init_structured_grid(data, grid):
-    """Test creating a field."""
-    field = Field(
-        name="test_field",
-        data=data,
-        grid=grid,
-        interp_method=XLinear,
-    )
-    assert field.name == "test_field"
-    assert field.data.equals(data)
-    assert field.grid == grid
-
-
+# TODO restructure: Move to test_model.py
 def test_field_init_fail_on_float_time_dim():
     """Test that accessing time_interval fails when dataset has float time dimension.
 
@@ -89,6 +57,7 @@ def test_field_init_fail_on_float_time_dim():
         _ = model.time_interval
 
 
+# TODO restructure: Move to test_model.py as test_model_time_interval()
 def test_field_time_interval():
     """Test that field.time_interval delegates correctly to model.time_interval."""
     data = datasets_structured["ds_2d_left"]
@@ -136,8 +105,7 @@ def test_vectorfield_invalid_interpolator():
         )
 
 
-# remove: UxConstantFaceConstantZC/UxLinearNodeLinearZF are plain functions not yet migrated to ScalarInterpolator; Field no longer accepts data/grid/interp_method args
-@pytest.mark.skip("remove: see comment above")
+@pytest.mark.skip("TODO restructure: Migrate UxLinearNodeLinearZF/UxConstantFaceConstantZC to ScalarInterpolaror")
 def test_field_unstructured_z_linear():
     """Tests correctness of piecewise constant and piecewise linear interpolation methods on an unstructured grid with a vertical coordinate.
     The example dataset is a FESOM2 square Delaunay grid with uniform z-coordinate. Cell centered and layer registered data are defined to be
@@ -194,8 +162,7 @@ def test_field_unstructured_z_linear():
     )
 
 
-# remove: UxConstantFaceConstantZC is a plain function not yet migrated to ScalarInterpolator; Field no longer accepts data/grid/interp_method args
-@pytest.mark.skip("remove: see comment above")
+@pytest.mark.skip("TODO restructure: Migrate UxLinearNodeLinearZF/UxConstantFaceConstantZC to ScalarInterpolaror")
 def test_field_constant_in_time():
     """Tests field evaluation for a field with no time interval (i.e., constant in time)."""
     ds = datasets_unstructured["stommel_gyre_delaunay"]

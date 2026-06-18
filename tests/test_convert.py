@@ -174,8 +174,9 @@ def test_convert_copernicusmarine_no_logs(ds, caplog):
     assert caplog.text == ""
 
 
-# remove: UnstructuredModel.construct_fields() has a src bug passing 3 args to Field (expects 2); cannot test FieldSet creation until fixed
-@pytest.mark.skip("remove: see comment above")
+@pytest.mark.skip(
+    "TODO restructured: UnstructuredModel.construct_fields() has a src bug passing 3 args to Field (expects 2); cannot test FieldSet creation until fixed"
+)
 def test_convert_fesom_to_ugrid():
     grid_file = open_remote_dataset("Benchmarks_FESOM2-baroclinic-gyre/grid")
     data_files = open_remote_dataset("Benchmarks_FESOM2-baroclinic-gyre/data")

@@ -48,8 +48,8 @@ def test_grid_indexing_fpoints(field_cone):
             assert y > np.min(cell_lat) and y < np.max(cell_lat)
 
 
-# remove: XGrid no longer accepts xgcm.Grid objects; now requires xr.Dataset with SGRID metadata; NEMO curvilinear workflow via xgcm is not the construction path
-@pytest.mark.skip("remove: see comment above")
+# XGrid no longer accepts xgcm.Grid objects; now requires xr.Dataset with SGRID metadata; NEMO curvilinear workflow via xgcm is not the construction path
+@pytest.mark.skip("Uses now removed API. TODO: What is the goal of this test?")
 def test_indexing_nemo_curvilinear():
     ds = parcels.tutorial.open_dataset("NemoCurvilinear_data_zonal/mesh_mask")
     ds = ds.isel({"z_a": 0}, drop=True).rename({"glamf": "lon", "gphif": "lat", "z": "depth"})

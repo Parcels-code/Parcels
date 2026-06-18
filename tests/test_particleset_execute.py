@@ -19,7 +19,6 @@ from parcels import (
     VectorField,
 )
 from parcels._core.utils.time import timedelta_to_float
-from parcels.interpolators._base import ScalarInterpolator
 from parcels._datasets.structured.generated import simple_UV_dataset
 from parcels._datasets.structured.generic import datasets as datasets_structured
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
@@ -28,6 +27,7 @@ from parcels.interpolators import (
     UxConstantFaceConstantZC,
     UxLinearNodeLinearZF,
 )
+from parcels.interpolators._base import ScalarInterpolator
 from parcels.kernels import AdvectionEE, AdvectionRK2, AdvectionRK4, AdvectionRK4_3D, AdvectionRK45
 from tests.common_kernels import DoNothing
 from tests.utils import DEFAULT_PARTICLES
@@ -471,8 +471,9 @@ def test_execution_update_particle_in_kernel_function(fieldset, kernel_names, ex
     np.testing.assert_allclose(pset.lat, expected, rtol=1e-5)
 
 
-# remove: uses old Field(name, data, grid, interp_method) constructor; FieldSet([VectorField, ...]) no longer valid; Ux_Velocity is a callable not VectorInterpolator
-@pytest.mark.skip("remove: see comment above")
+@pytest.mark.xfail(
+    reason="TODO restructure: Update fieldset ingestion - uses old Field(name, data, grid, interp_method) constructor; FieldSet([VectorField, ...]) no longer valid. Update Ux_Velocity from callable to VectorInterpolator"
+)
 def test_uxstommelgyre_pset_execute():
     ds = datasets_unstructured["stommel_gyre_delaunay"]
     grid = UxGrid(grid=ds.uxgrid, z=ds.coords["zf"], mesh="spherical")
@@ -513,8 +514,9 @@ def test_uxstommelgyre_pset_execute():
     np.testing.assert_allclose(pset[0].lat, 4.998546, atol=1e-3)
 
 
-# remove: uses old Field(name, data, grid, interp_method) constructor; FieldSet([VectorField, ...]) no longer valid; Ux_Velocity is a callable not VectorInterpolator
-@pytest.mark.skip("remove: see comment above")
+@pytest.mark.xfail(
+    reason="TODO restructure: Update fieldset ingestion - uses old Field(name, data, grid, interp_method) constructor; FieldSet([VectorField, ...]) no longer valid. Update Ux_Velocity from callable to VectorInterpolator"
+)
 def test_uxstommelgyre_multiparticle_pset_execute():
     ds = datasets_unstructured["stommel_gyre_delaunay"]
     grid = UxGrid(grid=ds.uxgrid, z=ds.coords["zf"], mesh="spherical")

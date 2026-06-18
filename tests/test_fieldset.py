@@ -5,11 +5,9 @@ import cftime
 import numpy as np
 import pandas as pd
 import pytest
-import xarray as xr
 
 from parcels import Field, ParticleFile, ParticleSet, XGrid, convert
-from parcels._core.fieldset import CalendarError, FieldSet, _datetime_to_msg
-from parcels._datasets.structured.generic import T as T_structured
+from parcels._core.fieldset import FieldSet, _datetime_to_msg
 from parcels._datasets.structured.generic import datasets as datasets_structured
 from parcels._datasets.structured.generic import datasets_sgrid
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
@@ -40,8 +38,9 @@ def test_fieldset_add_constant_invalid_name(fieldset, name):
         fieldset.add_constant(name, 1.0)
 
 
-# remove: add_constant_field has a src bug (still calls Field with old data/grid/interp_method constructor); cannot test until fixed
-@pytest.mark.skip("remove: see comment above")
+@pytest.mark.skip(
+    "TODO restructure: add_constant_field has a src bug (still calls Field with old data/grid/interp_method constructor); cannot test until fixed"
+)
 def test_fieldset_add_constant_field(fieldset):
     fieldset.add_constant_field("test_constant_field", 1.0)
 
@@ -54,45 +53,17 @@ def test_fieldset_add_constant_field(fieldset):
     assert fieldset.test_constant_field[time, z, lat, lon] == 1.0
 
 
-# remove: Field no longer takes data/grid/interp_method args; add_field with old constructor is invalid
-@pytest.mark.skip(
-    "Likely not relevant after refactoring from https://github.com/Parcels-code/Parcels/pull/2646"
-)
-def test_fieldset_add_field(fieldset):
-    grid = XGrid.from_dataset(ds, mesh="flat")
-    field = Field("test_field", ds["U_A_grid"], grid, interp_method=XLinear)
-    fieldset.add_field(field)
-    assert fieldset.test_field == field
-
-
-# remove: add_field API needs updating; error message changed from "field" to "model" terminology
-@pytest.mark.skip(
-    "Likely not relevant after refactoring from https://github.com/Parcels-code/Parcels/pull/2646"
-)
-def test_fieldset_add_field_wrong_type(fieldset):
-    not_a_field = 1.0
-    with pytest.raises(ValueError, match="Expected `field` to be a Field or VectorField object. Got .*"):
-        fieldset.add_field(not_a_field, "test_field")
-
-
-# remove: add_field uses old Field constructor; needs redesign around Model-based approach
-@pytest.mark.skip(
-    "Likely not relevant after refactoring from https://github.com/Parcels-code/Parcels/pull/2646"
-)
-def test_fieldset_add_field_already_exists(fieldset):
-    grid = XGrid.from_dataset(ds, mesh="flat")
-    field = Field("test_field", ds["U_A_grid"], grid, interp_method=XLinear)
-    fieldset.add_field(field, "test_field")
-    with pytest.raises(ValueError, match="FieldSet already has a Field with name 'test_field'"):
-        fieldset.add_field(field, "test_field")
-
-
 def test_fieldset_gridset(fieldset):
     assert fieldset.fields["U"].grid in fieldset.gridset
     assert fieldset.fields["V"].grid in fieldset.gridset
     assert fieldset.fields["UV"].grid in fieldset.gridset
     assert len(fieldset.gridset) == 1
-    # remove: add_constant_field has a src bug (still uses old Field constructor); gridset growth not testable
+
+    pytest.skip(
+        "TODO restructure: add_constant_field has a src bug (still uses old Field constructor); gridset growth not testable"
+    )
+    fieldset.add_constant_field("constant_field", 1.0)
+    assert len(fieldset.gridset) == 2
 
 
 def test_fieldset_no_UV(tmp_parquet):
@@ -123,10 +94,8 @@ def test_fieldset_from_structured_generic_datasets(ds):
 def test_fieldset_gridset_multiple_grids(): ...
 
 
-# remove: uses old Field constructor; FieldSet now takes Model list not Field list
-@pytest.mark.skip(
-    "Needs updating after refactoring from https://github.com/Parcels-code/Parcels/pull/2646"
-)
+# TODO restructure: use adding of fieldset notation to test this
+@pytest.mark.skip("Needs updating after refactoring from https://github.com/Parcels-code/Parcels/pull/2646")
 def test_fieldset_time_interval():
     grid1 = XGrid.from_dataset(ds, mesh="flat")
     field1 = Field("field1", ds["U_A_grid"], grid1, interp_method=XLinear)
@@ -143,8 +112,9 @@ def test_fieldset_time_interval():
     assert fieldset.time_interval.right == np.datetime64("2001-01-01")
 
 
-# remove: add_constant_field has a src bug (still uses old Field constructor); cannot test until fixed
-@pytest.mark.skip("remove: see comment above")
+@pytest.mark.xfail(
+    reason="TODO restructure: add_constant_field has a src bug (still uses old Field constructor); cannot test until fixed"
+)
 def test_fieldset_time_interval_constant_fields():
     fieldset = FieldSet([])
     fieldset.add_constant_field("constant_field", 1.0)
@@ -153,63 +123,9 @@ def test_fieldset_time_interval_constant_fields():
     assert fieldset.time_interval is None
 
 
-# remove: uses old Field constructor; calendar validation via FieldSet([Field...]) no longer valid
-@pytest.mark.skip(
-    "Needs updating after refactoring from https://github.com/Parcels-code/Parcels/pull/2646"
-)
-def test_fieldset_init_incompatible_calendars():
-    ds1 = ds.copy()
-    ds1["time"] = (
-        ds1["time"].dims,
-        xr.date_range("2000", "2001", T_structured, calendar="365_day", use_cftime=True),
-        ds1["time"].attrs,
-    )
-
-    grid = XGrid.from_dataset(ds1, mesh="flat")
-    U = Field("U", ds1["U_A_grid"], grid, interp_method=XLinear)
-    V = Field("V", ds1["V_A_grid"], grid, interp_method=XLinear)
-
-    ds2 = ds.copy()
-    ds2["time"] = (
-        ds2["time"].dims,
-        xr.date_range("2000", "2001", T_structured, calendar="360_day", use_cftime=True),
-        ds2["time"].attrs,
-    )
-    grid2 = XGrid.from_dataset(ds2, mesh="flat")
-    incompatible_calendar = Field("test", ds2["data_g"], grid2, interp_method=XLinear)
-
-    with pytest.raises(CalendarError, match="Expected field '.*' to have calendar compatible with datetime object"):
-        FieldSet([U, V, incompatible_calendar])
-
-
-# remove: uses old Field constructor; calendar validation via add_field with Field no longer valid
-@pytest.mark.skip(
-    "Needs updating after refactoring from https://github.com/Parcels-code/Parcels/pull/2646"
-)
-def test_fieldset_add_field_incompatible_calendars(fieldset):
-    ds_test = ds.copy()
-    ds_test["time"] = (
-        ds_test["time"].dims,
-        xr.date_range("2000", "2001", T_structured, calendar="360_day", use_cftime=True),
-        ds_test["time"].attrs,
-    )
-    grid = XGrid.from_dataset(ds_test, mesh="flat")
-    field = Field("test_field", ds_test["data_g"], grid, interp_method=XLinear)
-
-    with pytest.raises(CalendarError, match="Expected field '.*' to have calendar compatible with datetime object"):
-        fieldset.add_field(field, "test_field")
-
-    ds_test = ds.copy()
-    ds_test["time"] = (
-        ds_test["time"].dims,
-        np.linspace(0, 100, T_structured, dtype="timedelta64[s]"),
-        ds_test["time"].attrs,
-    )
-    grid = XGrid.from_dataset(ds_test, mesh="flat")
-    field = Field("test_field", ds_test["data_g"], grid, interp_method=XLinear)
-
-    with pytest.raises(CalendarError, match="Expected field '.*' to have calendar compatible with datetime object"):
-        fieldset.add_field(field, "test_field")
+def test_fieldset_add_incompatible_calendars():
+    # tests the adding of fieldsets that have incompatible calendars
+    ...
 
 
 @pytest.mark.parametrize(
@@ -250,8 +166,9 @@ def test_fieldset_add_field_after_pset():
     ...
 
 
-# remove: UnstructuredModel.construct_fields() has a src bug passing 3 args to Field (expects 2); cannot test until fixed
-@pytest.mark.skip("remove: see comment above")
+@pytest.mark.xfail(
+    reason="TODO restructure: UnstructuredModel.construct_fields() has a src bug passing 3 args to Field (expects 2); cannot test until fixed"
+)
 def test_fieldset_from_icon():
     ds = convert.icon_to_ugrid(datasets_unstructured["icon_square_delaunay_uniform_z_coordinate"])
     fieldset = FieldSet.from_ugrid_conventions(ds)
@@ -260,8 +177,9 @@ def test_fieldset_from_icon():
     assert "UVW" in fieldset.fields
 
 
-# remove: UnstructuredModel.construct_fields() has a src bug passing 3 args to Field (expects 2); cannot test until fixed
-@pytest.mark.skip("remove: see comment above")
+@pytest.mark.xfail(
+    reason="TODO restructure: UnstructuredModel.construct_fields() has a src bug passing 3 args to Field (expects 2); cannot test until fixed"
+)
 def test_fieldset_from_fesom2():
     ds = convert.fesom_to_ugrid(datasets_unstructured["fesom2_square_delaunay_uniform_z_coordinate"])
     fieldset = FieldSet.from_ugrid_conventions(ds)
