@@ -3,14 +3,14 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
-from parcels import Field, UxGrid, VectorField
+from parcels import Field, VectorField
+from parcels._core.fieldset import FieldSet
 from parcels._core.model import StructuredModel
 from parcels._datasets.structured.generic import T as T_structured
 from parcels._datasets.structured.generic import datasets as datasets_structured
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
 from parcels.interpolators import (
     UxConstantFaceConstantZC,
-    UxLinearNodeLinearZF,
 )
 
 
@@ -126,9 +126,10 @@ def test_field_unstructured_z_linear():
     for k, z in enumerate(ds.coords["zf"]):
         ds["W"].values[:, k, :] = z
 
-    grid = UxGrid(ds.uxgrid, z=ds.coords["zf"], mesh="flat")
+    fieldset = FieldSet.from_ugrid_conventions(ds, mesh="spherical")
     # Note that the vertical coordinate is required to be the position of the layer interfaces ("nz"), not the mid-layers ("nz1")
-    P = Field(name="p", data=ds.p, grid=grid, interp_method=UxConstantFaceConstantZC)
+    P = fieldset.p
+    W = fieldset.W
 
     # Test above first cell center - for piecewise constant, should return the depth of the first cell center
     assert np.isclose(
@@ -146,7 +147,6 @@ def test_field_unstructured_z_linear():
         944.44445801,
     )
 
-    W = Field(name="W", data=ds.W, grid=grid, interp_method=UxLinearNodeLinearZF)
     assert np.isclose(
         W.eval(time=[0], z=[10.0], y=[30.0], x=[30.0]),
         10.0,
@@ -163,10 +163,10 @@ def test_field_unstructured_z_linear():
 
 def test_field_constant_in_time():
     """Tests field evaluation for a field with no time interval (i.e., constant in time)."""
-    ds = datasets_unstructured["stommel_gyre_delaunay"]
-    grid = UxGrid(ds.uxgrid, z=ds.coords["zf"], mesh="flat")
+    fieldset = FieldSet.from_ugrid_conventions(datasets_unstructured["stommel_gyre_delaunay"], mesh="flat")
     # Note that the vertical coordinate is required to be the position of the layer interfaces ("nz"), not the mid-layers ("nz1")
-    P = Field(name="p", data=ds.p, grid=grid, interp_method=UxConstantFaceConstantZC)
+    P = fieldset.p
+    assert isinstance(P.interp_method, UxConstantFaceConstantZC)
 
     # Assert that the field can be evaluated at any time, and returns the same value
     time = np.datetime64("2000-01-01T00:00:00")
