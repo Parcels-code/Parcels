@@ -5,6 +5,7 @@ import pytest
 
 from parcels import Field, UxGrid, VectorField, XGrid
 from parcels._core.fieldset import FieldSet
+from parcels._core.warnings import FieldEvalWarning
 from parcels._datasets.structured.generated import simple_UV_dataset
 from parcels._datasets.structured.generic import T as T_structured
 from parcels._datasets.structured.generic import datasets as datasets_structured
@@ -284,12 +285,16 @@ def test_field_eval_out_of_bounds_structured():
     np.testing.assert_allclose(fieldset.UV.eval(0.0, 0.0, 0.0, 0.0), [[1.0], [2.0]])
 
     # eval outside of bounds should return 0.0
-    np.testing.assert_allclose(fieldset.U.eval(0.0, 0.0, 0.0, 5e6), 0.0)
-    np.testing.assert_allclose(fieldset.UV.eval(0.0, 0.0, 0.0, 5e6), [[0.0], [0.0]])
-    np.testing.assert_allclose(fieldset.U.eval(0.0, 0.0, 5e6, 0.0), 0.0)
-    np.testing.assert_allclose(fieldset.UV.eval(0.0, 0.0, 5e6, 0.0), [[0.0], [0.0]])
-    np.testing.assert_allclose(fieldset.U.eval(0.0, 5e6, 0.0, 0.0), 0.0)
-    np.testing.assert_allclose(fieldset.UV.eval(0.0, 5e6, 0.0, 0.0), [[0.0], [0.0]])
+    with pytest.warns(
+        FieldEvalWarning,
+        match="Some interpolated values are out-of-bounds. These values are set to 0. Treat carefully.",
+    ):
+        np.testing.assert_allclose(fieldset.U.eval(0.0, 0.0, 0.0, 5e6), 0.0)
+        np.testing.assert_allclose(fieldset.UV.eval(0.0, 0.0, 0.0, 5e6), [[0.0], [0.0]])
+        np.testing.assert_allclose(fieldset.U.eval(0.0, 0.0, 5e6, 0.0), 0.0)
+        np.testing.assert_allclose(fieldset.UV.eval(0.0, 0.0, 5e6, 0.0), [[0.0], [0.0]])
+        np.testing.assert_allclose(fieldset.U.eval(0.0, 5e6, 0.0, 0.0), 0.0)
+        np.testing.assert_allclose(fieldset.UV.eval(0.0, 5e6, 0.0, 0.0), [[0.0], [0.0]])
 
 
 def test_field_eval_out_of_bounds_unstructured():
@@ -304,12 +309,16 @@ def test_field_eval_out_of_bounds_unstructured():
     np.testing.assert_allclose(fieldset.UV.eval(0.0, 0.0, 0.0, 0.0), [[1.0], [2.0]])
 
     # eval outside of bounds should return 0.0
-    np.testing.assert_allclose(fieldset.U.eval(0.0, 0.0, 0.0, 5e6), 0.0)
-    np.testing.assert_allclose(fieldset.UV.eval(0.0, 0.0, 0.0, 5e6), [[0.0], [0.0]])
-    np.testing.assert_allclose(fieldset.U.eval(0.0, 0.0, 5e6, 0.0), 0.0)
-    np.testing.assert_allclose(fieldset.UV.eval(0.0, 0.0, 5e6, 0.0), [[0.0], [0.0]])
-    np.testing.assert_allclose(fieldset.U.eval(0.0, 5e6, 0.0, 0.0), 0.0)
-    np.testing.assert_allclose(fieldset.UV.eval(0.0, 5e6, 0.0, 0.0), [[0.0], [0.0]])
+    with pytest.warns(
+        FieldEvalWarning,
+        match="Some interpolated values are out-of-bounds. These values are set to 0. Treat carefully.",
+    ):
+        np.testing.assert_allclose(fieldset.U.eval(0.0, 0.0, 0.0, 5e6), 0.0)
+        np.testing.assert_allclose(fieldset.UV.eval(0.0, 0.0, 0.0, 5e6), [[0.0], [0.0]])
+        np.testing.assert_allclose(fieldset.U.eval(0.0, 0.0, 5e6, 0.0), 0.0)
+        np.testing.assert_allclose(fieldset.UV.eval(0.0, 0.0, 5e6, 0.0), [[0.0], [0.0]])
+        np.testing.assert_allclose(fieldset.U.eval(0.0, 5e6, 0.0, 0.0), 0.0)
+        np.testing.assert_allclose(fieldset.UV.eval(0.0, 5e6, 0.0, 0.0), [[0.0], [0.0]])
 
 
 def test_field_unstructured_grid_creation(): ...

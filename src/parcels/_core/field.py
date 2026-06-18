@@ -17,6 +17,7 @@ from parcels._core.statuscodes import (
 from parcels._core.utils.string import _assert_str_and_python_varname
 from parcels._core.utils.time import TimeInterval
 from parcels._core.uxgrid import UxGrid
+from parcels._core.warnings import FieldEvalWarning
 from parcels._core.xgrid import XGrid, _transpose_xfield_data_to_tzyx, assert_all_field_dims_have_axis
 from parcels._python import assert_same_function_signature
 from parcels._reprs import field_repr, vectorfield_repr
@@ -375,6 +376,11 @@ def _mask_outofbounds_values(grid_positions: dict, value):
         if dim in grid_positions:
             mask[grid_positions[dim]["index"] < 0] = True
     if np.any(mask):
+        warnings.warn(
+            "Some interpolated values are out-of-bounds. These values are set to 0. Treat carefully.",
+            FieldEvalWarning,
+            stacklevel=2,
+        )
         value[mask] = 0.0
 
 

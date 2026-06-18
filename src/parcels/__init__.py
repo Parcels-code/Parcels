@@ -61,6 +61,7 @@ __all__ = [  # noqa: RUF022
     "OutsideTimeInterval",
     "StatusCode",
     # Warnings
+    "FieldEvalWarning",
     "FieldSetWarning",
     "FileWarning",
     "KernelWarning",
