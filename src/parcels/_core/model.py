@@ -174,7 +174,12 @@ constant_field_models = {
     mesh: StructuredModel.from_sgrid_conventions(
         xr.Dataset(
             {},
-            coords={"lat": (["lat"], [0], {"axis": "Y"}), "lon": (["lon"], [0], {"axis": "X"})},
+            coords={
+                "lat": (["lat"], [0], {"axis": "Y"}),
+                "lon": (["lon"], [0], {"axis": "X"}),
+                "depth": (["depth"], [0], {"axis": "Z"}),
+                "time": (["time"], [0], {"axis": "T"}),
+            },
         ).pipe(
             sgrid._attach_sgrid_metadata,
             sgrid.SGrid2DMetadata(

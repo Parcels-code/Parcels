@@ -15,6 +15,9 @@ from parcels._core.utils.string import _assert_str_and_python_varname
 from parcels._core.utils.time import get_datetime_type_calendar
 from parcels._core.utils.time import is_compatible as datetime_is_compatible
 from parcels._typing import Mesh
+from parcels.interpolators import (
+    XConstantField,
+)
 
 if TYPE_CHECKING:
     from parcels._core.basegrid import BaseGrid
@@ -154,12 +157,14 @@ class FieldSet:
         except KeyError as e:
             raise ValueError(f"mesh must be one of ['flat', 'spherical']. Got {mesh!r}.") from e
 
-        model.data["name"] = (["lat", "lon"], np.full((1, 1), value))
+        model.data[name] = (["lat", "lon", "depth", "time"], np.full((1, 1, 1, 1), value))
 
         if model not in self.models:
             self.models.append(model)
-            breakpoint()
-            self.reconstruct_fields()
+
+        self.reconstruct_fields()
+        field = getattr(self, name)
+        field.interp_method = XConstantField()
 
     def add_constant(self, name, value):
         """Add a constant to the FieldSet.
