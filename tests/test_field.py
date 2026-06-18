@@ -35,7 +35,7 @@ def test_field_init_param_types():
         Field(name="while", model=model)
 
 
-# TODO restructure: Move to test_model.py
+# TODO: Move to test_model.py ?
 def test_field_init_fail_on_float_time_dim():
     """Test that accessing time_interval fails when dataset has float time dimension.
 
@@ -57,7 +57,7 @@ def test_field_init_fail_on_float_time_dim():
         _ = model.time_interval
 
 
-# TODO restructure: Move to test_model.py as test_model_time_interval()
+# TODO: Move to test_model.py as test_model_time_interval() ?
 def test_field_time_interval():
     """Test that field.time_interval delegates correctly to model.time_interval."""
     data = datasets_structured["ds_2d_left"]
