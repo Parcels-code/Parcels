@@ -170,6 +170,29 @@ class StructuredModel(Model):
         return model
 
 
+constant_field_models = {
+    mesh: StructuredModel.from_sgrid_conventions(
+        xr.Dataset(
+            {},
+            coords={"lat": (["lat"], [0], {"axis": "Y"}), "lon": (["lon"], [0], {"axis": "X"})},
+        ).pipe(
+            sgrid._attach_sgrid_metadata,
+            sgrid.SGrid2DMetadata(
+                cf_role="grid_topology",
+                topology_dimension=2,
+                node_dimensions=("lon", "lat"),
+                face_dimensions=(
+                    sgrid.FaceNodePadding("XC", "lon", sgrid.Padding.LOW),
+                    sgrid.FaceNodePadding("YC", "lat", sgrid.Padding.LOW),
+                ),
+            ),
+        ),
+        mesh=mesh,
+    )
+    for mesh in ["flat", "spherical"]  # type:ignore[reportArgumentType]
+}
+
+
 class UnstructuredModel(Model):
     def __init__(self, data: ux.UxDataset, grid: UxGrid):
         if not isinstance(data, ux.UxDataset):
