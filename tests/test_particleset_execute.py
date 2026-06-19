@@ -18,6 +18,7 @@ from parcels import (
     Variable,
     VectorField,
 )
+from parcels._core.statuscodes import GridSearchingError
 from parcels._core.utils.time import timedelta_to_float
 from parcels._datasets.structured.generated import simple_UV_dataset
 from parcels._datasets.structured.generic import datasets as datasets_structured
@@ -592,3 +593,26 @@ def test_uxstommelgyre_pset_execute_output():
     pset.execute(
         runtime=np.timedelta64(10, "m"), dt=np.timedelta64(60, "s"), kernels=AdvectionEE, output_file=output_file
     )
+
+
+def test_uxgrid_particle_leaving_domain_raises():
+    """A particle advecting out of an unstructured (UxGrid) domain must be flagged.
+
+    Once the particle crosses the outflow boundary the FACE search returns
+    ``GRID_SEARCH_ERROR`` and ``pset.execute`` should raise a GridSearchingError.
+    """
+    ds = datasets_unstructured["ux_constant_flow_face_centered_2D"]
+    grid = UxGrid(grid=ds.uxgrid, z=ds.coords["zc"], mesh="flat")
+    U = Field(name="U", data=ds.U, grid=grid, interp_method=UxConstantFaceConstantZC)
+    V = Field(name="V", data=ds.V, grid=grid, interp_method=UxConstantFaceConstantZC)
+    UV = VectorField(name="UV", U=U, V=V, interp_method=Ux_Velocity)
+    fieldset = FieldSet([UV, UV.U, UV.V])
+
+    # Uniform eastward flow (U0 = 0.001 deg/s); release 0.1 deg inside the eastern
+    # outflow boundary (domain spans lon, lat in [0, 20]). The particle crosses
+    # lon=20 after 100 s of travel.
+    lon_max = float(ds.uxgrid.node_lon.max())
+    pset = ParticleSet(fieldset, lon=[lon_max - 0.1], lat=[10.0], z=[0.5], pclass=Particle)
+
+    with pytest.raises(GridSearchingError):
+        pset.execute(AdvectionEE, runtime=np.timedelta64(120, "s"), dt=np.timedelta64(10, "s"))
