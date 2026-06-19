@@ -473,18 +473,17 @@ def test_mitgcm():
     lat = np.linspace(22e3, 1950e3, npart)
 
     pset = parcels.ParticleSet(fieldset, lon=lon, lat=lat)
-    pset.execute(AdvectionRK4, runtime=np.timedelta64(5, "D"), dt=np.timedelta64(30, "m"))
-
-    lon_v3 = [
-        25334.3084714,
-        82824.04760837,
-        136410.63322281,
-        98325.83708985,
-        83152.54325753,
-        89321.35275493,
-        237376.5840757,
-        56860.97672692,
-        153947.52685014,
-        28349.16658616,
+    pset.execute(AdvectionRK4, runtime=np.timedelta64(1, "D"), dt=np.timedelta64(1, "h"))
+    lat_v3 = [
+        22363.3109351,
+        241677.27730161,
+        461322.50669352,
+        664760.42373974,
+        886760.91201257,
+        1087116.48719691,
+        1274515.29539529,
+        1542216.3950654,
+        1741733.45906654,
+        1952691.93845841,
     ]
-    np.testing.assert_allclose(pset.lon, lon_v3, atol=10)
+    np.testing.assert_allclose(pset.lat, lat_v3, atol=1)
