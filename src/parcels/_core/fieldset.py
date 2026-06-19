@@ -177,8 +177,6 @@ class FieldSet:
 
         if name in self.context:
             raise ValueError(f"FieldSet already has a context with name '{name}'")
-        if not isinstance(value, (float, np.floating, int, np.integer)):
-            raise ValueError(f"FieldSet context variables have to be of type float or int, got a {type(value)}")
         self.context[name] = value
 
     @property
@@ -209,6 +207,10 @@ class FieldSet:
         -------
         FieldSet
             FieldSet object containing the fields from the dataset that can be used for a Parcels simulation.
+
+        Notes
+        -----
+        See https://ugrid-conventions.github.io/ugrid-conventions/ for more information on the UGRID conventions.
         """
         ds_dims = list(ds.dims)
         if not all(dim in ds_dims for dim in ["time", "zf", "zc"]):
@@ -263,7 +265,7 @@ class FieldSet:
         and create appropriate Fields for a Parcels simulation. The dataset should
         contain a variable with 'cf_role' attribute set to 'grid_topology'.
 
-        See https://sgrid.github.io/ for more information on the SGRID conventions.
+        See https://sgrid.github.io/sgrid/ for more information on the SGRID conventions.
         """
         ds = ds.copy()
         if mesh is None:
