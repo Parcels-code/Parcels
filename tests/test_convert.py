@@ -6,7 +6,6 @@ import parcels
 import parcels.convert as convert
 import parcels.tutorial
 from parcels import FieldSet
-from parcels._core.utils import sgrid
 from parcels._datasets.remote import open_remote_dataset
 from parcels._datasets.structured.circulation_models import datasets as datasets_circulation_models
 from parcels.interpolators._xinterpolators import _get_offsets_dictionary
@@ -35,7 +34,7 @@ def test_nemo_to_sgrid_2d(U, V, coords):  # noqa: N803
         "vertical_dimensions": "depth_center:depth (padding:high)",
     }
 
-    meta = sgrid.parse_grid_attrs(ds["grid"].attrs)
+    meta = ds.sgrid.metadata
 
     # Assuming that node_dimension1 and node_dimension2 correspond to X and Y respectively
     # check that U and V are properly defined on the staggered grid
@@ -75,7 +74,7 @@ def test_nemo_to_sgrid_with_depth(U, V, depth, coords):  # noqa: N803
         "vertical_dimensions": "depth_center:depth (padding:high)",
     }
 
-    meta = sgrid.parse_grid_attrs(ds["grid"].attrs)
+    meta = ds.sgrid.metadata
 
     # Assuming that node_dimension1 and node_dimension2 correspond to X and Y respectively
     # check that U and V are properly defined on the staggered grid

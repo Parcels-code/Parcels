@@ -142,32 +142,6 @@ class Field:
         return field_repr(self)
 
     @property
-    def xdim(self):
-        if type(self.data) is xr.DataArray:
-            return self.grid.xdim
-        else:
-            raise NotImplementedError("xdim not implemented for unstructured grids")
-
-    @property
-    def ydim(self):
-        if type(self.data) is xr.DataArray:
-            return self.grid.ydim
-        else:
-            raise NotImplementedError("ydim not implemented for unstructured grids")
-
-    @property
-    def zdim(self):
-        if type(self.data) is xr.DataArray:
-            return self.grid.zdim
-        else:
-            if "nz1" in self.data.dims:
-                return self.data.sizes["nz1"]
-            elif "nz" in self.data.dims:
-                return self.data.sizes["nz"]
-            else:
-                return 0
-
-    @property
     def interp_method(self):
         return self._interp_method
 
@@ -245,10 +219,10 @@ class VectorField:
         U: Field,  # noqa: N803
         V: Field,  # noqa: N803
         W: Field | None = None,  # noqa: N803
-        vector_interp_method: Callable | None = None,
+        interp_method: Callable | None = None,
     ):
-        if vector_interp_method is None:
-            raise ValueError("vector_interp_method must be provided for VectorField initialization.")
+        if interp_method is None:
+            raise ValueError("interp_method must be provided for VectorField initialization.")
 
         _assert_str_and_python_varname(name)
         self.name = name
@@ -270,20 +244,20 @@ class VectorField:
         else:
             self.vector_type = "2D"
 
-        assert_same_function_signature(vector_interp_method, ref=ZeroInterpolator_Vector, context="Interpolation")
-        self._vector_interp_method = vector_interp_method
+        assert_same_function_signature(interp_method, ref=ZeroInterpolator_Vector, context="Interpolation")
+        self._interp_method = interp_method
 
     def __repr__(self):
         return vectorfield_repr(self)
 
     @property
-    def vector_interp_method(self):
-        return self._vector_interp_method
+    def interp_method(self):
+        return self._interp_method
 
-    @vector_interp_method.setter
-    def vector_interp_method(self, method: Callable):
+    @interp_method.setter
+    def interp_method(self, method: Callable):
         assert_same_function_signature(method, ref=ZeroInterpolator_Vector, context="Interpolation")
-        self._vector_interp_method = method
+        self._interp_method = method
 
     def eval(self, time: datetime, z, y, x, particles=None):
         """Interpolate vectorfield values in space and time.
@@ -321,7 +295,7 @@ class VectorField:
 
         particle_positions, grid_positions = _get_positions(self.U, time, z, y, x, particles, _ei)
 
-        (u, v, w) = self._vector_interp_method(particle_positions, grid_positions, self)
+        (u, v, w) = self._interp_method(particle_positions, grid_positions, self)
 
         for vel in (u, v, w):
             _update_particle_states_interp_value(particles, vel)

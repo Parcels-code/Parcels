@@ -2,25 +2,11 @@ import numpy as np
 import pytest
 
 from parcels import (
-    Field,
-    FieldSet,
     ParticleSet,
-    XGrid,
 )
 from parcels._core.kernel import Kernel
-from parcels._datasets.structured.generic import datasets as datasets_structured
-from parcels.interpolators import XLinear
 from parcels.kernels import AdvectionRK4, AdvectionRK45
 from tests.common_kernels import MoveEast, MoveNorth
-
-
-@pytest.fixture
-def fieldset() -> FieldSet:
-    ds = datasets_structured["ds_2d_left"]
-    grid = XGrid.from_dataset(ds, mesh="flat")
-    U = Field("U", ds["U_A_grid"], grid, interp_method=XLinear)
-    V = Field("V", ds["V_A_grid"], grid, interp_method=XLinear)
-    return FieldSet([U, V])
 
 
 def test_unknown_var_in_kernel(fieldset):
@@ -31,6 +17,33 @@ def test_unknown_var_in_kernel(fieldset):
 
     with pytest.raises(KeyError, match="'unknown_varname'"):
         pset.execute(ErrorKernel, runtime=np.timedelta64(2, "s"), dt=np.timedelta64(1, "s"))
+
+
+def test_context_in_kernel(fieldset):
+    pset = ParticleSet(fieldset, lon=[0.5], lat=[0.5])
+
+    fieldset.add_context("fix_lon", -0.5)
+
+    def ContextKernel(particles, fieldset):
+        particles.lon = fieldset.fix_lon
+
+    pset.execute(ContextKernel, runtime=np.timedelta64(2, "s"), dt=np.timedelta64(1, "s"))
+    assert pset.lon == -0.5
+
+
+def test_func_context_in_kernel(fieldset):
+    pset = ParticleSet(fieldset, lon=[0.5], lat=[0.5])
+
+    def ContextFunc(x):
+        return 2 * x
+
+    fieldset.add_context("func", ContextFunc)
+
+    def FuncContextKernel(particles, fieldset):
+        particles.lon = fieldset.func(particles.lon)
+
+    pset.execute(FuncContextKernel, runtime=np.timedelta64(2, "s"), dt=np.timedelta64(1, "s"))
+    assert pset.lon == 2.0
 
 
 def test_kernel_init(fieldset):

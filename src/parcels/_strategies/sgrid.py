@@ -11,29 +11,40 @@ cover SGrid to the extent to which Parcels is concerned.
 import xarray.testing.strategies as xr_st
 from hypothesis import strategies as st
 
-from parcels._core.utils import sgrid
+import parcels._sgrid as sgrid
 
 padding = st.sampled_from(sgrid.Padding)
 dimension_name = xr_st.names().filter(
     lambda s: " " not in s
 )  # assuming for now spaces are allowed in dimension names in SGrid convention
-dim_dim_padding = (
+face_node_padding = (
     st.tuples(dimension_name, dimension_name, padding)
     .filter(lambda t: t[0] != t[1])
     .map(lambda t: sgrid.FaceNodePadding(*t))
 )
 
-mappings = st.lists(dim_dim_padding | dimension_name).map(tuple)
+mappings = st.lists(face_node_padding | dimension_name).map(tuple)
 
 
 @st.composite
-def grid2Dmetadata(draw) -> sgrid.Grid2DMetadata:
-    N = 8
-    names = draw(
-        st.lists(dimension_name, min_size=N, max_size=N, unique=True)
-        # Reserved, as 'grid' name is used in Parcels testing to store grid information
-        .filter(lambda names: "grid" not in names)
-    )
+def grid2Dmetadata(draw, use_standard_names=False) -> sgrid.SGrid2DMetadata:
+    names = [
+        "node_dimension1",
+        "node_dimension2",
+        "face_dimension1",
+        "face_dimension2",
+        "node_coordinates_var1",
+        "node_coordinates_var2",
+        "vertical_dimensions_face",
+        "vertical_dimensions_node",
+    ]
+    if not use_standard_names:
+        names = draw(
+            st.lists(dimension_name, min_size=len(names), max_size=len(names), unique=True)
+            # Reserved, as 'grid' name is used in Parcels testing to store grid information
+            .filter(lambda names: "grid" not in names)
+        )
+
     node_dimension1 = names[0]
     node_dimension2 = names[1]
     face_dimension1 = names[2]
@@ -62,7 +73,7 @@ def grid2Dmetadata(draw) -> sgrid.Grid2DMetadata:
     else:
         vertical_dimensions = None
 
-    return sgrid.Grid2DMetadata(
+    return sgrid.SGrid2DMetadata(
         cf_role="grid_topology",
         topology_dimension=2,
         node_dimensions=(node_dimension1, node_dimension2),
@@ -76,13 +87,24 @@ def grid2Dmetadata(draw) -> sgrid.Grid2DMetadata:
 
 
 @st.composite
-def grid3Dmetadata(draw) -> sgrid.Grid3DMetadata:
-    N = 9
-    names = draw(
-        st.lists(dimension_name, min_size=N, max_size=N, unique=True)
-        # Reserved, as 'grid' name is used in Parcels testing to store grid information
-        .filter(lambda names: "grid" not in names)
-    )
+def grid3Dmetadata(draw, use_standard_names=False) -> sgrid.SGrid3DMetadata:
+    names = [
+        "node_dimension1",
+        "node_dimension2",
+        "node_dimension3",
+        "face_dimension1",
+        "face_dimension2",
+        "face_dimension3",
+        "node_coordinates_var1",
+        "node_coordinates_var2",
+        "node_coordinates_dim3",
+    ]
+    if not use_standard_names:
+        names = draw(
+            st.lists(dimension_name, min_size=len(names), max_size=len(names), unique=True)
+            # Reserved, as 'grid' name is used in Parcels testing to store grid information
+            .filter(lambda names: "grid" not in names)
+        )
     node_dimension1 = names[0]
     node_dimension2 = names[1]
     node_dimension3 = names[2]
@@ -103,7 +125,7 @@ def grid3Dmetadata(draw) -> sgrid.Grid3DMetadata:
     else:
         node_coordinates = None
 
-    return sgrid.Grid3DMetadata(
+    return sgrid.SGrid3DMetadata(
         cf_role="grid_topology",
         topology_dimension=3,
         node_dimensions=(node_dimension1, node_dimension2, node_dimension3),

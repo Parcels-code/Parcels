@@ -2,7 +2,7 @@
 
 ## Basic Installation
 
-The simplest way to install the Parcels code is to use Anaconda and the [Parcels conda-forge package](https://anaconda.org/conda-forge/parcels) with the latest release of Parcels. This package will automatically install all the requirements for a fully functional installation of Parcels. This is the "batteries-included" solution probably suitable for most users. Note that we support Python 3.10 and higher.
+<!-- The simplest way to install the Parcels code is to use Anaconda and the [Parcels conda-forge package](https://anaconda.org/conda-forge/parcels) with the latest release of Parcels. This package will automatically install all the requirements for a fully functional installation of Parcels. This is the "batteries-included" solution probably suitable for most users. Note that we support Python 3.10 and higher.
 
 If you want to install the latest development version of Parcels and work with features that have not yet been officially released, you can follow the instructions for a [developer installation](#installation-for-developers).
 
@@ -12,13 +12,21 @@ The steps below are the installation instructions for Linux, macOS and Windows.
 
 **Step 1:** Install Anaconda's Miniconda following the steps at https://docs.anaconda.com/miniconda/. If you're on Linux /macOS, the following assumes that you installed Miniconda to your home directory.
 
-**Step 2:** Start a terminal (Linux / macOS) or the Anaconda prompt (Windows). Activate the `base` environment of your Miniconda and create an environment containing Parcels, all its essential dependencies, `trajan` (a trajectory plotting dependency used in the notebooks) and the nice-to-have cartopy and jupyter packages:
+**Step 2:** Start a terminal (Linux / macOS) or the Anaconda prompt (Windows). Activate the `base` environment of your Miniconda and create an environment containing Parcels, all its essential dependencies, `trajan` (a trajectory plotting dependency used in the notebooks) and the nice-to-have cartopy and jupyter packages: -->
+
+Parcels v4 is in active development and hasn't been released.
+
+A pre-release version of Parcels (i.e., the latest version on `main`) can be installed via conda using the following instructions (which creates an environment `parcels-env`, activates it, installs Parcels from a custom pre-release channel that we're using, and installs some additional helper packages).
 
 ```bash
-conda activate base
-conda create -n parcels -c conda-forge parcels trajan cartopy jupyter
+conda create -n parcels-env python
+conda activate parcels-env
+conda config --add channels conda-forge
+conda install -c https://prefix.dev/parcels parcels
+conda install trajan cartopy jupyter
 ```
 
+<!--
 ```{note}
 For some of the examples, `pytest` also needs to be installed. This can be quickly done with `conda install -n parcels pytest` which installs `pytest` directly into the newly created `parcels` environment.
 ```
@@ -33,7 +41,7 @@ conda activate parcels
 The next time you start a terminal and want to work with Parcels, activate the environment with `conda activate parcels`.
 ```
 
-**Step 4:** Create a Jupyter Notebook or Python script to set up your first Parcels simulation! The [quickstart tutorial](tutorial_quickstart.md) is a great way to get started immediately. You can also first read about the core [Parcels concepts](./explanation_concepts.md) to familiarize yourself with the classes and methods you will use.
+**Step 4:** Create a Jupyter Notebook or Python script to set up your first Parcels simulation! The [quickstart tutorial](tutorial_quickstart.md) is a great way to get started immediately. You can also first read about the core [Parcels concepts](./explanation_concepts.md) to familiarize yourself with the classes and methods you will use. -->
 
 ## Installation for developers
 

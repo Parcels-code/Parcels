@@ -10,8 +10,8 @@ import uxarray as ux
 import xarray as xr
 import xgcm
 
+import parcels._sgrid as sgrid
 from parcels._core.field import Field, VectorField
-from parcels._core.utils import sgrid
 from parcels._core.utils.string import _assert_str_and_python_varname
 from parcels._core.utils.time import get_datetime_type_calendar
 from parcels._core.utils.time import is_compatible as datetime_is_compatible
@@ -76,14 +76,23 @@ class FieldSet:
         assert_compatible_calendars(fields)
 
         self.fields = {f.name: f for f in fields}
-        self.constants: dict[str, float] = {}
+        self.context: dict[str, float] = {}
+
+    def __setattr__(self, name, value):
+        """Set field attribute by name. If context exists and name in context, raise error to prevent overwriting context variable."""
+        context = self.__dict__.get("context")
+
+        if context is not None and name in context:
+            raise AttributeError(f"Cannot assign '{name}' directly. Use fieldset.context['{name}'] instead.")
+        # Handle setting of attributes not in context per default
+        super().__setattr__(name, value)
 
     def __getattr__(self, name):
-        """Get the field by name. If the field is not found, check if it's a constant."""
+        """Get the field by name. If the field is not found, check if it's a context variable."""
         if name in self.fields:
             return self.fields[name]
-        elif name in self.constants:
-            return self.constants[name]
+        elif name in self.context:
+            return self.context[name]
         else:
             raise AttributeError(f"FieldSet has no attribute '{name}'")
 
@@ -153,24 +162,22 @@ class FieldSet:
         grid = XGrid(xgrid, mesh=mesh)
         self.add_field(Field(name, ds[name], grid, interp_method=XConstantField))
 
-    def add_constant(self, name, value):
-        """Add a constant to the FieldSet.
+    def add_context(self, name, value):
+        """Add context variable to the FieldSet.
 
         Parameters
         ----------
         name : str
-            Name of the constant
+            Name of the context variable
         value :
-            Value of the constant
+            Value of the context variable
 
         """
         _assert_str_and_python_varname(name)
 
-        if name in self.constants:
-            raise ValueError(f"FieldSet already has a constant with name '{name}'")
-        if not isinstance(value, (float, np.floating, int, np.integer)):
-            raise ValueError(f"FieldSet constants have to be of type float or int, got a {type(value)}")
-        self.constants[name] = value
+        if name in self.context:
+            raise ValueError(f"FieldSet already has a context with name '{name}'")
+        self.context[name] = value
 
     @property
     def gridset(self) -> list[BaseGrid]:
@@ -200,6 +207,10 @@ class FieldSet:
         -------
         FieldSet
             FieldSet object containing the fields from the dataset that can be used for a Parcels simulation.
+
+        Notes
+        -----
+        See https://ugrid-conventions.github.io/ugrid-conventions/ for more information on the UGRID conventions.
         """
         ds_dims = list(ds.dims)
         if not all(dim in ds_dims for dim in ["time", "zf", "zc"]):
@@ -214,13 +225,11 @@ class FieldSet:
         if "U" in ds.data_vars and "V" in ds.data_vars:
             fields["U"] = Field("U", ds["U"], grid, _select_uxinterpolator(ds["U"]))
             fields["V"] = Field("V", ds["V"], grid, _select_uxinterpolator(ds["V"]))
-            fields["UV"] = VectorField("UV", fields["U"], fields["V"], vector_interp_method=Ux_Velocity)
+            fields["UV"] = VectorField("UV", fields["U"], fields["V"], interp_method=Ux_Velocity)
 
             if "W" in ds.data_vars:
                 fields["W"] = Field("W", ds["W"], grid, _select_uxinterpolator(ds["W"]))
-                fields["UVW"] = VectorField(
-                    "UVW", fields["U"], fields["V"], fields["W"], vector_interp_method=Ux_Velocity
-                )
+                fields["UVW"] = VectorField("UVW", fields["U"], fields["V"], fields["W"], interp_method=Ux_Velocity)
 
         for varname in set(ds.data_vars) - set(fields.keys()):
             fields[varname] = Field(str(varname), ds[varname], grid, _select_uxinterpolator(ds[varname]))
@@ -256,7 +265,7 @@ class FieldSet:
         and create appropriate Fields for a Parcels simulation. The dataset should
         contain a variable with 'cf_role' attribute set to 'grid_topology'.
 
-        See https://sgrid.github.io/ for more information on the SGRID conventions.
+        See https://sgrid.github.io/sgrid/ for more information on the SGRID conventions.
         """
         ds = ds.copy()
         if mesh is None:
@@ -280,7 +289,7 @@ class FieldSet:
                 ds = ds.rename({time_dim: "time"})
 
         # Parse SGRID metadata and get xgcm kwargs
-        _, xgcm_kwargs = sgrid.parse_sgrid(ds)
+        _, xgcm_kwargs = sgrid.xgcm_parse_sgrid(ds)
 
         # Add time axis to xgcm_kwargs if present
         if "time" in ds.dims:
@@ -307,16 +316,14 @@ class FieldSet:
 
         fields = {}
         if "U" in ds.data_vars and "V" in ds.data_vars:
-            vector_interp_method = XLinear_Velocity if _is_agrid(ds) else CGrid_Velocity
+            interp_method = XLinear_Velocity if _is_agrid(ds) else CGrid_Velocity
             fields["U"] = Field("U", ds["U"], grid, XLinear)
             fields["V"] = Field("V", ds["V"], grid, XLinear)
-            fields["UV"] = VectorField("UV", fields["U"], fields["V"], vector_interp_method=vector_interp_method)
+            fields["UV"] = VectorField("UV", fields["U"], fields["V"], interp_method=interp_method)
 
             if "W" in ds.data_vars:
                 fields["W"] = Field("W", ds["W"], grid, XLinear)
-                fields["UVW"] = VectorField(
-                    "UVW", fields["U"], fields["V"], fields["W"], vector_interp_method=vector_interp_method
-                )
+                fields["UVW"] = VectorField("UVW", fields["U"], fields["V"], fields["W"], interp_method=interp_method)
 
         for varname in set(ds.data_vars) - set(fields.keys()) - skip_vars:
             fields[varname] = Field(str(varname), ds[varname], grid, XLinear)
@@ -358,10 +365,10 @@ def _format_calendar_error_message(field: Field | VectorField, reference_datetim
 
 
 _COPERNICUS_MARINE_AXIS_VARNAMES = {
-    "X": "lon",
-    "Y": "lat",
-    "Z": "depth",
     "T": "time",
+    "Z": "depth",
+    "Y": "lat",
+    "X": "lon",
 }
 
 
@@ -475,11 +482,7 @@ def _select_uxinterpolator(da: ux.UxDataArray):
 # TODO: Refactor later into something like `parcels._metadata.discover(dataset)` helper that can be used to discover important metadata like this. I think this whole metadata handling should be refactored into its own module.
 def _get_mesh_type_from_sgrid_dataset(ds_sgrid: xr.Dataset) -> Mesh:
     """Small helper to inspect SGRID metadata and dataset metadata to determine mesh type."""
-    grid_da = sgrid.get_grid_topology(ds_sgrid)
-    if grid_da is None:
-        raise ValueError("Dataset does not contain SGRID grid topology metadata (cf_role='grid_topology').")
-
-    sgrid_metadata = sgrid.parse_grid_attrs(grid_da.attrs)
+    sgrid_metadata = ds_sgrid.sgrid.metadata
 
     fpoint_x, fpoint_y = sgrid_metadata.node_coordinates
 

@@ -36,6 +36,8 @@ from parcels.kernels import (
     AdvectionRK4_3D,
 )
 
+pytestmark = pytest.mark.validation
+
 # Uniform translation parameters
 T1_1_U0 = 0.001
 T1_1_V0 = 0.0005
@@ -67,7 +69,7 @@ T1_3_RUNTIME = T1_2_RUNTIME
 )
 @pytest.mark.parametrize("integrator", [AdvectionEE, AdvectionRK4], ids=["EE", "RK4"])
 def test_uniform_translation_exact(dataset_fn, integrator):
-    ds = dataset_fn(nx=20, U0=T1_1_U0, V0=T1_1_V0)
+    ds = dataset_fn(nx=20, u0=T1_1_U0, v0=T1_1_V0)
     fieldset = parcels.FieldSet.from_ugrid_conventions(ds, mesh="flat")
 
     pset = parcels.ParticleSet(fieldset, lon=[T1_1_LON0], lat=[T1_1_LAT0])

@@ -15,6 +15,7 @@ import xarray as xr
 
 import parcels
 from parcels._core.particle import ParticleClass
+from parcels._core.particlesetview import ParticleSetView
 from parcels._core.utils.time import timedelta_to_float
 from parcels._reprs import particlefile_repr
 from parcels._typing import PathLike
@@ -60,6 +61,10 @@ class ParticleFile:
         It is either a numpy.timedelta64, a datimetime.timedelta object or a positive float (in seconds).
     compression : {"zstd", "gzip", "snappy", "brotli", None}, optional
         Compression algorithm to use for the Parquet file. Default is "zstd".
+    mode : {None, "w"}, optional
+        Writing behaviour.
+        - None (default): Write dataset, and raise an error if it already exists.
+        - "w": Write dataset, overwriting it.
 
     Returns
     -------
@@ -68,7 +73,11 @@ class ParticleFile:
     """
 
     def __init__(
-        self, path: PathLike, outputdt, compression: Literal["zstd", "gzip", "snappy", "brotli", None] = "zstd"
+        self,
+        path: PathLike,
+        outputdt,
+        compression: Literal["zstd", "gzip", "snappy", "brotli", None] = "zstd",
+        mode: Literal[None, "w"] = None,
     ):
         if not isinstance(outputdt, (np.timedelta64, timedelta, float)):
             raise ValueError(
@@ -91,9 +100,15 @@ class ParticleFile:
 
         self._path = path  # TODO v4: Consider https://arrow.apache.org/docs/python/getstarted.html#working-with-large-data - though a significant question becomes how to partition, perhaps using a particle variable "partition"?
         self._writer: pq.ParquetWriter | None = None
+
+        if mode not in {None, "w"}:
+            raise ValueError(f"Invalid mode value {mode!r}. Expected one of None or 'w'.")
+
         if path.exists():
-            # TODO: Add logic for recovering/appending to existing parquet file
-            raise ValueError(f"{path=!r} already exists. Either delete this file or use a path that doesn't exist.")
+            if mode is None:
+                raise ValueError(f"{path=!r} already exists. Use mode='w' or use a new path.")
+            if mode == "w":
+                path.unlink()
         if not path.parent.exists():
             raise ValueError(f"Folder location for {path=!r} does not exist. Create the folder location first.")
 
@@ -121,7 +136,7 @@ class ParticleFile:
     def path(self):
         return self._path
 
-    def write(self, pset: ParticleSet, time, indices=None):
+    def write(self, pset: ParticleSet | ParticleSetView, time, fieldset=None, indices=None):
         """Write all data from one time step to the zarr file,
         before the particle locations are updated.
 
@@ -131,21 +146,26 @@ class ParticleFile:
             ParticleSet object to write
         time :
             Time at which to write ParticleSet (same time object as fieldset)
+        fieldset :
+            FieldSet object associated with the ParticleSet (optional). By default, the fieldset associated with the ParticleSet will be used, but this can be overridden by providing a fieldset here. This is used in cases when the particleset is a ParticleSetView.
         """
-        pclass = pset._ptype
-        time_interval = pset.fieldset.time_interval
+        pclass = pset._pclass
+        if isinstance(pset, ParticleSetView) and fieldset is None:
+            raise ValueError("When writing a ParticleSetView, a fieldset must be provided to the write() method.")
+        if fieldset is None:
+            fieldset = pset.fieldset
         particle_data = pset._data
 
         if self._writer is None:
             assert not self.path.exists(), "If the file exists, the writer should already be set"
             self._writer = pq.ParquetWriter(
                 self.path,
-                _get_schema(pclass, self.metadata, pset.fieldset.time_interval),
+                _get_schema(pclass, self.metadata, fieldset.time_interval),
                 compression=self._compression,
             )
 
         if isinstance(time, (np.timedelta64, np.datetime64)):
-            time = timedelta_to_float(time - time_interval.left)
+            time = timedelta_to_float(time - fieldset.time_interval.left)
         vars_to_write = _get_vars_to_write(pclass)
         if indices is None:
             indices_to_write = _to_write_particles(particle_data, time)

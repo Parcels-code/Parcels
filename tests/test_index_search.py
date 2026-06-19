@@ -3,23 +3,17 @@ import pytest
 import xgcm
 
 import parcels.tutorial
-from parcels import Field, XGrid
+from parcels import XGrid
+from parcels._core.fieldset import FieldSet
 from parcels._core.index_search import _latlon_rad_to_xyz, _search_indices_curvilinear_2d
 from parcels._datasets.structured.generic import datasets
-from parcels.interpolators import XLinear
 
 
 @pytest.fixture
 def field_cone():
     ds = datasets["2d_left_unrolled_cone"]
-    grid = XGrid.from_dataset(ds, mesh="flat")
-    field = Field(
-        name="test_field",
-        data=ds["data_g"],
-        grid=grid,
-        interp_method=XLinear,
-    )
-    return field
+    fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
+    return fieldset.data_g
 
 
 def test_grid_indexing_fpoints(field_cone):

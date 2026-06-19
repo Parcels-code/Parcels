@@ -20,7 +20,7 @@ from typing import cast
 import numpy as np
 import xarray as xr
 
-from parcels._core.utils import sgrid
+import parcels._sgrid as sgrid
 from parcels._logger import logger
 
 if typing.TYPE_CHECKING:
@@ -358,7 +358,7 @@ def nemo_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.Da
 
     ds["grid"] = xr.DataArray(
         0,
-        attrs=sgrid.Grid2DMetadata(
+        attrs=sgrid.SGrid2DMetadata(
             cf_role="grid_topology",
             topology_dimension=2,
             node_dimensions=("x", "y"),
@@ -376,7 +376,7 @@ def nemo_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.Da
     ds["gphif"].attrs["units"] = "degrees"
 
     # Update to use lon and lat for internal naming
-    ds = sgrid.rename(ds, {"gphif": "lat", "glamf": "lon"})  # TODO: Logging message about rename
+    ds = ds.sgrid.rename({"gphif": "lat", "glamf": "lon"})  # TODO: Logging message about rename
     return ds
 
 
@@ -426,7 +426,7 @@ def mitgcm_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.
 
     ds["grid"] = xr.DataArray(
         0,
-        attrs=sgrid.Grid2DMetadata(
+        attrs=sgrid.SGrid2DMetadata(
             cf_role="grid_topology",
             topology_dimension=2,
             node_dimensions=("lon", "lat"),
@@ -487,7 +487,7 @@ def croco_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.D
 
     ds["grid"] = xr.DataArray(
         0,
-        attrs=sgrid.Grid2DMetadata(
+        attrs=sgrid.SGrid2DMetadata(
             cf_role="grid_topology",
             topology_dimension=2,
             node_dimensions=("lon", "lat"),
@@ -551,7 +551,7 @@ def copernicusmarine_to_sgrid(
         )
     ds["grid"] = xr.DataArray(
         0,
-        attrs=sgrid.Grid2DMetadata(  # use dummy *_center dimensions - this is A grid data (all defined on nodes)
+        attrs=sgrid.SGrid2DMetadata(  # use dummy *_center dimensions - this is A grid data (all defined on nodes)
             cf_role="grid_topology",
             topology_dimension=2,
             node_dimensions=("lon", "lat"),
