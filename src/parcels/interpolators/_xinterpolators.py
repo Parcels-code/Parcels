@@ -17,32 +17,6 @@ if TYPE_CHECKING:
     from parcels._core.xgrid import XGrid
 
 
-class ZeroInterpolator(ScalarInterpolator):
-    """Template interpolator that always returns zero."""
-
-    def interp(
-        self,
-        particle_positions: dict[str, float | np.ndarray],
-        grid_positions: dict[ptyping.XgridAxis, dict[str, int | float | np.ndarray]],
-        field: Field,
-    ) -> np.float32 | np.float64:
-        """Template method used for the signature check of the lateral interpolation methods."""
-        return 0.0
-
-
-class ZeroInterpolator_Vector(VectorInterpolator):  # noqa:  N801
-    """Template vector interpolator that always returns zero."""
-
-    def interp(
-        self,
-        particle_positions: dict[str, float | np.ndarray],
-        grid_positions: dict[ptyping.XgridAxis, dict[str, int | float | np.ndarray]],
-        vectorfield: VectorField,
-    ) -> np.float32 | np.float64:
-        """Template method used for the signature check of the interpolation methods for velocity fields."""
-        return 0.0
-
-
 def _get_corner_data_Agrid(
     data: np.ndarray | xr.DataArray,
     ti: int,

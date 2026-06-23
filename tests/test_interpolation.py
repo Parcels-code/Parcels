@@ -20,7 +20,6 @@ from parcels.interpolators import (
     XLinearInvdistLandTracer,
     XNearest,
     XPartialslip,
-    ZeroInterpolator,
 )
 from parcels.kernels import AdvectionRK4_3D
 from tests.utils import TEST_DATA
@@ -73,7 +72,6 @@ def field():
 @pytest.mark.parametrize(
     "interpolator, t, z, y, x, expected",
     [
-        pytest.param(ZeroInterpolator(), 1, 2.5, 0.49, 0.51, 0, id="Zero"),
         pytest.param(
             XLinear(),
             [0, 1],
