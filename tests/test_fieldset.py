@@ -231,12 +231,12 @@ def test_fieldset_add_overlapping_fields():
     fset1 = FieldSet.from_sgrid_conventions(ds1, mesh="flat")
     fset2 = FieldSet.from_sgrid_conventions(ds2, mesh="flat")
 
-    with pytest.raises(ValueError, match="overlapping field names.*'U'"):
+    with pytest.raises(ValueError, match="field names in common.*'U'"):
         fset1 + fset2
 
 
 def test_fieldset_add_overlapping_context_values():
-    """Test that adding FieldSets with overlapping constant names raises a ValueError."""
+    """Test that adding FieldSets with overlapping context value names raises a ValueError."""
     ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "grid"]].rename({"U_A_grid": "U1"})
     ds2 = datasets_structured["ds_2d_left"][["V_A_grid", "grid"]].rename({"V_A_grid": "V2"})
 
@@ -246,7 +246,7 @@ def test_fieldset_add_overlapping_context_values():
     fset2 = FieldSet.from_sgrid_conventions(ds2, mesh="flat")
     fset2.add_context("kh", 2.0)
 
-    with pytest.raises(ValueError, match="overlapping constant names.*'kh'"):
+    with pytest.raises(ValueError, match="context value names in common.*'kh'"):
         fset1 + fset2
 
 

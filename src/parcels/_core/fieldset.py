@@ -276,13 +276,17 @@ def assert_compatible_fieldsets(left: FieldSet, right: FieldSet) -> None:
     ValueError
         If the FieldSets share field names or constant names.
     """
-    overlapping_fields = set(left.fields) & set(right.fields)
-    if overlapping_fields:
-        raise ValueError(f"Cannot add FieldSets with overlapping field names: {sorted(overlapping_fields)}")
+    common_fields = set(left.fields) & set(right.fields)
+    if common_fields:
+        raise ValueError(
+            f"Cannot add FieldSets that have field names in common. Duplicate field names are: {sorted(common_fields)}"
+        )
 
-    overlapping_constants = set(left.context) & set(right.context)
-    if overlapping_constants:
-        raise ValueError(f"Cannot add FieldSets with overlapping constant names: {sorted(overlapping_constants)}")
+    common_context = set(left.context) & set(right.context)
+    if common_context:
+        raise ValueError(
+            f"Cannot add FieldSets that have context value names in common. Duplicate context value names are: {sorted(common_context)}"
+        )
 
 
 class CalendarError(Exception):  # TODO: Move to a parcels errors module
