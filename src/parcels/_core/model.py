@@ -15,7 +15,7 @@ from parcels._core.uxgrid import UxGrid
 from parcels._core.xgrid import (
     XGrid,
     _transpose_xfield_data_to_tzyx,
-    assert_all_field_dims_have_axis,  # noqa: F401, leave import for now until decision is made
+    assert_all_field_dims_have_axis,  # noqa: F401, leave import for now until decision is made # TODO v4: Make decision
 )
 from parcels._logger import logger
 from parcels._typing import Mesh
@@ -93,7 +93,7 @@ class StructuredModel(Model):
         self.assert_valid_model_data()
 
     def assert_valid_field_data(self, field_data: xr.DataArray) -> None:
-        # assert_all_field_dims_have_axis(field_data, self.grid.xgcm_grid) #! These checks should be revisited
+        # assert_all_field_dims_have_axis(field_data, self.grid.xgcm_grid) #! TODO v4: These checks should be revisited
         _assert_has_time_coordinate(field_data)
 
     @property
