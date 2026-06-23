@@ -166,7 +166,7 @@ class FieldSet:
         except KeyError as e:
             raise ValueError(f"mesh must be one of ['flat', 'spherical']. Got {mesh!r}.") from e
 
-        model.data[name] = (["lat", "lon", "depth", "time"], np.full((1, 1, 1, 1), value))
+        model.data[name] = (["time", "depth", "lat", "lon"], np.full((1, 1, 1, 1), value))
 
         if model not in self.models:
             self.models.append(model)
