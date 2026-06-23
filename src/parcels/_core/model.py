@@ -190,9 +190,9 @@ constant_field_models = {
                 ),
             ),
         ),
-        mesh=mesh,
+        mesh=mesh,  # type:ignore
     )
-    for mesh in ["flat", "spherical"]  # type:ignore[reportArgumentType]
+    for mesh in ["flat", "spherical"]
 }
 
 
