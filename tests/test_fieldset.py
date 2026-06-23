@@ -18,7 +18,7 @@ ds = datasets_structured["ds_2d_left"]
 
 
 def test_fieldset_init_wrong_types():
-    with pytest.raises(ValueError, match="Expected `model` to be a Model object. Got .*"):
+    with pytest.raises(ValueError, match="Expected `model` to be a ModelData object. Got .*"):
         FieldSet([1.0, 2.0, 3.0])
 
 

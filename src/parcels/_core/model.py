@@ -33,7 +33,7 @@ from parcels.interpolators import (
 from parcels.interpolators._base import ScalarInterpolator, VectorInterpolator
 
 
-class Model(ABC):
+class ModelData(ABC):
     data: Any
     grid: BaseGrid
     field_to_interpolator: dict[str, ScalarInterpolator | VectorInterpolator]
@@ -78,7 +78,7 @@ def preprocess_sgrid_model_data(ds: xr.Dataset) -> xr.Dataset:
     return ds
 
 
-class StructuredModel(Model):
+class StructuredModelData(ModelData):
     def __init__(self, data: xr.Dataset, mesh: Mesh):
         if not isinstance(data, xr.Dataset):
             raise ValueError(f"Expected `data` to be an xarray.Dataset . Got {type(data)}")
@@ -169,7 +169,7 @@ class StructuredModel(Model):
 
 
 constant_field_models = {
-    mesh: StructuredModel.from_sgrid_conventions(
+    mesh: StructuredModelData.from_sgrid_conventions(
         xr.Dataset(
             {},
             coords={
@@ -196,7 +196,7 @@ constant_field_models = {
 }
 
 
-class UnstructuredModel(Model):
+class UnstructuredModelData(ModelData):
     def __init__(self, data: ux.UxDataset, grid: UxGrid):
         if not isinstance(data, ux.UxDataset):
             raise ValueError(f"Expected `data` to be an uxarray.UxDataset . Got {type(data)}")

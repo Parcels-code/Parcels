@@ -10,7 +10,7 @@ import uxarray as ux
 import xarray as xr
 
 from parcels._core.field import Field, VectorField
-from parcels._core.model import Model, StructuredModel, UnstructuredModel, constant_field_models
+from parcels._core.model import ModelData, StructuredModelData, UnstructuredModelData, constant_field_models
 from parcels._core.utils.string import _assert_str_and_python_varname
 from parcels._core.utils.time import get_datetime_type_calendar
 from parcels._core.utils.time import is_compatible as datetime_is_compatible
@@ -55,10 +55,10 @@ class FieldSet:
 
     """
 
-    def __init__(self, models: list[Model]):
+    def __init__(self, models: list[ModelData]):
         for model in models:
-            if not isinstance(model, Model):
-                raise ValueError(f"Expected `model` to be a Model object. Got {model}")
+            if not isinstance(model, ModelData):
+                raise ValueError(f"Expected `model` to be a ModelData object. Got {model}")
         # assert_compatible_calendars(fields)
 
         self.models = list(models)
@@ -225,7 +225,7 @@ class FieldSet:
         -----
         See https://ugrid-conventions.github.io/ugrid-conventions/ for more information on the UGRID conventions.
         """
-        model = UnstructuredModel.from_ugrid_conventions(ds, mesh)
+        model = UnstructuredModelData.from_ugrid_conventions(ds, mesh)
         return cls([model])
 
     @classmethod
@@ -259,7 +259,7 @@ class FieldSet:
 
         See https://sgrid.github.io/sgrid/ for more information on the SGRID conventions.
         """
-        model = StructuredModel.from_sgrid_conventions(ds, mesh)
+        model = StructuredModelData.from_sgrid_conventions(ds, mesh)
         return cls([model])
 
 

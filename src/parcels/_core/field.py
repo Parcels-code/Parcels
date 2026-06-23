@@ -20,7 +20,7 @@ from parcels._typing import VectorType
 from parcels.interpolators._base import ScalarInterpolator, VectorInterpolator
 
 if TYPE_CHECKING:
-    from parcels._core.model import Model
+    from parcels._core.model import ModelData
 
 
 __all__ = ["Field", "VectorField"]
@@ -83,12 +83,12 @@ class Field:
     def __init__(
         self,
         name: str,
-        model: Model,
+        model: ModelData,
     ):
-        # TODO PR: Enable isinstance check once Model is moved to abc.Model
-        # if not isinstance(model, "Model"):
+        # TODO PR: Enable isinstance check once ModelData is moved to abc.ModelData
+        # if not isinstance(model, "ModelData"):
         #     raise ValueError(
-        #         f"Expected `model` to be a parcels Model object. Got {type(model)}."
+        #         f"Expected `model` to be a parcels ModelData object. Got {type(model)}."
         #     )
 
         _assert_str_and_python_varname(name)
