@@ -20,6 +20,7 @@ from parcels._core.utils.time import timedelta_to_float
 from parcels._datasets.structured.generated import simple_UV_dataset
 from parcels._datasets.structured.generic import datasets as datasets_structured
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
+from parcels.interpolators import Ux_Velocity, UxConstantFaceConstantZC
 from parcels.interpolators._base import ScalarInterpolator
 from parcels.kernels import AdvectionEE, AdvectionRK2, AdvectionRK4, AdvectionRK4_3D, AdvectionRK45
 from tests.common_kernels import DoNothing
@@ -530,11 +531,10 @@ def test_uxgrid_particle_leaving_domain_raises():
     ``GRID_SEARCH_ERROR`` and ``pset.execute`` should raise a GridSearchingError.
     """
     ds = datasets_unstructured["ux_constant_flow_face_centered_2D"]
-    grid = UxGrid(grid=ds.uxgrid, z=ds.coords["zc"], mesh="flat")
-    U = Field(name="U", data=ds.U, grid=grid, interp_method=UxConstantFaceConstantZC)
-    V = Field(name="V", data=ds.V, grid=grid, interp_method=UxConstantFaceConstantZC)
-    UV = VectorField(name="UV", U=U, V=V, interp_method=Ux_Velocity)
-    fieldset = FieldSet([UV, UV.U, UV.V])
+    fieldset = FieldSet.from_ugrid_conventions(ds, mesh="flat")
+    assert isinstance(fieldset.U.interp_method, UxConstantFaceConstantZC)
+    assert isinstance(fieldset.V.interp_method, UxConstantFaceConstantZC)
+    assert isinstance(fieldset.UV.interp_method, Ux_Velocity)
 
     # Uniform eastward flow (U0 = 0.001 deg/s); release 0.1 deg inside the eastern
     # outflow boundary (domain spans lon, lat in [0, 20]). The particle crosses
