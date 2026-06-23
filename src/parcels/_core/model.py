@@ -111,12 +111,10 @@ class StructuredModel(Model):
         vector_fields: dict[str, VectorField] = {}
         scalar_field_names = self.scalar_field_names
         if "U" in scalar_field_names and "V" in scalar_field_names:
-            vector_interp_method = XLinear_Velocity() if _is_agrid(self.data) else CGrid_Velocity()
+            interp_method = XLinear_Velocity() if _is_agrid(self.data) else CGrid_Velocity()
             single_fields["U"] = Field("U", self)
             single_fields["V"] = Field("V", self)
-            vector_fields["UV"] = VectorField(
-                "UV", single_fields["U"], single_fields["V"], interp_method=vector_interp_method
-            )
+            vector_fields["UV"] = VectorField("UV", single_fields["U"], single_fields["V"], interp_method=interp_method)
 
             if "W" in scalar_field_names:
                 single_fields["W"] = Field("W", self)
@@ -125,7 +123,7 @@ class StructuredModel(Model):
                     single_fields["U"],
                     single_fields["V"],
                     single_fields["W"],
-                    interp_method=vector_interp_method,
+                    interp_method=interp_method,
                 )
 
         fields: dict[str, Field | VectorField] = {**single_fields, **vector_fields}

@@ -224,9 +224,7 @@ class VectorField:
             self.vector_type = "2D"
 
         if not isinstance(interp_method, VectorInterpolator):
-            raise ValueError(
-                f"vector_interp_method must be a `VectorInterpolator` object. Got {type(interp_method)=!r}"
-            )
+            raise ValueError(f"interp_method must be a `VectorInterpolator` object. Got {type(interp_method)=!r}")
 
         self._interp_method = interp_method
 

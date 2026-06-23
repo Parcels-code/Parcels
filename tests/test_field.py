@@ -96,7 +96,7 @@ def test_vectorfield_invalid_interpolator():
         return 0.0
 
     # VectorField interp_method must be a VectorInterpolator instance, not a plain callable
-    with pytest.raises(ValueError, match="vector_interp_method must be a `VectorInterpolator` object"):
+    with pytest.raises(ValueError, match="interp_method must be a `VectorInterpolator` object"):
         VectorField(
             name="UV",
             U=U,
