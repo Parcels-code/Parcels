@@ -102,7 +102,7 @@ class FieldSet:
             return NotImplemented
         assert_compatible_fieldsets(self, other)
         combined = FieldSet(self.models + other.models)
-        combined.constants = {**self.constants, **other.constants}
+        combined.context = {**self.context, **other.context}
         return combined
 
     # def __repr__(self):
@@ -280,7 +280,7 @@ def assert_compatible_fieldsets(left: FieldSet, right: FieldSet) -> None:
     if overlapping_fields:
         raise ValueError(f"Cannot add FieldSets with overlapping field names: {sorted(overlapping_fields)}")
 
-    overlapping_constants = set(left.constants) & set(right.constants)
+    overlapping_constants = set(left.context) & set(right.context)
     if overlapping_constants:
         raise ValueError(f"Cannot add FieldSets with overlapping constant names: {sorted(overlapping_constants)}")
 

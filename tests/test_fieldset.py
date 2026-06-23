@@ -235,33 +235,33 @@ def test_fieldset_add_overlapping_fields():
         fset1 + fset2
 
 
-def test_fieldset_add_overlapping_constants():
+def test_fieldset_add_overlapping_context_values():
     """Test that adding FieldSets with overlapping constant names raises a ValueError."""
     ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "grid"]].rename({"U_A_grid": "U1"})
     ds2 = datasets_structured["ds_2d_left"][["V_A_grid", "grid"]].rename({"V_A_grid": "V2"})
 
     fset1 = FieldSet.from_sgrid_conventions(ds1, mesh="flat")
-    fset1.add_constant("kh", 1.0)
+    fset1.add_context("kh", 1.0)
 
     fset2 = FieldSet.from_sgrid_conventions(ds2, mesh="flat")
-    fset2.add_constant("kh", 2.0)
+    fset2.add_context("kh", 2.0)
 
     with pytest.raises(ValueError, match="overlapping constant names.*'kh'"):
         fset1 + fset2
 
 
-def test_fieldset_add_constants():
-    """Test that constants from both FieldSets are present in the combined FieldSet."""
+def test_fieldset_add_context_values():
+    """Test that context values from both FieldSets are present in the combined FieldSet."""
     ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "grid"]].rename({"U_A_grid": "U1"})
     ds2 = datasets_structured["ds_2d_left"][["V_A_grid", "grid"]].rename({"V_A_grid": "V2"})
 
     fset1 = FieldSet.from_sgrid_conventions(ds1, mesh="flat")
-    fset1.add_constant("c1", 1.0)
+    fset1.add_context("c1", 1.0)
 
     fset2 = FieldSet.from_sgrid_conventions(ds2, mesh="flat")
-    fset2.add_constant("c2", 2.0)
+    fset2.add_context("c2", 2.0)
 
     fset = fset1 + fset2
 
-    assert fset.constants["c1"] == 1.0
-    assert fset.constants["c2"] == 2.0
+    assert fset.context["c1"] == 1.0
+    assert fset.context["c2"] == 2.0
