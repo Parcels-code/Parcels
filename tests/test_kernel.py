@@ -19,6 +19,33 @@ def test_unknown_var_in_kernel(fieldset):
         pset.execute(ErrorKernel, runtime=np.timedelta64(2, "s"), dt=np.timedelta64(1, "s"))
 
 
+def test_context_in_kernel(fieldset):
+    pset = ParticleSet(fieldset, lon=[0.5], lat=[0.5])
+
+    fieldset.add_context("fix_lon", -0.5)
+
+    def ContextKernel(particles, fieldset):
+        particles.lon = fieldset.fix_lon
+
+    pset.execute(ContextKernel, runtime=np.timedelta64(2, "s"), dt=np.timedelta64(1, "s"))
+    assert pset.lon == -0.5
+
+
+def test_func_context_in_kernel(fieldset):
+    pset = ParticleSet(fieldset, lon=[0.5], lat=[0.5])
+
+    def ContextFunc(x):
+        return 2 * x
+
+    fieldset.add_context("func", ContextFunc)
+
+    def FuncContextKernel(particles, fieldset):
+        particles.lon = fieldset.func(particles.lon)
+
+    pset.execute(FuncContextKernel, runtime=np.timedelta64(2, "s"), dt=np.timedelta64(1, "s"))
+    assert pset.lon == 2.0
+
+
 def test_kernel_init(fieldset):
     pset = ParticleSet(fieldset, lon=[0.5], lat=[0.5])
     Kernel(kernels=[AdvectionRK4], pset=pset)

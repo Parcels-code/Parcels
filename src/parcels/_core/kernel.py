@@ -47,8 +47,8 @@ class Kernel:
         list of Kernel functions
     fieldset : parcels.Fieldset
         FieldSet object providing the field information (possibly None)
-    ptype :
-        PType object for the kernel particle
+    pclass :
+        pclass object for the kernel particle
 
     Notes
     -----
@@ -73,7 +73,7 @@ class Kernel:
             raise ValueError("List of `kernels` should have at least one function.")
 
         self._fieldset = pset.fieldset
-        self._ptype = pset._ptype
+        self._pclass = pset._pclass
 
         for f in kernels:
             self.check_fieldsets_in_kernels(f)
@@ -88,8 +88,8 @@ class Kernel:
         return ret
 
     @property
-    def ptype(self):
-        return self._ptype
+    def pclass(self):
+        return self._pclass
 
     @property
     def fieldset(self):
@@ -132,45 +132,45 @@ class Kernel:
                 if self._fieldset.U.grid._gtype not in [GridType.CurvilinearZGrid, GridType.RectilinearZGrid]:
                     raise NotImplementedError("Analytical Advection only works with Z-grids in the vertical")
             elif kernel is AdvectionRK45:
-                if "next_dt" not in [v.name for v in self.ptype.variables]:
+                if "next_dt" not in [v.name for v in self.pclass.variables]:
                     raise ValueError('ParticleClass requires a "next_dt" for AdvectionRK45 Kernel.')
                 if not hasattr(self.fieldset, "RK45_tol"):
                     warnings.warn(
-                        "Setting RK45 tolerance to 10 m. Use fieldset.add_constant('RK45_tol', [distance]) to change.",
+                        "Setting RK45 tolerance to 10 m. Use fieldset.add_context('RK45_tol', [distance]) to change.",
                         KernelWarning,
                         stacklevel=2,
                     )
-                    self.fieldset.add_constant("RK45_tol", 10)
+                    self.fieldset.add_context("RK45_tol", 10)
                 if self.fieldset.U.grid._mesh == "spherical":
                     self.fieldset.RK45_tol /= (
                         1852 * 60
                     )  # TODO does not account for zonal variation in meter -> degree conversion
                 if not hasattr(self.fieldset, "RK45_min_dt"):
                     warnings.warn(
-                        "Setting RK45 minimum timestep to 1 s. Use fieldset.add_constant('RK45_min_dt', [timestep]) to change.",
+                        "Setting RK45 minimum timestep to 1 s. Use fieldset.add_context('RK45_min_dt', [timestep]) to change.",
                         KernelWarning,
                         stacklevel=2,
                     )
-                    self.fieldset.add_constant("RK45_min_dt", 1)
+                    self.fieldset.add_context("RK45_min_dt", 1)
                 if not hasattr(self.fieldset, "RK45_max_dt"):
                     warnings.warn(
-                        "Setting RK45 maximum timestep to 1 day. Use fieldset.add_constant('RK45_max_dt', [timestep]) to change.",
+                        "Setting RK45 maximum timestep to 1 day. Use fieldset.add_context('RK45_max_dt', [timestep]) to change.",
                         KernelWarning,
                         stacklevel=2,
                     )
-                    self.fieldset.add_constant("RK45_max_dt", 60 * 60 * 24)
+                    self.fieldset.add_context("RK45_max_dt", 60 * 60 * 24)
 
     def merge(self, kernel):
         if not isinstance(kernel, type(self)):
             raise TypeError(f"Cannot merge {type(kernel)} with {type(self)}. Both should be of type {type(self)}.")
 
         assert self.fieldset == kernel.fieldset, "Cannot merge kernels with different fieldsets"
-        assert self.ptype == kernel.ptype, "Cannot merge kernels with different particle types"
+        assert self.pclass == kernel.pclass, "Cannot merge kernels with different particle types"
 
         return type(self)(
             self._kernels + kernel._kernels,
             self.fieldset,
-            self.ptype,
+            self.pclass,
         )
 
     def execute(self, pset, endtime, dt):

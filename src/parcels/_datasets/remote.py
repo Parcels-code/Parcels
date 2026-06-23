@@ -144,7 +144,9 @@ class _V3Dataset(_ParcelsDataset):
         # Function to apply to the dataset before the decoding the CF variables
         self.pup = pup
         self.pre_decode_cf_callable: None | Callable[[xr.Dataset], xr.Dataset] = pre_decode_cf_callable
-        self.v3_dataset_name = path_relative_to_pup.split("/")[0]
+
+        first, second, *_ = path_relative_to_pup.split("/")
+        self.v3_dataset_name = f"{first}/{second}"  # e.g., data/my_dataset
 
     def open_dataset(self) -> xr.Dataset:
         self.download_relevant_files()

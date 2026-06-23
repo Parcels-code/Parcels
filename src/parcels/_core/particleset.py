@@ -118,7 +118,7 @@ class ParticleSet:
                 particle_id=particle_ids,
             ),
         )
-        self._ptype = pclass
+        self._pclass = pclass
 
         # update initial values provided on ParticleSet creation # TODO: Wrap this into create_particle_data
         particle_variables = [v.name for v in pclass.variables]
@@ -158,7 +158,7 @@ class ParticleSet:
 
     def __getitem__(self, index):
         """Get a single particle by index."""
-        return ParticleSetView(self._data, index=index, ptype=self._ptype)
+        return ParticleSetView(self._data, index=index, pclass=self._pclass)
 
     def __setattr__(self, name, value):
         if name in ["_data"]:

@@ -64,7 +64,16 @@ class FieldSet:
         self.models = list(models)
         self._fields: dict[str, Field | VectorField] | None = None
         self.reconstruct_fields()
-        self.constants: dict[str, float] = {}
+        self.context: dict[str, float] = {}
+
+    def __setattr__(self, name, value):
+        """Set field attribute by name. If context exists and name in context, raise error to prevent overwriting context variable."""
+        context = self.__dict__.get("context")
+
+        if context is not None and name in context:
+            raise AttributeError(f"Cannot assign '{name}' directly. Use fieldset.context['{name}'] instead.")
+        # Handle setting of attributes not in context per default
+        super().__setattr__(name, value)
 
     @property
     def fields(self):
@@ -80,11 +89,11 @@ class FieldSet:
         self._fields = {f.name: f for f in fields}
 
     def __getattr__(self, name):
-        """Get the field by name. If the field is not found, check if it's a constant."""
+        """Get the field by name. If the field is not found, check if it's a context variable."""
         if name in self._fields:
             return self._fields[name]
-        elif name in self.constants:
-            return self.constants[name]
+        elif name in self.context:
+            return self.context[name]
         else:
             raise AttributeError(f"FieldSet has no attribute '{name}'")
 
@@ -166,24 +175,22 @@ class FieldSet:
         field = getattr(self, name)
         field.interp_method = XConstantField()
 
-    def add_constant(self, name, value):
-        """Add a constant to the FieldSet.
+    def add_context(self, name, value):
+        """Add context variable to the FieldSet.
 
         Parameters
         ----------
         name : str
-            Name of the constant
+            Name of the context variable
         value :
-            Value of the constant
+            Value of the context variable
 
         """
         _assert_str_and_python_varname(name)
 
-        if name in self.constants:
-            raise ValueError(f"FieldSet already has a constant with name '{name}'")
-        if not isinstance(value, (float, np.floating, int, np.integer)):
-            raise ValueError(f"FieldSet constants have to be of type float or int, got a {type(value)}")
-        self.constants[name] = value
+        if name in self.context:
+            raise ValueError(f"FieldSet already has a context with name '{name}'")
+        self.context[name] = value
 
     @property
     def gridset(self) -> list[BaseGrid]:
@@ -213,6 +220,10 @@ class FieldSet:
         -------
         FieldSet
             FieldSet object containing the fields from the dataset that can be used for a Parcels simulation.
+
+        Notes
+        -----
+        See https://ugrid-conventions.github.io/ugrid-conventions/ for more information on the UGRID conventions.
         """
         model = UnstructuredModel.from_ugrid_conventions(ds, mesh)
         return cls([model])
@@ -246,7 +257,7 @@ class FieldSet:
         and create appropriate Fields for a Parcels simulation. The dataset should
         contain a variable with 'cf_role' attribute set to 'grid_topology'.
 
-        See https://sgrid.github.io/ for more information on the SGRID conventions.
+        See https://sgrid.github.io/sgrid/ for more information on the SGRID conventions.
         """
         model = StructuredModel.from_sgrid_conventions(ds, mesh)
         return cls([model])
