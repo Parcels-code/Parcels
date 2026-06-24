@@ -123,7 +123,7 @@ exclude_patterns = [
     "**.ipynb_checkpoints",
     "user_guide/examples_v3",
     ".jupyter_cache",
-    "user_guide/examples/explanation_kernelloop.md", # TODO v4: https://github.com/Parcels-code/Parcels/issues/2695
+    "user_guide/examples/explanation_kernelloop.md",  # TODO v4: https://github.com/Parcels-code/Parcels/issues/2695
 ]
 
 # The reST default role (used for this markup: `text`) to use for all
