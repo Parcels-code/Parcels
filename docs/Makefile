@@ -53,7 +53,7 @@ help:
 clean:
 	rm -rf $(BUILDDIR)/*
 	rm -rf .jupyter_cache
-	rm -f **/*.parquet
+	find . -name "*.parquet" -delete
 
 html:
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
