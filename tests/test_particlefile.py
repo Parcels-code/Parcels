@@ -431,6 +431,18 @@ def test_particlefile_init_existing_path_modes(fieldset, tmp_parquet):
     assert len(df_first) == len(df_overwrite)
 
 
+def test_particlefile_init_existing_path_no_mode(tmp_parquet):
+    tmp_parquet.touch()
+    with pytest.raises(ValueError, match="already exists"):
+        ParticleFile(tmp_parquet, outputdt=np.timedelta64(1, "s"))
+
+
+def test_particlefile_init_nonexistent_parent(tmp_path):
+    path = tmp_path / "nonexistent_dir" / "file.parquet"
+    with pytest.raises(ValueError, match="does not exist"):
+        ParticleFile(path, outputdt=np.timedelta64(1, "s"))
+
+
 def test_particlefile_init_invalid_mode(tmp_parquet):
     with pytest.raises(ValueError, match="Invalid mode value"):
         ParticleFile(tmp_parquet, outputdt=np.timedelta64(1, "s"), mode="something-else")
