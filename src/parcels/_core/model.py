@@ -64,7 +64,7 @@ class ModelData(ABC):
             time_interval = _get_time_interval(self.data)
         except ValueError as e:
             e.add_note(
-                f"Error getting time interval for model with data {self.data!r}. Are you sure that the time dimension on the xarray dataset is stored as timedelta, datetime or cftime datetime objects?"
+                f"Error getting time interval for:\n {self.data!r}\n\nAre you sure that the time dimension on the xarray dataset is stored as timedelta, datetime or cftime datetime objects?"
             )
             raise e
         return time_interval
@@ -168,7 +168,7 @@ class StructuredModelData(ModelData):
         return model
 
 
-constant_field_models = {
+CONSTANT_FIELD_MODELS = {
     mesh: StructuredModelData.from_sgrid_conventions(
         xr.Dataset(
             {},

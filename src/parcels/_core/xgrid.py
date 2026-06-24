@@ -116,7 +116,7 @@ class XgcmLikeGrid:
     """Adapter class to circumvent XGCM as a dep.
 
 
-    This is only used as a temporary class for the moment. Down the line we should refactor to remove XGCM entirely and work with SGRID metadata (especially since COMODO metadata isn't standard, and nor is the xgcm data model).
+    TODO: This is only used as a temporary class for the moment. Down the line we should refactor to remove XGCM entirely and work with SGRID metadata (especially since COMODO metadata isn't standard, and nor is the xgcm data model).
     """
 
     def __init__(self, sgrid_metadata: sgrid.SGrid2DMetadata, model_data: xr.Dataset):

@@ -10,7 +10,7 @@ import uxarray as ux
 import xarray as xr
 
 from parcels._core.field import Field, VectorField
-from parcels._core.model import ModelData, StructuredModelData, UnstructuredModelData, constant_field_models
+from parcels._core.model import CONSTANT_FIELD_MODELS, ModelData, StructuredModelData, UnstructuredModelData
 from parcels._core.utils.string import _assert_str_and_python_varname
 from parcels._core.utils.time import get_datetime_type_calendar
 from parcels._core.utils.time import is_compatible as datetime_is_compatible
@@ -162,7 +162,7 @@ class FieldSet:
             2. flat: No conversion, lat/lon are assumed to be in m.
         """
         try:
-            model = constant_field_models[mesh]
+            model = CONSTANT_FIELD_MODELS[mesh]
         except KeyError as e:
             raise ValueError(f"mesh must be one of ['flat', 'spherical']. Got {mesh!r}.") from e
 
