@@ -128,8 +128,12 @@ sphinx-design = "*"
 sphinx-autoapi = "*"
 
 [feature.docs.tasks]
+docs-only-clean = { cmd = "make clean", cwd = "docs", description = "Cleans the documentation folder of build artifacts." }
 docs = { cmd = "make html", cwd = "docs", description = "Build the documentation." }
-docs-clean = { cmd = "make clean && make html", cwd = "docs", description = "Build the documentation." }
+docs-clean = { depends-on = [
+  { task = "docs-only-clean" },
+  { task = "docs" },
+], description = "Build the documentation from a clean docs folder." }
 docs-watch = { cmd = "make livehtml", cwd = "docs", description = "Build and auto-rebuild the documentation on changes." }
 docs-linkcheck = { cmd = "make linkcheck", cwd = "docs", description = "Verify all links in documentation don't 404." }
 
