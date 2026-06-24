@@ -14,6 +14,6 @@ build:
     build:
       html:
         - pixi run -e docs python ci/scripts/download-all-tutorial-datasets.py
-        - pixi run -e docs sphinx-build -T -b html docs $READTHEDOCS_OUTPUT/html
+        - SPHINXOPTS='-T' BUILDDIR=$READTHEDOCS_OUTPUT/html pixi run docs-clean
 sphinx:
   configuration: docs/conf.py
