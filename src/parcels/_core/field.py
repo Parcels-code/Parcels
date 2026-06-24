@@ -340,8 +340,8 @@ def _update_particles_ei(particles, grid_positions: dict, field: Field):
 
 def _update_particle_states_position(particles, grid_positions: dict):
     """Update the particle states based on the position dictionary."""
-    if particles:  # TODO also support uxgrid search
-        for dim in ["X", "Y"]:
+    if particles:
+        for dim in ["X", "Y", "FACE"]:
             if dim in grid_positions:
                 particles.state = np.maximum(
                     np.where(grid_positions[dim]["index"] == -1, StatusCode.ErrorOutOfBounds, particles.state),
