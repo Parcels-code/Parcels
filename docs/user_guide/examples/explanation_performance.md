@@ -6,7 +6,7 @@ In this tutorial, we will show how to squeeze performance in Parcels by using a 
 
 ## Option 1: explicitly load the full FieldSet into memory
 
-**Works well for: small Datasets (less than a few GB)**
+**Best for: small Datasets (less than a few GB)**
 
 For relatively small Datasets (less than a few GB), it is possible to load the entire FieldSet into memory. This can be done by calling the `load()` method on the `xarray.Dataset` object:
 
@@ -24,7 +24,7 @@ This will make Parcels use `numpy` functions in the interpolation routines, whic
 
 ## Option 2: use cached zarr files
 
-**Works well for: large Datasets (more than a few GB) and particles distributed over a small part of the domain**
+**Best for: large Datasets (more than a few GB) and particles distributed over a small part of the domain**
 
 If your Dataset is too large to fit into memory, but your particles are only distributed over a small part of the domain, it could be efficient to use cached zarr files. This can be done by using the (experimental) `zarr.CacheStore` in combination with the `parcels.open_raw_zarr()` function. This will make Parcels only load the chunks that are needed for the particles, and cache these chunks in memory for future use.
 
@@ -51,7 +51,7 @@ In our performance testing, we have found that using zarr files saved without an
 
 ## Option 3: use `fieldset.to_windowed_arrays()`
 
-**Works well for: large Datasets (more than a few GB) and particles distributed over the entire domain**
+**Best for: large Datasets (more than a few GB) and particles distributed over the entire domain**
 
 If your Dataset is so large that it doesn't fit into memory, you can use the `fieldset.to_windowed_arrays()` method to make Parcels only hold two timeslices in memory. Note that this only works if the two timeslices still fit into memory.
 
@@ -70,7 +70,7 @@ fieldset.to_windowed_arrays()
 
 ## Option 4: use Dask
 
-**Works well for: large Datasets (more than a few GB) and small ParticleSets (less than a few hundred particles)**
+**Best for: large Datasets (more than a few GB) and small ParticleSets (less than a few hundred particles)**
 
 If your Dataset is so large that it doesn't fit into memory, and you have very few particles, you can use Dask to perform the interpolation operations. In this case, you don't have to do any special setup, as Parcels will automatically use Dask if the `xarray.Dataset` is a Dask array.
 
@@ -81,5 +81,5 @@ If your Dataset is so large that it doesn't fit into memory, and you have very f
 | Works out-of-the-box | Only performs well for very small ParticleSets |
 
 ```{note}
-The long-term plan for Parcles development is to make this Option 4 work well for all cases. However, this will require significant work on Dask indexing.
+The long-term plan for Parcels development is to make this Option 4 work well for all cases. However, this will require significant work on Dask indexing.
 ```
