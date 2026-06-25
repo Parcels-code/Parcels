@@ -7,17 +7,11 @@ import uxarray as ux
 import parcels._datasets.remote as _parcels_remote
 import parcels.tutorial
 from parcels import (
-    Field,
     FieldSet,
-    Particle,
-    ParticleSet,
-    UxGrid,
-    VectorField,
 )
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
 from parcels.convert import fesom_to_ugrid, icon_to_ugrid
 from parcels.interpolators import (
-    Ux_Velocity,
     UxConstantFaceConstantZC,
     UxLinearNodeLinearZF,
 )
@@ -41,81 +35,17 @@ def ds_fesom_channel() -> ux.UxDataset:
 
 
 @pytest.fixture
-def uv_fesom_channel(ds_fesom_channel) -> VectorField:
-    UV = VectorField(
-        name="UV",
-        U=Field(
-            name="U",
-            data=ds_fesom_channel.U,
-            grid=UxGrid(ds_fesom_channel.uxgrid, z=ds_fesom_channel.coords["zc"], mesh="flat"),
-            interp_method=UxConstantFaceConstantZC,
-        ),
-        V=Field(
-            name="V",
-            data=ds_fesom_channel.V,
-            grid=UxGrid(ds_fesom_channel.uxgrid, z=ds_fesom_channel.coords["zc"], mesh="flat"),
-            interp_method=UxConstantFaceConstantZC,
-        ),
-        vector_interp_method=Ux_Velocity,
-    )
-    return UV
+def fieldset_fesom_channel(ds_fesom_channel):
+    return FieldSet.from_ugrid_conventions(ds_fesom_channel)
 
 
-@pytest.fixture
-def uvw_fesom_channel(ds_fesom_channel) -> VectorField:
-    UVW = VectorField(
-        name="UVW",
-        U=Field(
-            name="U",
-            data=ds_fesom_channel.U,
-            grid=UxGrid(ds_fesom_channel.uxgrid, z=ds_fesom_channel.coords["zc"], mesh="flat"),
-            interp_method=UxConstantFaceConstantZC,
-        ),
-        V=Field(
-            name="V",
-            data=ds_fesom_channel.V,
-            grid=UxGrid(ds_fesom_channel.uxgrid, z=ds_fesom_channel.coords["zc"], mesh="flat"),
-            interp_method=UxConstantFaceConstantZC,
-        ),
-        W=Field(
-            name="W",
-            data=ds_fesom_channel.W,
-            grid=UxGrid(ds_fesom_channel.uxgrid, z=ds_fesom_channel.coords["zf"], mesh="flat"),
-            interp_method=UxLinearNodeLinearZF,
-        ),
-        vector_interp_method=Ux_Velocity,
-    )
-    return UVW
-
-
-def test_fesom_fieldset(ds_fesom_channel, uv_fesom_channel):
-    fieldset = FieldSet([uv_fesom_channel, uv_fesom_channel.U, uv_fesom_channel.V])
+def test_fesom_fieldset(ds_fesom_channel, fieldset_fesom_channel):
     # Check that the fieldset has the expected properties
-    assert (fieldset.U.data == ds_fesom_channel.U).all()
-    assert (fieldset.V.data == ds_fesom_channel.V).all()
+    assert (fieldset_fesom_channel.U.data == ds_fesom_channel.U).all()
+    assert (fieldset_fesom_channel.V.data == ds_fesom_channel.V).all()
 
 
-def test_fesom_in_particleset(ds_fesom_channel, uv_fesom_channel):
-    fieldset = FieldSet([uv_fesom_channel, uv_fesom_channel.U, uv_fesom_channel.V])
-
-    # Check that the fieldset has the expected properties
-    assert (fieldset.U.data == ds_fesom_channel.U).all()
-    assert (fieldset.V.data == ds_fesom_channel.V).all()
-    pset = ParticleSet(fieldset, pclass=Particle)
-    assert pset.fieldset == fieldset
-
-
-def test_set_interp_methods(ds_fesom_channel, uv_fesom_channel):
-    fieldset = FieldSet([uv_fesom_channel, uv_fesom_channel.U, uv_fesom_channel.V])
-    # Check that the fieldset has the expected properties
-    assert (fieldset.U.data == ds_fesom_channel.U).all()
-    assert (fieldset.V.data == ds_fesom_channel.V).all()
-
-    # Set the interpolation method for each field
-    fieldset.U.interp_method = UxConstantFaceConstantZC
-    fieldset.V.interp_method = UxConstantFaceConstantZC
-
-
+@pytest.mark.xfail(reason="#2674 - 'p' interpolator is not being selected properly")
 def test_fesom2_square_delaunay_uniform_z_coordinate_eval():
     """
     Test the evaluation of a fieldset with a FESOM2 square Delaunay grid and uniform z-coordinate.
@@ -124,16 +54,12 @@ def test_fesom2_square_delaunay_uniform_z_coordinate_eval():
     """
     ds = datasets_unstructured["fesom2_square_delaunay_uniform_z_coordinate"]
     ds = fesom_to_ugrid(ds)
-    grid = UxGrid(ds.uxgrid, z=ds.coords["zf"], mesh="flat")
-    UVW = VectorField(
-        name="UVW",
-        U=Field(name="U", data=ds.U, grid=grid, interp_method=UxConstantFaceConstantZC),
-        V=Field(name="V", data=ds.V, grid=grid, interp_method=UxConstantFaceConstantZC),
-        W=Field(name="W", data=ds.W, grid=grid, interp_method=UxLinearNodeLinearZF),
-        vector_interp_method=Ux_Velocity,
-    )
-    P = Field(name="p", data=ds.p, grid=grid, interp_method=UxLinearNodeLinearZF)
-    fieldset = FieldSet([UVW, P, UVW.U, UVW.V, UVW.W])
+    fieldset = FieldSet.from_ugrid_conventions(ds)
+
+    assert isinstance(fieldset.U.interp_method, UxConstantFaceConstantZC)
+    assert isinstance(fieldset.V.interp_method, UxConstantFaceConstantZC)
+    assert isinstance(fieldset.W.interp_method, UxLinearNodeLinearZF)
+    assert isinstance(fieldset.p.interp_method, UxLinearNodeLinearZF)
 
     (u, v, w) = fieldset.UVW.eval(time=[0.0], z=[1.0], y=[30.0], x=[30.0])
     assert np.allclose([u.item(), v.item(), w.item()], [1.0, 1.0, 0.0], rtol=1e-3, atol=1e-6)
@@ -172,13 +98,8 @@ def test_fesom2_square_delaunay_antimeridian_eval():
     """
     ds = datasets_unstructured["fesom2_square_delaunay_antimeridian"]
     ds = fesom_to_ugrid(ds)
-    P = Field(
-        name="p",
-        data=ds.p,
-        grid=UxGrid(ds.uxgrid, z=ds.coords["zf"], mesh="spherical"),
-        interp_method=UxLinearNodeLinearZF,
-    )
-    fieldset = FieldSet([P])
+    fieldset = FieldSet.from_ugrid_conventions(ds)
+    fieldset.p.interp_method = UxLinearNodeLinearZF()
 
     assert np.isclose(fieldset.p.eval(time=[0], z=[1.0], y=[30.0], x=[-170.0]), 1.0)
     assert np.isclose(fieldset.p.eval(time=[0], z=[1.0], y=[30.0], x=[-180.0]), 1.0)

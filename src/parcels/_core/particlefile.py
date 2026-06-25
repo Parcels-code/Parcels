@@ -149,7 +149,7 @@ class ParticleFile:
         fieldset :
             FieldSet object associated with the ParticleSet (optional). By default, the fieldset associated with the ParticleSet will be used, but this can be overridden by providing a fieldset here. This is used in cases when the particleset is a ParticleSetView.
         """
-        pclass = pset._ptype
+        pclass = pset._pclass
         if isinstance(pset, ParticleSetView) and fieldset is None:
             raise ValueError("When writing a ParticleSetView, a fieldset must be provided to the write() method.")
         if fieldset is None:

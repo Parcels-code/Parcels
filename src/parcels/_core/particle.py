@@ -127,24 +127,6 @@ def get_default_particle(spatial_dtype: type[np.float32] | type[np.float64]) -> 
     return ParticleClass(
         variables=[
             Variable(
-                "lon",
-                dtype=spatial_dtype,
-                attrs={"standard_name": "longitude", "units": "degrees_east", "axis": "X"},
-            ),
-            Variable(
-                "lat",
-                dtype=spatial_dtype,
-                attrs={"standard_name": "latitude", "units": "degrees_north", "axis": "Y"},
-            ),
-            Variable(
-                "z",
-                dtype=spatial_dtype,
-                attrs={"standard_name": "vertical coordinate", "units": "m", "positive": "down"},
-            ),
-            Variable("dlon", dtype=spatial_dtype, to_write=False),
-            Variable("dlat", dtype=spatial_dtype, to_write=False),
-            Variable("dz", dtype=spatial_dtype, to_write=False),
-            Variable(
                 "time",
                 dtype=np.float64,
                 attrs={
@@ -153,6 +135,24 @@ def get_default_particle(spatial_dtype: type[np.float32] | type[np.float64]) -> 
                     "axis": "T",
                 },  # "units" and "calendar" gets updated/set if working with cftime time domain
             ),
+            Variable(
+                "z",
+                dtype=spatial_dtype,
+                attrs={"standard_name": "vertical coordinate", "units": "m", "positive": "down"},
+            ),
+            Variable(
+                "lat",
+                dtype=spatial_dtype,
+                attrs={"standard_name": "latitude", "units": "degrees_north", "axis": "Y"},
+            ),
+            Variable(
+                "lon",
+                dtype=spatial_dtype,
+                attrs={"standard_name": "longitude", "units": "degrees_east", "axis": "X"},
+            ),
+            Variable("dz", dtype=spatial_dtype, to_write=False),
+            Variable("dlat", dtype=spatial_dtype, to_write=False),
+            Variable("dlon", dtype=spatial_dtype, to_write=False),
             Variable(
                 "particle_id",
                 dtype=np.int64,

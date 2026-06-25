@@ -64,6 +64,11 @@ _ODIE_REGISTRY_FILES: list[str] = (
         "data/FESOM_periodic_channel/w.fesom_channel.nc",
     ]
     + [
+        "data/SCHISM_LakeOntario/out2d.schism_lake_ontario.nc",
+        "data/SCHISM_LakeOntario/horizontalVelX.schism_lake_ontario.nc",
+        "data/SCHISM_LakeOntario/horizontalVelY.schism_lake_ontario.nc",
+    ]
+    + [
         "data/NemoCurvilinear_data/U_purely_zonal-ORCA025_grid_U.nc4",
         "data/NemoCurvilinear_data/V_purely_zonal-ORCA025_grid_V.nc4",
         "data/NemoCurvilinear_data/mesh_mask.nc4",
@@ -139,7 +144,9 @@ class _V3Dataset(_ParcelsDataset):
         # Function to apply to the dataset before the decoding the CF variables
         self.pup = pup
         self.pre_decode_cf_callable: None | Callable[[xr.Dataset], xr.Dataset] = pre_decode_cf_callable
-        self.v3_dataset_name = path_relative_to_pup.split("/")[0]
+
+        first, second, *_ = path_relative_to_pup.split("/")
+        self.v3_dataset_name = f"{first}/{second}"  # e.g., data/my_dataset
 
     def open_dataset(self) -> xr.Dataset:
         self.download_relevant_files()
@@ -222,6 +229,9 @@ _DATASET_KEYS_AND_CONFIGS: dict[str, tuple[_ParcelsDataset, _Purpose]] = dict([
     ("FESOM_periodic_channel/u.fesom_channel", (_V3Dataset(_ODIE,"data/FESOM_periodic_channel/u.fesom_channel.nc"), _Purpose.TUTORIAL)),
     ("FESOM_periodic_channel/v.fesom_channel", (_V3Dataset(_ODIE,"data/FESOM_periodic_channel/v.fesom_channel.nc"), _Purpose.TUTORIAL)),
     ("FESOM_periodic_channel/w.fesom_channel", (_V3Dataset(_ODIE,"data/FESOM_periodic_channel/w.fesom_channel.nc"), _Purpose.TUTORIAL)),
+    ("SCHISM_LakeOntario/out2d", (_V3Dataset(_ODIE,"data/SCHISM_LakeOntario/out2d.schism_lake_ontario.nc"), _Purpose.TUTORIAL)),
+    ("SCHISM_LakeOntario/horizontalVelX", (_V3Dataset(_ODIE,"data/SCHISM_LakeOntario/horizontalVelX.schism_lake_ontario.nc"), _Purpose.TUTORIAL)),
+    ("SCHISM_LakeOntario/horizontalVelY", (_V3Dataset(_ODIE,"data/SCHISM_LakeOntario/horizontalVelY.schism_lake_ontario.nc"), _Purpose.TUTORIAL)),
     ("NemoCurvilinear_data_zonal/U", (_V3Dataset(_ODIE,"data/NemoCurvilinear_data/U_purely_zonal-ORCA025_grid_U.nc4"), _Purpose.TUTORIAL)),
     ("NemoCurvilinear_data_zonal/V", (_V3Dataset(_ODIE,"data/NemoCurvilinear_data/V_purely_zonal-ORCA025_grid_V.nc4"), _Purpose.TUTORIAL)),
     ("NemoCurvilinear_data_zonal/mesh_mask", (_V3Dataset(_ODIE,"data/NemoCurvilinear_data/mesh_mask.nc4", _preprocess_drop_time_from_mesh2), _Purpose.TUTORIAL)),
