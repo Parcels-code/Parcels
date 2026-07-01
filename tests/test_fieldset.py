@@ -96,6 +96,39 @@ def test_fieldset_from_structured_generic_datasets(ds):
     assert len(fieldset.gridset) == 1
 
 
+def test_fieldset_vectorfield_default():
+    ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]].rename({"U_A_grid": "U", "V_A_grid": "V"})
+
+    fset1 = FieldSet.from_sgrid_conventions(ds1, mesh="flat")
+
+    assert "U" in fset1.fields
+    assert "V" in fset1.fields
+    assert "UV" in fset1.fields
+
+
+def test_fieldset_vectorfield_custom():
+    ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]].rename({"U_A_grid": "U", "V_A_grid": "V"})
+
+    fset1 = FieldSet.from_sgrid_conventions(ds1, mesh="flat", vector_fields={"UV_wind": ("U_wind", "V_wind")})
+
+    assert "U_wind" in fset1.fields
+    assert "V_wind" in fset1.fields
+    assert "UV_wind" in fset1.fields
+
+
+def test_fieldset_vectorfield_none():
+    ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]].rename({"U_A_grid": "U", "V_A_grid": "V"})
+
+    fset1 = FieldSet.from_sgrid_conventions(ds1, mesh="flat", vector_fields=None)
+
+    assert "U" in fset1.fields
+    assert "V" in fset1.fields
+    assert "UV" not in fset1.fields
+
+
+def test_resolve_vector_field_components(): ...
+
+
 # TODO restructure: use adding of fieldset notation to test this
 @pytest.mark.skip("Needs updating after refactoring from https://github.com/Parcels-code/Parcels/pull/2646")
 def test_fieldset_time_interval():
