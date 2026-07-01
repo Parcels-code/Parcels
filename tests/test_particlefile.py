@@ -19,12 +19,12 @@ from parcels import (
     ParticleSetWarning,
     StatusCode,
     Variable,
+    convert,
 )
 from parcels._core.particle import Particle, get_default_particle
 from parcels._core.particlefile import _get_schema
 from parcels._core.utils.time import TimeInterval, timedelta_to_float
 from parcels._datasets.structured.generated import peninsula_dataset
-from parcels.convert import copernicusmarine_to_sgrid
 from parcels.interpolators import XLinear
 from parcels.kernels import AdvectionRK4
 from tests.common_kernels import DoNothing
@@ -400,7 +400,7 @@ def test_pset_execute_outputdt_backwards_fieldset_timevarying():
     # TODO: Not ideal using the `open_dataset` here, but I'm struggling to recreate this error using the test suite fieldsets we have
     ds_in = parcels.tutorial.open_dataset("CopernicusMarine_data_for_Argo_tutorial/data")
     fields = {"U": ds_in["uo"], "V": ds_in["vo"]}
-    ds_fset = copernicusmarine_to_sgrid(fields=fields)
+    ds_fset = convert.copernicusmarine_to_sgrid(fields=fields)
     fieldset = FieldSet.from_sgrid_conventions(ds_fset)
 
     df = setup_pset_execute(outputdt=outputdt, execute_kwargs=dict(runtime=runtime, dt=dt), fieldset=fieldset)
