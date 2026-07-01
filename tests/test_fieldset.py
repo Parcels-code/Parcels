@@ -96,9 +96,6 @@ def test_fieldset_from_structured_generic_datasets(ds):
     assert len(fieldset.gridset) == 1
 
 
-def test_fieldset_gridset_multiple_grids(): ...
-
-
 # TODO restructure: use adding of fieldset notation to test this
 @pytest.mark.skip("Needs updating after refactoring from https://github.com/Parcels-code/Parcels/pull/2646")
 def test_fieldset_time_interval():
