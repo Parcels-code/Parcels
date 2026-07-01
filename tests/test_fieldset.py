@@ -128,6 +128,36 @@ def test_fieldset_structured_vectorfield_none():
     assert "UV" not in fset.fields
 
 
+def test_fieldset_unstructured_vectorfield_default():
+    ds = datasets_unstructured["stommel_gyre_delaunay"]
+    fset = FieldSet.from_ugrid_conventions(ds, mesh="spherical")
+
+    assert "U" in fset.fields
+    assert "V" in fset.fields
+    assert "UV" in fset.fields
+
+
+def test_fieldset_unstructured_vectorfield_custom():
+    ds = datasets_unstructured["stommel_gyre_delaunay"]
+    ds = ds.rename({"U": "U_wind", "V": "V_wind"})
+
+    fset = FieldSet.from_ugrid_conventions(ds, mesh="spherical", vector_fields={"UV_wind": ("U_wind", "V_wind")})
+
+    assert "U_wind" in fset.fields
+    assert "V_wind" in fset.fields
+    assert "UV_wind" in fset.fields
+
+
+def test_fieldset_unstructured_vectorfield_none():
+    ds = datasets_unstructured["stommel_gyre_delaunay"]
+
+    fset = FieldSet.from_ugrid_conventions(ds, mesh="spherical", vector_fields=None)
+
+    assert "U" in fset.fields
+    assert "V" in fset.fields
+    assert "UV" not in fset.fields
+
+
 @pytest.mark.parametrize(
     "data_vars,expected",
     [

@@ -239,21 +239,17 @@ class UnstructuredModelData(ModelData):
         single_fields: dict[str, Field] = {}
         vector_fields: dict[str, VectorField] = {}
         scalar_field_names = self.scalar_field_names
-        if "U" in scalar_field_names and "V" in scalar_field_names:
-            single_fields["U"] = Field("U", self)
-            single_fields["V"] = Field("V", self)
-            vector_fields["UV"] = VectorField("UV", single_fields["U"], single_fields["V"], interp_method=Ux_Velocity())
 
-            if "W" in scalar_field_names:
-                single_fields["W"] = Field("W", self)
-                vector_fields["UVW"] = VectorField(
-                    "UVW", single_fields["U"], single_fields["V"], single_fields["W"], interp_method=Ux_Velocity()
-                )
+        for varname in set(scalar_field_names):
+            single_fields[varname] = Field(str(varname), self)
+
+        for vfield_name, components in self.vector_field_components.items():
+            interp_method = Ux_Velocity()
+
+            component_fields = [single_fields[name] for name in components]
+            vector_fields[vfield_name] = VectorField(vfield_name, *component_fields, interp_method=interp_method)
 
         fields: dict[str, Field | VectorField] = {**single_fields, **vector_fields}
-        for varname in set(scalar_field_names) - set(single_fields.keys()):
-            fields[varname] = Field(str(varname), self)
-
         return list(fields.values())
 
     def assert_valid_field_data(self, field_data: ux.UxDataArray) -> None:
@@ -276,7 +272,11 @@ class UnstructuredModelData(ModelData):
 
         grid = UxGrid(ds.uxgrid, z=ds.coords["zf"], mesh=mesh)
         ds = _discover_ux_U_and_V(ds)
-        model = cls(ds, grid)
+
+        vector_fields = resolve_vector_fields(ds, vector_fields)
+        assert_vector_field_components_in_dataset(ds, vector_fields)
+
+        model = cls(ds, grid, vector_fields)
         model._fields = model.construct_fields()
         for f in model._fields:
             if isinstance(f, Field):
