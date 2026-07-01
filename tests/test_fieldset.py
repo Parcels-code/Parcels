@@ -208,6 +208,18 @@ def test_fieldset_from_sgrid_conventions(ds_name):
     assert len(fieldset.fields) > 0
 
 
+def test_fieldset_add_error_on_duplicate_fields():
+    """Test that adding FieldSets with overlapping field names raises a ValueError."""
+    ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]].rename({"U_A_grid": "U", "V_A_grid": "V"})
+    ds2 = ds1.copy()
+
+    fset1 = FieldSet.from_sgrid_conventions(ds1, mesh="flat")
+    fset2 = FieldSet.from_sgrid_conventions(ds2, mesh="flat")
+
+    with pytest.raises(ValueError, match="field names in common.*'U'"):
+        fset1 + fset2
+
+
 def test_fieldset_add():
     """Test that two FieldSets can be combined with + (fset1 + fset2)."""
     ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "grid"]].rename({"U_A_grid": "U1"})
@@ -223,19 +235,7 @@ def test_fieldset_add():
     assert "V2" in fset.fields
 
 
-def test_fieldset_add_overlapping_fields():
-    """Test that adding FieldSets with overlapping field names raises a ValueError."""
-    ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "grid"]].rename({"U_A_grid": "U"})
-    ds2 = datasets_structured["ds_2d_left"][["V_A_grid", "grid"]].rename({"V_A_grid": "U"})
-
-    fset1 = FieldSet.from_sgrid_conventions(ds1, mesh="flat")
-    fset2 = FieldSet.from_sgrid_conventions(ds2, mesh="flat")
-
-    with pytest.raises(ValueError, match="field names in common.*'U'"):
-        fset1 + fset2
-
-
-def test_fieldset_add_overlapping_context_values():
+def test_fieldset_add_error_on_duplicate_context_values():
     """Test that adding FieldSets with overlapping context value names raises a ValueError."""
     ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "grid"]].rename({"U_A_grid": "U1"})
     ds2 = datasets_structured["ds_2d_left"][["V_A_grid", "grid"]].rename({"V_A_grid": "V2"})
