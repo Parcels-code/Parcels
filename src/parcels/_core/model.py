@@ -19,7 +19,7 @@ from parcels._core.xgrid import (
     assert_all_field_dims_have_axis,  # noqa: F401, leave import for now until decision is made # TODO v4: Make decision
 )
 from parcels._logger import logger
-from parcels._python import _MissingType
+from parcels._python import _MISSING, _MissingType
 from parcels._typing import Mesh
 from parcels.convert import _ds_rename_using_standard_names
 from parcels.interpolators import (
@@ -116,26 +116,19 @@ class StructuredModelData(ModelData):
         single_fields: dict[str, Field] = {}
         vector_fields: dict[str, VectorField] = {}
         scalar_field_names = self.scalar_field_names
-        if "U" in scalar_field_names and "V" in scalar_field_names:
-            interp_method = XLinear_Velocity() if _is_agrid(self.data) else CGrid_Velocity()
-            single_fields["U"] = Field("U", self)
-            single_fields["V"] = Field("V", self)
-            vector_fields["UV"] = VectorField("UV", single_fields["U"], single_fields["V"], interp_method=interp_method)
 
-            if "W" in scalar_field_names:
-                single_fields["W"] = Field("W", self)
-                vector_fields["UVW"] = VectorField(
-                    "UVW",
-                    single_fields["U"],
-                    single_fields["V"],
-                    single_fields["W"],
-                    interp_method=interp_method,
-                )
+        for varname in set(scalar_field_names):
+            single_fields[varname] = Field(str(varname), self)
+
+        for vfield_name, components in self.vector_field_components.items():
+            interp_method = (
+                XLinear_Velocity() if _is_agrid(self.data, u=components[0], v=components[1]) else CGrid_Velocity()
+            )
+
+            component_fields = [single_fields[name] for name in components]
+            vector_fields[vfield_name] = VectorField(vfield_name, *component_fields, interp_method=interp_method)
 
         fields: dict[str, Field | VectorField] = {**single_fields, **vector_fields}
-        for varname in set(scalar_field_names) - set(fields.keys()):
-            fields[varname] = Field(str(varname), self)
-
         return list(fields.values())
 
     @classmethod
@@ -168,12 +161,35 @@ class StructuredModelData(ModelData):
         #     ds["lon"] = ds[node_dimensions[0]]
         #     ds["lat"] = ds[node_dimensions[1]]
 
+        vector_fields = resolve_vector_fields(ds, vector_fields)
+        assert_vector_field_components_in_dataset(ds, vector_fields)
+
         model = cls(ds, mesh=mesh, vector_field_components=vector_fields)
         model._fields = model.construct_fields()
         for f in model._fields:
             if isinstance(f, Field):
                 f.interp_method = XLinear()
         return model
+
+
+def resolve_vector_fields(
+    ds: xr.Dataset, vector_fields: TVectorFieldMapping | None | _MissingType
+) -> TVectorFieldMapping:
+    if vector_fields is None:
+        return {}
+    if vector_fields is _MISSING:  # i.e., the default vectorfield discovery behaviour
+        return _default_vector_field_components(ds.data_vars)
+    return vector_fields
+
+
+def assert_vector_field_components_in_dataset(ds: xr.Dataset, vector_fields: TVectorFieldMapping) -> None:
+    for components in vector_fields.values():
+        for c in components:
+            if c not in ds.data_vars:
+                raise ValueError(
+                    f"Field component '{c}' not present in the source dataset, but is listed in {vector_fields=!r}. This component cannot be used in this mapping."
+                )
+    return
 
 
 CONSTANT_FIELD_MODELS = {
@@ -389,10 +405,10 @@ def _select_uxinterpolator(da: ux.UxDataArray):
     return None
 
 
-def _is_agrid(ds: xr.Dataset) -> bool:
+def _is_agrid(ds: xr.Dataset, u: str, v: str) -> bool:
     # check if U and V are defined on the same dimensions
     # if yes, interpret as A grid
-    return set(ds["U"].dims) == set(ds["V"].dims)
+    return set(ds[u].dims) == set(ds[v].dims)
 
 
 def _get_time_interval(data: xr.DataArray | ux.UxDataArray) -> TimeInterval | None:

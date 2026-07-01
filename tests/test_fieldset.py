@@ -109,6 +109,7 @@ def test_fieldset_vectorfield_default():
 
 def test_fieldset_vectorfield_custom():
     ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]].rename({"U_A_grid": "U", "V_A_grid": "V"})
+    ds1 = ds1.rename({"U": "U_wind", "V": "V_wind"})
 
     fset1 = FieldSet.from_sgrid_conventions(ds1, mesh="flat", vector_fields={"UV_wind": ("U_wind", "V_wind")})
 
