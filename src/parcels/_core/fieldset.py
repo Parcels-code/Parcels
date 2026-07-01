@@ -227,6 +227,11 @@ class FieldSet:
         ----------
         ds : uxarray.UxDataset
             uxarray.UxDataset as obtained from the uxarray package but with appropriate named vertical dimensions
+        vector_fields : Mapping[str, tuple[str, ...]] or None, optional
+            Mapping of vector field names to tuples of component variable names in the dataset.
+            For example, ``{"UV": ("U", "V"), "UVW": ("U", "V", "W")}``.
+            If ``None``, no vector fields are constructed. If omitted (default), vector fields
+            are auto-discovered from standard variable names (``U``/``V``/``W``).
 
         Returns
         -------
@@ -260,6 +265,11 @@ class FieldSet:
         mesh : str
             String indicating the type of mesh coordinates used during
             velocity interpolation. Options are "spherical" or "flat".
+        vector_fields : Mapping[str, tuple[str, ...]] or None, optional
+            Mapping of vector field names to tuples of component variable names in the dataset.
+            For example, ``{"UV": ("U", "V"), "UVW": ("U", "V", "W")}``.
+            If ``None``, no vector fields are constructed. If omitted (default), vector fields
+            are auto-discovered from standard variable names (``U``/``V``/``W``).
 
         Returns
         -------
