@@ -231,8 +231,10 @@ def test_fieldset_add():
     fset = fset1 + fset2
 
     assert len(fset.models) == len(fset1.models) + len(fset2.models)
-    assert "U1" in fset.fields
-    assert "V2" in fset.fields
+
+    fields_before = list(fset1.fields.keys()) + list(fset2.fields.keys())
+    assert len(fields_before) == len(fset.fields)
+    assert set(fields_before) == set(fset.fields.keys())
 
 
 def test_fieldset_add_error_on_duplicate_context_values():
