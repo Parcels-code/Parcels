@@ -172,9 +172,7 @@ class StructuredModelData(ModelData):
         return model
 
 
-def resolve_vector_fields(
-    ds: xr.Dataset, vector_fields: TVectorField | None | NotSetType
-) -> TVectorField:
+def resolve_vector_fields(ds: xr.Dataset, vector_fields: TVectorField | None | NotSetType) -> TVectorField:
     if vector_fields is None:
         return {}
     if vector_fields is NOTSET:  # i.e., the default vectorfield discovery behaviour
@@ -261,9 +259,7 @@ class UnstructuredModelData(ModelData):
         return list(self.data.data_vars)
 
     @classmethod
-    def from_ugrid_conventions(
-        cls, ds: ux.UxDataset, mesh: Mesh, vector_fields: TVectorField | None | NotSetType
-    ):
+    def from_ugrid_conventions(cls, ds: ux.UxDataset, mesh: Mesh, vector_fields: TVectorField | None | NotSetType):
         ds_dims = list(ds.dims)
         if not all(dim in ds_dims for dim in ["time", "zf", "zc"]):
             raise ValueError(
