@@ -97,35 +97,35 @@ def test_fieldset_from_structured_generic_datasets(ds):
     assert len(fieldset.gridset) == 1
 
 
-def test_fieldset_vectorfield_default():
-    ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]].rename({"U_A_grid": "U", "V_A_grid": "V"})
+def test_fieldset_structured_vectorfield_default():
+    ds = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]].rename({"U_A_grid": "U", "V_A_grid": "V"})
 
-    fset1 = FieldSet.from_sgrid_conventions(ds1, mesh="flat")
+    fset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
 
-    assert "U" in fset1.fields
-    assert "V" in fset1.fields
-    assert "UV" in fset1.fields
-
-
-def test_fieldset_vectorfield_custom():
-    ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]].rename({"U_A_grid": "U", "V_A_grid": "V"})
-    ds1 = ds1.rename({"U": "U_wind", "V": "V_wind"})
-
-    fset1 = FieldSet.from_sgrid_conventions(ds1, mesh="flat", vector_fields={"UV_wind": ("U_wind", "V_wind")})
-
-    assert "U_wind" in fset1.fields
-    assert "V_wind" in fset1.fields
-    assert "UV_wind" in fset1.fields
+    assert "U" in fset.fields
+    assert "V" in fset.fields
+    assert "UV" in fset.fields
 
 
-def test_fieldset_vectorfield_none():
-    ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]].rename({"U_A_grid": "U", "V_A_grid": "V"})
+def test_fieldset_structured_vectorfield_custom():
+    ds = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]].rename({"U_A_grid": "U", "V_A_grid": "V"})
+    ds = ds.rename({"U": "U_wind", "V": "V_wind"})
 
-    fset1 = FieldSet.from_sgrid_conventions(ds1, mesh="flat", vector_fields=None)
+    fset = FieldSet.from_sgrid_conventions(ds, mesh="flat", vector_fields={"UV_wind": ("U_wind", "V_wind")})
 
-    assert "U" in fset1.fields
-    assert "V" in fset1.fields
-    assert "UV" not in fset1.fields
+    assert "U_wind" in fset.fields
+    assert "V_wind" in fset.fields
+    assert "UV_wind" in fset.fields
+
+
+def test_fieldset_structured_vectorfield_none():
+    ds = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]].rename({"U_A_grid": "U", "V_A_grid": "V"})
+
+    fset = FieldSet.from_sgrid_conventions(ds, mesh="flat", vector_fields=None)
+
+    assert "U" in fset.fields
+    assert "V" in fset.fields
+    assert "UV" not in fset.fields
 
 
 @pytest.mark.parametrize(
