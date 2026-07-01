@@ -144,6 +144,32 @@ class FieldSet:
 
         self.fields[name] = field
 
+    def to_windowed_arrays(self, *, max_levels: int | None = None):
+        """Wrap dask-backed field data in rolling time-window caches.
+
+        Opt-in optimization for forward-marching simulations where all particles
+        share a single clock. Delegates to each underlying model; dask-backed,
+        time-leading fields are served through a resident NumPy window (each time
+        level loaded once and evicted as the clock advances) instead of re-reading
+        chunks on every kernel step. NumPy-backed (eager) and non-time-leading
+        fields are left unchanged, and re-invoking is idempotent, so this is safe
+        to call more than once.
+
+        Parameters
+        ----------
+        max_levels : int, optional
+            Cap on the number of time levels kept resident per field. ``None``
+            (default) retains every level the advancing clock still brackets.
+
+        Returns
+        -------
+        FieldSet
+            ``self``, to allow chaining.
+        """
+        for model in self.models:
+            model.to_windowed_arrays(max_levels=max_levels)
+        return self
+
     def add_constant_field(self, name: str, value, mesh: Mesh = "spherical"):
         """Wrapper function to add a Field that is constant in space,
            useful e.g. when using constant horizontal diffusivity
