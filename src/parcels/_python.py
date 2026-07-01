@@ -7,8 +7,8 @@ from typing import TypeVar
 K = TypeVar("K")
 V = TypeVar("V")
 
-_MissingType = enum.Enum("_MissingType", "VALUE")
-_MISSING = _MissingType.VALUE
+NotSetType = enum.Enum("NotSetType", "VALUE")
+NOTSET = NotSetType.VALUE
 
 
 def isinstance_noimport(obj, class_or_tuple):

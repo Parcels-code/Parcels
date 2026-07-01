@@ -20,7 +20,7 @@ from parcels._core.model import (
 from parcels._core.utils.string import _assert_str_and_python_varname
 from parcels._core.utils.time import get_datetime_type_calendar
 from parcels._core.utils.time import is_compatible as datetime_is_compatible
-from parcels._python import _MISSING, _MissingType
+from parcels._python import NOTSET, NotSetType
 from parcels._typing import Mesh
 from parcels.interpolators import (
     XConstantField,
@@ -212,7 +212,7 @@ class FieldSet:
         cls,
         ds: ux.UxDataset,
         mesh: str = "spherical",
-        vector_fields: TVectorFieldMapping | None | _MissingType = _MISSING,
+        vector_fields: TVectorFieldMapping | None | NotSetType = NOTSET,
     ):
         """Create a FieldSet from a Parcels compliant uxarray.UxDataset.
 
@@ -250,7 +250,7 @@ class FieldSet:
         cls,
         ds: xr.Dataset,
         mesh: Mesh | None = None,
-        vector_fields: TVectorFieldMapping | None | _MissingType = _MISSING,
+        vector_fields: TVectorFieldMapping | None | NotSetType = NOTSET,
     ):  # TODO: Update mesh to be discovered from the dataset metadata
         """Create a FieldSet from a dataset using SGRID convention metadata.
 

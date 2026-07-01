@@ -19,7 +19,7 @@ from parcels._core.xgrid import (
     assert_all_field_dims_have_axis,  # noqa: F401, leave import for now until decision is made # TODO v4: Make decision
 )
 from parcels._logger import logger
-from parcels._python import _MISSING, _MissingType
+from parcels._python import NOTSET, NotSetType
 from parcels._typing import Mesh
 from parcels.convert import _ds_rename_using_standard_names
 from parcels.interpolators import (
@@ -133,7 +133,7 @@ class StructuredModelData(ModelData):
 
     @classmethod
     def from_sgrid_conventions(
-        cls, ds: xr.Dataset, mesh: Mesh | None, vector_fields: TVectorFieldMapping | None | _MissingType
+        cls, ds: xr.Dataset, mesh: Mesh | None, vector_fields: TVectorFieldMapping | None | NotSetType
     ) -> Self:
         ds = ds.copy()
         if mesh is None:
@@ -173,11 +173,11 @@ class StructuredModelData(ModelData):
 
 
 def resolve_vector_fields(
-    ds: xr.Dataset, vector_fields: TVectorFieldMapping | None | _MissingType
+    ds: xr.Dataset, vector_fields: TVectorFieldMapping | None | NotSetType
 ) -> TVectorFieldMapping:
     if vector_fields is None:
         return {}
-    if vector_fields is _MISSING:  # i.e., the default vectorfield discovery behaviour
+    if vector_fields is NOTSET:  # i.e., the default vectorfield discovery behaviour
         return _default_vector_field_components(ds.data_vars)
     return vector_fields
 
@@ -262,7 +262,7 @@ class UnstructuredModelData(ModelData):
 
     @classmethod
     def from_ugrid_conventions(
-        cls, ds: ux.UxDataset, mesh: Mesh, vector_fields: TVectorFieldMapping | None | _MissingType
+        cls, ds: ux.UxDataset, mesh: Mesh, vector_fields: TVectorFieldMapping | None | NotSetType
     ):
         ds_dims = list(ds.dims)
         if not all(dim in ds_dims for dim in ["time", "zf", "zc"]):
