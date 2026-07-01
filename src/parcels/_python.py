@@ -1,10 +1,14 @@
 # Generic Python helpers
+import enum
 import inspect
 from collections.abc import Callable, Mapping
 from typing import TypeVar
 
 K = TypeVar("K")
 V = TypeVar("V")
+
+_MissingType = enum.Enum("_MissingType", "VALUE")
+_MISSING = _MissingType.VALUE
 
 
 def isinstance_noimport(obj, class_or_tuple):
