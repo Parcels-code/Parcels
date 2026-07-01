@@ -14,7 +14,7 @@ from parcels._core.model import (
     CONSTANT_FIELD_MODELS,
     ModelData,
     StructuredModelData,
-    TVectorFieldMapping,
+    TVectorField,
     UnstructuredModelData,
 )
 from parcels._core.utils.string import _assert_str_and_python_varname
@@ -212,7 +212,7 @@ class FieldSet:
         cls,
         ds: ux.UxDataset,
         mesh: str = "spherical",
-        vector_fields: TVectorFieldMapping | None | NotSetType = NOTSET,
+        vector_fields: TVectorField | None | NotSetType = NOTSET,
     ):
         """Create a FieldSet from a Parcels compliant uxarray.UxDataset.
 
@@ -250,7 +250,7 @@ class FieldSet:
         cls,
         ds: xr.Dataset,
         mesh: Mesh | None = None,
-        vector_fields: TVectorFieldMapping | None | NotSetType = NOTSET,
+        vector_fields: TVectorField | None | NotSetType = NOTSET,
     ):  # TODO: Update mesh to be discovered from the dataset metadata
         """Create a FieldSet from a dataset using SGRID convention metadata.
 

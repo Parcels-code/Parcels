@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
-from collections.abc import Mapping, Sequence
+from collections.abc import Hashable, Sequence
 from typing import Any, Self
 
 import cf_xarray  # noqa: F401
@@ -34,14 +34,14 @@ from parcels.interpolators import (
 )
 from parcels.interpolators._base import ScalarInterpolator, VectorInterpolator
 
-TVectorFieldMapping = Mapping[str, tuple[str, str] | tuple[str, str, str]]
+TVectorField = dict[str, tuple[str, str] | tuple[str, str, str]]
 
 
 class ModelData(ABC):
     data: Any
     grid: BaseGrid
     field_to_interpolator: dict[str, ScalarInterpolator | VectorInterpolator]
-    vector_field_components: TVectorFieldMapping
+    vector_field_components: TVectorField
 
     @abstractmethod
     def construct_fields(self) -> list[Field | VectorField]: ...
@@ -84,7 +84,7 @@ def preprocess_sgrid_model_data(ds: xr.Dataset) -> xr.Dataset:
 
 
 class StructuredModelData(ModelData):
-    def __init__(self, data: xr.Dataset, mesh: Mesh, vector_field_components: TVectorFieldMapping):
+    def __init__(self, data: xr.Dataset, mesh: Mesh, vector_field_components: TVectorField):
         if not isinstance(data, xr.Dataset):
             raise ValueError(f"Expected `data` to be an xarray.Dataset . Got {type(data)}")
 
@@ -126,14 +126,14 @@ class StructuredModelData(ModelData):
             )
 
             component_fields = [single_fields[name] for name in components]
-            vector_fields[vfield_name] = VectorField(vfield_name, *component_fields, interp_method=interp_method)
+            vector_fields[vfield_name] = VectorField(vfield_name, *component_fields, interp_method=interp_method)  # type:ignore[misc,arg-type]
 
         fields: dict[str, Field | VectorField] = {**single_fields, **vector_fields}
         return list(fields.values())
 
     @classmethod
     def from_sgrid_conventions(
-        cls, ds: xr.Dataset, mesh: Mesh | None, vector_fields: TVectorFieldMapping | None | NotSetType
+        cls, ds: xr.Dataset, mesh: Mesh | None, vector_fields: TVectorField | None | NotSetType
     ) -> Self:
         ds = ds.copy()
         if mesh is None:
@@ -173,16 +173,16 @@ class StructuredModelData(ModelData):
 
 
 def resolve_vector_fields(
-    ds: xr.Dataset, vector_fields: TVectorFieldMapping | None | NotSetType
-) -> TVectorFieldMapping:
+    ds: xr.Dataset, vector_fields: TVectorField | None | NotSetType
+) -> TVectorField:
     if vector_fields is None:
         return {}
     if vector_fields is NOTSET:  # i.e., the default vectorfield discovery behaviour
-        return _default_vector_field_components(ds.data_vars)
+        return _default_vector_field_components(list(ds.data_vars))
     return vector_fields
 
 
-def assert_vector_field_components_in_dataset(ds: xr.Dataset, vector_fields: TVectorFieldMapping) -> None:
+def assert_vector_field_components_in_dataset(ds: xr.Dataset, vector_fields: TVectorField) -> None:
     for components in vector_fields.values():
         for c in components:
             if c not in ds.data_vars:
@@ -222,7 +222,7 @@ CONSTANT_FIELD_MODELS = {
 
 
 class UnstructuredModelData(ModelData):
-    def __init__(self, data: ux.UxDataset, grid: UxGrid, vector_field_components: TVectorFieldMapping):
+    def __init__(self, data: ux.UxDataset, grid: UxGrid, vector_field_components: TVectorField):
         if not isinstance(data, ux.UxDataset):
             raise ValueError(f"Expected `data` to be an uxarray.UxDataset . Got {type(data)}")
 
@@ -247,7 +247,7 @@ class UnstructuredModelData(ModelData):
             interp_method = Ux_Velocity()
 
             component_fields = [single_fields[name] for name in components]
-            vector_fields[vfield_name] = VectorField(vfield_name, *component_fields, interp_method=interp_method)
+            vector_fields[vfield_name] = VectorField(vfield_name, *component_fields, interp_method=interp_method)  # type:ignore[misc, arg-type]
 
         fields: dict[str, Field | VectorField] = {**single_fields, **vector_fields}
         return list(fields.values())
@@ -262,7 +262,7 @@ class UnstructuredModelData(ModelData):
 
     @classmethod
     def from_ugrid_conventions(
-        cls, ds: ux.UxDataset, mesh: Mesh, vector_fields: TVectorFieldMapping | None | NotSetType
+        cls, ds: ux.UxDataset, mesh: Mesh, vector_fields: TVectorField | None | NotSetType
     ):
         ds_dims = list(ds.dims)
         if not all(dim in ds_dims for dim in ["time", "zf", "zc"]):
@@ -304,9 +304,9 @@ def _get_mesh_type_from_sgrid_dataset(ds_sgrid: xr.Dataset) -> Mesh:
     return "spherical" if _is_coordinate_in_degrees(ds_sgrid[fpoint_x]) else "flat"
 
 
-def _default_vector_field_components(data_vars: Sequence[str]) -> TVectorFieldMapping:
+def _default_vector_field_components(data_vars: Sequence[Hashable]) -> TVectorField:
     vars = set(data_vars)
-    ret = {}
+    ret: TVectorField = {}
 
     if {"U", "V"}.issubset(vars):
         ret["UV"] = ("U", "V")
