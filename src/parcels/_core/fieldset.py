@@ -371,9 +371,3 @@ _COPERNICUS_MARINE_CF_STANDARD_NAME_FALLBACKS = {
     ],
     "W": ["upward_sea_water_velocity", "vertical_sea_water_velocity"],
 }
-
-
-def _is_agrid(ds: xr.Dataset) -> bool:
-    # check if U and V are defined on the same dimensions
-    # if yes, interpret as A grid
-    return set(ds["U"].dims) == set(ds["V"].dims)
