@@ -10,10 +10,17 @@ import uxarray as ux
 import xarray as xr
 
 from parcels._core.field import Field, VectorField
-from parcels._core.model import CONSTANT_FIELD_MODELS, ModelData, StructuredModelData, UnstructuredModelData
+from parcels._core.model import (
+    CONSTANT_FIELD_MODELS,
+    ModelData,
+    StructuredModelData,
+    TVectorFieldMapping,
+    UnstructuredModelData,
+)
 from parcels._core.utils.string import _assert_str_and_python_varname
 from parcels._core.utils.time import get_datetime_type_calendar
 from parcels._core.utils.time import is_compatible as datetime_is_compatible
+from parcels._python import _MISSING, _MissingType
 from parcels._typing import Mesh
 from parcels.interpolators import (
     XConstantField,
@@ -201,7 +208,12 @@ class FieldSet:
         return grids
 
     @classmethod
-    def from_ugrid_conventions(cls, ds: ux.UxDataset, mesh: str = "spherical"):
+    def from_ugrid_conventions(
+        cls,
+        ds: ux.UxDataset,
+        mesh: str = "spherical",
+        vector_fields: TVectorFieldMapping | None | _MissingType = _MISSING,
+    ):
         """Create a FieldSet from a Parcels compliant uxarray.UxDataset.
 
         This is the primary ingestion method in Parcels for structured grid datasets.
@@ -225,12 +237,15 @@ class FieldSet:
         -----
         See https://ugrid-conventions.github.io/ugrid-conventions/ for more information on the UGRID conventions.
         """
-        model = UnstructuredModelData.from_ugrid_conventions(ds, mesh)
+        model = UnstructuredModelData.from_ugrid_conventions(ds, mesh, vector_fields)
         return cls([model])
 
     @classmethod
     def from_sgrid_conventions(
-        cls, ds: xr.Dataset, mesh: Mesh | None = None
+        cls,
+        ds: xr.Dataset,
+        mesh: Mesh | None = None,
+        vector_fields: TVectorFieldMapping | None | _MissingType = _MISSING,
     ):  # TODO: Update mesh to be discovered from the dataset metadata
         """Create a FieldSet from a dataset using SGRID convention metadata.
 
@@ -259,7 +274,7 @@ class FieldSet:
 
         See https://sgrid.github.io/sgrid/ for more information on the SGRID conventions.
         """
-        model = StructuredModelData.from_sgrid_conventions(ds, mesh)
+        model = StructuredModelData.from_sgrid_conventions(ds, mesh, vector_fields)
         return cls([model])
 
 

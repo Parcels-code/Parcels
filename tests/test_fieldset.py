@@ -8,6 +8,7 @@ import pytest
 
 from parcels import Field, ParticleFile, ParticleSet, XGrid, convert
 from parcels._core.fieldset import FieldSet, _datetime_to_msg
+from parcels._core.model import _default_vector_field_components
 from parcels._datasets.structured.generic import datasets as datasets_structured
 from parcels._datasets.structured.generic import datasets_sgrid
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
@@ -126,7 +127,17 @@ def test_fieldset_vectorfield_none():
     assert "UV" not in fset1.fields
 
 
-def test_resolve_vector_field_components(): ...
+@pytest.mark.parametrize(
+    "data_vars,expected",
+    [
+        (["U", "V", "land_mask"], {"UV": ("U", "V")}),
+        (["U", "V", "W", "land_mask"], {"UV": ("U", "V"), "UVW": ("U", "V", "W")}),
+        (["field1", "field2", "field3"], {}),
+    ],
+)
+def test_default_vector_field_components(data_vars, expected):
+    got = _default_vector_field_components(data_vars)
+    assert got == expected
 
 
 # TODO restructure: use adding of fieldset notation to test this

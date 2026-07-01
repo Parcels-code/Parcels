@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Mapping, Sequence
 from typing import Any, Self
 
 import cf_xarray  # noqa: F401
@@ -18,6 +19,7 @@ from parcels._core.xgrid import (
     assert_all_field_dims_have_axis,  # noqa: F401, leave import for now until decision is made # TODO v4: Make decision
 )
 from parcels._logger import logger
+from parcels._python import _MissingType
 from parcels._typing import Mesh
 from parcels.convert import _ds_rename_using_standard_names
 from parcels.interpolators import (
@@ -32,11 +34,14 @@ from parcels.interpolators import (
 )
 from parcels.interpolators._base import ScalarInterpolator, VectorInterpolator
 
+TVectorFieldMapping = Mapping[str, tuple[str, str] | tuple[str, str, str]]
+
 
 class ModelData(ABC):
     data: Any
     grid: BaseGrid
     field_to_interpolator: dict[str, ScalarInterpolator | VectorInterpolator]
+    vector_field_components: TVectorFieldMapping
 
     @abstractmethod
     def construct_fields(self) -> list[Field | VectorField]: ...
@@ -79,7 +84,7 @@ def preprocess_sgrid_model_data(ds: xr.Dataset) -> xr.Dataset:
 
 
 class StructuredModelData(ModelData):
-    def __init__(self, data: xr.Dataset, mesh: Mesh):
+    def __init__(self, data: xr.Dataset, mesh: Mesh, vector_field_components: TVectorFieldMapping):
         if not isinstance(data, xr.Dataset):
             raise ValueError(f"Expected `data` to be an xarray.Dataset . Got {type(data)}")
 
@@ -88,6 +93,7 @@ class StructuredModelData(ModelData):
 
         self.data = data
         self.grid = grid
+        self.vector_field_components = vector_field_components
         self.field_to_interpolator = {}
         self._fields: list[Field | VectorField] | None = None
         self.assert_valid_model_data()
@@ -133,7 +139,9 @@ class StructuredModelData(ModelData):
         return list(fields.values())
 
     @classmethod
-    def from_sgrid_conventions(cls, ds: xr.Dataset, mesh: Mesh | None) -> Self:
+    def from_sgrid_conventions(
+        cls, ds: xr.Dataset, mesh: Mesh | None, vector_fields: TVectorFieldMapping | None | _MissingType
+    ) -> Self:
         ds = ds.copy()
         if mesh is None:
             mesh = _get_mesh_type_from_sgrid_dataset(ds)
@@ -160,7 +168,7 @@ class StructuredModelData(ModelData):
         #     ds["lon"] = ds[node_dimensions[0]]
         #     ds["lat"] = ds[node_dimensions[1]]
 
-        model = cls(ds, mesh=mesh)
+        model = cls(ds, mesh=mesh, vector_field_components=vector_fields)
         model._fields = model.construct_fields()
         for f in model._fields:
             if isinstance(f, Field):
@@ -191,13 +199,14 @@ CONSTANT_FIELD_MODELS = {
             ),
         ),
         mesh=mesh,  # type:ignore
+        vector_fields=None,
     )
     for mesh in ["flat", "spherical"]
 }
 
 
 class UnstructuredModelData(ModelData):
-    def __init__(self, data: ux.UxDataset, grid: UxGrid):
+    def __init__(self, data: ux.UxDataset, grid: UxGrid, vector_field_components: TVectorFieldMapping):
         if not isinstance(data, ux.UxDataset):
             raise ValueError(f"Expected `data` to be an uxarray.UxDataset . Got {type(data)}")
 
@@ -206,6 +215,7 @@ class UnstructuredModelData(ModelData):
 
         self.data = data
         self.grid = grid
+        self.vector_field_components = vector_field_components
         self.field_to_interpolator = {}
         self._fields: list[Field | VectorField] | None = None
 
@@ -239,7 +249,9 @@ class UnstructuredModelData(ModelData):
         return list(self.data.data_vars)
 
     @classmethod
-    def from_ugrid_conventions(cls, ds: ux.UxDataset, mesh: Mesh):
+    def from_ugrid_conventions(
+        cls, ds: ux.UxDataset, mesh: Mesh, vector_fields: TVectorFieldMapping | None | _MissingType
+    ):
         ds_dims = list(ds.dims)
         if not all(dim in ds_dims for dim in ["time", "zf", "zc"]):
             raise ValueError(
@@ -274,6 +286,17 @@ def _get_mesh_type_from_sgrid_dataset(ds_sgrid: xr.Dataset) -> Mesh:
         raise ValueError(msg)
 
     return "spherical" if _is_coordinate_in_degrees(ds_sgrid[fpoint_x]) else "flat"
+
+
+def _default_vector_field_components(data_vars: Sequence[str]) -> TVectorFieldMapping:
+    vars = set(data_vars)
+    ret = {}
+
+    if {"U", "V"}.issubset(vars):
+        ret["UV"] = ("U", "V")
+    if {"U", "V", "W"}.issubset(vars):
+        ret["UVW"] = ("U", "V", "W")
+    return ret
 
 
 def _is_coordinate_in_degrees(da: xr.DataArray) -> bool:
