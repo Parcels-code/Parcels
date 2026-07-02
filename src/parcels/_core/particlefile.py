@@ -106,11 +106,13 @@ class ParticleFile:
 
         if path.exists():
             if mode is None:
-                raise ValueError(f"{path=!r} already exists. Use mode='w' or use a new path.")
+                msg = f"Path '{path}' already exists. Use mode='w' or use a new path."
+                raise ValueError(msg)
             if mode == "w":
                 path.unlink()
         if not path.parent.exists():
-            raise ValueError(f"Folder location for {path=!r} does not exist. Create the folder location first.")
+            msg = f"Folder location for '{path} does not exist. Create the folder location first."
+            raise ValueError(msg)
 
         self.metadata = {}
 

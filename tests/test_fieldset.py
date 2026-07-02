@@ -5,11 +5,9 @@ import cftime
 import numpy as np
 import pandas as pd
 import pytest
-import xarray as xr
 
 from parcels import Field, ParticleFile, ParticleSet, XGrid, convert
-from parcels._core.fieldset import CalendarError, FieldSet, _datetime_to_msg
-from parcels._datasets.structured.generic import T as T_structured
+from parcels._core.fieldset import FieldSet, _datetime_to_msg
 from parcels._datasets.structured.generic import datasets as datasets_structured
 from parcels._datasets.structured.generic import datasets_sgrid
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
@@ -20,7 +18,7 @@ ds = datasets_structured["ds_2d_left"]
 
 
 def test_fieldset_init_wrong_types():
-    with pytest.raises(ValueError, match="Expected `field` to be a Field or VectorField object. Got .*"):
+    with pytest.raises(ValueError, match="Expected `model` to be a ModelData object. Got .*"):
         FieldSet([1.0, 2.0, 3.0])
 
 
@@ -63,36 +61,6 @@ def test_fieldset_add_constant_field(fieldset):
     assert fieldset.test_constant_field[time, z, lat, lon] == 1.0
 
 
-@pytest.mark.skip(
-    "Likely not relevant after refactoring from https://github.com/Parcels-code/Parcels/pull/2646"
-)  # TODO: Remove or replace
-def test_fieldset_add_field(fieldset):
-    grid = XGrid.from_dataset(ds, mesh="flat")
-    field = Field("test_field", ds["U_A_grid"], grid, interp_method=XLinear)
-    fieldset.add_field(field)
-    assert fieldset.test_field == field
-
-
-@pytest.mark.skip(
-    "Likely not relevant after refactoring from https://github.com/Parcels-code/Parcels/pull/2646"
-)  # TODO: Remove or replace
-def test_fieldset_add_field_wrong_type(fieldset):
-    not_a_field = 1.0
-    with pytest.raises(ValueError, match="Expected `field` to be a Field or VectorField object. Got .*"):
-        fieldset.add_field(not_a_field, "test_field")
-
-
-@pytest.mark.skip(
-    "Likely not relevant after refactoring from https://github.com/Parcels-code/Parcels/pull/2646"
-)  # TODO: Remove or replace
-def test_fieldset_add_field_already_exists(fieldset):
-    grid = XGrid.from_dataset(ds, mesh="flat")
-    field = Field("test_field", ds["U_A_grid"], grid, interp_method=XLinear)
-    fieldset.add_field(field, "test_field")
-    with pytest.raises(ValueError, match="FieldSet already has a Field with name 'test_field'"):
-        fieldset.add_field(field, "test_field")
-
-
 def test_fieldset_gridset(fieldset):
     assert fieldset.fields["U"].grid in fieldset.gridset
     assert fieldset.fields["V"].grid in fieldset.gridset
@@ -131,9 +99,8 @@ def test_fieldset_from_structured_generic_datasets(ds):
 def test_fieldset_gridset_multiple_grids(): ...
 
 
-@pytest.mark.skip(
-    "Needs updating after refactoring from https://github.com/Parcels-code/Parcels/pull/2646"
-)  # TODO: Remove or replace
+# TODO restructure: use adding of fieldset notation to test this
+@pytest.mark.skip("Needs updating after refactoring from https://github.com/Parcels-code/Parcels/pull/2646")
 def test_fieldset_time_interval():
     grid1 = XGrid.from_dataset(ds, mesh="flat")
     field1 = Field("field1", ds["U_A_grid"], grid1, interp_method=XLinear)
@@ -158,61 +125,9 @@ def test_fieldset_time_interval_constant_fields():
     assert fieldset.time_interval is None
 
 
-@pytest.mark.skip(
-    "Needs updating after refactoring from https://github.com/Parcels-code/Parcels/pull/2646"
-)  # TODO: Remove or replace
-def test_fieldset_init_incompatible_calendars():
-    ds1 = ds.copy()
-    ds1["time"] = (
-        ds1["time"].dims,
-        xr.date_range("2000", "2001", T_structured, calendar="365_day", use_cftime=True),
-        ds1["time"].attrs,
-    )
-
-    grid = XGrid.from_dataset(ds1, mesh="flat")
-    U = Field("U", ds1["U_A_grid"], grid, interp_method=XLinear)
-    V = Field("V", ds1["V_A_grid"], grid, interp_method=XLinear)
-
-    ds2 = ds.copy()
-    ds2["time"] = (
-        ds2["time"].dims,
-        xr.date_range("2000", "2001", T_structured, calendar="360_day", use_cftime=True),
-        ds2["time"].attrs,
-    )
-    grid2 = XGrid.from_dataset(ds2, mesh="flat")
-    incompatible_calendar = Field("test", ds2["data_g"], grid2, interp_method=XLinear)
-
-    with pytest.raises(CalendarError, match="Expected field '.*' to have calendar compatible with datetime object"):
-        FieldSet([U, V, incompatible_calendar])
-
-
-@pytest.mark.skip(
-    "Needs updating after refactoring from https://github.com/Parcels-code/Parcels/pull/2646"
-)  # TODO: Remove or replace
-def test_fieldset_add_field_incompatible_calendars(fieldset):
-    ds_test = ds.copy()
-    ds_test["time"] = (
-        ds_test["time"].dims,
-        xr.date_range("2000", "2001", T_structured, calendar="360_day", use_cftime=True),
-        ds_test["time"].attrs,
-    )
-    grid = XGrid.from_dataset(ds_test, mesh="flat")
-    field = Field("test_field", ds_test["data_g"], grid, interp_method=XLinear)
-
-    with pytest.raises(CalendarError, match="Expected field '.*' to have calendar compatible with datetime object"):
-        fieldset.add_field(field, "test_field")
-
-    ds_test = ds.copy()
-    ds_test["time"] = (
-        ds_test["time"].dims,
-        np.linspace(0, 100, T_structured, dtype="timedelta64[s]"),
-        ds_test["time"].attrs,
-    )
-    grid = XGrid.from_dataset(ds_test, mesh="flat")
-    field = Field("test_field", ds_test["data_g"], grid, interp_method=XLinear)
-
-    with pytest.raises(CalendarError, match="Expected field '.*' to have calendar compatible with datetime object"):
-        fieldset.add_field(field, "test_field")
+def test_fieldset_add_incompatible_calendars():
+    # tests the adding of fieldsets that have incompatible calendars
+    ...
 
 
 @pytest.mark.parametrize(
@@ -291,3 +206,62 @@ def test_fieldset_from_sgrid_conventions(ds_name):
     fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
     assert isinstance(fieldset, FieldSet)
     assert len(fieldset.fields) > 0
+
+
+def test_fieldset_add():
+    """Test that two FieldSets can be combined with + (fset1 + fset2)."""
+    ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "grid"]].rename({"U_A_grid": "U1"})
+    ds2 = datasets_structured["ds_2d_left"][["V_A_grid", "grid"]].rename({"V_A_grid": "V2"})
+
+    fset1 = FieldSet.from_sgrid_conventions(ds1, mesh="flat")
+    fset2 = FieldSet.from_sgrid_conventions(ds2, mesh="flat")
+
+    fset = fset1 + fset2
+
+    assert len(fset.models) == len(fset1.models) + len(fset2.models)
+    assert "U1" in fset.fields
+    assert "V2" in fset.fields
+
+
+def test_fieldset_add_overlapping_fields():
+    """Test that adding FieldSets with overlapping field names raises a ValueError."""
+    ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "grid"]].rename({"U_A_grid": "U"})
+    ds2 = datasets_structured["ds_2d_left"][["V_A_grid", "grid"]].rename({"V_A_grid": "U"})
+
+    fset1 = FieldSet.from_sgrid_conventions(ds1, mesh="flat")
+    fset2 = FieldSet.from_sgrid_conventions(ds2, mesh="flat")
+
+    with pytest.raises(ValueError, match="field names in common.*'U'"):
+        fset1 + fset2
+
+
+def test_fieldset_add_overlapping_context_values():
+    """Test that adding FieldSets with overlapping context value names raises a ValueError."""
+    ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "grid"]].rename({"U_A_grid": "U1"})
+    ds2 = datasets_structured["ds_2d_left"][["V_A_grid", "grid"]].rename({"V_A_grid": "V2"})
+
+    fset1 = FieldSet.from_sgrid_conventions(ds1, mesh="flat")
+    fset1.add_context("kh", 1.0)
+
+    fset2 = FieldSet.from_sgrid_conventions(ds2, mesh="flat")
+    fset2.add_context("kh", 2.0)
+
+    with pytest.raises(ValueError, match="context value names in common.*'kh'"):
+        fset1 + fset2
+
+
+def test_fieldset_add_context_values():
+    """Test that context values from both FieldSets are present in the combined FieldSet."""
+    ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "grid"]].rename({"U_A_grid": "U1"})
+    ds2 = datasets_structured["ds_2d_left"][["V_A_grid", "grid"]].rename({"V_A_grid": "V2"})
+
+    fset1 = FieldSet.from_sgrid_conventions(ds1, mesh="flat")
+    fset1.add_context("c1", 1.0)
+
+    fset2 = FieldSet.from_sgrid_conventions(ds2, mesh="flat")
+    fset2.add_context("c2", 2.0)
+
+    fset = fset1 + fset2
+
+    assert fset.context["c1"] == 1.0
+    assert fset.context["c2"] == 2.0

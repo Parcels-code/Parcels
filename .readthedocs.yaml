@@ -7,13 +7,13 @@ build:
   jobs:
     create_environment:
       - asdf plugin add pixi
-      - asdf install pixi latest
-      - asdf global pixi latest
+      - asdf install pixi 0.70.2
+      - asdf global pixi 0.70.2
     install:
       - pixi install -e docs
     build:
       html:
         - pixi run -e docs python ci/scripts/download-all-tutorial-datasets.py
-        - pixi run -e docs sphinx-build -T -b html docs $READTHEDOCS_OUTPUT/html
+        - SPHINXOPTS='-T' BUILDDIR=$READTHEDOCS_OUTPUT/html pixi run docs-clean
 sphinx:
   configuration: docs/conf.py

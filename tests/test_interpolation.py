@@ -20,7 +20,6 @@ from parcels.interpolators import (
     XLinearInvdistLandTracer,
     XNearest,
     XPartialslip,
-    ZeroInterpolator,
 )
 from parcels.kernels import AdvectionRK4_3D
 from tests.utils import TEST_DATA
@@ -65,17 +64,16 @@ def field():
         ),
     )
     field = FieldSet.from_sgrid_conventions(ds, mesh="flat").U
-    assert field.interp_method == XLinear
+    assert isinstance(field.interp_method, XLinear)
 
     return field
 
 
 @pytest.mark.parametrize(
-    "func, t, z, y, x, expected",
+    "interpolator, t, z, y, x, expected",
     [
-        pytest.param(ZeroInterpolator, 1, 2.5, 0.49, 0.51, 0, id="Zero"),
         pytest.param(
-            XLinear,
+            XLinear(),
             [0, 1],
             [0, 0],
             [0.49, 0.49],
@@ -83,9 +81,9 @@ def field():
             [1.49, 6.49],
             id="Linear-1",
         ),
-        pytest.param(XLinear, 1, 2.5, 0.49, 0.51, 13.99, id="Linear-2"),
+        pytest.param(XLinear(), 1, 2.5, 0.49, 0.51, 13.99, id="Linear-2"),
         pytest.param(
-            XLinear,
+            XLinear(),
             [0, 1, 1],
             [0, 0, 2.5],
             [0.49, 0.49, 0.49],
@@ -93,9 +91,9 @@ def field():
             [1.49, 6.49, 13.99],
             id="Linear-3",
         ),
-        pytest.param(XLinearInvdistLandTracer, 1, 2.5, 0.49, 0.51, 13.99, id="LinearInvDistLand"),
+        pytest.param(XLinearInvdistLandTracer(), 1, 2.5, 0.49, 0.51, 13.99, id="LinearInvDistLand"),
         pytest.param(
-            XNearest,
+            XNearest(),
             [0, 3],
             [0.2, 0.2],
             [0.2, 0.2],
@@ -105,27 +103,27 @@ def field():
         ),
     ],
 )
-def test_raw_2d_interpolation(field, func, t, z, y, x, expected):
+def test_raw_2d_interpolation(field, interpolator, t, z, y, x, expected):
     """Test the interpolation functions on the Field."""
     particle_positions = {"time": t, "z": z, "lat": y, "lon": x}
     grid_positions = field.grid.search(z, y, x)
     grid_positions.update(_search_time_index(field, t))
 
-    value = func(particle_positions, grid_positions, field)
+    value = interpolator.interp(particle_positions, grid_positions, field)
     np.testing.assert_equal(value, expected)
 
 
 @pytest.mark.parametrize(
     "func, t, z, y, x, expected",
     [
-        (XPartialslip, 1, 0, 0, 0.0, [[1], [1]]),
-        (XFreeslip, 1, 0, 0.5, 1.5, [[1], [0.5]]),
-        (XPartialslip, 1, 0, 2.5, 1.5, [[0.75], [0.5]]),
-        (XFreeslip, 1, 0, 2.5, 1.5, [[1], [0.5]]),
-        (XPartialslip, 1, 0, 1.5, 0.5, [[0.5], [0.75]]),
-        (XFreeslip, 1, 0, 1.5, 0.5, [[0.5], [1]]),
+        (XPartialslip(), 1, 0, 0, 0.0, [[1], [1]]),
+        (XFreeslip(), 1, 0, 0.5, 1.5, [[1], [0.5]]),
+        (XPartialslip(), 1, 0, 2.5, 1.5, [[0.75], [0.5]]),
+        (XFreeslip(), 1, 0, 2.5, 1.5, [[1], [0.5]]),
+        (XPartialslip(), 1, 0, 1.5, 0.5, [[0.5], [0.75]]),
+        (XFreeslip(), 1, 0, 1.5, 0.5, [[0.5], [1]]),
         (
-            XFreeslip,
+            XFreeslip(),
             [1, 0],
             [0, 2],
             [1.5, 1.5],
@@ -146,12 +144,12 @@ def test_spatial_slip_interpolation(field, func, t, z, y, x, expected):
 
 
 @pytest.mark.parametrize(
-    "func, t, z, y, x, expected",
+    "interpolator, t, z, y, x, expected",
     [
-        (XLinearInvdistLandTracer, 1, 0, 0.5, 0.5, 1.0),
-        (XLinearInvdistLandTracer, 1, 0, 1.5, 1.5, 0.0),
+        (XLinearInvdistLandTracer(), 1, 0, 0.5, 0.5, 1.0),
+        (XLinearInvdistLandTracer(), 1, 0, 1.5, 1.5, 0.0),
         (
-            XLinearInvdistLandTracer,
+            XLinearInvdistLandTracer(),
             [0, 1],
             [0, 2],
             [0.5, 0.5],
@@ -159,7 +157,7 @@ def test_spatial_slip_interpolation(field, func, t, z, y, x, expected):
             1.0,
         ),
         (
-            XLinearInvdistLandTracer,
+            XLinearInvdistLandTracer(),
             [0, 1],
             [0, 2],
             [0.5, 1.5],
@@ -168,10 +166,10 @@ def test_spatial_slip_interpolation(field, func, t, z, y, x, expected):
         ),
     ],
 )
-def test_invdistland_interpolation(field, func, t, z, y, x, expected):
+def test_invdistland_interpolation(field, interpolator, t, z, y, x, expected):
     field.data[:] = 1.0
     field.data[:, :, 1:3, 1:3] = 0  # Set NaN land value to test inv_dist
-    field.interp_method = func
+    field.interp_method = interpolator
 
     value = field[t, z, y, x]
     np.testing.assert_array_almost_equal(value, expected)

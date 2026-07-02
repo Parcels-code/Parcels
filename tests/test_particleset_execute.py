@@ -5,7 +5,6 @@ import numpy as np
 import pytest
 
 from parcels import (
-    Field,
     FieldInterpolationError,
     FieldOutOfBoundError,
     FieldSet,
@@ -14,20 +13,15 @@ from parcels import (
     ParticleFile,
     ParticleSet,
     StatusCode,
-    UxGrid,
     Variable,
-    VectorField,
 )
 from parcels._core.statuscodes import GridSearchingError
 from parcels._core.utils.time import timedelta_to_float
 from parcels._datasets.structured.generated import simple_UV_dataset
 from parcels._datasets.structured.generic import datasets as datasets_structured
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
-from parcels.interpolators import (
-    Ux_Velocity,
-    UxConstantFaceConstantZC,
-    UxLinearNodeLinearZF,
-)
+from parcels.interpolators import Ux_Velocity, UxConstantFaceConstantZC
+from parcels.interpolators._base import ScalarInterpolator
 from parcels.kernels import AdvectionEE, AdvectionRK2, AdvectionRK4, AdvectionRK4_3D, AdvectionRK45
 from tests.common_kernels import DoNothing
 from tests.utils import DEFAULT_PARTICLES
@@ -336,13 +330,14 @@ def test_raise_general_error(): ...
 
 
 def test_errorinterpolation(fieldset):
-    def NaNInterpolator(particle_positions, grid_positions, field):  # pragma: no cover
-        return np.nan * np.zeros_like(particle_positions["lon"])
+    class NaNInterpolator(ScalarInterpolator):  # pragma: no cover
+        def interp(self, particle_positions, grid_positions, field):
+            return np.nan * np.zeros_like(particle_positions["lon"])
 
     def SampleU(particles, fieldset):  # pragma: no cover
         fieldset.U[particles.time, particles.z, particles.lat, particles.lon, particles]
 
-    fieldset.U.interp_method = NaNInterpolator
+    fieldset.U.interp_method = NaNInterpolator()
     pset = ParticleSet(fieldset, lon=[0, 2], lat=[0, 0])
     with pytest.raises(FieldInterpolationError):
         pset.execute(SampleU, runtime=np.timedelta64(2, "s"), dt=np.timedelta64(1, "s"))
@@ -472,27 +467,7 @@ def test_execution_update_particle_in_kernel_function(fieldset, kernel_names, ex
 
 def test_uxstommelgyre_pset_execute():
     ds = datasets_unstructured["stommel_gyre_delaunay"]
-    grid = UxGrid(grid=ds.uxgrid, z=ds.coords["zf"], mesh="spherical")
-    U = Field(
-        name="U",
-        data=ds.U,
-        grid=grid,
-        interp_method=UxConstantFaceConstantZC,
-    )
-    V = Field(
-        name="V",
-        data=ds.V,
-        grid=grid,
-        interp_method=UxConstantFaceConstantZC,
-    )
-    P = Field(
-        name="P",
-        data=ds.p,
-        grid=grid,
-        interp_method=UxConstantFaceConstantZC,
-    )
-    UV = VectorField(name="UV", U=U, V=V, interp_method=Ux_Velocity)
-    fieldset = FieldSet([UV, UV.U, UV.V, P])
+    fieldset = FieldSet.from_ugrid_conventions(ds, mesh="spherical")
     pset = ParticleSet(
         fieldset,
         lon=[30.0],
@@ -512,33 +487,7 @@ def test_uxstommelgyre_pset_execute():
 
 def test_uxstommelgyre_multiparticle_pset_execute():
     ds = datasets_unstructured["stommel_gyre_delaunay"]
-    grid = UxGrid(grid=ds.uxgrid, z=ds.coords["zf"], mesh="spherical")
-    U = Field(
-        name="U",
-        data=ds.U,
-        grid=grid,
-        interp_method=UxConstantFaceConstantZC,
-    )
-    V = Field(
-        name="V",
-        data=ds.V,
-        grid=grid,
-        interp_method=UxConstantFaceConstantZC,
-    )
-    W = Field(
-        name="W",
-        data=ds.W,
-        grid=grid,
-        interp_method=UxLinearNodeLinearZF,
-    )
-    P = Field(
-        name="P",
-        data=ds.p,
-        grid=grid,
-        interp_method=UxConstantFaceConstantZC,
-    )
-    UVW = VectorField(name="UVW", U=U, V=V, W=W, interp_method=Ux_Velocity)
-    fieldset = FieldSet([UVW, UVW.U, UVW.V, UVW.W, P])
+    fieldset = FieldSet.from_ugrid_conventions(ds, mesh="spherical")
     pset = ParticleSet(
         fieldset,
         lon=[30.0, 32.0],
@@ -557,27 +506,7 @@ def test_uxstommelgyre_multiparticle_pset_execute():
 @pytest.mark.xfail(reason="Output file not implemented yet")
 def test_uxstommelgyre_pset_execute_output():
     ds = datasets_unstructured["stommel_gyre_delaunay"]
-    grid = UxGrid(grid=ds.uxgrid, z=ds.coords["nz"], mesh="spherical")
-    U = Field(
-        name="U",
-        data=ds.U,
-        grid=grid,
-        interp_method=UxConstantFaceConstantZC,
-    )
-    V = Field(
-        name="V",
-        data=ds.V,
-        grid=grid,
-        interp_method=UxConstantFaceConstantZC,
-    )
-    P = Field(
-        name="P",
-        data=ds.p,
-        grid=grid,
-        interp_method=UxConstantFaceConstantZC,
-    )
-    UV = VectorField(name="UV", U=U, V=V, interp_method=Ux_Velocity)
-    fieldset = FieldSet([UV, UV.U, UV.V, P])
+    fieldset = FieldSet.from_ugrid_conventions(ds, mesh="spherical")
     pset = ParticleSet(
         fieldset,
         lon=[30.0],
@@ -602,11 +531,10 @@ def test_uxgrid_particle_leaving_domain_raises():
     ``GRID_SEARCH_ERROR`` and ``pset.execute`` should raise a GridSearchingError.
     """
     ds = datasets_unstructured["ux_constant_flow_face_centered_2D"]
-    grid = UxGrid(grid=ds.uxgrid, z=ds.coords["zc"], mesh="flat")
-    U = Field(name="U", data=ds.U, grid=grid, interp_method=UxConstantFaceConstantZC)
-    V = Field(name="V", data=ds.V, grid=grid, interp_method=UxConstantFaceConstantZC)
-    UV = VectorField(name="UV", U=U, V=V, interp_method=Ux_Velocity)
-    fieldset = FieldSet([UV, UV.U, UV.V])
+    fieldset = FieldSet.from_ugrid_conventions(ds, mesh="flat")
+    assert isinstance(fieldset.U.interp_method, UxConstantFaceConstantZC)
+    assert isinstance(fieldset.V.interp_method, UxConstantFaceConstantZC)
+    assert isinstance(fieldset.UV.interp_method, Ux_Velocity)
 
     # Uniform eastward flow (U0 = 0.001 deg/s); release 0.1 deg inside the eastern
     # outflow boundary (domain spans lon, lat in [0, 20]). The particle crosses
