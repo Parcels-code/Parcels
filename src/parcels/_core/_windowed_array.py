@@ -69,7 +69,6 @@ class WindowedArray:
         sel = dict(indexers) if indexers is not None else {}
         sel.update({k: v for k, v in kwargs.items() if k not in _NON_INDEXER_KWARGS})
 
-
         # no time selection -> nothing to window; preserve control kwargs
         if self._tdim not in sel:
             return self._data.isel(indexers, **kwargs)
