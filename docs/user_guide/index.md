@@ -70,7 +70,7 @@ examples/tutorial_interpolation.ipynb
 :caption: Run a simulation
 :name: tutorial-execute
 :titlesonly:
-
+examples/explanation_performance.md
 examples/tutorial_dt_integrators.ipynb
 ```
 
