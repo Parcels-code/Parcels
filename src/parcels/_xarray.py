@@ -28,7 +28,8 @@ def open_raw_zarr(store: Store):
         if name in coords:
             continue
 
-        array.__array_function__ = _not_implemented  # trick xarray to prevent coersion to a numpy array
+        # trick xarray to prevent coersion to a numpy array
+        array.__array_function__ = _not_implemented  # type: ignore[attr-defined]
         data_vars[name] = xr.Variable(var_to_dims[name], array, attrs=var_to_attrs[name])
 
     return xr.Dataset(data_vars, coords, attrs=ds_attrs)
