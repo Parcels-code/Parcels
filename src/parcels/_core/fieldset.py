@@ -9,12 +9,18 @@ import numpy as np
 import uxarray as ux
 import xarray as xr
 
+import parcels._typing as ptyping
 from parcels._core.field import Field, VectorField
-from parcels._core.model import CONSTANT_FIELD_MODELS, ModelData, StructuredModelData, UnstructuredModelData
+from parcels._core.model import (
+    CONSTANT_FIELD_MODELS,
+    ModelData,
+    StructuredModelData,
+    UnstructuredModelData,
+)
 from parcels._core.utils.string import _assert_str_and_python_varname
 from parcels._core.utils.time import get_datetime_type_calendar
 from parcels._core.utils.time import is_compatible as datetime_is_compatible
-from parcels._typing import Mesh
+from parcels._python import NOTSET, NotSetType
 from parcels.interpolators import (
     XConstantField,
 )
@@ -144,7 +150,7 @@ class FieldSet:
 
         self.fields[name] = field
 
-    def add_constant_field(self, name: str, value, mesh: Mesh = "spherical"):
+    def add_constant_field(self, name: str, value, mesh: ptyping.Mesh = "spherical"):
         """Wrapper function to add a Field that is constant in space,
            useful e.g. when using constant horizontal diffusivity
 
@@ -201,7 +207,12 @@ class FieldSet:
         return grids
 
     @classmethod
-    def from_ugrid_conventions(cls, ds: ux.UxDataset, mesh: str = "spherical"):
+    def from_ugrid_conventions(
+        cls,
+        ds: ux.UxDataset,
+        mesh: str = "spherical",
+        vector_fields: ptyping.VectorFields | NotSetType = NOTSET,
+    ):
         """Create a FieldSet from a Parcels compliant uxarray.UxDataset.
 
         This is the primary ingestion method in Parcels for structured grid datasets.
@@ -215,6 +226,10 @@ class FieldSet:
         ----------
         ds : uxarray.UxDataset
             uxarray.UxDataset as obtained from the uxarray package but with appropriate named vertical dimensions
+        vector_fields : Mapping[str, tuple[str, ...]] or None, optional
+            Mapping of vector field names to tuples of component variable names in the dataset.
+            For example, ``{"UV": ("U", "V"), "UVW": ("U", "V", "W")}``.
+            If omitted (default), vector fields are auto-discovered from standard variable names (``U``/``V``/``W``).
 
         Returns
         -------
@@ -225,12 +240,15 @@ class FieldSet:
         -----
         See https://ugrid-conventions.github.io/ugrid-conventions/ for more information on the UGRID conventions.
         """
-        model = UnstructuredModelData.from_ugrid_conventions(ds, mesh)
+        model = UnstructuredModelData.from_ugrid_conventions(ds, mesh, vector_fields)
         return cls([model])
 
     @classmethod
     def from_sgrid_conventions(
-        cls, ds: xr.Dataset, mesh: Mesh | None = None
+        cls,
+        ds: xr.Dataset,
+        mesh: ptyping.Mesh | None = None,
+        vector_fields: ptyping.VectorFields | NotSetType = NOTSET,
     ):  # TODO: Update mesh to be discovered from the dataset metadata
         """Create a FieldSet from a dataset using SGRID convention metadata.
 
@@ -245,6 +263,10 @@ class FieldSet:
         mesh : str
             String indicating the type of mesh coordinates used during
             velocity interpolation. Options are "spherical" or "flat".
+        vector_fields : Mapping[str, tuple[str, ...]] or None, optional
+            Mapping of vector field names to tuples of component variable names in the dataset.
+            For example, ``{"UV": ("U", "V"), "UVW": ("U", "V", "W")}``.
+            If omitted (default), vector fields are auto-discovered from standard variable names (``U``/``V``/``W``).
 
         Returns
         -------
@@ -259,7 +281,7 @@ class FieldSet:
 
         See https://sgrid.github.io/sgrid/ for more information on the SGRID conventions.
         """
-        model = StructuredModelData.from_sgrid_conventions(ds, mesh)
+        model = StructuredModelData.from_sgrid_conventions(ds, mesh, vector_fields)
         return cls([model])
 
 
@@ -356,9 +378,3 @@ _COPERNICUS_MARINE_CF_STANDARD_NAME_FALLBACKS = {
     ],
     "W": ["upward_sea_water_velocity", "vertical_sea_water_velocity"],
 }
-
-
-def _is_agrid(ds: xr.Dataset) -> bool:
-    # check if U and V are defined on the same dimensions
-    # if yes, interpret as A grid
-    return set(ds["U"].dims) == set(ds["V"].dims)
