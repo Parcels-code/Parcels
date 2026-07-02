@@ -161,7 +161,7 @@ class StructuredModelData(ModelData):
         #     ds["lat"] = ds[node_dimensions[1]]
 
         vector_fields = resolve_vector_fields(ds, vector_fields)
-        assert_vector_field_components_in_dataset(ds, vector_fields)
+        assert_valid_vector_fields(ds, vector_fields)
 
         model = cls(ds, mesh=mesh, vector_field_components=vector_fields)
         model._fields = model.construct_fields()
@@ -179,6 +179,29 @@ def resolve_vector_fields(
     if vector_fields is NOTSET:  # i.e., the default vectorfield discovery behaviour
         return _default_vector_field_components(list(ds.data_vars))
     return vector_fields
+
+
+def assert_valid_vector_fields(ds: xr.Dataset, vector_fields: ptyping.VectorFields) -> None:
+    # if not isinstance(vector_fields, dict):
+    #     raise ValueError(f"vector_fields must be a dictionary. Got {type(vector_fields)=!r}.")
+
+    for vfield_name, components in vector_fields.items():
+        if not isinstance(vfield_name, str):
+            raise ValueError(
+                f"Invalid `vector_fields` argument. Vector field name in `vector_fields` should be a string. Got field name {vfield_name!r}."
+            )
+        if not (2 <= len(components) <= 3):
+            raise ValueError(
+                f"Invalid `vector_fields` argument. Vector fields must have either 2 or 3 components. Vector field {vfield_name} has {len(components)} components."
+            )
+        for c in components:
+            if not isinstance(c, str):
+                raise ValueError(
+                    f"Invalid `vector_fields` argument. Component names must be strings. Got component name of value {c!r}."
+                )
+
+    assert_vector_field_components_in_dataset(ds, vector_fields)
+    return
 
 
 def assert_vector_field_components_in_dataset(ds: xr.Dataset, vector_fields: ptyping.VectorFields) -> None:
@@ -273,7 +296,7 @@ class UnstructuredModelData(ModelData):
         ds = _discover_ux_U_and_V(ds)
 
         vector_fields = resolve_vector_fields(ds, vector_fields)
-        assert_vector_field_components_in_dataset(ds, vector_fields)
+        assert_valid_vector_fields(ds, vector_fields)
 
         model = cls(ds, grid, vector_fields)
         model._fields = model.construct_fields()

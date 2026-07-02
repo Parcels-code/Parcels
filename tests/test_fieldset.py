@@ -1,3 +1,4 @@
+from contextlib import nullcontext
 from datetime import timedelta
 
 import cf_xarray  # noqa: F401
@@ -95,6 +96,34 @@ def test_fieldset_from_structured_generic_datasets(ds):
         utils.assert_valid_field_data(field.data, field.grid)
 
     assert len(fieldset.gridset) == 1
+
+
+@pytest.mark.parametrize(
+    "vector_fields,ctx",
+    [
+        pytest.param(
+            {"UV": ("U",)},
+            pytest.raises(ValueError, match="must have either 2 or 3 components"),
+            id="single-component",
+        ),
+        pytest.param(
+            {"UV": ("U", "missing")},
+            pytest.raises(ValueError, match="not present in the source dataset"),
+            id="component-not-in-dataset",
+        ),
+        pytest.param(
+            {"UV": ("U", "U", "U", "U")},
+            pytest.raises(ValueError, match="must have either 2 or 3 components"),
+            id="too-many-components",
+        ),
+        pytest.param(None, nullcontext(), id="None"),
+    ],
+)
+def test_fieldset_invalid_vector_fields(vector_fields, ctx):
+    ds = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]].rename({"U_A_grid": "U", "V_A_grid": "V"})
+
+    with ctx:
+        FieldSet.from_sgrid_conventions(ds, mesh="flat", vector_fields=vector_fields)
 
 
 def test_fieldset_structured_vectorfield_default():
