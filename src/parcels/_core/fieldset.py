@@ -211,7 +211,7 @@ class FieldSet:
         cls,
         ds: ux.UxDataset,
         mesh: str = "spherical",
-        vector_fields: ptyping.VectorFields | None | NotSetType = NOTSET,
+        vector_fields: ptyping.VectorFields | NotSetType = NOTSET,
     ):
         """Create a FieldSet from a Parcels compliant uxarray.UxDataset.
 
@@ -229,8 +229,7 @@ class FieldSet:
         vector_fields : Mapping[str, tuple[str, ...]] or None, optional
             Mapping of vector field names to tuples of component variable names in the dataset.
             For example, ``{"UV": ("U", "V"), "UVW": ("U", "V", "W")}``.
-            If ``None``, no vector fields are constructed. If omitted (default), vector fields
-            are auto-discovered from standard variable names (``U``/``V``/``W``).
+            If omitted (default), vector fields are auto-discovered from standard variable names (``U``/``V``/``W``).
 
         Returns
         -------
@@ -249,7 +248,7 @@ class FieldSet:
         cls,
         ds: xr.Dataset,
         mesh: ptyping.Mesh | None = None,
-        vector_fields: ptyping.VectorFields | None | NotSetType = NOTSET,
+        vector_fields: ptyping.VectorFields | NotSetType = NOTSET,
     ):  # TODO: Update mesh to be discovered from the dataset metadata
         """Create a FieldSet from a dataset using SGRID convention metadata.
 
@@ -267,8 +266,7 @@ class FieldSet:
         vector_fields : Mapping[str, tuple[str, ...]] or None, optional
             Mapping of vector field names to tuples of component variable names in the dataset.
             For example, ``{"UV": ("U", "V"), "UVW": ("U", "V", "W")}``.
-            If ``None``, no vector fields are constructed. If omitted (default), vector fields
-            are auto-discovered from standard variable names (``U``/``V``/``W``).
+            If omitted (default), vector fields are auto-discovered from standard variable names (``U``/``V``/``W``).
 
         Returns
         -------

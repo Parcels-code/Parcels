@@ -132,7 +132,7 @@ class StructuredModelData(ModelData):
 
     @classmethod
     def from_sgrid_conventions(
-        cls, ds: xr.Dataset, mesh: Mesh | None, vector_fields: ptyping.VectorFields | None | NotSetType
+        cls, ds: xr.Dataset, mesh: Mesh | None, vector_fields: ptyping.VectorFields | NotSetType
     ) -> Self:
         ds = ds.copy()
         if mesh is None:
@@ -171,19 +171,15 @@ class StructuredModelData(ModelData):
         return model
 
 
-def resolve_vector_fields(
-    ds: xr.Dataset, vector_fields: ptyping.VectorFields | None | NotSetType
-) -> ptyping.VectorFields:
-    if vector_fields is None:
-        return {}
+def resolve_vector_fields(ds: xr.Dataset, vector_fields: ptyping.VectorFields | NotSetType) -> ptyping.VectorFields:
     if vector_fields is NOTSET:  # i.e., the default vectorfield discovery behaviour
         return _default_vector_field_components(list(ds.data_vars))
     return vector_fields
 
 
 def assert_valid_vector_fields(ds: xr.Dataset, vector_fields: ptyping.VectorFields) -> None:
-    # if not isinstance(vector_fields, dict):
-    #     raise ValueError(f"vector_fields must be a dictionary. Got {type(vector_fields)=!r}.")
+    if not isinstance(vector_fields, dict):
+        raise ValueError(f"vector_fields must be a dictionary. Got {type(vector_fields)=!r}.")
 
     for vfield_name, components in vector_fields.items():
         if not isinstance(vfield_name, str):
@@ -237,7 +233,7 @@ CONSTANT_FIELD_MODELS = {
             ),
         ),
         mesh=mesh,  # type:ignore
-        vector_fields=None,
+        vector_fields={},
     )
     for mesh in ["flat", "spherical"]
 }
@@ -283,9 +279,7 @@ class UnstructuredModelData(ModelData):
         return list(self.data.data_vars)
 
     @classmethod
-    def from_ugrid_conventions(
-        cls, ds: ux.UxDataset, mesh: Mesh, vector_fields: ptyping.VectorFields | None | NotSetType
-    ):
+    def from_ugrid_conventions(cls, ds: ux.UxDataset, mesh: Mesh, vector_fields: ptyping.VectorFields | NotSetType):
         ds_dims = list(ds.dims)
         if not all(dim in ds_dims for dim in ["time", "zf", "zc"]):
             raise ValueError(

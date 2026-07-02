@@ -1,4 +1,3 @@
-from contextlib import nullcontext
 from datetime import timedelta
 
 import cf_xarray  # noqa: F401
@@ -116,7 +115,11 @@ def test_fieldset_from_structured_generic_datasets(ds):
             pytest.raises(ValueError, match="must have either 2 or 3 components"),
             id="too-many-components",
         ),
-        pytest.param(None, nullcontext(), id="None"),
+        pytest.param(
+            None,
+            pytest.raises(ValueError, match="vector_fields must be a dictionary"),
+            id="None",
+        ),
     ],
 )
 def test_fieldset_invalid_vector_fields(vector_fields, ctx):
@@ -147,10 +150,10 @@ def test_fieldset_structured_vectorfield_custom():
     assert "UV_wind" in fset.fields
 
 
-def test_fieldset_structured_vectorfield_none():
+def test_fieldset_structured_vectorfield_empty():
     ds = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]].rename({"U_A_grid": "U", "V_A_grid": "V"})
 
-    fset = FieldSet.from_sgrid_conventions(ds, mesh="flat", vector_fields=None)
+    fset = FieldSet.from_sgrid_conventions(ds, mesh="flat", vector_fields={})
 
     assert "U" in fset.fields
     assert "V" in fset.fields
@@ -177,10 +180,10 @@ def test_fieldset_unstructured_vectorfield_custom():
     assert "UV_wind" in fset.fields
 
 
-def test_fieldset_unstructured_vectorfield_none():
+def test_fieldset_unstructured_vectorfield_empty():
     ds = datasets_unstructured["stommel_gyre_delaunay"]
 
-    fset = FieldSet.from_ugrid_conventions(ds, mesh="spherical", vector_fields=None)
+    fset = FieldSet.from_ugrid_conventions(ds, mesh="spherical", vector_fields={})
 
     assert "U" in fset.fields
     assert "V" in fset.fields
