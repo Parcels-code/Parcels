@@ -9,6 +9,7 @@ import uxarray as ux
 import xarray as xr
 
 import parcels._sgrid as sgrid
+import parcels._typing as ptyping
 from parcels._core.basegrid import BaseGrid
 from parcels._core.field import Field, VectorField
 from parcels._core.utils.time import TimeInterval
@@ -34,14 +35,12 @@ from parcels.interpolators import (
 )
 from parcels.interpolators._base import ScalarInterpolator, VectorInterpolator
 
-TVectorField = dict[str, tuple[str, str] | tuple[str, str, str]]
-
 
 class ModelData(ABC):
     data: Any
     grid: BaseGrid
     field_to_interpolator: dict[str, ScalarInterpolator | VectorInterpolator]
-    vector_field_components: TVectorField
+    vector_field_components: ptyping.VectorFields
 
     @abstractmethod
     def construct_fields(self) -> list[Field | VectorField]: ...
@@ -84,7 +83,7 @@ def preprocess_sgrid_model_data(ds: xr.Dataset) -> xr.Dataset:
 
 
 class StructuredModelData(ModelData):
-    def __init__(self, data: xr.Dataset, mesh: Mesh, vector_field_components: TVectorField):
+    def __init__(self, data: xr.Dataset, mesh: Mesh, vector_field_components: ptyping.VectorFields):
         if not isinstance(data, xr.Dataset):
             raise ValueError(f"Expected `data` to be an xarray.Dataset . Got {type(data)}")
 
@@ -133,7 +132,7 @@ class StructuredModelData(ModelData):
 
     @classmethod
     def from_sgrid_conventions(
-        cls, ds: xr.Dataset, mesh: Mesh | None, vector_fields: TVectorField | None | NotSetType
+        cls, ds: xr.Dataset, mesh: Mesh | None, vector_fields: ptyping.VectorFields | None | NotSetType
     ) -> Self:
         ds = ds.copy()
         if mesh is None:
@@ -172,7 +171,9 @@ class StructuredModelData(ModelData):
         return model
 
 
-def resolve_vector_fields(ds: xr.Dataset, vector_fields: TVectorField | None | NotSetType) -> TVectorField:
+def resolve_vector_fields(
+    ds: xr.Dataset, vector_fields: ptyping.VectorFields | None | NotSetType
+) -> ptyping.VectorFields:
     if vector_fields is None:
         return {}
     if vector_fields is NOTSET:  # i.e., the default vectorfield discovery behaviour
@@ -180,7 +181,7 @@ def resolve_vector_fields(ds: xr.Dataset, vector_fields: TVectorField | None | N
     return vector_fields
 
 
-def assert_vector_field_components_in_dataset(ds: xr.Dataset, vector_fields: TVectorField) -> None:
+def assert_vector_field_components_in_dataset(ds: xr.Dataset, vector_fields: ptyping.VectorFields) -> None:
     for components in vector_fields.values():
         for c in components:
             if c not in ds.data_vars:
@@ -220,7 +221,7 @@ CONSTANT_FIELD_MODELS = {
 
 
 class UnstructuredModelData(ModelData):
-    def __init__(self, data: ux.UxDataset, grid: UxGrid, vector_field_components: TVectorField):
+    def __init__(self, data: ux.UxDataset, grid: UxGrid, vector_field_components: ptyping.VectorFields):
         if not isinstance(data, ux.UxDataset):
             raise ValueError(f"Expected `data` to be an uxarray.UxDataset . Got {type(data)}")
 
@@ -259,7 +260,9 @@ class UnstructuredModelData(ModelData):
         return list(self.data.data_vars)
 
     @classmethod
-    def from_ugrid_conventions(cls, ds: ux.UxDataset, mesh: Mesh, vector_fields: TVectorField | None | NotSetType):
+    def from_ugrid_conventions(
+        cls, ds: ux.UxDataset, mesh: Mesh, vector_fields: ptyping.VectorFields | None | NotSetType
+    ):
         ds_dims = list(ds.dims)
         if not all(dim in ds_dims for dim in ["time", "zf", "zc"]):
             raise ValueError(
@@ -300,9 +303,9 @@ def _get_mesh_type_from_sgrid_dataset(ds_sgrid: xr.Dataset) -> Mesh:
     return "spherical" if _is_coordinate_in_degrees(ds_sgrid[fpoint_x]) else "flat"
 
 
-def _default_vector_field_components(data_vars: Sequence[Hashable]) -> TVectorField:
+def _default_vector_field_components(data_vars: Sequence[Hashable]) -> ptyping.VectorFields:
     vars = set(data_vars)
-    ret: TVectorField = {}
+    ret: ptyping.VectorFields = {}
 
     if {"U", "V"}.issubset(vars):
         ret["UV"] = ("U", "V")

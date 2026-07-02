@@ -9,19 +9,18 @@ import numpy as np
 import uxarray as ux
 import xarray as xr
 
+import parcels._typing as ptyping
 from parcels._core.field import Field, VectorField
 from parcels._core.model import (
     CONSTANT_FIELD_MODELS,
     ModelData,
     StructuredModelData,
-    TVectorField,
     UnstructuredModelData,
 )
 from parcels._core.utils.string import _assert_str_and_python_varname
 from parcels._core.utils.time import get_datetime_type_calendar
 from parcels._core.utils.time import is_compatible as datetime_is_compatible
 from parcels._python import NOTSET, NotSetType
-from parcels._typing import Mesh
 from parcels.interpolators import (
     XConstantField,
 )
@@ -151,7 +150,7 @@ class FieldSet:
 
         self.fields[name] = field
 
-    def add_constant_field(self, name: str, value, mesh: Mesh = "spherical"):
+    def add_constant_field(self, name: str, value, mesh: ptyping.Mesh = "spherical"):
         """Wrapper function to add a Field that is constant in space,
            useful e.g. when using constant horizontal diffusivity
 
@@ -212,7 +211,7 @@ class FieldSet:
         cls,
         ds: ux.UxDataset,
         mesh: str = "spherical",
-        vector_fields: TVectorField | None | NotSetType = NOTSET,
+        vector_fields: ptyping.VectorFields | None | NotSetType = NOTSET,
     ):
         """Create a FieldSet from a Parcels compliant uxarray.UxDataset.
 
@@ -249,8 +248,8 @@ class FieldSet:
     def from_sgrid_conventions(
         cls,
         ds: xr.Dataset,
-        mesh: Mesh | None = None,
-        vector_fields: TVectorField | None | NotSetType = NOTSET,
+        mesh: ptyping.Mesh | None = None,
+        vector_fields: ptyping.VectorFields | None | NotSetType = NOTSET,
     ):  # TODO: Update mesh to be discovered from the dataset metadata
         """Create a FieldSet from a dataset using SGRID convention metadata.
 
