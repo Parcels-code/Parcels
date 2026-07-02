@@ -177,5 +177,5 @@ class Ux_Velocity(VectorInterpolator):  # noqa: N801
         if "3D" in vectorfield.vector_type:
             w = vectorfield.W.interp_method.interp(particle_positions, grid_positions, vectorfield.W)
         else:
-            w = 0.0
+            w = np.zeros_like(u)
         return u, v, w

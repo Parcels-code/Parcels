@@ -16,7 +16,7 @@ from parcels._core.statuscodes import (
     _raise_grid_searching_error,
     _raise_outside_time_interval_error,
 )
-from parcels._core.warnings import KernelWarning
+from parcels._core.warnings import FieldEvalWarning, KernelWarning
 from parcels._python import assert_same_function_signature
 from parcels.kernels import (
     AdvectionAnalytical,
@@ -206,13 +206,16 @@ class Kernel:
 
             # run kernels for all particles that need to be evaluated
             for f in self._kernels:
-                f(pset[evaluate_particles], self._fieldset)
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore", FieldEvalWarning)
 
-                # check for particles that have to be repeated
-                repeat_particles = pset.state == StatusCode.Repeat
-                while np.any(repeat_particles):
-                    f(pset[repeat_particles], self._fieldset)
+                    f(pset[evaluate_particles], self._fieldset)
+
+                    # check for particles that have to be repeated
                     repeat_particles = pset.state == StatusCode.Repeat
+                    while np.any(repeat_particles):
+                        f(pset[repeat_particles], self._fieldset)
+                        repeat_particles = pset.state == StatusCode.Repeat
 
             # apply position/time update only to particles still in a normal state
             # (particles that signalled Stop*/Delete/errors should not have time/position advanced)

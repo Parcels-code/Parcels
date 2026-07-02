@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -15,6 +17,7 @@ from parcels import (
     convert,
 )
 from parcels._core.utils.time import timedelta_to_float
+from parcels._core.warnings import FieldEvalWarning
 from parcels._datasets.structured.generated import (
     decaying_moving_eddy_dataset,
     moving_eddy_dataset,
@@ -176,7 +179,9 @@ def test_advection_3D_outofbounds(direction, resubmerge_particle):
     kernels.append(DeleteParticle)
 
     pset = ParticleSet(fieldset=fieldset, lon=0.5, lat=0.5, z=0.9)
-    pset.execute(kernels, runtime=np.timedelta64(10, "s"), dt=np.timedelta64(1, "s"))
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", FieldEvalWarning)
+        pset.execute(kernels, runtime=np.timedelta64(10, "s"), dt=np.timedelta64(1, "s"))
 
     if direction == "up" and resubmerge_particle:
         np.testing.assert_allclose(pset.lon[0], 0.6, atol=1e-5)

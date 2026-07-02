@@ -132,7 +132,7 @@ class XConstantField(ScalarInterpolator):
         field: Field,
     ):
         """Returning the single value of a Constant Field (with a size=(1,1,1,1) array)"""
-        return field.data[0, 0, 0, 0].values
+        return field.data[0, 0, 0, 0].values * np.ones_like(particle_positions["lon"])
 
 
 class XLinear_Velocity(VectorInterpolator):  # noqa:  N801
@@ -155,7 +155,7 @@ class XLinear_Velocity(VectorInterpolator):  # noqa:  N801
         if vectorfield.W:
             w = _xlinear.interp(particle_positions, grid_positions, vectorfield.W)
         else:
-            w = 0.0
+            w = np.zeros_like(u)
         return u, v, w
 
 
@@ -502,7 +502,7 @@ def _Spatialslip(
 
         w *= f_w
     else:
-        w = None
+        w = np.zeros_like(u)
     return u, v, w
 
 

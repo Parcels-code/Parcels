@@ -6,8 +6,11 @@ import pytest
 from parcels import Field, VectorField
 from parcels._core.fieldset import FieldSet
 from parcels._core.model import StructuredModelData
+from parcels._core.warnings import FieldEvalWarning
+from parcels._datasets.structured.generated import simple_UV_dataset
 from parcels._datasets.structured.generic import T as T_structured
 from parcels._datasets.structured.generic import datasets as datasets_structured
+from parcels._datasets.unstructured.generic import _ux_constant_flow_face_centered_2D
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
 from parcels.interpolators import (
     UxConstantFaceConstantZC,
@@ -178,6 +181,57 @@ def test_field_constant_in_time():
         x=[30.0],
     )
     assert np.isclose(P1, P2)
+
+
+@pytest.mark.parametrize(
+    "field_name, location, expected",
+    [
+        ("U", (0.0, 0.0, 0.0, 5e6), 0.0),
+        ("UV", (0.0, 0.0, 0.0, 5e6), [[0.0], [0.0]]),
+        ("U", (0.0, 0.0, 5e6, 0.0), 0.0),
+        ("UV", (0.0, 0.0, 5e6, 0.0), [[0.0], [0.0]]),
+        ("U", (0.0, 5e6, 0.0, 0.0), 0.0),
+        ("UV", (0.0, 5e6, 0.0, 0.0), [[0.0], [0.0]]),
+    ],
+)
+def test_field_eval_out_of_bounds_structured(field_name, location, expected):
+    """Test that Field.eval returns IndexError when queried outside the grid boundaries."""
+    # eval outside of bounds should return 0.0
+    ds = simple_UV_dataset(mesh="flat")
+    fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
+    fieldset.U.data[:] = 1.0
+    fieldset.V.data[:] = 2.0
+    field = getattr(fieldset, field_name)
+    with pytest.warns(
+        FieldEvalWarning,
+        match="Some interpolated values are out-of-bounds. These values are set to 0. Treat carefully.",
+    ):
+        np.testing.assert_allclose(field.eval(*location), expected)
+
+
+@pytest.mark.parametrize(
+    "field_name, location, expected",
+    [
+        ("U", (0.0, 0.0, 0.0, 5e6), 0.0),
+        ("UV", (0.0, 0.0, 0.0, 5e6), [[0.0], [0.0]]),
+        ("U", (0.0, 0.0, 5e6, 0.0), 0.0),
+        ("UV", (0.0, 0.0, 5e6, 0.0), [[0.0], [0.0]]),
+        ("U", (0.0, 5e6, 0.0, 0.0), 0.0),
+        ("UV", (0.0, 5e6, 0.0, 0.0), [[0.0], [0.0]]),
+    ],
+)
+def test_field_eval_out_of_bounds_unstructured(field_name, location, expected):
+    """Test that Field.eval returns IndexError when queried outside the grid boundaries."""
+    ds = _ux_constant_flow_face_centered_2D()
+    fieldset = FieldSet.from_ugrid_conventions(ds, mesh="flat")
+    fieldset.U.data[:] = 1.0
+    fieldset.V.data[:] = 2.0
+    field = getattr(fieldset, field_name)
+    with pytest.warns(
+        FieldEvalWarning,
+        match="Some interpolated values are out-of-bounds. These values are set to 0. Treat carefully.",
+    ):
+        np.testing.assert_allclose(field.eval(*location), expected)
 
 
 def test_field_unstructured_grid_creation(): ...
