@@ -72,23 +72,23 @@ def test_uniform_translation_exact(dataset_fn, integrator):
     ds = dataset_fn(nx=20, u0=T1_1_U0, v0=T1_1_V0)
     fieldset = parcels.FieldSet.from_ugrid_conventions(ds, mesh="flat")
 
-    pset = parcels.ParticleSet(fieldset, lon=[T1_1_LON0], lat=[T1_1_LAT0])
+    pset = parcels.ParticleSet(fieldset, x=[T1_1_LON0], y=[T1_1_LAT0])
     pset.execute(integrator, runtime=T1_1_RUNTIME, dt=T1_1_DT, verbose_progress=False)
 
     t = T1_1_RUNTIME / np.timedelta64(1, "s")
-    np.testing.assert_allclose(pset.lon, T1_1_LON0 + T1_1_U0 * t, atol=T1_1_TOL)
-    np.testing.assert_allclose(pset.lat, T1_1_LAT0 + T1_1_V0 * t, atol=T1_1_TOL)
+    np.testing.assert_allclose(pset.x, T1_1_LON0 + T1_1_U0 * t, atol=T1_1_TOL)
+    np.testing.assert_allclose(pset.y, T1_1_LAT0 + T1_1_V0 * t, atol=T1_1_TOL)
 
 
 def test_solid_body_rotation_node_centered_rk4_returns_to_start():
     ds = solid_body_rotation_node_centered(nx=40, omega=T1_2_OMEGA)
     fieldset = parcels.FieldSet.from_ugrid_conventions(ds, mesh="flat")
 
-    pset = parcels.ParticleSet(fieldset, lon=[T1_2_LON0], lat=[T1_2_LAT0])
+    pset = parcels.ParticleSet(fieldset, x=[T1_2_LON0], y=[T1_2_LAT0])
     pset.execute(AdvectionRK4, runtime=T1_2_RUNTIME, dt=T1_2_DT, verbose_progress=False)
 
-    np.testing.assert_allclose(pset.lon, T1_2_LON0, atol=1e-6)
-    np.testing.assert_allclose(pset.lat, T1_2_LAT0, atol=1e-6)
+    np.testing.assert_allclose(pset.x, T1_2_LON0, atol=1e-6)
+    np.testing.assert_allclose(pset.y, T1_2_LAT0, atol=1e-6)
 
 
 @pytest.mark.parametrize("integrator", [AdvectionEE, AdvectionRK4], ids=["EE", "RK4"])
@@ -98,22 +98,22 @@ def test_solid_body_rotation_face_centered_runs_bounded(integrator):
     ds = solid_body_rotation_face_centered(nx=40, omega=T1_2_OMEGA)
     fieldset = parcels.FieldSet.from_ugrid_conventions(ds, mesh="flat")
 
-    pset = parcels.ParticleSet(fieldset, lon=[T1_2_LON0], lat=[T1_2_LAT0])
+    pset = parcels.ParticleSet(fieldset, x=[T1_2_LON0], y=[T1_2_LAT0])
     pset.execute(integrator, runtime=T1_2_RUNTIME, dt=T1_2_DT, verbose_progress=False)
-    assert abs(float(pset.lon[0])) < 5.0
-    assert abs(float(pset.lat[0])) < 5.0
+    assert abs(float(pset.x[0])) < 5.0
+    assert abs(float(pset.y[0])) < 5.0
 
 
 def test_helix_node_centered_rk4_3d_returns_to_start_with_exact_depth():
     ds = solid_body_rotation_3d_node_centered(nx=40, nz=10, omega=T1_2_OMEGA, w0=T1_3_W0)
     fieldset = parcels.FieldSet.from_ugrid_conventions(ds, mesh="flat")
 
-    pset = parcels.ParticleSet(fieldset, lon=[T1_2_LON0], lat=[T1_2_LAT0], z=[T1_3_Z0])
+    pset = parcels.ParticleSet(fieldset, x=[T1_2_LON0], y=[T1_2_LAT0], z=[T1_3_Z0])
     pset.execute(AdvectionRK4_3D, runtime=T1_3_RUNTIME, dt=T1_3_DT, verbose_progress=False)
 
     t = T1_3_RUNTIME / np.timedelta64(1, "s")
-    np.testing.assert_allclose(pset.lon, T1_2_LON0, atol=1e-6)
-    np.testing.assert_allclose(pset.lat, T1_2_LAT0, atol=1e-6)
+    np.testing.assert_allclose(pset.x, T1_2_LON0, atol=1e-6)
+    np.testing.assert_allclose(pset.y, T1_2_LAT0, atol=1e-6)
     np.testing.assert_allclose(pset.z, T1_3_Z0 + T1_3_W0 * t, atol=1e-4)
 
 
@@ -128,7 +128,7 @@ def test_helix_constant_vertical_velocity_exact_depth(dataset_fn):
     ds = dataset_fn(nx=40, nz=10, omega=T1_2_OMEGA, w0=T1_3_W0)
     fieldset = parcels.FieldSet.from_ugrid_conventions(ds, mesh="flat")
 
-    pset = parcels.ParticleSet(fieldset, lon=[T1_2_LON0], lat=[T1_2_LAT0], z=[T1_3_Z0])
+    pset = parcels.ParticleSet(fieldset, x=[T1_2_LON0], y=[T1_2_LAT0], z=[T1_3_Z0])
     pset.execute(AdvectionRK4_3D, runtime=T1_3_RUNTIME, dt=T1_3_DT, verbose_progress=False)
 
     t = T1_3_RUNTIME / np.timedelta64(1, "s")

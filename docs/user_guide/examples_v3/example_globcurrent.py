@@ -70,7 +70,7 @@ def test_globcurrent_particles():
     latstart = [-35]
 
     pset = parcels.ParticleSet(
-        fieldset, pclass=parcels.Particle, lon=lonstart, lat=latstart
+        fieldset, pclass=parcels.Particle, x=lonstart, y=latstart
     )
 
     pset.execute(
@@ -91,29 +91,29 @@ def test__particles_init_time():
     pset = parcels.ParticleSet(
         fieldset,
         pclass=parcels.Particle,
-        lon=lonstart,
-        lat=latstart,
+        x=lonstart,
+        y=latstart,
         time=np.datetime64("2002-01-15"),
     )
     pset2 = parcels.ParticleSet(
         fieldset,
         pclass=parcels.Particle,
-        lon=lonstart,
-        lat=latstart,
+        x=lonstart,
+        y=latstart,
         time=14 * 86400,
     )
     pset3 = parcels.ParticleSet(
         fieldset,
         pclass=parcels.Particle,
-        lon=lonstart,
-        lat=latstart,
+        x=lonstart,
+        y=latstart,
         time=np.array([np.datetime64("2002-01-15")]),
     )
     pset4 = parcels.ParticleSet(
         fieldset,
         pclass=parcels.Particle,
-        lon=lonstart,
-        lat=latstart,
+        x=lonstart,
+        y=latstart,
         time=[np.datetime64("2002-01-15")],
     )
     assert pset[0].time - pset2[0].time == 0
@@ -126,8 +126,8 @@ def test_globcurrent_outside_time_interval_error():
     pset = parcels.ParticleSet(
         fieldset,
         pclass=parcels.Particle,
-        lon=[25],
-        lat=[-35],
+        x=[25],
+        y=[-35],
         time=fieldset.U.grid.time[0] - timedelta(days=1).total_seconds(),
     )
     with pytest.raises(parcels.OutsideTimeInterval):
@@ -173,10 +173,10 @@ def test_globcurrent_startparticles_between_time_arrays(dt, with_starttime):
     if with_starttime:
         time = fieldset.U.grid.time[0] if dt > 0 else fieldset.U.grid.time[-1]
         pset = parcels.ParticleSet(
-            fieldset, pclass=MyParticle, lon=[25], lat=[-35], time=time
+            fieldset, pclass=MyParticle, x=[25], y=[-35], time=time
         )
     else:
-        pset = parcels.ParticleSet(fieldset, pclass=MyParticle, lon=[25], lat=[-35])
+        pset = parcels.ParticleSet(fieldset, pclass=MyParticle, x=[25], y=[-35])
 
     if with_starttime:
         with pytest.raises(parcels.OutsideTimeInterval):
@@ -202,7 +202,7 @@ def test_globcurrent_particle_independence(rundays=5):
             particle.delete()
 
     pset0 = parcels.ParticleSet(
-        fieldset, pclass=parcels.Particle, lon=[25, 25], lat=[-35, -35], time=time0
+        fieldset, pclass=parcels.Particle, x=[25, 25], y=[-35, -35], time=time0
     )
 
     pset0.execute(
@@ -212,7 +212,7 @@ def test_globcurrent_particle_independence(rundays=5):
     )
 
     pset1 = parcels.ParticleSet(
-        fieldset, pclass=parcels.Particle, lon=[25, 25], lat=[-35, -35], time=time0
+        fieldset, pclass=parcels.Particle, x=[25, 25], y=[-35, -35], time=time0
     )
 
     pset1.execute(
@@ -231,7 +231,7 @@ def test_globcurrent_pset_fromfile(dt, pid_offset, tmpdir):
     fieldset = set_globcurrent_fieldset()
 
     parcels.Particle.setLastID(pid_offset)
-    pset = parcels.ParticleSet(fieldset, pclass=parcels.Particle, lon=25, lat=-35)
+    pset = parcels.ParticleSet(fieldset, pclass=parcels.Particle, x=25, y=-35)
     pfile = pset.ParticleFile(filename, outputdt=timedelta(hours=6))
     pset.execute(
         parcels.kernels.AdvectionRK4,
@@ -265,7 +265,7 @@ def test_error_outputdt_not_multiple_dt(tmpdir):
 
     dt = 81.2584344538292  # number for which output writing fails
 
-    pset = parcels.ParticleSet(fieldset, pclass=parcels.Particle, lon=[0], lat=[0])
+    pset = parcels.ParticleSet(fieldset, pclass=parcels.Particle, x=[0], y=[0])
     ofile = pset.ParticleFile(name=filepath, outputdt=timedelta(days=1))
 
     def DoNothing(particle, fieldset, time):  # pragma: no cover

@@ -114,7 +114,7 @@ def test_fieldset_sample_eval(fieldset):
 @pytest.mark.xfail(reason="Test is directly testing adding the halo. This test should either be adapted or removed.")
 def test_fieldset_polar_with_halo(fieldset_geometric_polar):
     fieldset_geometric_polar.add_periodic_halo(zonal=5)
-    pset = ParticleSet(fieldset_geometric_polar, pclass=pclass(), lon=0, lat=0)
+    pset = ParticleSet(fieldset_geometric_polar, pclass=pclass(), x=0, y=0)
     pset.execute(runtime=1)
     assert pset.lon[0] == 0.0
 
@@ -131,7 +131,7 @@ def test_verticalsampling(zdir):
     }
     data = {"U": np.zeros(dims, dtype=np.float32), "V": np.zeros(dims, dtype=np.float32)}
     fieldset = FieldSet.from_data(data, dimensions, mesh="flat")
-    pset = ParticleSet(fieldset, pclass=Particle, lon=0, lat=0, depth=0.7 * zdir)
+    pset = ParticleSet(fieldset, pclass=Particle, x=0, y=0, depth=0.7 * zdir)
     pset.execute(AdvectionRK4, dt=1.0, runtime=1.0)
     zi, yi, xi = fieldset.U.unravel_index(pset[0].ei)
     assert zi == [2]
@@ -189,7 +189,7 @@ def test_nearest_neighbor_interpolation2D():
     fieldset = FieldSet.from_data(data, dimensions, mesh="flat")
     fieldset.P.interp_method = "nearest"
     xv, yv = np.meshgrid(np.linspace(0.0, 1.0, int(np.sqrt(npart))), np.linspace(0.0, 1.0, int(np.sqrt(npart))))
-    pset = ParticleSet(fieldset, pclass=pclass(), lon=xv.flatten(), lat=yv.flatten())
+    pset = ParticleSet(fieldset, pclass=pclass(), x=xv.flatten(), y=yv.flatten())
     pset.execute(SampleP, endtime=1, dt=1)
     assert np.allclose(pset.p[(pset.lon < 0.5) & (pset.lat > 0.5)], 1.0, rtol=1e-5)
     assert np.allclose(pset.p[(pset.lon > 0.5) | (pset.lat < 0.5)], 0.0, rtol=1e-5)
@@ -215,8 +215,8 @@ def test_nearest_neighbor_interpolation3D():
     fieldset.P.interp_method = "nearest"
     xv, yv = np.meshgrid(np.linspace(0, 1.0, int(np.sqrt(npart))), np.linspace(0, 1.0, int(np.sqrt(npart))))
     # combine a pset at 0m with pset at 1m, as meshgrid does not do 3D
-    pset = ParticleSet(fieldset, pclass=pclass(), lon=xv.flatten(), lat=yv.flatten(), depth=np.zeros(npart))
-    pset2 = ParticleSet(fieldset, pclass=pclass(), lon=xv.flatten(), lat=yv.flatten(), depth=np.ones(npart))
+    pset = ParticleSet(fieldset, pclass=pclass(), x=xv.flatten(), y=yv.flatten(), depth=np.zeros(npart))
+    pset2 = ParticleSet(fieldset, pclass=pclass(), x=xv.flatten(), y=yv.flatten(), depth=np.ones(npart))
     pset.add(pset2)
     pset.execute(SampleP, endtime=1, dt=1)
     assert np.allclose(pset.p[(pset.lon < 0.5) & (pset.lat > 0.5) & (pset.depth > 0.5)], 1.0, rtol=1e-5)
@@ -247,9 +247,9 @@ def test_inversedistance_nearland(withDepth, arrtype):
     fieldset.P.interp_method = "linear_invdist_land_tracer"
 
     xv, yv = np.meshgrid(np.linspace(0.1, 0.9, int(np.sqrt(npart))), np.linspace(0.1, 0.9, int(np.sqrt(npart))))
-    pset = ParticleSet(fieldset, pclass=pclass(), lon=xv.flatten(), lat=yv.flatten(), depth=np.zeros(npart))
+    pset = ParticleSet(fieldset, pclass=pclass(), x=xv.flatten(), y=yv.flatten(), depth=np.zeros(npart))
     if withDepth:
-        pset2 = ParticleSet(fieldset, pclass=pclass(), lon=xv.flatten(), lat=yv.flatten(), depth=np.ones(npart))
+        pset2 = ParticleSet(fieldset, pclass=pclass(), x=xv.flatten(), y=yv.flatten(), depth=np.ones(npart))
         pset.add(pset2)
     pset.execute(SampleP, endtime=1, dt=1)
     if arrtype == "rand":
@@ -301,7 +301,7 @@ def test_partialslip_nearland_zonal(boundaryslip, withW, withT):
     fieldset = FieldSet.from_data(data, dimensions, mesh="flat", interp_method=boundaryslip)
 
     pset = ParticleSet(
-        fieldset, pclass=Particle, lon=np.zeros(npart), lat=np.linspace(0.1, 3.9, npart), depth=np.zeros(npart)
+        fieldset, pclass=Particle, x=np.zeros(npart), y=np.linspace(0.1, 3.9, npart), depth=np.zeros(npart)
     )
     kernel = AdvectionRK4_3D if withW else AdvectionRK4
     pset.execute(kernel, endtime=2, dt=1)
@@ -345,7 +345,7 @@ def test_partialslip_nearland_meridional(boundaryslip, withW):
     fieldset = FieldSet.from_data(data, dimensions, mesh="flat", interp_method=interp_method)
 
     pset = ParticleSet(
-        fieldset, pclass=Particle, lat=np.zeros(npart), lon=np.linspace(0.1, 3.9, npart), depth=np.zeros(npart)
+        fieldset, pclass=Particle, y=np.zeros(npart), x=np.linspace(0.1, 3.9, npart), depth=np.zeros(npart)
     )
     kernel = AdvectionRK4_3D if withW else AdvectionRK4
     pset.execute(kernel, endtime=2, dt=1)
@@ -380,7 +380,7 @@ def test_partialslip_nearland_vertical(boundaryslip):
     fieldset = FieldSet.from_data(data, dimensions, mesh="flat", interp_method={"U": boundaryslip, "V": boundaryslip})
 
     pset = ParticleSet(
-        fieldset, pclass=Particle, lon=np.zeros(npart), lat=np.zeros(npart), depth=np.linspace(0.1, 3.9, npart)
+        fieldset, pclass=Particle, x=np.zeros(npart), y=np.zeros(npart), depth=np.linspace(0.1, 3.9, npart)
     )
     pset.execute(AdvectionRK4, endtime=2, dt=1)
     if boundaryslip == "partialslip":
@@ -408,11 +408,11 @@ def test_fieldset_sample_particle():
 
     lon = np.linspace(-170, 170, npart)
     lat = np.linspace(-80, 80, npart)
-    pset = ParticleSet(fieldset, pclass=pclass(), lon=lon, lat=np.zeros(npart) + 70.0)
+    pset = ParticleSet(fieldset, pclass=pclass(), x=lon, y=np.zeros(npart) + 70.0)
     pset.execute(pset.Kernel(SampleUV), endtime=1.0, dt=1.0)
     assert np.allclose(pset.v, lon, rtol=1e-6)
 
-    pset = ParticleSet(fieldset, pclass=pclass(), lat=lat, lon=np.zeros(npart) - 45.0)
+    pset = ParticleSet(fieldset, pclass=pclass(), y=lat, x=np.zeros(npart) - 45.0)
     pset.execute(pset.Kernel(SampleUV), endtime=1.0, dt=1.0)
     assert np.allclose(pset.u, lat, rtol=1e-6)
 
@@ -426,11 +426,11 @@ def test_fieldset_sample_geographic(fieldset_geometric):
     lon = np.linspace(-170, 170, npart)
     lat = np.linspace(-80, 80, npart)
 
-    pset = ParticleSet(fieldset, pclass=pclass(), lon=lon, lat=np.zeros(npart) + 70.0)
+    pset = ParticleSet(fieldset, pclass=pclass(), x=lon, y=np.zeros(npart) + 70.0)
     pset.execute(pset.Kernel(SampleUV), endtime=1.0, dt=1.0)
     assert np.allclose(pset.v, lon, rtol=1e-6)
 
-    pset = ParticleSet(fieldset, pclass=pclass(), lat=lat, lon=np.zeros(npart) - 45.0)
+    pset = ParticleSet(fieldset, pclass=pclass(), y=lat, x=np.zeros(npart) - 45.0)
     pset.execute(pset.Kernel(SampleUV), endtime=1.0, dt=1.0)
     assert np.allclose(pset.u, lat, rtol=1e-6)
 
@@ -444,11 +444,11 @@ def test_fieldset_sample_geographic_polar(fieldset_geometric_polar):
     lon = np.linspace(-170, 170, npart)
     lat = np.linspace(-80, 80, npart)
 
-    pset = ParticleSet(fieldset, pclass=pclass(), lon=lon, lat=np.zeros(npart) + 70.0)
+    pset = ParticleSet(fieldset, pclass=pclass(), x=lon, y=np.zeros(npart) + 70.0)
     pset.execute(pset.Kernel(SampleUV), endtime=1.0, dt=1.0)
     assert np.allclose(pset.v, lon, rtol=1e-6)
 
-    pset = ParticleSet(fieldset, pclass=pclass(), lat=lat, lon=np.zeros(npart) - 45.0)
+    pset = ParticleSet(fieldset, pclass=pclass(), y=lat, x=np.zeros(npart) - 45.0)
     pset.execute(pset.Kernel(SampleUV), endtime=1.0, dt=1.0)
     assert np.allclose(pset.u, lat, rtol=1e-2)
 
@@ -475,7 +475,7 @@ def test_meridionalflow_spherical():
     lonstart = [0, 45]
     latstart = [0, 45]
     runtime = timedelta(hours=24)
-    pset = ParticleSet(fieldset, pclass=Particle, lon=lonstart, lat=latstart)
+    pset = ParticleSet(fieldset, pclass=Particle, x=lonstart, y=latstart)
     pset.execute(pset.Kernel(AdvectionRK4), runtime=runtime, dt=timedelta(hours=1))
 
     assert pset.lat[0] - (latstart[0] + runtime.total_seconds() * maxvel / 1852 / 60) < 1e-4
@@ -507,7 +507,7 @@ def test_zonalflow_spherical():
     lonstart = [0, 45]
     latstart = [0, 45]
     runtime = timedelta(hours=24)
-    pset = ParticleSet(fieldset, pclass=pclass(), lon=lonstart, lat=latstart)
+    pset = ParticleSet(fieldset, pclass=pclass(), x=lonstart, y=latstart)
     pset.execute(pset.Kernel(AdvectionRK4) + SampleP, runtime=runtime, dt=timedelta(hours=1))
 
     assert pset.lat[0] - latstart[0] < 1e-4
@@ -566,7 +566,7 @@ def test_sampling_out_of_bounds_time(allow_time_extrapolation):
     }
 
     fieldset = FieldSet.from_data(data, dimensions, mesh="flat", allow_time_extrapolation=allow_time_extrapolation)
-    pset = ParticleSet(fieldset, pclass=pclass(), lon=[0.5], lat=[0.5], time=-1.0)
+    pset = ParticleSet(fieldset, pclass=pclass(), x=[0.5], y=[0.5], time=-1.0)
     if allow_time_extrapolation:
         pset.execute(SampleP, endtime=-0.9, dt=0.1)
         assert np.allclose(pset.p, 0.0, rtol=1e-5)
@@ -574,19 +574,19 @@ def test_sampling_out_of_bounds_time(allow_time_extrapolation):
         with pytest.raises(RuntimeError):
             pset.execute(SampleP, endtime=-0.9, dt=0.1)
 
-    pset = ParticleSet(fieldset, pclass=pclass(), lon=[0.5], lat=[0.5], time=0)
+    pset = ParticleSet(fieldset, pclass=pclass(), x=[0.5], y=[0.5], time=0)
     pset.execute(SampleP, runtime=0.1, dt=0.1)
     assert np.allclose(pset.p, 0.0, rtol=1e-5)
 
-    pset = ParticleSet(fieldset, pclass=pclass(), lon=[0.5], lat=[0.5], time=0.5)
+    pset = ParticleSet(fieldset, pclass=pclass(), x=[0.5], y=[0.5], time=0.5)
     pset.execute(SampleP, runtime=0.1, dt=0.1)
     assert np.allclose(pset.p, 0.5, rtol=1e-5)
 
-    pset = ParticleSet(fieldset, pclass=pclass(), lon=[0.5], lat=[0.5], time=1.0)
+    pset = ParticleSet(fieldset, pclass=pclass(), x=[0.5], y=[0.5], time=1.0)
     pset.execute(SampleP, runtime=0.1, dt=0.1)
     assert np.allclose(pset.p, 1.0, rtol=1e-5)
 
-    pset = ParticleSet(fieldset, pclass=pclass(), lon=[0.5], lat=[0.5], time=2.0)
+    pset = ParticleSet(fieldset, pclass=pclass(), x=[0.5], y=[0.5], time=2.0)
     if allow_time_extrapolation:
         pset.execute(SampleP, runtime=0.1, dt=0.1)
         assert np.allclose(pset.p, 1.0, rtol=1e-5)
@@ -606,7 +606,7 @@ def test_sampling_3DCROCO():
     def SampleU(particle, fieldset, time):  # pragma: no cover
         particle.p = fieldset.U[time, particle.depth, particle.lat, particle.lon, particle]
 
-    pset = ParticleSet(fieldset, pclass=SampleP, lon=120e3, lat=50e3, depth=-0.4)
+    pset = ParticleSet(fieldset, pclass=SampleP, x=120e3, y=50e3, depth=-0.4)
     pset.execute(SampleU, endtime=1, dt=1)
     assert np.isclose(pset.p, 1.0)
 
@@ -727,7 +727,7 @@ def test_sampling_multiple_grid_sizes(ugridfactor):
         lat=np.linspace(0.0, 1.0, ydim, dtype=np.float32),
     )
     fieldset = FieldSet(U, V)
-    pset = ParticleSet(fieldset, pclass=Particle, lon=[0.8], lat=[0.9])
+    pset = ParticleSet(fieldset, pclass=Particle, x=[0.8], y=[0.9])
 
     if ugridfactor > 1:
         assert fieldset.U.grid is not fieldset.V.grid
@@ -756,7 +756,7 @@ def test_multiple_grid_addlater_error():
     )
     fieldset = FieldSet(U, V)
 
-    pset = ParticleSet(fieldset, pclass=Particle, lon=[0.8], lat=[0.9])  # noqa ; to trigger fieldset._check_complete
+    pset = ParticleSet(fieldset, pclass=Particle, x=[0.8], y=[0.9])  # noqa ; to trigger fieldset._check_complete
 
     P = Field(
         "P",
@@ -798,7 +798,7 @@ def test_fieldset_sampling_updating_order(tmp_zarrfile):
     fieldset = FieldSet.from_data(data, dimensions, mesh="flat")
 
     xv, yv = np.meshgrid(np.arange(0, 1, 0.5), np.arange(0, 1, 0.5))
-    pset = ParticleSet(fieldset, pclass=pclass(), lon=xv.flatten(), lat=yv.flatten())
+    pset = ParticleSet(fieldset, pclass=pclass(), x=xv.flatten(), y=yv.flatten())
 
     def SampleP(particle, fieldset, time):  # pragma: no cover
         particle.p = fieldset.P[time, particle.depth, particle.lat, particle.lon]

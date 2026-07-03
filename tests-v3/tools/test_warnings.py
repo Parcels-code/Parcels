@@ -33,8 +33,8 @@ def test_kernel_warnings():
     pset = ParticleSet(
         fieldset=fieldset,
         pclass=Particle.add_variable("next_dt", dtype=np.float32, initial=1),
-        lon=[0],
-        lat=[0],
+        x=[0],
+        y=[0],
         depth=[0],
         time=[0],
         next_dt=1,

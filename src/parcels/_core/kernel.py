@@ -106,13 +106,13 @@ class Kernel:
             pset.remove_indices(indices)
 
     def _position_update(self, particles, fieldset):
-        particles.lon += particles.dlon
-        particles.lat += particles.dlat
+        particles.x += particles.dx
+        particles.y += particles.dy
         particles.z += particles.dz
         particles.time += particles.dt
 
-        particles.dlon = 0
-        particles.dlat = 0
+        particles.dx = 0
+        particles.dy = 0
         particles.dz = 0
 
         if hasattr(self.fieldset, "RK45_tol"):
@@ -244,6 +244,6 @@ class Kernel:
                     if error_code == StatusCode.ErrorOutsideTimeInterval:
                         error_func(pset[inds].time)
                     else:
-                        error_func(pset[inds].z, pset[inds].lat, pset[inds].lon)
+                        error_func(pset[inds].z, pset[inds].y, pset[inds].x)
 
         return pset

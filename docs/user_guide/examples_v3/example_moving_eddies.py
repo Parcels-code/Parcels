@@ -166,7 +166,7 @@ def test_moving_eddies_fwdbwd(mesh, tmpdir, npart=2):
     lons = [3.3, 3.3] if fieldset.U.grid.mesh == "spherical" else [3.3e5, 3.3e5]
     lats = [46.0, 47.8] if fieldset.U.grid.mesh == "spherical" else [1e5, 2.8e5]
     pset = parcels.ParticleSet(
-        fieldset=fieldset, pclass=parcels.Particle, lon=lons, lat=lats
+        fieldset=fieldset, pclass=parcels.Particle, x=lons, y=lats
     )
 
     # Execte for 14 days, with 30sec timesteps and hourly output

@@ -263,7 +263,7 @@ def test_add_second_vector_field():
         particle.dlon += u * particle.dt
         particle.dlat += v * particle.dt
 
-    pset = ParticleSet(fieldset, pclass=Particle, lon=0.5, lat=0.5)
+    pset = ParticleSet(fieldset, pclass=Particle, x=0.5, y=0.5)
     pset.execute(AdvectionRK4 + pset.Kernel(SampleUV2), dt=1, runtime=2)
 
     assert abs(pset.lon[0] - 2.5) < 1e-9
@@ -343,7 +343,7 @@ def test_periodic(use_xarray, time_periodic, dt_sign):
         ]
     )
 
-    pset = ParticleSet(fieldset, pclass=MyParticle, lon=[0.5], lat=[0.5], depth=[0.5])
+    pset = ParticleSet(fieldset, pclass=MyParticle, x=[0.5], y=[0.5], depth=[0.5])
     pset.execute(
         AdvectionRK4_3D + pset.Kernel(sampleTemp), runtime=timedelta(hours=51), dt=timedelta(hours=dt_sign * 1)
     )

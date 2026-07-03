@@ -19,7 +19,7 @@ def fieldset():
 
 def test_print(fieldset):
     TestParticle = Particle.add_variable("p", to_write=True)
-    pset = ParticleSet(fieldset, pclass=TestParticle, lon=[0, 1], lat=[0, 1])
+    pset = ParticleSet(fieldset, pclass=TestParticle, x=[0, 1], y=[0, 1])
     print(pset)
 
 
@@ -32,7 +32,7 @@ def test_variable_init(fieldset):
     ]
     TestParticle = Particle.add_variables(extra_vars)
     TestParticle = TestParticle.add_variable("p_int", np.int32, initial=12.0)
-    pset = ParticleSet(fieldset, pclass=TestParticle, lon=np.linspace(0, 1, npart), lat=np.linspace(1, 0, npart))
+    pset = ParticleSet(fieldset, pclass=TestParticle, x=np.linspace(0, 1, npart), y=np.linspace(1, 0, npart))
 
     def addOne(particle, fieldset, time):  # pragma: no cover
         particle.p_float += 1.0
@@ -50,7 +50,7 @@ def test_variable_unsupported_dtypes(fieldset, type):
     """Test that checks errors thrown for unsupported dtypes."""
     TestParticle = Particle.add_variable("p", dtype=type, initial=10.0)
     with pytest.raises((RuntimeError, TypeError)):
-        ParticleSet(fieldset, pclass=TestParticle, lon=[0], lat=[0])
+        ParticleSet(fieldset, pclass=TestParticle, x=[0], y=[0])
 
 
 def test_variable_special_names(fieldset):
@@ -58,7 +58,7 @@ def test_variable_special_names(fieldset):
     for vars in ["z", "lon"]:
         TestParticle = Particle.add_variable(vars, dtype=np.float32, initial=10.0)
         with pytest.raises(AttributeError):
-            ParticleSet(fieldset, pclass=TestParticle, lon=[0], lat=[0])
+            ParticleSet(fieldset, pclass=TestParticle, x=[0], y=[0])
 
 
 @pytest.mark.parametrize("coord_type", [np.float32, np.float64])
@@ -78,7 +78,7 @@ def test_variable_init_relative(fieldset, coord_type):
 
     lon = np.linspace(0, 1, npart, dtype=lonlat_type)
     lat = np.linspace(1, 0, npart, dtype=lonlat_type)
-    pset = ParticleSet(fieldset, pclass=TestParticle, lon=lon, lat=lat, lonlatdepth_dtype=coord_type)
+    pset = ParticleSet(fieldset, pclass=TestParticle, x=lon, y=lat, lonlatdepth_dtype=coord_type)
     # Adjust base variable to test for aliasing effects
     for p in pset:
         p.p_base += 3.0

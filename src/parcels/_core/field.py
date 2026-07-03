@@ -184,7 +184,7 @@ class Field:
         self._check_velocitysampling()
         try:
             if isinstance(key, ParticleSetView):
-                return self.eval(key.time, key.z, key.lat, key.lon, key)
+                return self.eval(key.time, key.z, key.y, key.x, key)
             else:
                 return self.eval(*key)
         except tuple(AllParcelsErrorCodes.keys()) as error:
@@ -293,7 +293,7 @@ class VectorField:
     def __getitem__(self, key):
         try:
             if isinstance(key, ParticleSetView):
-                return self.eval(key.time, key.z, key.lat, key.lon, key)
+                return self.eval(key.time, key.z, key.y, key.x, key)
             else:
                 return self.eval(*key)
         except tuple(AllParcelsErrorCodes.keys()) as error:

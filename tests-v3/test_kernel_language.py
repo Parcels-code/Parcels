@@ -42,8 +42,8 @@ def test_expression_int(name, expr, result):
     pset = ParticleSet(
         create_fieldset_unit_mesh(mesh="spherical"),
         pclass=TestParticle,
-        lon=np.linspace(0.0, 1.0, npart),
-        lat=np.zeros(npart) + 0.5,
+        x=np.linspace(0.0, 1.0, npart),
+        y=np.zeros(npart) + 0.5,
     )
     pset.execute(expr_kernel(f"Test{name}", pset, expr), endtime=1.0, dt=1.0)
     assert np.all([p.p == result for p in pset])
@@ -66,8 +66,8 @@ def test_expression_float(name, expr, result):
     pset = ParticleSet(
         create_fieldset_unit_mesh(mesh="spherical"),
         pclass=TestParticle,
-        lon=np.linspace(0.0, 1.0, npart),
-        lat=np.zeros(npart) + 0.5,
+        x=np.linspace(0.0, 1.0, npart),
+        y=np.zeros(npart) + 0.5,
     )
     pset.execute(expr_kernel(f"Test{name}", pset, expr), endtime=1.0, dt=1.0)
     assert np.all([p.p == result for p in pset])
@@ -96,8 +96,8 @@ def test_expression_bool(name, expr, result):
     pset = ParticleSet(
         create_fieldset_unit_mesh(mesh="spherical"),
         pclass=TestParticle,
-        lon=np.linspace(0.0, 1.0, npart),
-        lat=np.zeros(npart) + 0.5,
+        x=np.linspace(0.0, 1.0, npart),
+        y=np.zeros(npart) + 0.5,
     )
     pset.execute(expr_kernel(f"Test{name}", pset, expr), endtime=1.0, dt=1.0)
     assert np.all(result == pset.p)
@@ -106,7 +106,7 @@ def test_expression_bool(name, expr, result):
 def test_while_if_break():
     """Test while, if and break commands."""
     TestParticle = Particle.add_variable("p", dtype=np.float32, initial=0)
-    pset = ParticleSet(create_fieldset_unit_mesh(mesh="spherical"), pclass=TestParticle, lon=[0], lat=[0])
+    pset = ParticleSet(create_fieldset_unit_mesh(mesh="spherical"), pclass=TestParticle, x=[0], y=[0])
 
     def kernel(particle, fieldset, time):  # pragma: no cover
         while particle.p < 30:
@@ -125,7 +125,7 @@ def test_nested_if():
     TestParticle = Particle.add_variables(
         [Variable("p0", dtype=np.int32, initial=0), Variable("p1", dtype=np.int32, initial=1)]
     )
-    pset = ParticleSet(create_fieldset_unit_mesh(mesh="spherical"), pclass=TestParticle, lon=0, lat=0)
+    pset = ParticleSet(create_fieldset_unit_mesh(mesh="spherical"), pclass=TestParticle, x=0, y=0)
 
     def kernel(particle, fieldset, time):  # pragma: no cover
         if particle.p1 >= particle.p0:
@@ -140,7 +140,7 @@ def test_nested_if():
 def test_pass():
     """Test pass commands."""
     TestParticle = Particle.add_variable("p", dtype=np.float32, initial=0)
-    pset = ParticleSet(create_fieldset_unit_mesh(mesh="spherical"), pclass=TestParticle, lon=0, lat=0)
+    pset = ParticleSet(create_fieldset_unit_mesh(mesh="spherical"), pclass=TestParticle, x=0, y=0)
 
     def kernel(particle, fieldset, time):  # pragma: no cover
         particle.p = -1
@@ -151,7 +151,7 @@ def test_pass():
 
 
 def test_dt_as_variable_in_kernel():
-    pset = ParticleSet(create_fieldset_unit_mesh(mesh="spherical"), pclass=Particle, lon=0, lat=0)
+    pset = ParticleSet(create_fieldset_unit_mesh(mesh="spherical"), pclass=Particle, x=0, y=0)
 
     def kernel(particle, fieldset, time):  # pragma: no cover
         dt = 1.0  # noqa
@@ -165,7 +165,7 @@ def test_varname_as_fieldname():
     fset.add_field(Field("speed", 10, lon=0, lat=0))
     fset.add_constant("vertical_speed", 0.1)
     particle = Particle.add_variable("speed")
-    pset = ParticleSet(fset, pclass=particle, lon=0, lat=0)
+    pset = ParticleSet(fset, pclass=particle, x=0, y=0)
 
     def kernel_particlename(particle, fieldset, time):  # pragma: no cover
         particle.speed = fieldset.speed[particle]
@@ -182,7 +182,7 @@ def test_varname_as_fieldname():
 def test_if_withfield(fieldset_unit_mesh):
     """Test combination of if and Field sampling commands."""
     TestParticle = Particle.add_variable("p", dtype=np.float32, initial=0)
-    pset = ParticleSet(fieldset_unit_mesh, pclass=TestParticle, lon=[0], lat=[0])
+    pset = ParticleSet(fieldset_unit_mesh, pclass=TestParticle, x=[0], y=[0])
 
     def kernel(particle, fieldset, time):  # pragma: no cover
         u, v = fieldset.UV[time, 0, 0, 1.0]
@@ -217,7 +217,7 @@ def test_if_withfield(fieldset_unit_mesh):
 def test_print(fieldset_unit_mesh, capfd):
     """Test print statements."""
     TestParticle = Particle.add_variable("p", dtype=np.float32, initial=0)
-    pset = ParticleSet(fieldset_unit_mesh, pclass=TestParticle, lon=[0.5], lat=[0.5])
+    pset = ParticleSet(fieldset_unit_mesh, pclass=TestParticle, x=[0.5], y=[0.5])
 
     def kernel(particle, fieldset, time):  # pragma: no cover
         particle.p = 1e-3
@@ -245,7 +245,7 @@ def test_print(fieldset_unit_mesh, capfd):
 
 
 def test_fieldset_access(fieldset_unit_mesh):
-    pset = ParticleSet(fieldset_unit_mesh, pclass=Particle, lon=0, lat=0)
+    pset = ParticleSet(fieldset_unit_mesh, pclass=Particle, x=0, y=0)
 
     def kernel(particle, fieldset, time):  # pragma: no cover
         particle.lon = fieldset.U.grid.lon[2]
@@ -257,7 +257,7 @@ def test_fieldset_access(fieldset_unit_mesh):
 @pytest.mark.parametrize("concat", [False, True])
 def test_random_kernel_concat(fieldset_unit_mesh, concat):
     TestParticle = Particle.add_variable("p", dtype=np.float32, initial=0)
-    pset = ParticleSet(fieldset_unit_mesh, pclass=TestParticle, lon=0, lat=0)
+    pset = ParticleSet(fieldset_unit_mesh, pclass=TestParticle, x=0, y=0)
 
     def RandomKernel(particle, fieldset, time):  # pragma: no cover
         particle.p += random.uniform(0, 1)
@@ -272,7 +272,7 @@ def test_random_kernel_concat(fieldset_unit_mesh, concat):
 
 def test_dt_modif_by_kernel():
     TestParticle = Particle.add_variable("age", dtype=np.float32, initial=0)
-    pset = ParticleSet(create_fieldset_unit_mesh(mesh="spherical"), pclass=TestParticle, lon=[0.5], lat=[0])
+    pset = ParticleSet(create_fieldset_unit_mesh(mesh="spherical"), pclass=TestParticle, x=[0.5], y=[0])
 
     def modif_dt(particle, fieldset, time):  # pragma: no cover
         particle.age += particle.dt
@@ -291,8 +291,8 @@ def test_small_dt(dt, expectation):
     pset = ParticleSet(
         create_fieldset_unit_mesh(mesh="spherical"),
         pclass=Particle,
-        lon=np.zeros(npart),
-        lat=np.zeros(npart),
+        x=np.zeros(npart),
+        y=np.zeros(npart),
         time=np.arange(0, npart) * dt * 10,
     )
 
