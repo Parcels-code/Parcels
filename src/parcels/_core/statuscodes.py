@@ -41,7 +41,7 @@ class FieldInterpolationError(RuntimeError):
 
 
 def _raise_field_interpolation_error(z, y, x):
-    raise FieldInterpolationError(f"Field interpolation returned NaN at (z={z}, lat={y}, lon={x})")
+    raise FieldInterpolationError(f"Field interpolation returned NaN at (z={z}, y={y}, x={x})")
 
 
 class FieldOutOfBoundError(RuntimeError):
@@ -51,7 +51,7 @@ class FieldOutOfBoundError(RuntimeError):
 
 
 def _raise_field_out_of_bound_error(z, y, x):
-    raise FieldOutOfBoundError(f"Field sampled out-of-bound, at (z={z}, lat={y}, lon={x})")
+    raise FieldOutOfBoundError(f"Field sampled out-of-bound, at (z={z}, y={y}, x={x})")
 
 
 class FieldOutOfBoundSurfaceError(RuntimeError):
@@ -65,7 +65,7 @@ def _raise_field_out_of_bound_surface_error(z: float | None, y: float | None, x:
         return "unknown" if val is None else val
 
     raise FieldOutOfBoundSurfaceError(
-        f"Field sampled out-of-bound at the surface, at (z={format_out(z)}, lat={format_out(y)}, lon={format_out(x)})"
+        f"Field sampled out-of-bound at the surface, at (z={format_out(z)}, y={format_out(y)}, x={format_out(x)})"
     )
 
 
@@ -82,7 +82,7 @@ class GridSearchingError(RuntimeError):
 
 
 def _raise_grid_searching_error(z, y, x):
-    raise GridSearchingError(f"Grid searching failed at (z={z}, lat={y}, lon={x})")
+    raise GridSearchingError(f"Grid searching failed at (z={z}, y={y}, x={x})")
 
 
 class GeneralError(RuntimeError):
@@ -92,7 +92,7 @@ class GeneralError(RuntimeError):
 
 
 def _raise_general_error(z, y, x):
-    raise GeneralError(f"General error occurred at (z={z}, lat={y}, lon={x})")
+    raise GeneralError(f"General error occurred at (z={z}, y={y}, x={x})")
 
 
 class OutsideTimeInterval(RuntimeError):
