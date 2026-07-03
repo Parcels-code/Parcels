@@ -18,6 +18,7 @@ Version 4 of Parcels is unreleased at the moment. The information in this migrat
 - Users need to explicitly use `convert_z_to_sigma_croco` in sampling kernels (such as the `AdvectionRK4_3D_CROCO` or `SampleOMegaCroco` kernels) when working with CROCO data, as the automatic conversion from depth to sigma grids under the hood has been removed.
 - We added a new AdvectionRK2 Kernel. The AdvectionRK4 kernel is still available, but RK2 is now the recommended default advection scheme as it is faster while the accuracy is comparable for most applications. See also the Choosing an integration method tutorial.
 - Functions shouldn't be converted to Kernels before adding to a pset.execute() call. Instead, simply pass the function(s) as a list to pset.execute().
+- Kernel variables `lon` and `lat` have been renamed to `x` and `y`, and `dlon` and `dlat` have been renamed to `dx` and `dy`. These changes are also reflected on the ParticleSet as well as the particlefile output.
 
 ## FieldSet
 
