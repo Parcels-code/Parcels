@@ -8,6 +8,7 @@ import pytest
 
 from parcels import Field, ParticleFile, ParticleSet, XGrid, convert
 from parcels._core.fieldset import FieldSet, _datetime_to_msg
+from parcels._core.model import _default_vector_field_components
 from parcels._datasets.structured.generic import datasets as datasets_structured
 from parcels._datasets.structured.generic import datasets_sgrid
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
@@ -96,7 +97,110 @@ def test_fieldset_from_structured_generic_datasets(ds):
     assert len(fieldset.gridset) == 1
 
 
-def test_fieldset_gridset_multiple_grids(): ...
+@pytest.mark.parametrize(
+    "vector_fields,ctx",
+    [
+        pytest.param(
+            {"UV": ("U",)},
+            pytest.raises(ValueError, match="must have either 2 or 3 components"),
+            id="single-component",
+        ),
+        pytest.param(
+            {"UV": ("U", "missing")},
+            pytest.raises(ValueError, match="not present in the source dataset"),
+            id="component-not-in-dataset",
+        ),
+        pytest.param(
+            {"UV": ("U", "U", "U", "U")},
+            pytest.raises(ValueError, match="must have either 2 or 3 components"),
+            id="too-many-components",
+        ),
+        pytest.param(
+            None,
+            pytest.raises(ValueError, match="vector_fields must be a dictionary"),
+            id="None",
+        ),
+    ],
+)
+def test_fieldset_invalid_vector_fields(vector_fields, ctx):
+    ds = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]].rename({"U_A_grid": "U", "V_A_grid": "V"})
+
+    with ctx:
+        FieldSet.from_sgrid_conventions(ds, mesh="flat", vector_fields=vector_fields)
+
+
+def test_fieldset_structured_vectorfield_default():
+    ds = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]].rename({"U_A_grid": "U", "V_A_grid": "V"})
+
+    fset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
+
+    assert "U" in fset.fields
+    assert "V" in fset.fields
+    assert "UV" in fset.fields
+
+
+def test_fieldset_structured_vectorfield_custom():
+    ds = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]].rename({"U_A_grid": "U", "V_A_grid": "V"})
+    ds = ds.rename({"U": "U_wind", "V": "V_wind"})
+
+    fset = FieldSet.from_sgrid_conventions(ds, mesh="flat", vector_fields={"UV_wind": ("U_wind", "V_wind")})
+
+    assert "U_wind" in fset.fields
+    assert "V_wind" in fset.fields
+    assert "UV_wind" in fset.fields
+
+
+def test_fieldset_structured_vectorfield_empty():
+    ds = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]].rename({"U_A_grid": "U", "V_A_grid": "V"})
+
+    fset = FieldSet.from_sgrid_conventions(ds, mesh="flat", vector_fields={})
+
+    assert "U" in fset.fields
+    assert "V" in fset.fields
+    assert "UV" not in fset.fields
+
+
+def test_fieldset_unstructured_vectorfield_default():
+    ds = datasets_unstructured["stommel_gyre_delaunay"]
+    fset = FieldSet.from_ugrid_conventions(ds, mesh="spherical")
+
+    assert "U" in fset.fields
+    assert "V" in fset.fields
+    assert "UV" in fset.fields
+
+
+def test_fieldset_unstructured_vectorfield_custom():
+    ds = datasets_unstructured["stommel_gyre_delaunay"]
+    ds = ds.rename({"U": "U_wind", "V": "V_wind"})
+
+    fset = FieldSet.from_ugrid_conventions(ds, mesh="spherical", vector_fields={"UV_wind": ("U_wind", "V_wind")})
+
+    assert "U_wind" in fset.fields
+    assert "V_wind" in fset.fields
+    assert "UV_wind" in fset.fields
+
+
+def test_fieldset_unstructured_vectorfield_empty():
+    ds = datasets_unstructured["stommel_gyre_delaunay"]
+
+    fset = FieldSet.from_ugrid_conventions(ds, mesh="spherical", vector_fields={})
+
+    assert "U" in fset.fields
+    assert "V" in fset.fields
+    assert "UV" not in fset.fields
+
+
+@pytest.mark.parametrize(
+    "data_vars,expected",
+    [
+        (["U", "V", "land_mask"], {"UV": ("U", "V")}),
+        (["U", "V", "W", "land_mask"], {"UV": ("U", "V"), "UVW": ("U", "V", "W")}),
+        (["field1", "field2", "field3"], {}),
+    ],
+)
+def test_default_vector_field_components(data_vars, expected):
+    got = _default_vector_field_components(data_vars)
+    assert got == expected
 
 
 # TODO restructure: use adding of fieldset notation to test this
@@ -208,25 +312,10 @@ def test_fieldset_from_sgrid_conventions(ds_name):
     assert len(fieldset.fields) > 0
 
 
-def test_fieldset_add():
-    """Test that two FieldSets can be combined with + (fset1 + fset2)."""
-    ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "grid"]].rename({"U_A_grid": "U1"})
-    ds2 = datasets_structured["ds_2d_left"][["V_A_grid", "grid"]].rename({"V_A_grid": "V2"})
-
-    fset1 = FieldSet.from_sgrid_conventions(ds1, mesh="flat")
-    fset2 = FieldSet.from_sgrid_conventions(ds2, mesh="flat")
-
-    fset = fset1 + fset2
-
-    assert len(fset.models) == len(fset1.models) + len(fset2.models)
-    assert "U1" in fset.fields
-    assert "V2" in fset.fields
-
-
-def test_fieldset_add_overlapping_fields():
+def test_fieldset_add_error_on_duplicate_fields():
     """Test that adding FieldSets with overlapping field names raises a ValueError."""
-    ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "grid"]].rename({"U_A_grid": "U"})
-    ds2 = datasets_structured["ds_2d_left"][["V_A_grid", "grid"]].rename({"V_A_grid": "U"})
+    ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]].rename({"U_A_grid": "U", "V_A_grid": "V"})
+    ds2 = ds1.copy()
 
     fset1 = FieldSet.from_sgrid_conventions(ds1, mesh="flat")
     fset2 = FieldSet.from_sgrid_conventions(ds2, mesh="flat")
@@ -235,7 +324,26 @@ def test_fieldset_add_overlapping_fields():
         fset1 + fset2
 
 
-def test_fieldset_add_overlapping_context_values():
+def test_fieldset_add():
+    """Test that two FieldSets can be combined with + (fset1 + fset2)."""
+    ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]].rename({"U_A_grid": "U", "V_A_grid": "V"})
+    ds2 = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]].rename(
+        {"U_A_grid": "U_wind", "V_A_grid": "V_wind"}
+    )
+
+    fset1 = FieldSet.from_sgrid_conventions(ds1, mesh="flat")
+    fset2 = FieldSet.from_sgrid_conventions(ds2, mesh="flat", vector_fields={"UV_wind": ("U_wind", "V_wind")})
+
+    fset = fset1 + fset2
+
+    assert len(fset.models) == len(fset1.models) + len(fset2.models)
+
+    fields_before = list(fset1.fields.keys()) + list(fset2.fields.keys())
+    assert len(fields_before) == len(fset.fields)
+    assert set(fields_before) == set(fset.fields.keys())
+
+
+def test_fieldset_add_error_on_duplicate_context_values():
     """Test that adding FieldSets with overlapping context value names raises a ValueError."""
     ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "grid"]].rename({"U_A_grid": "U1"})
     ds2 = datasets_structured["ds_2d_left"][["V_A_grid", "grid"]].rename({"V_A_grid": "V2"})
