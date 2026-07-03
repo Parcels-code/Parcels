@@ -389,7 +389,7 @@ def _assert_same_time_interval(fields: Sequence[Field]) -> None:
 
 def _get_positions(field: Field, time, z, y, x, particles, _ei) -> tuple[dict, dict]:
     """Initialize and populate particle_positions and grid_positions dictionaries"""
-    particle_positions = {"time": time, "z": z, "lat": y, "lon": x}
+    particle_positions = {"time": time, "z": z, "y": y, "x": x}
     grid_positions = {}
     grid_positions.update(_search_time_index(field, time))
     grid_positions.update(field.grid.search(z, y, x, ei=_ei))
