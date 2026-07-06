@@ -403,5 +403,4 @@ def test_fieldset_describe(fieldset_two_models):
 | Field         | 1                | V_wind   | XLinear(...)          |
 | VectorField   | 1                | UV_wind  | XLinear_Velocity(...) |"""
     actual = fieldset.describe()
-    # breakpoint()
     assert actual == expected
