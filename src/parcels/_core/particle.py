@@ -147,7 +147,7 @@ def get_default_particle(spatial_dtype: type[np.float32] | type[np.float64]) -> 
                     "standard_name": "latitude",
                     "units": "degrees_north",
                     "axis": "Y",
-                },  # TODO v4: Update to ensure that units come from the model
+                },  # TODO v4: https://github.com/Parcels-code/Parcels/issues/2720
             ),
             Variable(
                 "x",
@@ -156,7 +156,7 @@ def get_default_particle(spatial_dtype: type[np.float32] | type[np.float64]) -> 
                     "standard_name": "longitude",
                     "units": "degrees_east",
                     "axis": "X",
-                },  # TODO v4: Update to ensure that units come from the model
+                },  # TODO v4: https://github.com/Parcels-code/Parcels/issues/2720
             ),
             Variable("dz", dtype=spatial_dtype, to_write=False),
             Variable("dy", dtype=spatial_dtype, to_write=False),
