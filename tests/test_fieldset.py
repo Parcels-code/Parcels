@@ -18,6 +18,20 @@ from tests import utils
 ds = datasets_structured["ds_2d_left"]
 
 
+@pytest.fixture
+def fieldset_two_models():
+    ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]].rename({"U_A_grid": "U", "V_A_grid": "V"})
+    ds2 = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]].rename(
+        {"U_A_grid": "U_wind", "V_A_grid": "V_wind"}
+    )
+
+    fset1 = FieldSet.from_sgrid_conventions(ds1, mesh="flat")
+    fset2 = FieldSet.from_sgrid_conventions(ds2, mesh="flat", vector_fields={"UV_wind": ("U_wind", "V_wind")})
+    fset2.add_context("my_value", 2.0)
+    fset2.add_context("my_list", [1, 2, "hello"])
+    return fset1 + fset2
+
+
 def test_fieldset_init_wrong_types():
     with pytest.raises(ValueError, match="Expected `model` to be a ModelData object. Got .*"):
         FieldSet([1.0, 2.0, 3.0])
@@ -373,3 +387,21 @@ def test_fieldset_add_context_values():
 
     assert fset.context["c1"] == 1.0
     assert fset.context["c2"] == 2.0
+
+
+def test_fieldset_describe(fieldset_two_models):
+    fieldset = fieldset_two_models
+    expected = """\
+| Type          | Dataset origin   | Name     | Interp method         |
+|:--------------|:-----------------|:---------|:----------------------|
+| Context value | -                | my_list  | [1, 2, 'hello']       |
+| Context value | -                | my_value | 2.0                   |
+| Field         | 0                | U        | XLinear(...)          |
+| Field         | 0                | V        | XLinear(...)          |
+| VectorField   | 0                | UV       | XLinear_Velocity(...) |
+| Field         | 1                | U_wind   | XLinear(...)          |
+| Field         | 1                | V_wind   | XLinear(...)          |
+| VectorField   | 1                | UV_wind  | XLinear_Velocity(...) |"""
+    actual = fieldset.describe()
+    # breakpoint()
+    assert actual == expected

@@ -3,14 +3,18 @@
 from __future__ import annotations
 
 import textwrap
-from typing import TYPE_CHECKING, Any, cast
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 import numpy as np
 import xarray as xr
 
+from parcels._python import isinstance_noimport
+
 if TYPE_CHECKING:
     from parcels import Field, FieldSet, ParticleSet
     from parcels._core.field import VectorField
+    from parcels._core.model import ModelData
 
 
 def fieldset_repr(fieldset: FieldSet) -> str:
@@ -177,3 +181,69 @@ def _format_list_items_multiline(items: list[str] | dict, level: int = 1, with_b
 
 def is_builtin_object(obj):
     return obj.__class__.__module__ == "builtins"
+
+
+@dataclass
+class _FieldSetDescriptionRow:
+    type_: Literal["Field", "VectorField", "Context value"]
+    model_id: int | None
+    name: str
+    interp_method: str | None
+
+    def to_dict(self) -> dict[str, str]:
+        return {
+            "Type": self.type_,
+            "Dataset origin": str(self.model_id) if self.model_id is not None else "-",
+            "Name": self.name,
+            "Interp method": str(self.interp_method) if self.interp_method is not None else "-",
+        }
+
+
+def _print_table(rows: list[_FieldSetDescriptionRow]) -> str:
+    import pandas as pd
+
+    dicts = [r.to_dict() for r in rows]
+    return pd.DataFrame(dicts).sort_values(["Dataset origin", "Type", "Name"]).to_markdown(index=False)
+
+
+def fieldset_describe(fieldset: FieldSet) -> str:
+    rows: list[_FieldSetDescriptionRow] = []
+    models: dict[int, int] = {}  # mapping of memory ID to a human readable ID
+
+    assert fieldset._fields is not None
+
+    for field in fieldset._fields.values():
+        model_id: int
+
+        # Set human readable model ID
+        parent_id = id(_get_parent_model(field))
+        models[parent_id] = models.get(parent_id, len(models))
+        model_id = models[parent_id]
+
+        type_ = field.__class__.__name__
+        assert type_ in ("Field", "VectorField")
+
+        rows.append(
+            _FieldSetDescriptionRow(
+                type_=type_,
+                model_id=model_id,
+                name=field.name,
+                interp_method=repr(field.interp_method),
+            )
+        )
+    for k, v in fieldset.context.items():
+        rows.append(
+            _FieldSetDescriptionRow(
+                type_="Context value",
+                model_id=None,
+                name=k,
+                interp_method=repr(v),
+            )
+        )
+    return _print_table(rows)
+
+
+def _get_parent_model(field: Field | VectorField) -> ModelData:
+    if isinstance_noimport(field, "Field"):
+        return field.model
+    return field.U.model
