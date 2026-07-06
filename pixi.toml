@@ -134,7 +134,9 @@ docs-clean = { depends-on = [
   { task = "docs-only-clean" },
   { task = "docs" },
 ], description = "Build the documentation from a clean docs folder." }
-docs-watch = { cmd = "make livehtml", cwd = "docs", description = "Build and auto-rebuild the documentation on changes." }
+docs-watch = { cmd = "make livehtml", cwd = "docs", description = "Build and auto-rebuild the documentation on changes.", depends-on = [
+  "docs-only-clean",
+] }
 docs-linkcheck = { cmd = "make linkcheck", cwd = "docs", description = "Verify all links in documentation don't 404." }
 
 [feature.pre-commit.dependencies]
