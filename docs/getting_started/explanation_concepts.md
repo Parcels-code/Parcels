@@ -126,7 +126,7 @@ def AdvectionEE(particles, fieldset):
 Basic kernels are included in Parcels to compute advection and diffusion. The standard advection kernel is `parcels.kernels.AdvectionRK2`, a [second-order Runge-Kutta integrator](https://en.wikipedia.org/wiki/Runge%E2%80%93Kutta_methods#The_Runge%E2%80%93Kutta_method) of the advection function.
 
 ```{warning}
-It is advised _not_ to update the particle coordinates (`particles.time`, `particles.z`, `particles.y`, or `particles.x`) directly within a Kernel, as that can negatively interfere with the way that particle movements by different kernels are vectorially added. Use a change in the coordinates: `particles.dy`, `particles.dx` and/or `particles.dz`. Read the [kernel loop tutorial](https://docs.oceanparcels.org/en/latest/examples/tutorial_kernelloop.html) to understand why.
+It is advised _not_ to update the particle coordinates (`particles.time`, `particles.z`, `particles.y`, or `particles.x`) directly within a Kernel, as that can negatively interfere with the way that particle movements by different kernels are vectorially added. Use a change in the coordinates: `particles.dy`, `particles.dx` and/or `particles.dz`. Read the [kernel loop tutorial](../user_guide/examples/explanation_kernelloop.md) to understand why.
 ```
 
 (custom-kernel)=
