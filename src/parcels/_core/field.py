@@ -35,7 +35,7 @@ def _deal_with_errors(error, key, vector_type: VectorType):
     else:
         raise RuntimeError(f"{error}. Error could not be handled because particles was not part of the Field Sampling.")
 
-    if vector_type and "3D" in vector_type:
+    if vector_type == "3D":
         return (0, 0, 0)
     elif vector_type == "2D":
         return (0, 0)
@@ -219,7 +219,7 @@ class VectorField:
             _assert_same_time_interval((U, V, W))
 
         self.time_interval = U.time_interval
-
+        self.vector_type: VectorType
         if self.W:
             self.vector_type = "3D"
         else:
@@ -285,7 +285,7 @@ class VectorField:
             _update_particle_states_interp_value(particles, vel)
             _mask_outofbounds_values(grid_positions, vel)
 
-        if "3D" in self.vector_type:
+        if "3D" == self.vector_type:
             return (u, v, w)
         else:
             return (u, v)

@@ -117,7 +117,7 @@ class KernelError(RuntimeError):
         super().__init__(message)
 
 
-AllParcelsErrorCodes = {
+AllParcelsErrorCodes: dict[type[Exception], int] = {
     FieldInterpolationError: StatusCode.ErrorInterpolation,
     FieldOutOfBoundError: StatusCode.ErrorOutOfBounds,
     FieldOutOfBoundSurfaceError: StatusCode.ErrorThroughSurface,
