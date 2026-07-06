@@ -188,14 +188,14 @@ class _FieldSetDescriptionRow:
     type_: Literal["Field", "VectorField", "Context value"]
     model_id: int | None
     name: str
-    interp_method: str | None
+    interp_method_or_value: str
 
     def to_dict(self) -> dict[str, str]:
         return {
             "Type": self.type_,
             "Dataset origin": str(self.model_id) if self.model_id is not None else "-",
             "Name": self.name,
-            "Interp method": str(self.interp_method) if self.interp_method is not None else "-",
+            "Interp method / value": self.interp_method_or_value,
         }
 
 
@@ -227,7 +227,7 @@ def fieldset_describe(fieldset: FieldSet) -> str:
                 type_=type_,
                 model_id=model_id,
                 name=field.name,
-                interp_method=repr(field.interp_method),
+                interp_method_or_value=repr(field.interp_method),
             )
         )
     for k, v in fieldset.context.items():
@@ -236,7 +236,7 @@ def fieldset_describe(fieldset: FieldSet) -> str:
                 type_="Context value",
                 model_id=None,
                 name=k,
-                interp_method=repr(v),
+                interp_method_or_value=repr(v),
             )
         )
     return _print_table(rows)
