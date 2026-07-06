@@ -29,6 +29,7 @@ def fieldset_two_models():
     fset2 = FieldSet.from_sgrid_conventions(ds2, mesh="flat", vector_fields={"UV_wind": ("U_wind", "V_wind")})
     fset2.add_context("my_value", 2.0)
     fset2.add_context("my_list", [1, 2, "hello"])
+    fset2.add_constant_field("constant_field", 3.0)
     return fset1 + fset2
 
 
@@ -392,15 +393,16 @@ def test_fieldset_add_context_values():
 def test_fieldset_describe(fieldset_two_models):
     fieldset = fieldset_two_models
     expected = """\
-| Type          | Dataset origin   | Name     | Interp method         |
-|:--------------|:-----------------|:---------|:----------------------|
-| Context value | -                | my_list  | [1, 2, 'hello']       |
-| Context value | -                | my_value | 2.0                   |
-| Field         | 0                | U        | XLinear(...)          |
-| Field         | 0                | V        | XLinear(...)          |
-| VectorField   | 0                | UV       | XLinear_Velocity(...) |
-| Field         | 1                | U_wind   | XLinear(...)          |
-| Field         | 1                | V_wind   | XLinear(...)          |
-| VectorField   | 1                | UV_wind  | XLinear_Velocity(...) |"""
+| Type          | Dataset origin   | Name           | Interp method         |
+|:--------------|:-----------------|:---------------|:----------------------|
+| Context value | -                | my_list        | [1, 2, 'hello']       |
+| Context value | -                | my_value       | 2.0                   |
+| Field         | 0                | U              | XLinear(...)          |
+| Field         | 0                | V              | XLinear(...)          |
+| VectorField   | 0                | UV             | XLinear_Velocity(...) |
+| Field         | 1                | U_wind         | XLinear(...)          |
+| Field         | 1                | V_wind         | XLinear(...)          |
+| VectorField   | 1                | UV_wind        | XLinear_Velocity(...) |
+| Field         | 2                | constant_field | XConstantField(...)   |"""
     actual = fieldset.describe()
     assert actual == expected
