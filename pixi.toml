@@ -35,6 +35,8 @@ cf_xarray = ">=0.8.6"
 cftime = ">=1.6.3"
 pooch = ">=1.8.0"
 polars = ">=1.31.0"
+tabulate = ">=0.10.0"
+
 
 [dependencies]
 parcels = { path = "." }
