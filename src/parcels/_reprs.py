@@ -220,8 +220,7 @@ def fieldset_describe(fieldset: FieldSet) -> str:
         models[parent_id] = models.get(parent_id, len(models))
         model_id = models[parent_id]
 
-        type_ = field.__class__.__name__
-        assert type_ in ("Field", "VectorField")
+        type_ = cast(Literal["Field", "VectorField", "Context value"], field.__class__.__name__)
 
         rows.append(
             _FieldSetDescriptionRow(
@@ -245,5 +244,5 @@ def fieldset_describe(fieldset: FieldSet) -> str:
 
 def _get_parent_model(field: Field | VectorField) -> ModelData:
     if isinstance_noimport(field, "Field"):
-        return field.model
-    return field.U.model
+        return field.model  # type:ignore[union-attr]
+    return field.U.model  # type:ignore[union-attr]
