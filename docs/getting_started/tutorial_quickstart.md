@@ -103,7 +103,7 @@ And you can plot the particles on top of the temperature and velocity field:
 temperature = ds_fields.isel(time=0, depth=0).thetao.plot(cmap="magma")
 velocity = ds_fields.isel(time=0, depth=0).plot.quiver(x="longitude", y="latitude", u="uo", v="vo")
 ax = temperature.axes
-ax.scatter(lon,lat,s=40,c='w',edgecolors='r');
+ax.scatter(lon, lat, s=40, c='w', edgecolors='r');
 ```
 
 ## Compute: `Kernel`

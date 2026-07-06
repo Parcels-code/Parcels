@@ -4,7 +4,7 @@ Interpolation is an important functionality of Parcels. On this page we will dis
 implemented in **Parcels** and how to write a custom interpolator function.
 
 When we want to know the state of particles in an environmental field, such as temperature or velocity,
-we _evaluate_ the `parcels.Field` at the particles real position in time and space (`t`, `z`, `lat`, `lon`).
+we _evaluate_ the `parcels.Field` at the particles real position in time and space (`t`, `z`, `y`, `x`).
 In Parcels we can do this using square brackets:
 
 ```
@@ -14,13 +14,13 @@ particles.temperature = fieldset.temperature[particles]
 ````{note}
 The statement above is shorthand for
 ```python
-particles.temperature = fieldset.temperature[particles.time, particles.z, particles.lat, particles.lon, particles]
+particles.temperature = fieldset.temperature[particles.time, particles.z, particles.y, particles.x, particles]
 ```
 where the `particles` argument at the end provides the grid search algorithm with a first guess for the element indices to interpolate on.
 
 If you want to sample at a different location, or time, that is not necessarily close to the particles location, you can use
 ```python
-particles.temperature = fieldset.temperature[time, depth, lat, lon]
+particles.temperature = fieldset.temperature[time, z, y, x]
 ```
 but this could be slower for curvilinear and unstructured Grids because the entire grid needs to be searched.
 ````
@@ -53,7 +53,7 @@ If we want to create a custom interpolation method, we need to look at the inter
 The `particle_positions` dictionary contains:
 
 ```
-particle_positions = {"time", time, "z", z, "lat", lat, "lon", lon}
+particle_positions = {"time", time, "z", z, "y", y, "x", x}
 ```
 
 For structured (`X`) grids, the `grid_positions` dictionary contains:
