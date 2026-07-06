@@ -3,6 +3,7 @@ import sys
 import types
 import warnings
 from collections.abc import Iterable
+from contextlib import nullcontext
 from typing import Literal
 
 import numpy as np
@@ -433,32 +434,31 @@ class ParticleSet:
             next_output = start_time + outputdt * sign_dt
 
         time = start_time
-        while sign_dt * (time - end_time) < 0:
-            if next_output is not None:
-                f = min if sign_dt > 0 else max
-                next_time = f(next_output, end_time)
-            else:
-                next_time = end_time
 
-            self._kernel.execute(self, endtime=next_time, dt=dt)
+        with output_file if output_file is not None else nullcontext():
+            while sign_dt * (time - end_time) < 0:
+                if next_output is not None:
+                    f = min if sign_dt > 0 else max
+                    next_time = f(next_output, end_time)
+                else:
+                    next_time = end_time
 
-            if next_output is not None:
-                if np.abs(next_time - next_output) < 0.001:
-                    if output_file:
-                        output_file.write(self, next_output)
-                    if np.isfinite(outputdt):
-                        next_output += outputdt * sign_dt
+                self._kernel.execute(self, endtime=next_time, dt=dt)
 
-            if verbose_progress:
-                pbar.set_description_str(
-                    "Integration time: " + str(float_to_datelike(time, self.fieldset.time_interval))
-                )
-                pbar.update(sign_dt * (next_time - time))
+                if next_output is not None:
+                    if np.abs(next_time - next_output) < 0.001:
+                        if output_file:
+                            output_file.write(self, next_output)
+                        if np.isfinite(outputdt):
+                            next_output += outputdt * sign_dt
 
-            time = next_time
+                if verbose_progress:
+                    pbar.set_description_str(
+                        "Integration time: " + str(float_to_datelike(time, self.fieldset.time_interval))
+                    )
+                    pbar.update(sign_dt * (next_time - time))
 
-        if output_file is not None:
-            output_file.close()
+                time = next_time
 
         if verbose_progress:
             pbar.close()
