@@ -157,6 +157,7 @@ numpydoc-lint = { cmd = "python tools/numpydoc-public-api.py", description = "Li
 mypy = "*"
 lxml = "*" # in CI
 types-tqdm = "*"
+pandas-stubs = "*"
 
 [feature.typing.tasks]
 typing = { cmd = "mypy src/parcels --install-types", description = "Run static type checking with mypy." }
