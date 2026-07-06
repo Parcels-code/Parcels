@@ -87,8 +87,8 @@ def create_simple_pset(n=1):
     return parcels.ParticleSet(
         fieldset=create_fieldset_unit_mesh(),
         pclass=parcels.Particle,
-        lon=zeros,
-        lat=zeros,
+        x=zeros,
+        y=zeros,
         depth=zeros,
         time=zeros,
     )

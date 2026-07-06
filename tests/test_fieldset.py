@@ -76,14 +76,14 @@ def test_fieldset_no_UV(tmp_parquet):
     fieldset = FieldSet.from_sgrid_conventions(ds[["U_A_grid", "grid"]].rename({"U_A_grid": "P"}), mesh="flat")
 
     def SampleP(particles, fieldset):
-        particles.dlon += fieldset.P[particles]
+        particles.dx += fieldset.P[particles]
 
-    pset = ParticleSet(fieldset, lon=0, lat=0)
+    pset = ParticleSet(fieldset, x=0, y=0)
     ofile = ParticleFile(tmp_parquet, outputdt=np.timedelta64(1, "s"))
     pset.execute(SampleP, runtime=np.timedelta64(1, "s"), dt=np.timedelta64(1, "s"), output_file=ofile)
 
     df = pd.read_parquet(tmp_parquet)
-    assert len(df["lon"]) == 2
+    assert len(df["x"]) == 2
 
 
 @pytest.mark.parametrize("ds", [pytest.param(ds, id=k) for k, ds in datasets_structured.items()])
