@@ -28,7 +28,7 @@ repos:
       - id: ruff-format
         types_or: [python, jupyter]
   - repo: https://github.com/rbubley/mirrors-prettier # Update mirror as official mirror is deprecated
-    rev: v3.9.1
+    rev: v3.9.4
     hooks:
       - id: prettier
 
