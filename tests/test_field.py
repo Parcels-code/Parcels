@@ -6,9 +6,13 @@ import pytest
 from parcels import Field, VectorField
 from parcels._core.fieldset import FieldSet
 from parcels._core.model import StructuredModelData
+from parcels._core.warnings import FieldEvalWarning
+from parcels._datasets.structured.generated import simple_UV_dataset
 from parcels._datasets.structured.generic import T as T_structured
 from parcels._datasets.structured.generic import datasets as datasets_structured
+from parcels._datasets.unstructured.generic import _ux_constant_flow_face_centered_2D
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
+from parcels._python import NOTSET
 from parcels.interpolators import (
     UxConstantFaceConstantZC,
 )
@@ -16,7 +20,7 @@ from parcels.interpolators import (
 
 def test_field_init_param_types():
     data = datasets_structured["ds_2d_left"]
-    model = StructuredModelData.from_sgrid_conventions(data, mesh="flat")
+    model = StructuredModelData.from_sgrid_conventions(data, mesh="flat", vector_fields=NOTSET)
 
     with pytest.raises(TypeError, match="Expected a string for variable name, got int instead."):
         Field(name=123, model=model)
@@ -49,7 +53,7 @@ def test_field_init_fail_on_float_time_dim():
         ds["time"].attrs,
     )
 
-    model = StructuredModelData.from_sgrid_conventions(ds, mesh="flat")
+    model = StructuredModelData.from_sgrid_conventions(ds, mesh="flat", vector_fields=NOTSET)
     with pytest.raises(
         ValueError,
         match=r"Are you sure that the time dimension on the xarray dataset is stored as timedelta, datetime or cftime datetime objects\?",
@@ -61,7 +65,7 @@ def test_field_init_fail_on_float_time_dim():
 def test_field_time_interval():
     """Test that field.time_interval delegates correctly to model.time_interval."""
     data = datasets_structured["ds_2d_left"]
-    model = StructuredModelData.from_sgrid_conventions(data, mesh="flat")
+    model = StructuredModelData.from_sgrid_conventions(data, mesh="flat", vector_fields=NOTSET)
     field = Field(name="data_g", model=model)
     assert field.time_interval.left == np.datetime64("2000-01-01")
     assert field.time_interval.right == np.datetime64("2001-01-01")
@@ -74,7 +78,7 @@ def test_vectorfield_init_different_time_intervals():
 
 def test_field_invalid_interpolator():
     ds = datasets_structured["ds_2d_left"]
-    model = StructuredModelData.from_sgrid_conventions(ds, mesh="flat")
+    model = StructuredModelData.from_sgrid_conventions(ds, mesh="flat", vector_fields=NOTSET)
     field = Field(name="data_g", model=model)
 
     def not_a_scalar_interpolator(particle_positions, grid_positions, field):
@@ -87,7 +91,7 @@ def test_field_invalid_interpolator():
 
 def test_vectorfield_invalid_interpolator():
     ds = datasets_structured["ds_2d_left"]
-    model = StructuredModelData.from_sgrid_conventions(ds, mesh="flat")
+    model = StructuredModelData.from_sgrid_conventions(ds, mesh="flat", vector_fields=NOTSET)
     fields = {f.name: f for f in model.construct_fields()}
     U = fields["U_A_grid"]
     V = fields["V_A_grid"]
@@ -178,6 +182,57 @@ def test_field_constant_in_time():
         x=[30.0],
     )
     assert np.isclose(P1, P2)
+
+
+@pytest.mark.parametrize(
+    "field_name, location, expected",
+    [
+        ("U", (0.0, 0.0, 0.0, 5e6), 0.0),
+        ("UV", (0.0, 0.0, 0.0, 5e6), [[0.0], [0.0]]),
+        ("U", (0.0, 0.0, 5e6, 0.0), 0.0),
+        ("UV", (0.0, 0.0, 5e6, 0.0), [[0.0], [0.0]]),
+        ("U", (0.0, 5e6, 0.0, 0.0), 0.0),
+        ("UV", (0.0, 5e6, 0.0, 0.0), [[0.0], [0.0]]),
+    ],
+)
+def test_field_eval_out_of_bounds_structured(field_name, location, expected):
+    """Test that Field.eval returns IndexError when queried outside the grid boundaries."""
+    # eval outside of bounds should return 0.0
+    ds = simple_UV_dataset(mesh="flat")
+    fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
+    fieldset.U.data[:] = 1.0
+    fieldset.V.data[:] = 2.0
+    field = getattr(fieldset, field_name)
+    with pytest.warns(
+        FieldEvalWarning,
+        match="Some interpolated values are out-of-bounds. These values are set to 0. Treat carefully.",
+    ):
+        np.testing.assert_allclose(field.eval(*location), expected)
+
+
+@pytest.mark.parametrize(
+    "field_name, location, expected",
+    [
+        ("U", (0.0, 0.0, 0.0, 5e6), 0.0),
+        ("UV", (0.0, 0.0, 0.0, 5e6), [[0.0], [0.0]]),
+        ("U", (0.0, 0.0, 5e6, 0.0), 0.0),
+        ("UV", (0.0, 0.0, 5e6, 0.0), [[0.0], [0.0]]),
+        ("U", (0.0, 5e6, 0.0, 0.0), 0.0),
+        ("UV", (0.0, 5e6, 0.0, 0.0), [[0.0], [0.0]]),
+    ],
+)
+def test_field_eval_out_of_bounds_unstructured(field_name, location, expected):
+    """Test that Field.eval returns IndexError when queried outside the grid boundaries."""
+    ds = _ux_constant_flow_face_centered_2D()
+    fieldset = FieldSet.from_ugrid_conventions(ds, mesh="flat")
+    fieldset.U.data[:] = 1.0
+    fieldset.V.data[:] = 2.0
+    field = getattr(fieldset, field_name)
+    with pytest.warns(
+        FieldEvalWarning,
+        match="Some interpolated values are out-of-bounds. These values are set to 0. Treat carefully.",
+    ):
+        np.testing.assert_allclose(field.eval(*location), expected)
 
 
 def test_field_unstructured_grid_creation(): ...

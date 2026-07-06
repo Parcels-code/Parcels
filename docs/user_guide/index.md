@@ -51,6 +51,7 @@ examples/tutorial_delaystart.ipynb
 examples/explanation_kernelloop.md
 examples/tutorial_sampling.ipynb
 examples/tutorial_statuscodes.ipynb
+examples/tutorial_write_in_kernel.ipynb
 ```
 
 ```{toctree}

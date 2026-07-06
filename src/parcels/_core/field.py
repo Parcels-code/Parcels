@@ -15,6 +15,7 @@ from parcels._core.statuscodes import (
 )
 from parcels._core.utils.string import _assert_str_and_python_varname
 from parcels._core.uxgrid import UxGrid
+from parcels._core.warnings import FieldEvalWarning
 from parcels._core.xgrid import XGrid
 from parcels._typing import VectorType
 from parcels.interpolators._base import ScalarInterpolator, VectorInterpolator
@@ -175,6 +176,7 @@ class Field:
         value = self.interp_method.interp(particle_positions, grid_positions, self)
 
         _update_particle_states_interp_value(particles, value)
+        _mask_outofbounds_values(grid_positions, value)
 
         return value
 
@@ -182,7 +184,7 @@ class Field:
         self._check_velocitysampling()
         try:
             if isinstance(key, ParticleSetView):
-                return self.eval(key.time, key.z, key.lat, key.lon, key)
+                return self.eval(key.time, key.z, key.y, key.x, key)
             else:
                 return self.eval(*key)
         except tuple(AllParcelsErrorCodes.keys()) as error:
@@ -281,6 +283,7 @@ class VectorField:
 
         for vel in (u, v, w):
             _update_particle_states_interp_value(particles, vel)
+            _mask_outofbounds_values(grid_positions, vel)
 
         if "3D" in self.vector_type:
             return (u, v, w)
@@ -290,7 +293,7 @@ class VectorField:
     def __getitem__(self, key):
         try:
             if isinstance(key, ParticleSetView):
-                return self.eval(key.time, key.z, key.lat, key.lon, key)
+                return self.eval(key.time, key.z, key.y, key.x, key)
             else:
                 return self.eval(*key)
         except tuple(AllParcelsErrorCodes.keys()) as error:
@@ -349,6 +352,20 @@ def _update_particle_states_position(particles, grid_positions: dict):
             )
 
 
+def _mask_outofbounds_values(grid_positions: dict, value):
+    mask = np.zeros(value.shape, dtype=bool)
+    for dim in ["X", "Y", "Z", "FACE"]:
+        if dim in grid_positions:
+            mask[grid_positions[dim]["index"] < 0] = True
+    if np.any(mask):
+        warnings.warn(
+            "Some interpolated values are out-of-bounds. These values are set to 0. Treat carefully.",
+            FieldEvalWarning,
+            stacklevel=2,
+        )
+        value[mask] = 0.0
+
+
 def _update_particle_states_interp_value(particles, value):
     """Update the particle states based on the interpolated value, but only if state is not an Error already."""
     if particles:
@@ -372,7 +389,7 @@ def _assert_same_time_interval(fields: Sequence[Field]) -> None:
 
 def _get_positions(field: Field, time, z, y, x, particles, _ei) -> tuple[dict, dict]:
     """Initialize and populate particle_positions and grid_positions dictionaries"""
-    particle_positions = {"time": time, "z": z, "lat": y, "lon": x}
+    particle_positions = {"time": time, "z": z, "y": y, "x": x}
     grid_positions = {}
     grid_positions.update(_search_time_index(field, time))
     grid_positions.update(field.grid.search(z, y, x, ei=_ei))

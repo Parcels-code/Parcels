@@ -68,10 +68,10 @@ def test_advection_3DCROCO():
     Y = np.ones(X.size) * 100e3
 
     pclass = Particle.add_variable(Variable("omega"))
-    pset = ParticleSet(fieldset=fieldset, pclass=pclass, lon=X, lat=Y, z=Z)
+    pset = ParticleSet(fieldset=fieldset, pclass=pclass, x=X, y=Y, z=Z)
 
     pset.execute(
         [AdvectionRK4_3D_CROCO, SampleOmegaCroco], runtime=np.timedelta64(runtime, "s"), dt=np.timedelta64(100, "s")
     )
     np.testing.assert_allclose(pset.z, Z.flatten(), atol=5)  # TODO lower this atol
-    np.testing.assert_allclose(pset.lon, [x + runtime for x in X.flatten()], atol=1e-3)
+    np.testing.assert_allclose(pset.x, [x + runtime for x in X.flatten()], atol=1e-3)

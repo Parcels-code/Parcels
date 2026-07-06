@@ -8,9 +8,9 @@ import parcels._datasets.remote as _parcels_remote
 import parcels.tutorial
 from parcels import (
     FieldSet,
+    convert,
 )
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
-from parcels.convert import fesom_to_ugrid, icon_to_ugrid
 from parcels.interpolators import (
     UxConstantFaceConstantZC,
     UxLinearNodeLinearZF,
@@ -30,7 +30,7 @@ def ds_fesom_channel() -> ux.UxDataset:
         str(_fesom_dir / "w.fesom_channel.nc"),
     ]
     ds = ux.open_mfdataset(grid_path, data_path).rename_vars({"u": "U", "v": "V", "w": "W"})
-    ds = fesom_to_ugrid(ds)
+    ds = convert.fesom_to_ugrid(ds)
     return ds
 
 
@@ -53,7 +53,7 @@ def test_fesom2_square_delaunay_uniform_z_coordinate_eval():
     Since the underlying data is constant, we can check that the values are as expected.
     """
     ds = datasets_unstructured["fesom2_square_delaunay_uniform_z_coordinate"]
-    ds = fesom_to_ugrid(ds)
+    ds = convert.fesom_to_ugrid(ds)
     fieldset = FieldSet.from_ugrid_conventions(ds)
 
     assert isinstance(fieldset.U.interp_method, UxConstantFaceConstantZC)
@@ -97,7 +97,7 @@ def test_fesom2_square_delaunay_antimeridian_eval():
     Since the underlying data is constant, we can check that the values are as expected.
     """
     ds = datasets_unstructured["fesom2_square_delaunay_antimeridian"]
-    ds = fesom_to_ugrid(ds)
+    ds = convert.fesom_to_ugrid(ds)
     fieldset = FieldSet.from_ugrid_conventions(ds)
     fieldset.p.interp_method = UxLinearNodeLinearZF()
 
@@ -109,7 +109,7 @@ def test_fesom2_square_delaunay_antimeridian_eval():
 
 def test_icon_evals():
     ds = datasets_unstructured["icon_square_delaunay_uniform_z_coordinate"].copy(deep=True)
-    ds = icon_to_ugrid(ds)
+    ds = convert.icon_to_ugrid(ds)
     fieldset = FieldSet.from_ugrid_conventions(ds, mesh="flat")
 
     # Query points, are chosen to be just a fraction off from the center of a cell for testing

@@ -10,6 +10,7 @@ except Exception:
 import warnings as _stdlib_warnings
 
 from parcels._core.fieldset import FieldSet
+from parcels._xarray import open_raw_zarr
 from parcels._core.particleset import ParticleSet
 from parcels._core.particlefile import ParticleFile, read_particlefile
 from parcels._core.particle import (
@@ -42,6 +43,7 @@ from parcels._logger import logger
 __all__ = [  # noqa: RUF022
     # Core classes
     "FieldSet",
+    "open_raw_zarr",
     "ParticleSet",
     "ParticleFile",
     "Variable",
@@ -61,6 +63,7 @@ __all__ = [  # noqa: RUF022
     "OutsideTimeInterval",
     "StatusCode",
     # Warnings
+    "FieldEvalWarning",
     "FieldSetWarning",
     "FileWarning",
     "KernelWarning",

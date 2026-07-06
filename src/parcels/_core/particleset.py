@@ -60,8 +60,8 @@ class ParticleSet:
         pclass=Particle,
         time=None,
         z=None,
-        lat=None,
-        lon=None,
+        y=None,
+        x=None,
         particle_ids=None,
         **kwargs,
     ):
@@ -70,21 +70,21 @@ class ParticleSet:
 
         self.fieldset = fieldset
         time = np.empty(shape=0) if time is None else np.array(time).flatten()
-        lat = np.empty(shape=0) if lat is None else np.array(lat).flatten()
-        lon = np.empty(shape=0) if lon is None else np.array(lon).flatten()
+        y = np.empty(shape=0) if y is None else np.array(y).flatten()
+        x = np.empty(shape=0) if x is None else np.array(x).flatten()
 
         if particle_ids is None:
-            particle_ids = np.arange(lon.size)
+            particle_ids = np.arange(x.size)
 
         if z is None:
             minz = 0
             for field in self.fieldset.fields.values():
                 if field.grid.depth is not None:
                     minz = min(minz, field.grid.depth[0])
-            z = np.ones(lon.size) * minz
+            z = np.ones(x.size) * minz
         else:
             z = np.array(z).flatten()
-        assert lon.size == lat.size and lon.size == z.size, "lon, lat, z don't all have the same lenghts"
+        assert x.size == y.size and x.size == z.size, "lon, lat, z don't all have the same lenghts"
 
         if time is None or len(time) == 0:
             # do not set a time yet (because sign_dt not known)
@@ -95,26 +95,26 @@ class ParticleSet:
             time = timedelta_to_float(time)
         else:
             raise TypeError("particle time must be a datetime, timedelta, or date object")
-        time = np.repeat(time, lon.size) if time.size == 1 else time
+        time = np.repeat(time, x.size) if time.size == 1 else time
 
-        assert lon.size == time.size, "time and positions (lon, lat, z) do not have the same lengths."
+        assert x.size == time.size, "time and positions (lon, lat, z) do not have the same lengths."
 
         if fieldset.time_interval:
             _warn_particle_times_outside_fieldset_time_bounds(time, fieldset.time_interval)
 
         for kwvar in kwargs:
             kwargs[kwvar] = np.array(kwargs[kwvar]).flatten()
-            assert lon.size == kwargs[kwvar].size, f"{kwvar} and positions (lon, lat, z) don't have the same lengths."
+            assert x.size == kwargs[kwvar].size, f"{kwvar} and positions (lon, lat, z) don't have the same lengths."
 
         self._data = create_particle_data(
             pclass=pclass,
-            nparticles=lon.size,
+            nparticles=x.size,
             ngrids=len(fieldset.gridset),
             initial=dict(
                 time=time,
                 z=z,
-                lat=lat,
-                lon=lon,
+                y=y,
+                x=x,
                 particle_id=particle_ids,
             ),
         )
@@ -245,7 +245,7 @@ class ParticleSet:
     def populate_indices(self):
         """Pre-populate guesses of particle ei (element id) indices"""
         for i, grid in enumerate(self.fieldset.gridset):
-            grid_positions = grid.search(self.z, self.lat, self.lon)
+            grid_positions = grid.search(self.z, self.y, self.x)
             self._data["ei"][:, i] = grid.ravel_index(
                 {
                     "X": grid_positions["X"]["index"],

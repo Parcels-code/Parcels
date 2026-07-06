@@ -47,6 +47,7 @@ XgcmAxisDirection = CfAxisSpatial | Literal["T"]
 CfAxis = XgcmAxisDirection
 XgcmAxisPosition = Literal["center", "left", "right", "inner", "outer"]
 XgcmAxes = Mapping[XgcmAxisDirection, "xgcm.Axis"]
+VectorFields = dict[str, tuple[str, str] | tuple[str, str, str]]
 
 
 def _is_xarray_object(obj):  # with no imports
