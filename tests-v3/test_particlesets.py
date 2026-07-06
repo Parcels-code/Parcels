@@ -20,7 +20,7 @@ def fieldset():
 @pytest.fixture
 def pset(fieldset):
     npart = 10
-    pset = ParticleSet(fieldset, pclass=Particle, x=np.linspace(0, 1, npart), y=np.zeros(npart))
+    pset = ParticleSet(fieldset, pclass=Particle, lon=np.linspace(0, 1, npart), lat=np.zeros(npart))
     return pset
 
 
@@ -32,7 +32,7 @@ def test_pset_create_list_with_customvariable(fieldset):
     MyParticle = Particle.add_variable("v")
 
     v_vals = np.arange(npart)
-    pset = ParticleSet(fieldset, x=lon, y=lat, v=v_vals, pclass=MyParticle)
+    pset = ParticleSet(fieldset, lon=lon, lat=lat, v=v_vals, pclass=MyParticle)
     assert np.allclose([p.lon for p in pset], lon, rtol=1e-12)
     assert np.allclose([p.lat for p in pset], lat, rtol=1e-12)
     assert np.allclose([p.v for p in pset], v_vals, rtol=1e-12)
@@ -47,7 +47,7 @@ def test_pset_create_fromparticlefile(fieldset, restart, tmp_zarrfile):
     TestParticle = TestParticle.add_variable("p2", np.float32, initial=1, to_write=False)
     TestParticle = TestParticle.add_variable("p3", np.float64, to_write="once")
 
-    pset = ParticleSet(fieldset, x=lon, y=lat, depth=[4] * len(lon), pclass=TestParticle, p3=np.arange(len(lon)))
+    pset = ParticleSet(fieldset, lon=lon, lat=lat, depth=[4] * len(lon), pclass=TestParticle, p3=np.arange(len(lon)))
     pfile = pset.ParticleFile(tmp_zarrfile, outputdt=1)
 
     def Kernel(particle, fieldset, time):  # pragma: no cover
@@ -125,9 +125,9 @@ def test_pset_create_with_time(fieldset):
     lon = np.linspace(0, 1, npart)
     lat = np.linspace(1, 0, npart)
     time = 5.0
-    pset = ParticleSet(fieldset, x=lon, y=lat, pclass=Particle, time=time)
+    pset = ParticleSet(fieldset, lon=lon, lat=lat, pclass=Particle, time=time)
     assert np.allclose([p.time for p in pset], time, rtol=1e-12)
-    pset = ParticleSet(fieldset, x=lon, y=lat, pclass=Particle, time=[time] * npart)
+    pset = ParticleSet(fieldset, lon=lon, lat=lat, pclass=Particle, time=[time] * npart)
     assert np.allclose([p.time for p in pset], time, rtol=1e-12)
     pset = ParticleSet.from_line(fieldset, size=npart, start=(0, 1), finish=(1, 0), pclass=Particle, time=time)
     assert np.allclose([p.time for p in pset], time, rtol=1e-12)
@@ -136,7 +136,7 @@ def test_pset_create_with_time(fieldset):
 def test_pset_repeated_release(fieldset):
     npart = 10
     time = np.arange(0, npart, 1)  # release 1 particle every second
-    pset = ParticleSet(fieldset, x=np.zeros(npart), y=np.zeros(npart), pclass=Particle, time=time)
+    pset = ParticleSet(fieldset, lon=np.zeros(npart), lat=np.zeros(npart), pclass=Particle, time=time)
     assert np.allclose([p.time for p in pset], time)
 
     def IncrLon(particle, fieldset, time):  # pragma: no cover
@@ -147,7 +147,7 @@ def test_pset_repeated_release(fieldset):
 
 
 def test_pset_repeatdt_check_dt(fieldset):
-    pset = ParticleSet(fieldset, x=[0], y=[0], pclass=Particle, repeatdt=5)
+    pset = ParticleSet(fieldset, lon=[0], lat=[0], pclass=Particle, repeatdt=5)
 
     def IncrLon(particle, fieldset, time):  # pragma: no cover
         particle.lon = 1.0
@@ -160,7 +160,7 @@ def test_pset_access(fieldset):
     npart = 100
     lon = np.linspace(0, 1, npart, dtype=np.float32)
     lat = np.linspace(1, 0, npart, dtype=np.float32)
-    pset = ParticleSet(fieldset, x=lon, y=lat, pclass=Particle)
+    pset = ParticleSet(fieldset, lon=lon, lat=lat, pclass=Particle)
     assert pset.size == 100
     assert np.allclose([pset[i].lon for i in range(pset.size)], lon, rtol=1e-12)
     assert np.allclose([pset[i].lat for i in range(pset.size)], lat, rtol=1e-12)
@@ -170,7 +170,7 @@ def test_pset_custom_pclass(fieldset):
     npart = 100
     TestParticle = Particle.add_variable([Variable("p", np.float32, initial=0.33), Variable("n", np.int32, initial=2)])
 
-    pset = ParticleSet(fieldset, pclass=TestParticle, x=np.linspace(0, 1, npart), y=np.linspace(1, 0, npart))
+    pset = ParticleSet(fieldset, pclass=TestParticle, lon=np.linspace(0, 1, npart), lat=np.linspace(1, 0, npart))
     assert pset.size == npart
     assert np.allclose([p.p - 0.33 for p in pset], np.zeros(npart), atol=1e-5)
     assert np.allclose([p.n - 2 for p in pset], np.zeros(npart), rtol=1e-12)
@@ -182,9 +182,9 @@ def test_pset_add_execute(fieldset):
     def AddLat(particle, fieldset, time):  # pragma: no cover
         particle.dlat += 0.1
 
-    pset = ParticleSet(fieldset, x=[], y=[], pclass=Particle)
+    pset = ParticleSet(fieldset, lon=[], lat=[], pclass=Particle)
     for _ in range(npart):
-        pset += ParticleSet(pclass=Particle, x=0.1, y=0.1, fieldset=fieldset)
+        pset += ParticleSet(pclass=Particle, lon=0.1, lat=0.1, fieldset=fieldset)
     for _ in range(4):
         pset.execute(pset.Kernel(AddLat), runtime=1.0, dt=1.0)
     assert np.allclose(np.array([p.lat for p in pset]), 0.4, rtol=1e-12)
@@ -195,7 +195,7 @@ def test_pset_remove_particle(fieldset):
     npart = 100
     lon = np.linspace(0, 1, npart)
     lat = np.linspace(1, 0, npart)
-    pset = ParticleSet(fieldset, x=lon, y=lat, pclass=Particle)
+    pset = ParticleSet(fieldset, lon=lon, lat=lat, pclass=Particle)
     for ilon, ilat in zip(lon[::-1], lat[::-1], strict=True):
         assert pset.lon[-1] == ilon
         assert pset.lat[-1] == ilat

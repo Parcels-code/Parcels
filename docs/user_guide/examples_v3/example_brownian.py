@@ -36,8 +36,8 @@ def test_brownian_example(mesh, npart=3000):
     pset = parcels.ParticleSet(
         fieldset=fieldset,
         pclass=parcels.Particle,
-        x=np.zeros(npart),
-        y=np.zeros(npart),
+        lon=np.zeros(npart),
+        lat=np.zeros(npart),
     )
     pset.execute(
         pset.Kernel(parcels.kernels.DiffusionUniformKh),

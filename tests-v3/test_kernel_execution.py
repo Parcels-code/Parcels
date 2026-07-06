@@ -37,7 +37,7 @@ def test_execution_order(kernel_type):
     lons = []
     ps = []
     for dir in [1, -1]:
-        pset = ParticleSet(fieldset, pclass=SampleParticle, x=0, y=0)
+        pset = ParticleSet(fieldset, pclass=SampleParticle, lon=0, lat=0)
         pset.execute(kernels[::dir], endtime=1, dt=1)
         lons.append(pset.lon)
         ps.append(pset.p)
@@ -62,7 +62,7 @@ def test_multi_kernel_duplicate_varnames(fieldset_unit_mesh):
         add_lon = -0.3
         particle.dlon += add_lon
 
-    pset = ParticleSet(fieldset_unit_mesh, pclass=Particle, x=[0.5], y=[0.5])
+    pset = ParticleSet(fieldset_unit_mesh, pclass=Particle, lon=[0.5], lat=[0.5])
     pset.execute([Kernel1, Kernel2], endtime=2.0, dt=1.0)
     assert np.allclose(pset.lon, 0.3, rtol=1e-5)
 
@@ -78,7 +78,7 @@ def test_update_kernel_in_script(fieldset_unit_mesh):
         add_lon = -0.3
         particle.dlon += add_lon
 
-    pset = ParticleSet(fieldset_unit_mesh, pclass=Particle, x=[0.5], y=[0.5])
+    pset = ParticleSet(fieldset_unit_mesh, pclass=Particle, lon=[0.5], lat=[0.5])
     pset.execute(pset.Kernel(MoveEast), endtime=1.0, dt=1.0)
     pset.execute(pset.Kernel(MoveWest), endtime=3.0, dt=1.0)
     assert np.allclose(pset.lon, 0.3, rtol=1e-5)  # should be 0.5 + 0.1 - 0.3 = 0.3

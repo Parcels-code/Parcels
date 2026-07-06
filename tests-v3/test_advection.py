@@ -52,7 +52,7 @@ def test_advection_2DCROCO():
     X = np.array([40e3, 80e3, 120e3])
     Y = np.ones(X.size) * 100e3
     Z = np.zeros(X.size)
-    pset = ParticleSet(fieldset=fieldset, pclass=Particle, x=X, y=Y, depth=Z)
+    pset = ParticleSet(fieldset=fieldset, pclass=Particle, lon=X, lat=Y, depth=Z)
 
     pset.execute([AdvectionRK4], runtime=runtime, dt=100)
     assert np.allclose(pset.depth, Z.flatten(), atol=1e-3)
@@ -67,7 +67,7 @@ def test_analyticalAgrid():
     U = np.ones((lat.size, lon.size), dtype=np.float32)
     V = np.ones((lat.size, lon.size), dtype=np.float32)
     fieldset = FieldSet.from_data({"U": U, "V": V}, {"lon": lon, "lat": lat}, mesh="flat")
-    pset = ParticleSet(fieldset, pclass=Particle, x=1, y=1)
+    pset = ParticleSet(fieldset, pclass=Particle, lon=1, lat=1)
 
     with pytest.raises(NotImplementedError):
         pset.execute(AdvectionAnalytical, runtime=1)
@@ -97,7 +97,7 @@ def test_uniform_analytical(u, v, w, direction, tmp_zarrfile):
     fieldset.V.interp_method = "cgrid_velocity"
 
     x0, y0, z0 = 6.1, 6.2, 20
-    pset = ParticleSet(fieldset, pclass=Particle, x=x0, y=y0, depth=z0)
+    pset = ParticleSet(fieldset, pclass=Particle, lon=x0, lat=y0, depth=z0)
 
     outfile = pset.ParticleFile(name=tmp_zarrfile, outputdt=1, chunks=(1, 1))
     pset.execute(AdvectionAnalytical, runtime=4, dt=direction, output_file=outfile)
