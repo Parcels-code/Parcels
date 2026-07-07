@@ -190,8 +190,8 @@ html_static_path = ["_static"]
 html_theme_options = {
     "logo": {
         "alt_text": "Parcels - Home",
-        "image_light": "logo-horo-transparent.png",
-        "image_dark": "logo-horo-transparent-dark.png",
+        "image_light": "_static/logo-horo-transparent.png",
+        "image_dark": "_static/logo-horo-transparent-dark.png",
     },
     "use_edit_page_button": True,
     "github_url": "https://github.com/Parcels-code/parcels",
