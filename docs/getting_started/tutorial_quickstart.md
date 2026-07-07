@@ -73,7 +73,7 @@ the virtual particles for which we will calculate the trajectories.
 
 We need to create a {py:obj}`parcels.ParticleSet` object with the particles' initial time and position. The `parcels.ParticleSet`
 object also needs to know about the `FieldSet` in which the particles "live". Finally, we need to specify the type of
-{py:obj}`parcels.ParticleClass` we want to use. The default particles have `time`, `z`, `y`, and `x`, but you can easily add
+{py:obj}`parcels.ParticleClass` we want to use. The default particles have `t`, `z`, `y`, and `x`, but you can easily add
 other {py:obj}`parcels.Variable`s such as size, temperature, or age to create your own particles to mimic plastic or an [ARGO float](../user_guide/examples/tutorial_Argofloats.ipynb).
 
 ```{code-cell}
@@ -86,7 +86,7 @@ time = np.repeat(ds_fields.time.values[0], npart) # at initial time of input dat
 z = np.repeat(ds_fields.depth.values[0], npart) # at the first depth (surface)
 
 pset = parcels.ParticleSet(
-    fieldset=fieldset, pclass=parcels.Particle, time=time, z=z, y=lat, x=lon
+    fieldset=fieldset, pclass=parcels.Particle, t=time, z=z, y=lat, x=lon
 )
 ```
 
@@ -168,7 +168,7 @@ Let's verify that Parcels has computed the advection of the virtual particles!
 import matplotlib.pyplot as plt
 
 # plot positions and color particles by time
-scatter = plt.scatter(df['x'], df['y'], c=df['time'])
+scatter = plt.scatter(df['x'], df['y'], c=df['t'])
 plt.scatter(df['x'][:npart], df['y'][:npart], facecolors="none", edgecolors='r') # starting positions
 plt.scatter(lon, lat, facecolors="none", edgecolors='r') # starting positions
 plt.xlim(31,33)
@@ -211,8 +211,8 @@ When we check the output, we can see that the particles have returned to their o
 ```{code-cell}
 df_back = parcels.read_particlefile("output-backwards.parquet")
 
-scatter = plt.scatter(df_back['x'], df_back['y'], c=df_back['time'])
-particles_at_max_time = df_back.filter(pl.col("time") == df_back["time"].max())
+scatter = plt.scatter(df_back['x'], df_back['y'], c=df_back['t'])
+particles_at_max_time = df_back.filter(pl.col("t") == df_back["t"].max())
 plt.scatter(particles_at_max_time['x'], particles_at_max_time['y'], facecolors="none", edgecolors='r') # starting positions
 plt.xlabel("Longitude [deg E]")
 plt.xlim(31,33)
@@ -226,7 +226,7 @@ Using Euler forward advection, the final positions are equal to the original pos
 
 ```{code-cell}
 # testing that final location == original location
-particles_at_min_time = df_back.filter(pl.col("time") == df_back["time"].min())
+particles_at_min_time = df_back.filter(pl.col("t") == df_back["t"].min())
 np.testing.assert_almost_equal(particles_at_min_time["y"], lat, 2)
 np.testing.assert_almost_equal(particles_at_min_time['x'], lon, 2)
 ```
