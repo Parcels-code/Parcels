@@ -39,10 +39,10 @@ class ParticleSet:
         mod:`parcels.fieldset.FieldSet` object from which to sample velocity.
     pclass : parcels.particle.Particle
         Optional object that inherits from :mod:`parcels.particle.Particle` object that defines custom particle
-    lon :
-        List of initial longitude values for particles
-    lat :
-        List of initial latitude values for particles
+    x :
+        List of initial x (longitude) values for particles
+    y :
+        List of initial y (latitude) values for particles
     z :
         Optional list of initial z values for particles. Default is 0m
     time :
@@ -85,7 +85,7 @@ class ParticleSet:
             z = np.ones(x.size) * minz
         else:
             z = np.array(z).flatten()
-        assert x.size == y.size and x.size == z.size, "lon, lat, z don't all have the same lenghts"
+        assert x.size == y.size and x.size == z.size, "x, y, z don't all have the same lengths"
 
         if time is None or len(time) == 0:
             # do not set a time yet (because sign_dt not known)
@@ -105,7 +105,7 @@ class ParticleSet:
 
         for kwvar in kwargs:
             kwargs[kwvar] = np.array(kwargs[kwvar]).flatten()
-            assert x.size == kwargs[kwvar].size, f"{kwvar} and positions (lon, lat, z) don't have the same lengths."
+            assert x.size == kwargs[kwvar].size, f"{kwvar} and positions (x, y, z) don't have the same lengths."
 
         self._data = create_particle_data(
             pclass=pclass,
