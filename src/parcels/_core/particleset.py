@@ -45,8 +45,8 @@ class ParticleSet:
         List of initial y (latitude) values for particles
     z :
         Optional list of initial z values for particles. Default is 0m
-    time :
-        Optional list of initial time values for particles. Default is fieldset.U.grid.time[0]
+    t :
+        Optional list of initial t (time) values for particles. Default is fieldset.U.grid.time[0]
     repeatdt : datetime.timedelta or float, optional
         Optional interval on which to repeat the release of the ParticleSet. Either timedelta object, or float in seconds.
     particle_ids :
@@ -59,7 +59,7 @@ class ParticleSet:
         self,
         fieldset,
         pclass=Particle,
-        time=None,
+        t=None,
         z=None,
         y=None,
         x=None,
@@ -70,7 +70,7 @@ class ParticleSet:
         self._kernel = None
 
         self.fieldset = fieldset
-        time = np.empty(shape=0) if time is None else np.array(time).flatten()
+        t = np.empty(shape=0) if t is None else np.array(t).flatten()
         y = np.empty(shape=0) if y is None else np.array(y).flatten()
         x = np.empty(shape=0) if x is None else np.array(x).flatten()
 
@@ -87,21 +87,21 @@ class ParticleSet:
             z = np.array(z).flatten()
         assert x.size == y.size and x.size == z.size, "x, y, z don't all have the same lengths"
 
-        if time is None or len(time) == 0:
+        if t is None or len(t) == 0:
             # do not set a time yet (because sign_dt not known)
-            time = np.array(np.nan)
-        elif isinstance(time[0], np.datetime64) and self.fieldset.time_interval:
-            time = timedelta_to_float(time - self.fieldset.time_interval.left)
-        elif isinstance(time[0], np.timedelta64):
-            time = timedelta_to_float(time)
+            t = np.array(np.nan)
+        elif isinstance(t[0], np.datetime64) and self.fieldset.time_interval:
+            t = timedelta_to_float(t - self.fieldset.time_interval.left)
+        elif isinstance(t[0], np.timedelta64):
+            t = timedelta_to_float(t)
         else:
-            raise TypeError("particle time must be a datetime, timedelta, or date object")
-        time = np.repeat(time, x.size) if time.size == 1 else time
+            raise TypeError("particle t must be a datetime, timedelta, or date object")
+        t = np.repeat(t, x.size) if t.size == 1 else t
 
-        assert x.size == time.size, "time and positions (lon, lat, z) do not have the same lengths."
+        assert x.size == t.size, "t and positions (x, y, z) do not have the same lengths."
 
         if fieldset.time_interval:
-            _warn_particle_times_outside_fieldset_time_bounds(time, fieldset.time_interval)
+            _warn_particle_times_outside_fieldset_time_bounds(t, fieldset.time_interval)
 
         for kwvar in kwargs:
             kwargs[kwvar] = np.array(kwargs[kwvar]).flatten()
@@ -112,7 +112,7 @@ class ParticleSet:
             nparticles=x.size,
             ngrids=len(fieldset.gridset),
             initial=dict(
-                time=time,
+                t=t,
                 z=z,
                 y=y,
                 x=x,
@@ -402,15 +402,15 @@ class ParticleSet:
         runtime = _convert_runtime_to_float(runtime)
 
         start_time, end_time = _get_simulation_start_and_end_times(
-            self.fieldset.time_interval, self._data["time"], runtime, endtime, sign_dt
+            self.fieldset.time_interval, self._data["t"], runtime, endtime, sign_dt
         )
 
         # Set the time of the particles if it hadn't been set on initialisation
-        if np.isnan(self._data["time"]).any():
-            self._data["time"][:] = start_time
+        if np.isnan(self._data["t"]).any():
+            self._data["t"][:] = start_time
 
         outputdt = output_file.outputdt if output_file else None
-        _warn_outputdt_release_desync(outputdt, start_time, self._data["time"][:])
+        _warn_outputdt_release_desync(outputdt, start_time, self._data["t"][:])
 
         # Set up pbar
         if output_file:

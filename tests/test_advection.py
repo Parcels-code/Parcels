@@ -74,8 +74,8 @@ def test_advection_zonal_with_particlefile(tmp_parquet):
 
     assert (np.diff(pset.x) < 1.0e-4).all()
     df = pd.read_parquet(tmp_parquet)
-    final_time = df["time"].max()
-    np.testing.assert_allclose(df[df["time"] == final_time]["x"].values, pset.x, atol=1e-5)
+    final_time = df["t"].max()
+    np.testing.assert_allclose(df[df["t"] == final_time]["x"].values, pset.x, atol=1e-5)
     assert_cftime_like_particlefile(tmp_parquet)
 
 
@@ -139,7 +139,7 @@ def test_horizontal_advection_in_3D_flow(mesh, npart=10):
     pset = ParticleSet(fieldset, x=np.zeros(npart), y=np.zeros(npart), z=np.linspace(0.1, 0.9, npart))
     pset.execute(AdvectionRK4, runtime=np.timedelta64(2, "h"), dt=np.timedelta64(15, "m"))
 
-    expected_lon = pset.z * pset.time
+    expected_lon = pset.z * pset.t
     if mesh == "spherical":
         expected_lon /= 1852 * 60 * np.cos(np.deg2rad(pset.y))
     np.testing.assert_allclose(pset.x, expected_lon, atol=1.0e-1)
@@ -240,10 +240,10 @@ def test_radialrotation(npart=10):
     starttime = np.arange(np.timedelta64(0, "s"), npart * dt, dt)
     endtime = np.timedelta64(10, "m")
 
-    pset = parcels.ParticleSet(fieldset, x=lon, y=lat, time=starttime)
+    pset = parcels.ParticleSet(fieldset, x=lon, y=lat, t=starttime)
     pset.execute(parcels.kernels.AdvectionRK4, endtime=endtime, dt=dt)
 
-    theta = 2 * np.pi * (pset.time - timedelta_to_float(starttime)) / (24 * 3600)
+    theta = 2 * np.pi * (pset.t - timedelta_to_float(starttime)) / (24 * 3600)
     true_lon = (lon - 30.0) * np.cos(theta) + 30.0
     true_lat = -(lon - 30.0) * np.sin(theta) + 30.0
 
@@ -288,7 +288,7 @@ def test_moving_eddy(kernel, rtol):
         fieldset.add_context("RK45_tol", rtol)
 
     pset = ParticleSet(
-        fieldset, pclass=DEFAULT_PARTICLES[kernel], x=start_lon, y=start_lat, z=start_z, time=np.timedelta64(0, "s")
+        fieldset, pclass=DEFAULT_PARTICLES[kernel], x=start_lon, y=start_lat, z=start_z, t=np.timedelta64(0, "s")
     )
     pset.execute(kernel, dt=dt, endtime=endtime)
 
@@ -326,9 +326,7 @@ def test_decaying_moving_eddy(kernel, rtol):
         fieldset.add_context("RK45_tol", rtol)
         fieldset.add_context("RK45_min_dt", 10 * 60)
 
-    pset = ParticleSet(
-        fieldset, pclass=DEFAULT_PARTICLES[kernel], x=start_lon, y=start_lat, time=np.timedelta64(0, "s")
-    )
+    pset = ParticleSet(fieldset, pclass=DEFAULT_PARTICLES[kernel], x=start_lon, y=start_lat, t=np.timedelta64(0, "s"))
     pset.execute(kernel, dt=dt, endtime=endtime)
 
     def truth_moving(x_0, y_0, t):
@@ -376,10 +374,10 @@ def test_stommelgyre_fieldset(kernel, rtol, grid_type):
         fieldset.add_context("RK45_tol", rtol)
 
     def UpdateP(particles, fieldset):  # pragma: no cover
-        particles.p = fieldset.P[particles.time, particles.z, particles.y, particles.x]
-        particles.p_start = np.where(particles.time == 0, particles.p, particles.p_start)
+        particles.p = fieldset.P[particles.t, particles.z, particles.y, particles.x]
+        particles.p_start = np.where(particles.t == 0, particles.p, particles.p_start)
 
-    pset = ParticleSet(fieldset, pclass=SampleParticle, x=start_lon, y=start_lat, time=np.timedelta64(0, "s"))
+    pset = ParticleSet(fieldset, pclass=SampleParticle, x=start_lon, y=start_lat, t=np.timedelta64(0, "s"))
     pset.execute([kernel, UpdateP], dt=dt, runtime=runtime)
     np.testing.assert_allclose(pset.p, pset.p_start, rtol=rtol)
 
@@ -411,10 +409,10 @@ def test_peninsula_fieldset(kernel, rtol, grid_type):
         fieldset.add_context("RK45_tol", rtol)
 
     def UpdateP(particles, fieldset):  # pragma: no cover
-        particles.p = fieldset.P[particles.time, particles.z, particles.y, particles.x]
-        particles.p_start = np.where(particles.time == 0, particles.p, particles.p_start)
+        particles.p = fieldset.P[particles.t, particles.z, particles.y, particles.x]
+        particles.p_start = np.where(particles.t == 0, particles.p, particles.p_start)
 
-    pset = ParticleSet(fieldset, pclass=SampleParticle, x=start_lon, y=start_lat, time=np.timedelta64(0, "s"))
+    pset = ParticleSet(fieldset, pclass=SampleParticle, x=start_lon, y=start_lat, t=np.timedelta64(0, "s"))
     pset.execute([kernel, UpdateP], dt=dt, runtime=runtime)
     np.testing.assert_allclose(pset.p, pset.p_start, rtol=rtol)
 
