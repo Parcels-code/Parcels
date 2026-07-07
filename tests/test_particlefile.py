@@ -467,6 +467,23 @@ def test_pfile_write_custom_particle():
     ...
 
 
+def test_particlefile_readable_after_kernel_error(fieldset, tmp_parquet):
+    """Parquet output file must be readable even if the kernel raises an error mid-execution (GH-2713)."""
+
+    def ErrorKernel(particles, fieldset):  # pragma: no cover
+        particles.state = StatusCode.Error
+
+    pset = ParticleSet(fieldset, pclass=Particle, x=0, y=0)
+    ofile = ParticleFile(tmp_parquet, outputdt=np.timedelta64(1, "s"))
+
+    with pytest.raises(RuntimeError, match="General error occurred at"):
+        pset.execute(ErrorKernel, runtime=np.timedelta64(10, "s"), dt=np.timedelta64(1, "s"), output_file=ofile)
+
+    # File must be readable despite the crash
+    df = pd.read_parquet(tmp_parquet)
+    assert len(df) >= 1  # at least the initial condition was written
+
+
 @pytest.mark.xfail(
     reason="set_variable_write_status should be removed - with Particle writing defined on the particle level. GH2186"
 )
