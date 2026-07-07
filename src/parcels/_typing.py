@@ -74,6 +74,6 @@ def _validate_against_pure_literal(value, typing_literal):
 # Assertion functions to clean user input
 def assert_valid_mesh(value: Any):
     from parcels._core.mesh import SphericalMesh
-    if isinstance(value, SphericalMesh)
+    if isinstance(value, SphericalMesh):
         return
     _validate_against_pure_literal(value, Mesh)
