@@ -195,7 +195,7 @@ def _get_vars_to_write(particle: ParticleClass) -> list[Variable]:
 
 
 def _to_write_particles(particle_data, t):
-    """Return the Particles that need to be written at time: if particle.time is between time-dt/2 and time+dt (/2)"""
+    """Return the Particles that need to be written at time: if particle.t is between time-dt/2 and time+dt (/2)"""
     return np.where(
         (
             np.less_equal(

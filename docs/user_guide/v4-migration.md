@@ -10,7 +10,7 @@ Version 4 of Parcels is unreleased at the moment. The information in this migrat
 - `particle.delete()` is no longer valid. Instead, use `particle.state = StatusCode.Delete`.
 - Sharing state between kernels must be done via the particle data (as the kernels are not combined under the hood anymore).
 - `particl_dlon`, `particle_dlat` etc have been renamed to `particle.dlon` and `particle.dlat`.
-- The `time` argument in the Kernel signature has been removed in the Kernel API, so can't be used. Use `particle.time` instead.
+- The `time` argument in the Kernel signature has been removed in the Kernel API, so can't be used. Use `particle.t` instead.
 - The `particle` argument in the Kernel signature has been renamed to `particles`.
 - `math` functions should be replaced with array compatible equivalents (e.g., `math.sin` -> `np.sin`). Instead of `ParcelsRandom` you should use numpy's random functions.
 - `particle.depth` has been changed to `particles.z` to be consistent with the [CF conventions for trajectory data](https://cfconventions.org/cf-conventions/cf-conventions.html#trajectory-data), and to make Parcels also generalizable to atmospheric contexts.
