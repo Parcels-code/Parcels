@@ -175,7 +175,7 @@ class XGrid(BaseGrid):
             self._radius = mesh.radius
         else:
             self._mesh = mesh
-            self._radius = mesh.radius
+            self._radius = None
         self._spatialhash = None
         ds = model_data
 
