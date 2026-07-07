@@ -98,11 +98,11 @@ def assert_metadata_ds_consistency(ds: xr.Dataset, metadata: SGrid2DMetadata):
         face, node, padding = obj.face, obj.node, obj.padding
 
         try:
-            n_nodes = ds.dims[node]
+            n_nodes = ds.sizes[node]
         except KeyError:  # node dimension is not in this dataset
             continue
         try:
-            n_faces = ds.dims[face]
+            n_faces = ds.sizes[face]
         except KeyError:  # face dimension is not in this dataset
             continue
 

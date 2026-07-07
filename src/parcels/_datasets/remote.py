@@ -184,12 +184,12 @@ class _ZarrZipDataset(_ParcelsDataset):
 def _preprocess_drop_time_from_mesh1(ds: xr.Dataset) -> xr.Dataset:
     # For some reason on the mesh "NemoNorthSeaORCA025-N006_data/coordinates.nc" there are two time dimensions (of length 1). These dimension also has broken cf-time metadata
     # this fixes that
-    return ds.isel(time=0).drop(["time", "time_steps"])
+    return ds.isel(time=0).drop_vars(["time", "time_steps"])
 
 
 def _preprocess_drop_time_from_mesh2(ds: xr.Dataset) -> xr.Dataset:
     # For some reason on the mesh "NemoCurvilinear_data_zonal/mesh_mask" there is a time dimension.
-    return ds.isel(time=0).drop(["time"])
+    return ds.isel(time=0).drop_vars(["time"])
 
 
 def _preprocess_set_cf_calendar_360_day(ds: xr.Dataset) -> xr.Dataset:
