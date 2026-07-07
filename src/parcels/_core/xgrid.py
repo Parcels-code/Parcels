@@ -14,6 +14,7 @@ from parcels._core.basegrid import BaseGrid
 from parcels._core.index_search import _search_1d_array, _search_indices_curvilinear_2d
 from parcels._sgrid.accessor import _get_dim_to_axis_mapping
 from parcels._sgrid.core import SGRID_PADDING_TO_XGCM_POSITION
+from parcels._core.mesh import SphericalMesh
 
 _FIELD_DATA_ORDERING: Sequence[ptyping.XgcmAxisDirection] = "TZYX"
 _XGRID_AXES_ORDERING: Sequence[ptyping.XgridAxis] = "ZYX"
@@ -169,7 +170,12 @@ class XGrid(BaseGrid):
         self._ds = model_data
         grid = XgcmLikeGrid(self.sgrid_metadata, model_data)
         self.xgcm_grid = grid
-        self._mesh = mesh
+        if isinstance(mesh, SphericalMesh):
+            self._mesh = "spherical"
+            self._radius = mesh.radius
+        else:
+            self._mesh = mesh
+            self._radius = mesh.radius
         self._spatialhash = None
         ds = model_data
 
@@ -248,6 +254,14 @@ class XGrid(BaseGrid):
     @property
     def time(self):
         return self._datetimes.astype(np.float64) / 1e9
+    
+    @property
+    def deg2m(self) -> float:
+        """ Metres per degree of arc for this grid's mesh. """
+        if self._radius is None:
+            return 1852 * 60.0
+        else:
+            return self._radius * np.pi / 180.0
 
     @cached_property
     def xdim(self) -> int:
