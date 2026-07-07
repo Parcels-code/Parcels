@@ -37,7 +37,7 @@ But of course, you can also write code for more sophisticated behaviour than jus
 ```
 def Move1DegreeWest(particles, fieldset):
     out_of_bounds = particles.state == parcels.StatusCode.ErrorOutOfBounds
-    particles[out_of_bounds].dlon -= 1.0
+    particles[out_of_bounds].dx -= 1.0
     particles[out_of_bounds].state = parcels.StatusCode.Evaluate
 ```
 
@@ -77,7 +77,7 @@ If we advect particles with the `AdvectionRK2_3D` kernel, Parcels will raise a `
 
 ```{code-cell}
 :tags: [raises-exception]
-pset = parcels.ParticleSet(fieldset, parcels.Particle, z=[0.5], lat=[2], lon=[1.5])
+pset = parcels.ParticleSet(fieldset, parcels.Particle, z=[0.5], y=[2], x=[1.5])
 kernels = [parcels.kernels.AdvectionRK2_3D]
 pset.execute(kernels, runtime=np.timedelta64(1, "m"), dt=np.timedelta64(1, "s"), verbose_progress=False)
 ```
@@ -85,7 +85,7 @@ pset.execute(kernels, runtime=np.timedelta64(1, "m"), dt=np.timedelta64(1, "s"),
 When we add the `KeepInOcean` Kernel, particles will stay at the surface:
 
 ```{code-cell}
-pset = parcels.ParticleSet(fieldset, parcels.Particle, z=[0.5], lat=[2], lon=[1.5])
+pset = parcels.ParticleSet(fieldset, parcels.Particle, z=[0.5], y=[2], x=[1.5])
 
 kernels = [parcels.kernels.AdvectionRK2_3D, KeepInOcean]
 
@@ -95,5 +95,5 @@ print(f"particle z at end of run = {pset.z}")
 ```
 
 ```{note}
-Kernels that control what to do with `particles.state` should typically be added at the _end_ of the Kernel list, because otherwise later Kernels may overwrite the `particles.state` or the `particles.dlon` variables (see [Kernel loop explanation](explanation_kernelloop.md)).
+Kernels that control what to do with `particles.state` should typically be added at the _end_ of the Kernel list, because otherwise later Kernels may overwrite the `particles.state` or the `particles.dx` variables (see [Kernel loop explanation](explanation_kernelloop.md)).
 ```

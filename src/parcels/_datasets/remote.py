@@ -2,15 +2,12 @@ import abc
 import enum
 import os
 from collections.abc import Callable
-from datetime import datetime, timedelta
 from pathlib import Path
 from typing import Literal
 
 import pooch
 import xarray as xr
 from zarr.storage import ZipStore
-
-from parcels._v3to4 import patch_dataset_v4_compat
 
 # When modifying existing datasets in a backwards incompatible way,
 # make a new release in the repo and update the DATA_REPO_TAG to the new tag
@@ -31,32 +28,32 @@ _DATA_HOME = _get_data_home()
 # See instructions at https://github.com/Parcels-code/parcels-data for adding new datasets
 _ODIE_REGISTRY_FILES: list[str] = (
     # These datasets are from v3 and before of Parcels, where we just used netcdf files
-    [
-        "data/MovingEddies_data/moving_eddiesP.nc",
-        "data/MovingEddies_data/moving_eddiesU.nc",
-        "data/MovingEddies_data/moving_eddiesV.nc",
-    ]
-    + ["data/MITgcm_example_data/mitgcm_UV_surface_zonally_reentrant.nc"]
+    # [
+    #     "data/MovingEddies_data/moving_eddiesP.nc",
+    #     "data/MovingEddies_data/moving_eddiesU.nc",
+    #     "data/MovingEddies_data/moving_eddiesV.nc",
+    # ]
+    ["data/MITgcm_example_data/mitgcm_UV_surface_zonally_reentrant.nc"]
     + ["data/OFAM_example_data/OFAM_simple_U.nc", "data/OFAM_example_data/OFAM_simple_V.nc"]
-    + [
-        "data/Peninsula_data/peninsulaU.nc",
-        "data/Peninsula_data/peninsulaV.nc",
-        "data/Peninsula_data/peninsulaP.nc",
-        "data/Peninsula_data/peninsulaT.nc",
-    ]
-    + [
-        f"data/GlobCurrent_example_data/{date.strftime('%Y%m%d')}000000-GLOBCURRENT-L4-CUReul_hs-ALT_SUM-v02.0-fv01.0.nc"
-        for date in ([datetime(2002, 1, 1) + timedelta(days=x) for x in range(0, 365)] + [datetime(2003, 1, 1)])
-    ]
+    # + [
+    #     "data/Peninsula_data/peninsulaU.nc",
+    #     "data/Peninsula_data/peninsulaV.nc",
+    #     "data/Peninsula_data/peninsulaP.nc",
+    #     "data/Peninsula_data/peninsulaT.nc",
+    # ]
+    # + [
+    #     f"data/GlobCurrent_example_data/{date.strftime('%Y%m%d')}000000-GLOBCURRENT-L4-CUReul_hs-ALT_SUM-v02.0-fv01.0.nc"
+    #     for date in ([datetime(2002, 1, 1) + timedelta(days=x) for x in range(0, 365)] + [datetime(2003, 1, 1)])
+    # ]
     + [
         "data/CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-cur_anfc_0.083deg_P1D-m_uo-vo_31.00E-33.00E_33.00S-30.00S_0.49-2225.08m_2024-01-01-2024-02-01.nc",
         "data/CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-so_anfc_0.083deg_P1D-m_so_31.00E-33.00E_33.00S-30.00S_0.49-2225.08m_2024-01-01-2024-02-01.nc",
         "data/CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-thetao_anfc_0.083deg_P1D-m_thetao_31.00E-33.00E_33.00S-30.00S_0.49-2225.08m_2024-01-01-2024-02-01.nc",
     ]
-    + [
-        "data/DecayingMovingEddy_data/decaying_moving_eddyU.nc",
-        "data/DecayingMovingEddy_data/decaying_moving_eddyV.nc",
-    ]
+    # + [
+    #     "data/DecayingMovingEddy_data/decaying_moving_eddyU.nc",
+    #     "data/DecayingMovingEddy_data/decaying_moving_eddyV.nc",
+    # ]
     + [
         "data/FESOM_periodic_channel/fesom_channel.nc",
         "data/FESOM_periodic_channel/u.fesom_channel.nc",
@@ -211,20 +208,20 @@ _TPurpose = Literal["testing", "tutorial"]
 # The first here is a human readable key used to open datasets, with an object to open the datasets
 # fmt: off
 _DATASET_KEYS_AND_CONFIGS: dict[str, tuple[_ParcelsDataset, _Purpose]] = dict([
-    ("MovingEddies_data/P", (_V3Dataset(_ODIE,"data/MovingEddies_data/moving_eddiesP.nc"), _Purpose.TUTORIAL)),
-    ("MovingEddies_data/U", (_V3Dataset(_ODIE,"data/MovingEddies_data/moving_eddiesU.nc"), _Purpose.TUTORIAL)),
-    ("MovingEddies_data/V", (_V3Dataset(_ODIE,"data/MovingEddies_data/moving_eddiesV.nc"), _Purpose.TUTORIAL)),
+    # ("MovingEddies_data/P", (_V3Dataset(_ODIE,"data/MovingEddies_data/moving_eddiesP.nc"), _Purpose.TUTORIAL)),
+    # ("MovingEddies_data/U", (_V3Dataset(_ODIE,"data/MovingEddies_data/moving_eddiesU.nc"), _Purpose.TUTORIAL)),
+    # ("MovingEddies_data/V", (_V3Dataset(_ODIE,"data/MovingEddies_data/moving_eddiesV.nc"), _Purpose.TUTORIAL)),
     ("MITgcm_example_data/mitgcm_UV_surface_zonally_reentrant", (_V3Dataset(_ODIE,"data/MITgcm_example_data/mitgcm_UV_surface_zonally_reentrant.nc"), _Purpose.TUTORIAL)),
-    ("OFAM_example_data/U", (_V3Dataset(_ODIE,"data/OFAM_example_data/OFAM_simple_U.nc"), _Purpose.TUTORIAL)),
-    ("OFAM_example_data/V", (_V3Dataset(_ODIE,"data/OFAM_example_data/OFAM_simple_V.nc"), _Purpose.TUTORIAL)),
-    ("Peninsula_data/U", (_V3Dataset(_ODIE,"data/Peninsula_data/peninsulaU.nc"), _Purpose.TUTORIAL)),
-    ("Peninsula_data/V", (_V3Dataset(_ODIE,"data/Peninsula_data/peninsulaV.nc"), _Purpose.TUTORIAL)),
-    ("Peninsula_data/P", (_V3Dataset(_ODIE,"data/Peninsula_data/peninsulaP.nc"), _Purpose.TUTORIAL)),
-    ("Peninsula_data/T", (_V3Dataset(_ODIE,"data/Peninsula_data/peninsulaT.nc"), _Purpose.TUTORIAL)),
-    ("GlobCurrent_example_data/data", (_V3Dataset(_ODIE,"data/GlobCurrent_example_data/*000000-GLOBCURRENT-L4-CUReul_hs-ALT_SUM-v02.0-fv01.0.nc", pre_decode_cf_callable=patch_dataset_v4_compat), _Purpose.TUTORIAL)),
+    # ("OFAM_example_data/U", (_V3Dataset(_ODIE,"data/OFAM_example_data/OFAM_simple_U.nc"), _Purpose.TUTORIAL)),
+    # ("OFAM_example_data/V", (_V3Dataset(_ODIE,"data/OFAM_example_data/OFAM_simple_V.nc"), _Purpose.TUTORIAL)),
+    # ("Peninsula_data/U", (_V3Dataset(_ODIE,"data/Peninsula_data/peninsulaU.nc"), _Purpose.TUTORIAL)),
+    # ("Peninsula_data/V", (_V3Dataset(_ODIE,"data/Peninsula_data/peninsulaV.nc"), _Purpose.TUTORIAL)),
+    # ("Peninsula_data/P", (_V3Dataset(_ODIE,"data/Peninsula_data/peninsulaP.nc"), _Purpose.TUTORIAL)),
+    # ("Peninsula_data/T", (_V3Dataset(_ODIE,"data/Peninsula_data/peninsulaT.nc"), _Purpose.TUTORIAL)),
+    # ("GlobCurrent_example_data/data", (_V3Dataset(_ODIE,"data/GlobCurrent_example_data/*000000-GLOBCURRENT-L4-CUReul_hs-ALT_SUM-v02.0-fv01.0.nc", pre_decode_cf_callable=patch_dataset_v4_compat), _Purpose.TUTORIAL)),
     ("CopernicusMarine_data_for_Argo_tutorial/data", (_V3Dataset(_ODIE,"data/CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-*.nc"), _Purpose.TUTORIAL)),
-    ("DecayingMovingEddy_data/U", (_V3Dataset(_ODIE,"data/DecayingMovingEddy_data/decaying_moving_eddyU.nc"), _Purpose.TUTORIAL)),
-    ("DecayingMovingEddy_data/V", (_V3Dataset(_ODIE,"data/DecayingMovingEddy_data/decaying_moving_eddyV.nc"), _Purpose.TUTORIAL)),
+    # ("DecayingMovingEddy_data/U", (_V3Dataset(_ODIE,"data/DecayingMovingEddy_data/decaying_moving_eddyU.nc"), _Purpose.TUTORIAL)),
+    # ("DecayingMovingEddy_data/V", (_V3Dataset(_ODIE,"data/DecayingMovingEddy_data/decaying_moving_eddyV.nc"), _Purpose.TUTORIAL)),
     ("FESOM_periodic_channel/fesom_channel", (_V3Dataset(_ODIE,"data/FESOM_periodic_channel/fesom_channel.nc"), _Purpose.TUTORIAL)),
     ("FESOM_periodic_channel/u.fesom_channel", (_V3Dataset(_ODIE,"data/FESOM_periodic_channel/u.fesom_channel.nc"), _Purpose.TUTORIAL)),
     ("FESOM_periodic_channel/v.fesom_channel", (_V3Dataset(_ODIE,"data/FESOM_periodic_channel/v.fesom_channel.nc"), _Purpose.TUTORIAL)),
@@ -240,7 +237,7 @@ _DATASET_KEYS_AND_CONFIGS: dict[str, tuple[_ParcelsDataset, _Purpose]] = dict([
     ("NemoNorthSeaORCA025-N006_data/W", (_V3Dataset(_ODIE,"data/NemoNorthSeaORCA025-N006_data/ORCA025-N06_200001*05W.nc"), _Purpose.TUTORIAL)),
     ("NemoNorthSeaORCA025-N006_data/mesh_mask", (_V3Dataset(_ODIE,"data/NemoNorthSeaORCA025-N006_data/coordinates.nc", _preprocess_drop_time_from_mesh1), _Purpose.TUTORIAL)),
     # "POPSouthernOcean_data/t.x1_SAMOC_flux.16900*.nc", # TODO v4: In v3 but should not be in v4 https://github.com/Parcels-code/Parcels/issues/2571#issuecomment-4214476973
-    ("SWASH_data/data", (_V3Dataset(_ODIE,"data/SWASH_data/field_00655*.nc"), _Purpose.TUTORIAL)),
+    # ("SWASH_data/data", (_V3Dataset(_ODIE,"data/SWASH_data/field_00655*.nc"), _Purpose.TUTORIAL)),
     ("WOA_data/data", (_V3Dataset(_ODIE,"data/WOA_data/woa18_decav_t*_04.nc", _preprocess_set_cf_calendar_360_day), _Purpose.TUTORIAL)),
     ("CROCOidealized_data/data", (_V3Dataset(_ODIE,"data/CROCOidealized_data/CROCO_idealized.nc"), _Purpose.TUTORIAL)),
 ] + [

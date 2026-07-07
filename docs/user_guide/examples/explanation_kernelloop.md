@@ -14,29 +14,29 @@ This is not very relevant when you only use the built-in Advection Kernels, but 
 
 When you run a Parcels simulation (i.e. a call to `pset.execute()`), the Kernel loop is the main part of the code that is executed. This part of the code loops through time and executes the Kernels for all particle.
 
-In order to make sure that the displacements of a particle in the different Kernels can be summed, all Kernels add to a _change_ in position (`particles.dlon`, `particles.dlat`, and `particles.dz`). This is important, because there are situations where movement Kernels would otherwise not commute. Take the example of advecting particles by currents _and_ winds. If the particle would first be moved by the currents and then by the winds, the result could be different from first moving by the winds and then by the currents. Instead, by summing the _changes_ in position, the ordering of the Kernels has no consequence on the particle displacement.
+In order to make sure that the displacements of a particle in the different Kernels can be summed, all Kernels add to a _change_ in position (`particles.dx`, `particles.dy`, and `particles.dz`). This is important, because there are situations where movement Kernels would otherwise not commute. Take the example of advecting particles by currents _and_ winds. If the particle would first be moved by the currents and then by the winds, the result could be different from first moving by the winds and then by the currents. Instead, by summing the _changes_ in position, the ordering of the Kernels has no consequence on the particle displacement.
 
 ## Basic implementation
 
-Below is a structured overview of how the Kernel loop is implemented. Note that this is for `time` and `lon` only, but the process for `lon` is also applied to `lat` and `z`.
+Below is a structured overview of how the Kernel loop is implemented. Note that this is for `time` and `x` only, but the process for `y` and `z` is also applied to `y` and `z`.
 
-1. Initialise an extra Variable `particles.dlon=0`
+1. Initialise an extra Variable `particles.dx=0`
 
 2. Within the Kernel loop, for each particle:
-   1. Update `particles.lon += particles.dlon`
+   1. Update `particles.x += particles.dx`
 
    2. Update `particles.time += particles.dt` (except for on the first iteration of the Kernel loop)<br>
 
-   3. Set variable `particles.dlon = 0`
+   3. Set variable `particles.dx = 0`
 
    4. For each Kernel in the list of Kernels:
       1. Execute the Kernel
 
-      2. Update `particles.dlon` by adding the change in longitude, if needed
+      2. Update `particles.dx` by adding the change in x, if needed
 
-   5. If `outputdt` is a multiple of `particles.time`, write `particles.lon` and `particles.time` to zarr output file
+   5. If `outputdt` is a multiple of `particles.time`, write `particles.x` and `particles.time` to zarr output file
 
-Besides having commutable Kernels, the main advantage of this implementation is that, when using Field Sampling with e.g. `particles.temp = fieldset.Temp[particles.time, particles.z, particles.lat, particles.lon]`, the particle location stays the same throughout the entire Kernel loop. Additionally, this implementation ensures that the particle location is the same as the location of the sampled field in the output file.
+Besides having commutable Kernels, the main advantage of this implementation is that, when using Field Sampling with e.g. `particles.temp = fieldset.Temp[particles.time, particles.z, particles.y, particles.x]`, the particle location stays the same throughout the entire Kernel loop. Additionally, this implementation ensures that the particle location is the same as the location of the sampled field in the output file.
 
 ## Example with currents and winds
 
@@ -76,25 +76,22 @@ fields = {
     "VWind": ds_fields["VWind"],
 }
 ds_fset = parcels.convert.copernicusmarine_to_sgrid(fields=fields)
-fieldset = parcels.FieldSet.from_sgrid_conventions(ds_fset)
-
-# Create a vecorfield for the wind
-windvector = parcels.VectorField(
-    "Wind",
-    fieldset.UWind,
-    fieldset.VWind,
-    interp_method=parcels.interpolators.XLinear_Velocity
+fieldset = parcels.FieldSet.from_sgrid_conventions(
+    ds_fset,
+    vector_fields={
+        "UV": ("U", "V"),
+        "Wind": ("UWind", "VWind")
+    }
 )
-fieldset.add_field(windvector)
 ```
 
-Now we define a wind Kernel that uses a forward Euler method to apply the wind forcing. Note that we update the `particles.dlon` and `particles.dlat` variables, rather than `particles.lon` and `particles.lat` directly.
+Now we define a wind Kernel that uses a forward Euler method to apply the wind forcing. Note that we update the `particles.dx` and `particles.dy` variables, rather than `particles.x` and `particles.y` directly.
 
 ```{code-cell}
 def wind_kernel(particles, fieldset):
     uwind, vwind = fieldset.Wind[particles]
-    particles.dlon += uwind * particles.dt
-    particles.dlat += vwind * particles.dt
+    particles.dx += uwind * particles.dt
+    particles.dy += vwind * particles.dt
 ```
 
 First run a simulation where we apply Kernels as `[AdvectionRK2, wind_kernel]`
@@ -106,7 +103,7 @@ z = np.repeat(ds_fields.depth[0].values, npart)
 lons = np.repeat(31, npart)
 lats = np.linspace(-32.5, -30.5, npart)
 
-pset = parcels.ParticleSet(fieldset, pclass=parcels.Particle, z=z, lat=lats, lon=lons)
+pset = parcels.ParticleSet(fieldset, pclass=parcels.Particle, z=z, y=lats, x=lons)
 output_file = parcels.ParticleFile(
     path="advection_then_wind.parquet", outputdt=np.timedelta64(6,'h')
 )
@@ -123,7 +120,7 @@ Then also run a simulation where we apply the Kernels in the reverse order as `[
 ```{code-cell}
 :tags: [hide-output]
 pset_reverse = parcels.ParticleSet(
-    fieldset, pclass=parcels.Particle, z=z, lat=lats,  lon=lons
+    fieldset, pclass=parcels.Particle, z=z, y=lats, x=lons
 )
 output_file_reverse = parcels.ParticleFile(
     path="wind_then_advection.parquet", outputdt=np.timedelta64(6,"h")
@@ -145,14 +142,14 @@ wind_then_advection = parcels.read_particlefile("wind_then_advection.parquet")
 
 fig, ax = plt.subplots(figsize=(5, 3))
 for traj in wind_then_advection.partition_by("particle_id", maintain_order=True):
-    ax.plot(traj["lon"], traj["lat"], "-")
+    ax.plot(traj["x"], traj["y"], "-")
 for traj in advection_then_wind.partition_by("particle_id", maintain_order=True):
-    ax.plot(traj["lon"], traj["lat"], "--", c="k", alpha=0.7)
+    ax.plot(traj["x"], traj["y"], "--", c="k", alpha=0.7)
 plt.show()
 ```
 
 ```{warning}
-It is better not to update `particles.lon` directly in a Kernel, as it can interfere with the loop above. Assigning a value to `particles.lon` in a Kernel will throw a warning.
+It is better not to update `particles.x` directly in a Kernel, as it can interfere with the loop above. Assigning a value to `particles.x` in a Kernel will throw a warning.
 
-Instead, update the local variable `particles.dlon`.
+Instead, update the local variable `particles.dx`.
 ```
