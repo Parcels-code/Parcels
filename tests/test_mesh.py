@@ -42,3 +42,13 @@ def test_advection_uses_custom_radius(radius, npart=10):
     expected_dlon = runtime / (deg2m * np.cos(np.deg2rad(pset.y)))
     np.testing.assert_allclose(pset.x - startlon, expected_dlon, atol=1e-5)
     np.testing.assert_allclose(pset.y, startlat, atol=1e-5)
+
+@pytest.mark.parametrize("bad_radius", ["6371000", [6371000], (1, 2), {}])
+def test_spherical_mesh_rejects_non_numeric_radius(bad_radius):
+    with pytest.raises(TypeError):
+        SphericalMesh(radius=bad_radius)
+
+@pytest.mark.parametrize("bad_radius", [0, -1.0, -6371000])
+def test_spherical_mesh_rejects_nonpos_radius(bad_radius):
+    with pytest.raises(ValueError):
+        SphericalMesh(radius=bad_radius)
