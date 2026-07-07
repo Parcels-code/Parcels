@@ -10,6 +10,7 @@ import os
 from collections.abc import Callable, Mapping
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Literal, get_args
+from parcels._core.mesh import SphericalMesh
 
 import numpy as np
 from cftime import datetime as cftime_datetime
@@ -73,7 +74,6 @@ def _validate_against_pure_literal(value, typing_literal):
 
 # Assertion functions to clean user input
 def assert_valid_mesh(value: Any):
-    from parcels._core.mesh import SphericalMesh
     if isinstance(value, SphericalMesh):
         return
     _validate_against_pure_literal(value, Mesh)
