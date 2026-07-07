@@ -61,12 +61,12 @@ def dphidxsi3D_lin(zeta: float, eta: float, xsi: float) -> tuple[list[float], li
 
 
 def dxdxsi3D_lin(
-    hexa_z: list[float], hexa_y: list[float], hexa_x: list[float], zeta: float, eta: float, xsi: float, mesh: Mesh
+    hexa_z: list[float], hexa_y: list[float], hexa_x: list[float], zeta: float, eta: float, xsi: float, mesh: Mesh,
+    deg2m: float = 1852 * 60.0
 ) -> tuple[float, float, float, float, float, float, float, float, float]:
     dphidxsi, dphideta, dphidzet = dphidxsi3D_lin(zeta, eta, xsi)
 
     if mesh == 'spherical':
-        deg2m = 1852 * 60.
         rad = np.pi / 180.
         lat = (1-xsi) * (1-eta) * hexa_y[0] + \
                  xsi  * (1-eta) * hexa_y[1] + \
@@ -92,9 +92,10 @@ def dxdxsi3D_lin(
 
 
 def jacobian3D_lin(
-    hexa_z: list[float], hexa_y: list[float], hexa_x: list[float], zeta: float, eta: float, xsi: float, mesh: Mesh
+    hexa_z: list[float], hexa_y: list[float], hexa_x: list[float], zeta: float, eta: float, xsi: float, mesh: Mesh,
+    deg2m: float = 1852 * 60.0
 ) -> float:
-    dxdxsi, dxdeta, dxdzet, dydxsi, dydeta, dydzet, dzdxsi, dzdeta, dzdzet = dxdxsi3D_lin(hexa_z, hexa_y, hexa_x, zeta, eta, xsi, mesh)
+    dxdxsi, dxdeta, dxdzet, dydxsi, dydeta, dydzet, dzdxsi, dzdeta, dzdzet = dxdxsi3D_lin(hexa_z, hexa_y, hexa_x, zeta, eta, xsi, mesh, deg2m)
 
     jac = (
         dxdxsi * (dydeta * dzdzet - dzdeta * dydzet)
@@ -174,10 +175,9 @@ def interpolate(phi: Callable[[float], list[float]], f: list[float], xsi: float)
     return np.dot(phi(xsi), f)
 
 
-def _geodetic_distance(lat1: float, lat2: float, lon1: float, lon2: float, mesh: Mesh, lat: float) -> float:
+def _geodetic_distance(lat1: float, lat2: float, lon1: float, lon2: float, mesh: Mesh, lat: float, deg2m: float = 1852 * 60.0) -> float:
     if mesh == "spherical":
         rad = np.pi / 180.0
-        deg2m = 1852 * 60.0
         return np.sqrt(((lon2 - lon1) * deg2m * np.cos(rad * lat)) ** 2 + ((lat2 - lat1) * deg2m) ** 2)
     else:
         return np.sqrt((lon2 - lon1) ** 2 + (lat2 - lat1) ** 2)

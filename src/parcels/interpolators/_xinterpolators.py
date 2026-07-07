@@ -149,8 +149,8 @@ class XLinear_Velocity(VectorInterpolator):  # noqa:  N801
         u = _xlinear.interp(particle_positions, grid_positions, vectorfield.U)
         v = _xlinear.interp(particle_positions, grid_positions, vectorfield.V)
         if vectorfield.grid._mesh == "spherical":
-            u /= 1852 * 60 * np.cos(np.deg2rad(particle_positions["y"]))
-            v /= 1852 * 60
+            u /= vectorfield.grid.deg2m * np.cos(np.deg2rad(particle_positions["y"]))
+            v /= vectorfield.grid.deg2m
 
         if vectorfield.W:
             w = _xlinear.interp(particle_positions, grid_positions, vectorfield.W)
@@ -201,16 +201,16 @@ class CGrid_Velocity(VectorInterpolator):  # noqa:  N801
             px[1:] = np.where(px[1:] - px[0] > 180, px[1:] - 360, px[1:])
             px[1:] = np.where(-px[1:] + px[0] > 180, px[1:] + 360, px[1:])
         c1 = i_u._geodetic_distance(
-            py[0], py[1], px[0], px[1], grid._mesh, np.einsum("ij,ji->i", i_u.phi2D_lin(0.0, xsi), py)
+            py[0], py[1], px[0], px[1], grid._mesh, np.einsum("ij,ji->i", i_u.phi2D_lin(0.0, xsi), py), grid.deg2m
         )
         c2 = i_u._geodetic_distance(
-            py[1], py[2], px[1], px[2], grid._mesh, np.einsum("ij,ji->i", i_u.phi2D_lin(eta, 1.0), py)
+            py[1], py[2], px[1], px[2], grid._mesh, np.einsum("ij,ji->i", i_u.phi2D_lin(eta, 1.0), py), grid.deg2m
         )
         c3 = i_u._geodetic_distance(
-            py[2], py[3], px[2], px[3], grid._mesh, np.einsum("ij,ji->i", i_u.phi2D_lin(1.0, xsi), py)
+            py[2], py[3], px[2], px[3], grid._mesh, np.einsum("ij,ji->i", i_u.phi2D_lin(1.0, xsi), py), grid.deg2m
         )
         c4 = i_u._geodetic_distance(
-            py[3], py[0], px[3], px[0], grid._mesh, np.einsum("ij,ji->i", i_u.phi2D_lin(eta, 0.0), py)
+            py[3], py[0], px[3], px[0], grid._mesh, np.einsum("ij,ji->i", i_u.phi2D_lin(eta, 0.0), py), grid.deg2m
         )
 
         def _create_selection_dict(dims, zdir=False):
@@ -283,7 +283,7 @@ class CGrid_Velocity(VectorInterpolator):  # noqa:  N801
         Vvel = (1 - eta) * V0 + eta * V1
 
         if grid._mesh == "spherical":
-            jac = i_u._compute_jacobian_determinant(py, px, eta, xsi) * 1852 * 60.0
+            jac = i_u._compute_jacobian_determinant(py, px, eta, xsi) * grid.deg2m
         else:
             jac = i_u._compute_jacobian_determinant(py, px, eta, xsi)
 
@@ -304,7 +304,7 @@ class CGrid_Velocity(VectorInterpolator):  # noqa:  N801
             v = v.compute()
 
         if grid._mesh == "spherical":
-            conversion = 1852 * 60.0 * np.cos(np.deg2rad(particle_positions["y"]))
+            conversion = grid.deg2m * np.cos(np.deg2rad(particle_positions["y"]))
             u /= conversion
             v /= conversion
 

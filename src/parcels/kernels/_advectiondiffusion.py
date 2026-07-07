@@ -8,14 +8,14 @@ import numpy as np
 __all__ = ["AdvectionDiffusionEM", "AdvectionDiffusionM1", "DiffusionUniformKh"]
 
 
-def meters_to_degrees_zonal(deg, lat):  # pragma: no cover
+def meters_to_degrees_zonal(deg, lat, deg2m):  # pragma: no cover
     """Convert square meters to square degrees longitude at a given latitude."""
-    return deg / pow(1852 * 60.0 * np.cos(lat * np.pi / 180), 2)
+    return deg / pow(deg2m * np.cos(lat * np.pi / 180), 2)
 
 
-def meters_to_degrees_meridional(deg):  # pragma: no cover
+def meters_to_degrees_meridional(deg, deg2m):  # pragma: no cover
     """Convert square meters to square degrees latitude."""
-    return deg / pow(1852 * 60.0, 2)
+    return deg / pow(deg2m, 2)
 
 
 def AdvectionDiffusionM1(particles, fieldset):  # pragma: no cover
@@ -40,26 +40,26 @@ def AdvectionDiffusionM1(particles, fieldset):  # pragma: no cover
     Kxp1 = fieldset.Kh_zonal[particles.t, particles.z, particles.y, particles.x + fieldset.dres, particles]
     Kxm1 = fieldset.Kh_zonal[particles.t, particles.z, particles.y, particles.x - fieldset.dres, particles]
     if fieldset.Kh_zonal.grid._mesh == "spherical":
-        Kxp1 = meters_to_degrees_zonal(Kxp1, particles.y)
-        Kxm1 = meters_to_degrees_zonal(Kxm1, particles.y)
+        Kxp1 = meters_to_degrees_zonal(Kxp1, particles.y, fieldset.Kh_zonal.grid.deg2m)
+        Kxm1 = meters_to_degrees_zonal(Kxm1, particles.y, fieldset.Kh_zonal.grid.deg2m)
     dKdx = (Kxp1 - Kxm1) / (2 * fieldset.dres)
 
     u, v = fieldset.UV[particles.t, particles.z, particles.y, particles.x, particles]
     kh_zonal = fieldset.Kh_zonal[particles.t, particles.z, particles.y, particles.x, particles]
     if fieldset.Kh_zonal.grid._mesh == "spherical":
-        kh_zonal = meters_to_degrees_zonal(kh_zonal, particles.y)
+        kh_zonal = meters_to_degrees_zonal(kh_zonal, particles.y, fieldset.Kh_zonal.grid.deg2m)
     bx = np.sqrt(2 * kh_zonal)
 
     Kyp1 = fieldset.Kh_meridional[particles.t, particles.z, particles.y + fieldset.dres, particles.x, particles]
     Kym1 = fieldset.Kh_meridional[particles.t, particles.z, particles.y - fieldset.dres, particles.x, particles]
     if fieldset.Kh_meridional.grid._mesh == "spherical":
-        Kyp1 = meters_to_degrees_meridional(Kyp1)
-        Kym1 = meters_to_degrees_meridional(Kym1)
+        Kyp1 = meters_to_degrees_meridional(Kyp1, fieldset.Kh_meridional.grid.deg2m)
+        Kym1 = meters_to_degrees_meridional(Kym1, fieldset.Kh_meridional.grid.deg2m)
     dKdy = (Kyp1 - Kym1) / (2 * fieldset.dres)
 
     kh_meridional = fieldset.Kh_meridional[particles.t, particles.z, particles.y, particles.x, particles]
     if fieldset.Kh_meridional.grid._mesh == "spherical":
-        kh_meridional = meters_to_degrees_meridional(kh_meridional)
+        kh_meridional = meters_to_degrees_meridional(kh_meridional, fieldset.Kh_meridional.grid.deg2m)
     by = np.sqrt(2 * kh_meridional)
 
     # Particle positions are updated only after evaluating all terms.
@@ -89,27 +89,27 @@ def AdvectionDiffusionEM(particles, fieldset):  # pragma: no cover
     Kxp1 = fieldset.Kh_zonal[particles.t, particles.z, particles.y, particles.x + fieldset.dres, particles]
     Kxm1 = fieldset.Kh_zonal[particles.t, particles.z, particles.y, particles.x - fieldset.dres, particles]
     if fieldset.Kh_zonal.grid._mesh == "spherical":
-        Kxp1 = meters_to_degrees_zonal(Kxp1, particles.y)
-        Kxm1 = meters_to_degrees_zonal(Kxm1, particles.y)
+        Kxp1 = meters_to_degrees_zonal(Kxp1, particles.y, fieldset.Kh_zonal.grid.deg2m)
+        Kxm1 = meters_to_degrees_zonal(Kxm1, particles.y, fieldset.Kh_zonal.grid.deg2m)
     dKdx = (Kxp1 - Kxm1) / (2 * fieldset.dres)
     ax = u + dKdx
 
     kh_zonal = fieldset.Kh_zonal[particles.t, particles.z, particles.y, particles.x, particles]
     if fieldset.Kh_zonal.grid._mesh == "spherical":
-        kh_zonal = meters_to_degrees_zonal(kh_zonal, particles.y)
+        kh_zonal = meters_to_degrees_zonal(kh_zonal, particles.y, fieldset.Kh_zonal.grid.deg2m)
     bx = np.sqrt(2 * kh_zonal)
 
     Kyp1 = fieldset.Kh_meridional[particles.t, particles.z, particles.y + fieldset.dres, particles.x, particles]
     Kym1 = fieldset.Kh_meridional[particles.t, particles.z, particles.y - fieldset.dres, particles.x, particles]
     if fieldset.Kh_meridional.grid._mesh == "spherical":
-        Kyp1 = meters_to_degrees_meridional(Kyp1)
-        Kym1 = meters_to_degrees_meridional(Kym1)
+        Kyp1 = meters_to_degrees_meridional(Kyp1, fieldset.Kh_meridional.grid.deg2m)
+        Kym1 = meters_to_degrees_meridional(Kym1, fieldset.Kh_meridional.grid.deg2m)
     dKdy = (Kyp1 - Kym1) / (2 * fieldset.dres)
     ay = v + dKdy
 
     kh_meridional = fieldset.Kh_meridional[particles.t, particles.z, particles.y, particles.x, particles]
     if fieldset.Kh_meridional.grid._mesh == "spherical":
-        kh_meridional = meters_to_degrees_meridional(kh_meridional)
+        kh_meridional = meters_to_degrees_meridional(kh_meridional, fieldset.Kh_meridional.grid.deg2m)
     by = np.sqrt(2 * kh_meridional)
 
     # Particle positions are updated only after evaluating all terms.
@@ -143,8 +143,8 @@ def DiffusionUniformKh(particles, fieldset):  # pragma: no cover
     kh_meridional = fieldset.Kh_meridional[particles]
 
     if fieldset.Kh_zonal.grid._mesh == "spherical":
-        kh_zonal = meters_to_degrees_zonal(kh_zonal, particles.y)
-        kh_meridional = meters_to_degrees_meridional(kh_meridional)
+        kh_zonal = meters_to_degrees_zonal(kh_zonal, particles.y, fieldset.Kh_zonal.grid.deg2m)
+        kh_meridional = meters_to_degrees_meridional(kh_meridional, fieldset.Kh_meridional.grid.deg2m)
 
     bx = np.sqrt(2 * kh_zonal)
     by = np.sqrt(2 * kh_meridional)
