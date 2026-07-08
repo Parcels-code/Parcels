@@ -125,11 +125,11 @@ def test_dask_advection_matches_numpy(mesh, dt_minutes):
         fs = FieldSet.from_sgrid_conventions(d, mesh=mesh)
         if chunked:
             fs.to_windowed_arrays()
-        pset = ParticleSet(fs, lon=np.zeros(10), lat=np.linspace(-10, 10, 10))
+        pset = ParticleSet(fs, x=np.zeros(10), y=np.linspace(-10, 10, 10))
         pset.execute(AdvectionRK2, runtime=7200, dt=np.timedelta64(dt_minutes, "m"))
-        return np.array(pset.lon), np.array(pset.lat)
+        return np.array(pset.x), np.array(pset.y)
 
-    lon_np, lat_np = run(False)
-    lon_dk, lat_dk = run(True)
-    np.testing.assert_allclose(lon_dk, lon_np, atol=1e-9)
-    np.testing.assert_allclose(lat_dk, lat_np, atol=1e-9)
+    x_np, y_np = run(False)
+    x_dk, y_dk = run(True)
+    np.testing.assert_allclose(x_dk, x_np, atol=1e-9)
+    np.testing.assert_allclose(y_dk, y_np, atol=1e-9)

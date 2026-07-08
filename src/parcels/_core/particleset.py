@@ -3,6 +3,7 @@ import sys
 import types
 import warnings
 from collections.abc import Iterable
+from contextlib import nullcontext
 from typing import Literal
 
 import numpy as np
@@ -38,14 +39,14 @@ class ParticleSet:
         mod:`parcels.fieldset.FieldSet` object from which to sample velocity.
     pclass : parcels.particle.Particle
         Optional object that inherits from :mod:`parcels.particle.Particle` object that defines custom particle
-    lon :
-        List of initial longitude values for particles
-    lat :
-        List of initial latitude values for particles
+    x :
+        List of initial x (longitude) values for particles
+    y :
+        List of initial y (latitude) values for particles
     z :
         Optional list of initial z values for particles. Default is 0m
-    time :
-        Optional list of initial time values for particles. Default is fieldset.U.grid.time[0]
+    t :
+        Optional list of initial t (time) values for particles. Default is fieldset.U.grid.time[0]
     repeatdt : datetime.timedelta or float, optional
         Optional interval on which to repeat the release of the ParticleSet. Either timedelta object, or float in seconds.
     particle_ids :
@@ -58,10 +59,10 @@ class ParticleSet:
         self,
         fieldset,
         pclass=Particle,
-        time=None,
+        t=None,
         z=None,
-        lat=None,
-        lon=None,
+        y=None,
+        x=None,
         particle_ids=None,
         **kwargs,
     ):
@@ -69,52 +70,52 @@ class ParticleSet:
         self._kernel = None
 
         self.fieldset = fieldset
-        time = np.empty(shape=0) if time is None else np.array(time).flatten()
-        lat = np.empty(shape=0) if lat is None else np.array(lat).flatten()
-        lon = np.empty(shape=0) if lon is None else np.array(lon).flatten()
+        t = np.empty(shape=0) if t is None else np.array(t).flatten()
+        y = np.empty(shape=0) if y is None else np.array(y).flatten()
+        x = np.empty(shape=0) if x is None else np.array(x).flatten()
 
         if particle_ids is None:
-            particle_ids = np.arange(lon.size)
+            particle_ids = np.arange(x.size)
 
         if z is None:
             minz = 0
             for field in self.fieldset.fields.values():
                 if field.grid.depth is not None:
                     minz = min(minz, field.grid.depth[0])
-            z = np.ones(lon.size) * minz
+            z = np.ones(x.size) * minz
         else:
             z = np.array(z).flatten()
-        assert lon.size == lat.size and lon.size == z.size, "lon, lat, z don't all have the same lenghts"
+        assert x.size == y.size and x.size == z.size, "x, y, z don't all have the same lengths"
 
-        if time is None or len(time) == 0:
+        if t is None or len(t) == 0:
             # do not set a time yet (because sign_dt not known)
-            time = np.array(np.nan)
-        elif isinstance(time[0], np.datetime64) and self.fieldset.time_interval:
-            time = timedelta_to_float(time - self.fieldset.time_interval.left)
-        elif isinstance(time[0], np.timedelta64):
-            time = timedelta_to_float(time)
+            t = np.array(np.nan)
+        elif isinstance(t[0], np.datetime64) and self.fieldset.time_interval:
+            t = timedelta_to_float(t - self.fieldset.time_interval.left)
+        elif isinstance(t[0], np.timedelta64):
+            t = timedelta_to_float(t)
         else:
-            raise TypeError("particle time must be a datetime, timedelta, or date object")
-        time = np.repeat(time, lon.size) if time.size == 1 else time
+            raise TypeError("particle t must be a datetime, timedelta, or date object")
+        t = np.repeat(t, x.size) if t.size == 1 else t
 
-        assert lon.size == time.size, "time and positions (lon, lat, z) do not have the same lengths."
+        assert x.size == t.size, "t and positions (x, y, z) do not have the same lengths."
 
         if fieldset.time_interval:
-            _warn_particle_times_outside_fieldset_time_bounds(time, fieldset.time_interval)
+            _warn_particle_times_outside_fieldset_time_bounds(t, fieldset.time_interval)
 
         for kwvar in kwargs:
             kwargs[kwvar] = np.array(kwargs[kwvar]).flatten()
-            assert lon.size == kwargs[kwvar].size, f"{kwvar} and positions (lon, lat, z) don't have the same lengths."
+            assert x.size == kwargs[kwvar].size, f"{kwvar} and positions (x, y, z) don't have the same lengths."
 
         self._data = create_particle_data(
             pclass=pclass,
-            nparticles=lon.size,
+            nparticles=x.size,
             ngrids=len(fieldset.gridset),
             initial=dict(
-                time=time,
+                t=t,
                 z=z,
-                lat=lat,
-                lon=lon,
+                y=y,
+                x=x,
                 particle_id=particle_ids,
             ),
         )
@@ -245,7 +246,7 @@ class ParticleSet:
     def populate_indices(self):
         """Pre-populate guesses of particle ei (element id) indices"""
         for i, grid in enumerate(self.fieldset.gridset):
-            grid_positions = grid.search(self.z, self.lat, self.lon)
+            grid_positions = grid.search(self.z, self.y, self.x)
             self._data["ei"][:, i] = grid.ravel_index(
                 {
                     "X": grid_positions["X"]["index"],
@@ -401,15 +402,15 @@ class ParticleSet:
         runtime = _convert_runtime_to_float(runtime)
 
         start_time, end_time = _get_simulation_start_and_end_times(
-            self.fieldset.time_interval, self._data["time"], runtime, endtime, sign_dt
+            self.fieldset.time_interval, self._data["t"], runtime, endtime, sign_dt
         )
 
         # Set the time of the particles if it hadn't been set on initialisation
-        if np.isnan(self._data["time"]).any():
-            self._data["time"][:] = start_time
+        if np.isnan(self._data["t"]).any():
+            self._data["t"][:] = start_time
 
         outputdt = output_file.outputdt if output_file else None
-        _warn_outputdt_release_desync(outputdt, start_time, self._data["time"][:])
+        _warn_outputdt_release_desync(outputdt, start_time, self._data["t"][:])
 
         # Set up pbar
         if output_file:
@@ -433,32 +434,31 @@ class ParticleSet:
             next_output = start_time + outputdt * sign_dt
 
         time = start_time
-        while sign_dt * (time - end_time) < 0:
-            if next_output is not None:
-                f = min if sign_dt > 0 else max
-                next_time = f(next_output, end_time)
-            else:
-                next_time = end_time
 
-            self._kernel.execute(self, endtime=next_time, dt=dt)
+        with output_file if output_file is not None else nullcontext():
+            while sign_dt * (time - end_time) < 0:
+                if next_output is not None:
+                    f = min if sign_dt > 0 else max
+                    next_time = f(next_output, end_time)
+                else:
+                    next_time = end_time
 
-            if next_output is not None:
-                if np.abs(next_time - next_output) < 0.001:
-                    if output_file:
-                        output_file.write(self, next_output)
-                    if np.isfinite(outputdt):
-                        next_output += outputdt * sign_dt
+                self._kernel.execute(self, endtime=next_time, dt=dt)
 
-            if verbose_progress:
-                pbar.set_description_str(
-                    "Integration time: " + str(float_to_datelike(time, self.fieldset.time_interval))
-                )
-                pbar.update(sign_dt * (next_time - time))
+                if next_output is not None:
+                    if np.abs(next_time - next_output) < 0.001:
+                        if output_file:
+                            output_file.write(self, next_output)
+                        if np.isfinite(outputdt):
+                            next_output += outputdt * sign_dt
 
-            time = next_time
+                if verbose_progress:
+                    pbar.set_description_str(
+                        "Integration time: " + str(float_to_datelike(time, self.fieldset.time_interval))
+                    )
+                    pbar.update(sign_dt * (next_time - time))
 
-        if output_file is not None:
-            output_file.close()
+                time = next_time
 
         if verbose_progress:
             pbar.close()

@@ -30,7 +30,7 @@ holoviews = ">=1.22.0" # https://github.com/prefix-dev/rattler-build/issues/2326
 uxarray = ">=2026.04.1"
 dask = ">=2024.5.1"
 zarr = ">=3"
-xgcm = { git = "https://github.com/xgcm/xgcm", rev = "master" } # TODO: Switch to release version after release is cut
+xgcm = { git = "https://github.com/xgcm/xgcm", rev = "532a3c567c475cbe192f49b9961f8117806bbfb7" } # TODO: Switch to release version after release is cut
 cf_xarray = ">=0.8.6"
 cftime = ">=1.6.3"
 pooch = ">=1.8.0"
@@ -134,7 +134,9 @@ docs-clean = { depends-on = [
   { task = "docs-only-clean" },
   { task = "docs" },
 ], description = "Build the documentation from a clean docs folder." }
-docs-watch = { cmd = "make livehtml", cwd = "docs", description = "Build and auto-rebuild the documentation on changes." }
+docs-watch = { cmd = "make livehtml", cwd = "docs", description = "Build and auto-rebuild the documentation on changes.", depends-on = [
+  "docs-only-clean",
+] }
 docs-linkcheck = { cmd = "make linkcheck", cwd = "docs", description = "Verify all links in documentation don't 404." }
 
 [feature.pre-commit.dependencies]

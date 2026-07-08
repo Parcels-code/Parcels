@@ -15,6 +15,7 @@ from parcels._core.statuscodes import (
 )
 from parcels._core.utils.string import _assert_str_and_python_varname
 from parcels._core.uxgrid import UxGrid
+from parcels._core.warnings import FieldEvalWarning
 from parcels._core.xgrid import XGrid
 from parcels._typing import VectorType
 from parcels.interpolators._base import ScalarInterpolator, VectorInterpolator
@@ -34,7 +35,7 @@ def _deal_with_errors(error, key, vector_type: VectorType):
     else:
         raise RuntimeError(f"{error}. Error could not be handled because particles was not part of the Field Sampling.")
 
-    if vector_type and "3D" in vector_type:
+    if vector_type == "3D":
         return (0, 0, 0)
     elif vector_type == "2D":
         return (0, 0)
@@ -137,12 +138,12 @@ class Field:
                 stacklevel=2,
             )
 
-    def eval(self, time: datetime, z, y, x, particles=None):
+    def eval(self, t: datetime, z, y, x, particles=None):
         """Interpolate field values in space and time.
 
         Parameters
         ----------
-        time : float or array-like
+        t : float or array-like
             Time(s) at which to sample the field.
         z, y, x : scalar or array-like
             Vertical (z), latitudinal (y) and longitudinal (x) positions to sample.
@@ -170,11 +171,12 @@ class Field:
         y = np.atleast_1d(y)
         x = np.atleast_1d(x)
 
-        particle_positions, grid_positions = _get_positions(self, time, z, y, x, particles, _ei)
+        particle_positions, grid_positions = _get_positions(self, t, z, y, x, particles, _ei)
 
         value = self.interp_method.interp(particle_positions, grid_positions, self)
 
         _update_particle_states_interp_value(particles, value)
+        _mask_outofbounds_values(grid_positions, value)
 
         return value
 
@@ -182,7 +184,7 @@ class Field:
         self._check_velocitysampling()
         try:
             if isinstance(key, ParticleSetView):
-                return self.eval(key.time, key.z, key.lat, key.lon, key)
+                return self.eval(key.t, key.z, key.y, key.x, key)
             else:
                 return self.eval(*key)
         except tuple(AllParcelsErrorCodes.keys()) as error:
@@ -217,7 +219,7 @@ class VectorField:
             _assert_same_time_interval((U, V, W))
 
         self.time_interval = U.time_interval
-
+        self.vector_type: VectorType
         if self.W:
             self.vector_type = "3D"
         else:
@@ -241,12 +243,12 @@ class VectorField:
             raise ValueError(f"method must be a `VectorInterpolator` object. Got {type(method)=!r}")
         self._interp_method = method
 
-    def eval(self, time: datetime, z, y, x, particles=None):
+    def eval(self, t: datetime, z, y, x, particles=None):
         """Interpolate vectorfield values in space and time.
 
         Parameters
         ----------
-        time : float or array-like
+        t : float or array-like
             Time(s) at which to sample the field.
         z, y, x : scalar or array-like
             Vertical (z), latitudinal (y) and longitudinal (x) positions to sample.
@@ -275,14 +277,15 @@ class VectorField:
         y = np.atleast_1d(y)
         x = np.atleast_1d(x)
 
-        particle_positions, grid_positions = _get_positions(self.U, time, z, y, x, particles, _ei)
+        particle_positions, grid_positions = _get_positions(self.U, t, z, y, x, particles, _ei)
 
         (u, v, w) = self._interp_method.interp(particle_positions, grid_positions, self)
 
         for vel in (u, v, w):
             _update_particle_states_interp_value(particles, vel)
+            _mask_outofbounds_values(grid_positions, vel)
 
-        if "3D" in self.vector_type:
+        if "3D" == self.vector_type:
             return (u, v, w)
         else:
             return (u, v)
@@ -290,7 +293,7 @@ class VectorField:
     def __getitem__(self, key):
         try:
             if isinstance(key, ParticleSetView):
-                return self.eval(key.time, key.z, key.lat, key.lon, key)
+                return self.eval(key.t, key.z, key.y, key.x, key)
             else:
                 return self.eval(*key)
         except tuple(AllParcelsErrorCodes.keys()) as error:
@@ -349,6 +352,20 @@ def _update_particle_states_position(particles, grid_positions: dict):
             )
 
 
+def _mask_outofbounds_values(grid_positions: dict, value):
+    mask = np.zeros(value.shape, dtype=bool)
+    for dim in ["X", "Y", "Z", "FACE"]:
+        if dim in grid_positions:
+            mask[grid_positions[dim]["index"] < 0] = True
+    if np.any(mask):
+        warnings.warn(
+            "Some interpolated values are out-of-bounds. These values are set to 0. Treat carefully.",
+            FieldEvalWarning,
+            stacklevel=2,
+        )
+        value[mask] = 0.0
+
+
 def _update_particle_states_interp_value(particles, value):
     """Update the particle states based on the interpolated value, but only if state is not an Error already."""
     if particles:
@@ -370,11 +387,11 @@ def _assert_same_time_interval(fields: Sequence[Field]) -> None:
             )
 
 
-def _get_positions(field: Field, time, z, y, x, particles, _ei) -> tuple[dict, dict]:
+def _get_positions(field: Field, t, z, y, x, particles, _ei) -> tuple[dict, dict]:
     """Initialize and populate particle_positions and grid_positions dictionaries"""
-    particle_positions = {"time": time, "z": z, "lat": y, "lon": x}
+    particle_positions = {"t": t, "z": z, "y": y, "x": x}
     grid_positions = {}
-    grid_positions.update(_search_time_index(field, time))
+    grid_positions.update(_search_time_index(field, t))
     grid_positions.update(field.grid.search(z, y, x, ei=_ei))
     _update_particles_ei(particles, grid_positions, field)
     _update_particle_states_position(particles, grid_positions)

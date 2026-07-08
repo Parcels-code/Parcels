@@ -13,11 +13,11 @@ Here, we will explain the most important classes and functions. This overview ca
 A Parcels simulation is generally built up from four different components:
 
 1. [**FieldSet**](#1-fieldset). The input dataset of gridded fields (e.g. ocean current velocity, temperature) in which virtual particles are defined.
-2. [**ParticleSet**](#2-particleset). The dataset of virtual particles. These always contain time, z, lat, and lon, for which initial values must be defined. The ParticleSet may also contain other, custom variables.
+2. [**ParticleSet**](#2-particleset). The dataset of virtual particles. These always contain t, z, y, and x, for which initial values must be defined. The ParticleSet may also contain other, custom variables.
 3. [**Kernels**](#3-kernels). Kernels perform some specific operation on the particles every time step (e.g. advect the particles with the three-dimensional flow; or interpolate the temperature field to the particle location).
 4. [**Execute**](#4-execute). Execute the simulation. The core method which integrates the operations defined in Kernels for a given runtime and timestep, and writes output to a ParticleFile.
 
-We discuss each component in more detail below. The subsections titled **"Learn how to"** link to more detailed [how-to guide notebooks](../user_guide/index.md) and more detailed _explanations_ of Parcels functionality are included under **"Read more about"** subsections. The full list of classes and methods is in the [API reference](../reference/parcels/index.rst). If you want to learn by doing, check out the [quickstart tutorial](./tutorial_quickstart.md) to start creating your first Parcels simulation.
+We discuss each component in more detail below. The subsections titled **"Learn how to"** link to more detailed [how-to guide notebooks](../user_guide/index.md) and more detailed _explanations_ of Parcels functionality are included under **"Read more about"** subsections. The full list of classes and methods is in the [API reference](../reference/parcels/index). If you want to learn by doing, check out the [quickstart tutorial](./tutorial_quickstart.md) to start creating your first Parcels simulation.
 
 ```{figure} ../_static/concepts_diagram.png
 :alt: Parcels concepts diagram
@@ -82,16 +82,16 @@ Once the environment has a `parcels.FieldSet` object, you can start defining you
 
 1. The `parcels.FieldSet` object in which the particles will be released.
 2. The type of `parcels.Particle`: A default `Particle` or a custom `Particle`-type with additional `Variable`s (see the [custom kernel example](custom-kernel)).
-3. Initial conditions for each `Variable` defined in the `Particle`, most notably the release coordinates of `time`, `z`, `lat` and `lon`.
+3. Initial conditions for each `Variable` defined in the `Particle`, most notably the release coordinates of `t`, `z`, `y` and `x`.
 
 ```python
-time = np.array([0])
+t = np.array([0])
 z = np.array([0])
-lat = np.array([0])
-lon = np.array([0])
+y = np.array([0])
+x = np.array([0])
 
 # Create a ParticleSet
-pset = parcels.ParticleSet(fieldset=fieldset, pclass=parcels.Particle, time=time, z=z, lat=lat, lon=lon)
+pset = parcels.ParticleSet(fieldset=fieldset, pclass=parcels.Particle, t=t, z=z, y=y, x=x)
 ```
 
 ```{admonition} 🖥️ Learn more about how to create ParticleSets
@@ -103,7 +103,7 @@ pset = parcels.ParticleSet(fieldset=fieldset, pclass=parcels.Particle, time=time
 
 A **`parcels.Kernel`** object is a little snippet of code, which is applied to the particles in the `ParticleSet`, for every time step during a simulation. Kernels define the computation or numerical integration done by Parcels, and can represent many processes such as advection, ageing, growth, or simply the sampling of a field.
 
-Advection of a particle by the flow, the change in position $\mathbf{x}(t) = (lon(t), lat(t))$ at time $t$, can be described by the equation:
+Advection of a particle by the flow, the change in position $\mathbf{x}(t) = (x(t), y(t))$ at time $t$, can be described by the equation:
 
 $$
 \begin{aligned}
@@ -113,20 +113,20 @@ $$
 
 where $\mathbf{v}(\mathbf{x},t) = (u(\mathbf{x},t), v(\mathbf{x},t))$ describes the ocean velocity field at position $\mathbf{x}$ at time $t$.
 
-In Parcels, we can write a kernel function which integrates this equation at each timestep `particles.dt`. To do so, we need the ocean velocity field `fieldset.UV` at the `particles` location, and compute the change in position, `particles.dlon` and `particles.dlat`.
+In Parcels, we can write a kernel function which integrates this equation at each timestep `particles.dt`. To do so, we need the ocean velocity field `fieldset.UV` at the `particles` location, and compute the change in position, `particles.dx` and `particles.dy`.
 
 ```python
 def AdvectionEE(particles, fieldset):
     """Advection of particles using Explicit Euler (aka Euler Forward) integration."""
     (u1, v1) = fieldset.UV[particles]
-    particles.dlon += u1 * particles.dt
-    particles.dlat += v1 * particles.dt
+    particles.dx += u1 * particles.dt
+    particles.dy += v1 * particles.dt
 ```
 
 Basic kernels are included in Parcels to compute advection and diffusion. The standard advection kernel is `parcels.kernels.AdvectionRK2`, a [second-order Runge-Kutta integrator](https://en.wikipedia.org/wiki/Runge%E2%80%93Kutta_methods#The_Runge%E2%80%93Kutta_method) of the advection function.
 
 ```{warning}
-It is advised _not_ to update the particle coordinates (`particles.time`, `particles.z`, `particles.lat`, or `particles.lon`) directly within a Kernel, as that can negatively interfere with the way that particle movements by different kernels are vectorially added. Use a change in the coordinates: `particles.dlon`, `particles.dlat` and/or `particles.dz`. Read the [kernel loop tutorial](https://docs.oceanparcels.org/en/latest/examples/tutorial_kernelloop.html) to understand why.
+It is advised _not_ to update the particle coordinates (`particles.t`, `particles.z`, `particles.y`, or `particles.x`) directly within a Kernel, as that can negatively interfere with the way that particle movements by different kernels are vectorially added. Use a change in the coordinates: `particles.dy`, `particles.dx` and/or `particles.dz`. Read the [kernel loop tutorial](../user_guide/examples/explanation_kernelloop.md) to understand why.
 ```
 
 (custom-kernel)=
@@ -186,7 +186,7 @@ pset.execute(kernels=kernels, dt=dt, runtime=runtime)
 
 ### Output
 
-To analyse the particle data generated in the simulation, we need to define a `parcels.ParticleFile` and add it as an argument to `parcels.ParticleSet.execute()`. The output will be written in a [parquet format](https://parquet.apache.org/), which can be opened as a `polars.DataFrame`. The dataset will contain the particle data with at least `time`, `z`, `lat` and `lon`, for each particle at timesteps defined by the `outputdt` argument.
+To analyse the particle data generated in the simulation, we need to define a `parcels.ParticleFile` and add it as an argument to `parcels.ParticleSet.execute()`. The output will be written in a [parquet format](https://parquet.apache.org/), which can be opened as a `polars.DataFrame`. The dataset will contain the particle data with at least `t`, `z`, `y` and `x`, for each particle at timesteps defined by the `outputdt` argument.
 
 There are many ways to analyze particle output, and although we provide [a short tutorial to get started](./tutorial_output.ipynb), we recommend writing your own analysis code and checking out [related Lagrangian analysis projects in our community page](../community/index.md#analysis-code).
 

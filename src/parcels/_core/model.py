@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
+from collections.abc import Hashable, Sequence
 from typing import Any, Self
 
 import cf_xarray  # noqa: F401
@@ -8,6 +9,7 @@ import uxarray as ux
 import xarray as xr
 
 import parcels._sgrid as sgrid
+import parcels._typing as ptyping
 from parcels._core._windowed_array import maybe_windowed
 from parcels._core.basegrid import BaseGrid
 from parcels._core.field import Field, VectorField
@@ -19,6 +21,7 @@ from parcels._core.xgrid import (
     assert_all_field_dims_have_axis,  # noqa: F401, leave import for now until decision is made # TODO v4: Make decision
 )
 from parcels._logger import logger
+from parcels._python import NOTSET, NotSetType
 from parcels._typing import Mesh
 from parcels.convert import _ds_rename_using_standard_names
 from parcels.interpolators import (
@@ -38,6 +41,7 @@ class ModelData(ABC):
     data: Any
     grid: BaseGrid
     field_to_interpolator: dict[str, ScalarInterpolator | VectorInterpolator]
+    vector_field_components: ptyping.VectorFields
 
     @abstractmethod
     def construct_fields(self) -> list[Field | VectorField]: ...
@@ -117,7 +121,7 @@ def preprocess_sgrid_model_data(ds: xr.Dataset) -> xr.Dataset:
 
 
 class StructuredModelData(ModelData):
-    def __init__(self, data: xr.Dataset, mesh: Mesh):
+    def __init__(self, data: xr.Dataset, mesh: Mesh, vector_field_components: ptyping.VectorFields):
         if not isinstance(data, xr.Dataset):
             raise ValueError(f"Expected `data` to be an xarray.Dataset . Got {type(data)}")
 
@@ -126,6 +130,7 @@ class StructuredModelData(ModelData):
 
         self.data = data
         self.grid = grid
+        self.vector_field_components = vector_field_components
         self.field_to_interpolator = {}
         self._fields: list[Field | VectorField] | None = None
         self.assert_valid_model_data()
@@ -148,30 +153,25 @@ class StructuredModelData(ModelData):
         single_fields: dict[str, Field] = {}
         vector_fields: dict[str, VectorField] = {}
         scalar_field_names = self.scalar_field_names
-        if "U" in scalar_field_names and "V" in scalar_field_names:
-            interp_method = XLinear_Velocity() if _is_agrid(self.data) else CGrid_Velocity()
-            single_fields["U"] = Field("U", self)
-            single_fields["V"] = Field("V", self)
-            vector_fields["UV"] = VectorField("UV", single_fields["U"], single_fields["V"], interp_method=interp_method)
 
-            if "W" in scalar_field_names:
-                single_fields["W"] = Field("W", self)
-                vector_fields["UVW"] = VectorField(
-                    "UVW",
-                    single_fields["U"],
-                    single_fields["V"],
-                    single_fields["W"],
-                    interp_method=interp_method,
-                )
+        for varname in set(scalar_field_names):
+            single_fields[varname] = Field(str(varname), self)
+
+        for vfield_name, components in self.vector_field_components.items():
+            interp_method = (
+                XLinear_Velocity() if _is_agrid(self.data, u=components[0], v=components[1]) else CGrid_Velocity()
+            )
+
+            component_fields = [single_fields[name] for name in components]
+            vector_fields[vfield_name] = VectorField(vfield_name, *component_fields, interp_method=interp_method)  # type:ignore[misc,arg-type]
 
         fields: dict[str, Field | VectorField] = {**single_fields, **vector_fields}
-        for varname in set(scalar_field_names) - set(fields.keys()):
-            fields[varname] = Field(str(varname), self)
-
         return list(fields.values())
 
     @classmethod
-    def from_sgrid_conventions(cls, ds: xr.Dataset, mesh: Mesh | None = None) -> Self:
+    def from_sgrid_conventions(
+        cls, ds: xr.Dataset, mesh: Mesh | None, vector_fields: ptyping.VectorFields | NotSetType
+    ) -> Self:
         ds = ds.copy()
         if mesh is None:
             mesh = _get_mesh_type_from_sgrid_dataset(ds)
@@ -198,12 +198,54 @@ class StructuredModelData(ModelData):
         #     ds["lon"] = ds[node_dimensions[0]]
         #     ds["lat"] = ds[node_dimensions[1]]
 
-        model = cls(ds, mesh=mesh)
+        vector_fields = resolve_vector_fields(ds, vector_fields)
+        assert_valid_vector_fields(ds, vector_fields)
+
+        model = cls(ds, mesh=mesh, vector_field_components=vector_fields)
         model._fields = model.construct_fields()
         for f in model._fields:
             if isinstance(f, Field):
                 f.interp_method = XLinear()
         return model
+
+
+def resolve_vector_fields(ds: xr.Dataset, vector_fields: ptyping.VectorFields | NotSetType) -> ptyping.VectorFields:
+    if vector_fields is NOTSET:  # i.e., the default vectorfield discovery behaviour
+        return _default_vector_field_components(list(ds.data_vars))
+    return vector_fields
+
+
+def assert_valid_vector_fields(ds: xr.Dataset, vector_fields: ptyping.VectorFields) -> None:
+    if not isinstance(vector_fields, dict):
+        raise ValueError(f"vector_fields must be a dictionary. Got {type(vector_fields)=!r}.")
+
+    for vfield_name, components in vector_fields.items():
+        if not isinstance(vfield_name, str):
+            raise ValueError(
+                f"Invalid `vector_fields` argument. Vector field name in `vector_fields` should be a string. Got field name {vfield_name!r}."
+            )
+        if not (2 <= len(components) <= 3):
+            raise ValueError(
+                f"Invalid `vector_fields` argument. Vector fields must have either 2 or 3 components. Vector field {vfield_name} has {len(components)} components."
+            )
+        for c in components:
+            if not isinstance(c, str):
+                raise ValueError(
+                    f"Invalid `vector_fields` argument. Component names must be strings. Got component name of value {c!r}."
+                )
+
+    assert_vector_field_components_in_dataset(ds, vector_fields)
+    return
+
+
+def assert_vector_field_components_in_dataset(ds: xr.Dataset, vector_fields: ptyping.VectorFields) -> None:
+    for components in vector_fields.values():
+        for c in components:
+            if c not in ds.data_vars:
+                raise ValueError(
+                    f"Field component '{c}' not present in the source dataset, but is listed in {vector_fields=!r}. This component cannot be used in this mapping."
+                )
+    return
 
 
 CONSTANT_FIELD_MODELS = {
@@ -229,13 +271,14 @@ CONSTANT_FIELD_MODELS = {
             ),
         ),
         mesh=mesh,  # type:ignore
+        vector_fields={},
     )
     for mesh in ["flat", "spherical"]
 }
 
 
 class UnstructuredModelData(ModelData):
-    def __init__(self, data: ux.UxDataset, grid: UxGrid):
+    def __init__(self, data: ux.UxDataset, grid: UxGrid, vector_field_components: ptyping.VectorFields):
         if not isinstance(data, ux.UxDataset):
             raise ValueError(f"Expected `data` to be an uxarray.UxDataset . Got {type(data)}")
 
@@ -244,6 +287,7 @@ class UnstructuredModelData(ModelData):
 
         self.data = data
         self.grid = grid
+        self.vector_field_components = vector_field_components
         self.field_to_interpolator = {}
         self._fields: list[Field | VectorField] | None = None
 
@@ -251,21 +295,17 @@ class UnstructuredModelData(ModelData):
         single_fields: dict[str, Field] = {}
         vector_fields: dict[str, VectorField] = {}
         scalar_field_names = self.scalar_field_names
-        if "U" in scalar_field_names and "V" in scalar_field_names:
-            single_fields["U"] = Field("U", self)
-            single_fields["V"] = Field("V", self)
-            vector_fields["UV"] = VectorField("UV", single_fields["U"], single_fields["V"], interp_method=Ux_Velocity())
 
-            if "W" in scalar_field_names:
-                single_fields["W"] = Field("W", self)
-                vector_fields["UVW"] = VectorField(
-                    "UVW", single_fields["U"], single_fields["V"], single_fields["W"], interp_method=Ux_Velocity()
-                )
+        for varname in set(scalar_field_names):
+            single_fields[varname] = Field(str(varname), self)
+
+        for vfield_name, components in self.vector_field_components.items():
+            interp_method = Ux_Velocity()
+
+            component_fields = [single_fields[name] for name in components]
+            vector_fields[vfield_name] = VectorField(vfield_name, *component_fields, interp_method=interp_method)  # type:ignore[misc, arg-type]
 
         fields: dict[str, Field | VectorField] = {**single_fields, **vector_fields}
-        for varname in set(scalar_field_names) - set(single_fields.keys()):
-            fields[varname] = Field(str(varname), self)
-
         return list(fields.values())
 
     def assert_valid_field_data(self, field_data: ux.UxDataArray) -> None:
@@ -277,7 +317,7 @@ class UnstructuredModelData(ModelData):
         return list(self.data.data_vars)
 
     @classmethod
-    def from_ugrid_conventions(cls, ds: ux.UxDataset, mesh: str = "spherical"):
+    def from_ugrid_conventions(cls, ds: ux.UxDataset, mesh: Mesh, vector_fields: ptyping.VectorFields | NotSetType):
         ds_dims = list(ds.dims)
         if not all(dim in ds_dims for dim in ["time", "zf", "zc"]):
             raise ValueError(
@@ -286,7 +326,11 @@ class UnstructuredModelData(ModelData):
 
         grid = UxGrid(ds.uxgrid, z=ds.coords["zf"], mesh=mesh)
         ds = _discover_ux_U_and_V(ds)
-        model = cls(ds, grid)
+
+        vector_fields = resolve_vector_fields(ds, vector_fields)
+        assert_valid_vector_fields(ds, vector_fields)
+
+        model = cls(ds, grid, vector_fields)
         model._fields = model.construct_fields()
         for f in model._fields:
             if isinstance(f, Field):
@@ -312,6 +356,17 @@ def _get_mesh_type_from_sgrid_dataset(ds_sgrid: xr.Dataset) -> Mesh:
         raise ValueError(msg)
 
     return "spherical" if _is_coordinate_in_degrees(ds_sgrid[fpoint_x]) else "flat"
+
+
+def _default_vector_field_components(data_vars: Sequence[Hashable]) -> ptyping.VectorFields:
+    vars = set(data_vars)
+    ret: ptyping.VectorFields = {}
+
+    if {"U", "V"}.issubset(vars):
+        ret["UV"] = ("U", "V")
+    if {"U", "V", "W"}.issubset(vars):
+        ret["UVW"] = ("U", "V", "W")
+    return ret
 
 
 def _is_coordinate_in_degrees(da: xr.DataArray) -> bool:
@@ -404,10 +459,10 @@ def _select_uxinterpolator(da: ux.UxDataArray):
     return None
 
 
-def _is_agrid(ds: xr.Dataset) -> bool:
+def _is_agrid(ds: xr.Dataset, u: str, v: str) -> bool:
     # check if U and V are defined on the same dimensions
     # if yes, interpret as A grid
-    return set(ds["U"].dims) == set(ds["V"].dims)
+    return set(ds[u].dims) == set(ds[v].dims)
 
 
 def _get_time_interval(data: xr.DataArray | ux.UxDataArray) -> TimeInterval | None:
