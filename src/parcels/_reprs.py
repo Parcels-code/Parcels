@@ -185,7 +185,7 @@ def is_builtin_object(obj):
 
 @dataclass
 class _FieldSetDescriptionRow:
-    type_: Literal["Field", "VectorField", "Context value"]
+    type_: Literal["Field", "VectorField", "Context"]
     model_id: int | None
     name: str
     interp_method_or_value: str
@@ -220,7 +220,7 @@ def fieldset_describe(fieldset: FieldSet) -> str:
         models[parent_id] = models.get(parent_id, len(models))
         model_id = models[parent_id]
 
-        type_ = cast(Literal["Field", "VectorField", "Context value"], field.__class__.__name__)
+        type_ = cast(Literal["Field", "VectorField", "Context"], field.__class__.__name__)
 
         rows.append(
             _FieldSetDescriptionRow(
@@ -233,7 +233,7 @@ def fieldset_describe(fieldset: FieldSet) -> str:
     for k, v in fieldset.context.items():
         rows.append(
             _FieldSetDescriptionRow(
-                type_="Context value",
+                type_="Context",
                 model_id=None,
                 name=k,
                 interp_method_or_value=repr(v),

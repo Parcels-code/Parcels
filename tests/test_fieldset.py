@@ -393,16 +393,16 @@ def test_fieldset_add_context_values():
 def test_fieldset_describe(fieldset_two_models):
     fieldset = fieldset_two_models
     expected = """\
-| Type          | Dataset origin   | Name           | Interp method / value   |
-|:--------------|:-----------------|:---------------|:------------------------|
-| Context value | -                | my_list        | [1, 2, 'hello']         |
-| Context value | -                | my_value       | 2.0                     |
-| Field         | 0                | U              | XLinear(...)            |
-| Field         | 0                | V              | XLinear(...)            |
-| VectorField   | 0                | UV             | XLinear_Velocity(...)   |
-| Field         | 1                | U_wind         | XLinear(...)            |
-| Field         | 1                | V_wind         | XLinear(...)            |
-| VectorField   | 1                | UV_wind        | XLinear_Velocity(...)   |
-| Field         | 2                | constant_field | XConstantField(...)     |"""
+| Type        | Dataset origin   | Name           | Interp method / value   |
+|:------------|:-----------------|:---------------|:------------------------|
+| Context     | -                | my_list        | [1, 2, 'hello']         |
+| Context     | -                | my_value       | 2.0                     |
+| Field       | 0                | U              | XLinear(...)            |
+| Field       | 0                | V              | XLinear(...)            |
+| VectorField | 0                | UV             | XLinear_Velocity(...)   |
+| Field       | 1                | U_wind         | XLinear(...)            |
+| Field       | 1                | V_wind         | XLinear(...)            |
+| VectorField | 1                | UV_wind        | XLinear_Velocity(...)   |
+| Field       | 2                | constant_field | XConstantField(...)     |"""
     actual = fieldset.describe()
     assert actual == expected
