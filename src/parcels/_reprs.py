@@ -195,7 +195,7 @@ class _FieldSetDescriptionRow:
         return {
             "Name": self.name,
             "Type": self.type_,
-            "Dataset origin": str(self.model_id) if self.model_id is not None else "-",
+            "Grid number": str(self.model_id) if self.model_id is not None else "-",
             "Interp method / value": self.interp_method_or_value,
         }
 
@@ -204,7 +204,7 @@ def _print_table(rows: list[_FieldSetDescriptionRow]) -> str:
     import pandas as pd
 
     dicts = [r.to_dict() for r in rows]
-    return pd.DataFrame(dicts).sort_values(["Dataset origin", "Type", "Name"]).to_markdown(index=False)
+    return pd.DataFrame(dicts).sort_values(["Grid number", "Type", "Name"]).to_markdown(index=False)
 
 
 def _print_time_interval(time_interval: TimeInterval | None) -> str:
