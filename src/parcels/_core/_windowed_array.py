@@ -6,6 +6,10 @@ Assumptions / current limits:
   * Valid while the requested time indices stay within the resident window
     (i.e. all particles share the clock). A sample that requests time indices
     spanning more than the retained levels would force reloads.
+  * The clock is assumed monotonic but may run in either direction: forward
+    (``dt > 0``) or backward (``dt < 0``). Eviction keeps only the levels each
+    ``isel`` actually requests, which is symmetric in time -- so direction never
+    enters the logic and no integration-direction flag is needed.
 """
 
 from __future__ import annotations
@@ -56,9 +60,12 @@ class WindowedArray:
                 self._cache[lvl] = self._read_level(lvl)
                 self.loads += 1
                 self.bytes_read += self._slab_bytes
-        # retire stale levels (the clock only moves forward across the window)
-        lo = int(np.min(levels))
-        for old in [k for k in self._cache if k < lo]:
+        # retire cached levels outside the span this call requested. Direction never
+        # enters here: a forward (dt > 0) or backward (dt < 0) clock both shed their
+        # trailing edge. Consecutive brackets overlap on one endpoint (inside [lo, hi]),
+        # so it is retained and each level is still read at most once per pass.
+        lo, hi = int(np.min(levels)), int(np.max(levels))
+        for old in [k for k in self._cache if k < lo or k > hi]:
             del self._cache[old]
         if self._max is not None and len(self._cache) > self._max:
             for old in sorted(self._cache)[: len(self._cache) - self._max]:
