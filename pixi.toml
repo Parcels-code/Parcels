@@ -180,3 +180,6 @@ test-notebooks = { features = ["test", "notebooks"], solve-group = "main" }
 docs = { features = ["docs", "notebooks"], solve-group = "docs" }
 typing = { features = ["typing"], solve-group = "main" }
 build = { features = ["rattler-build"] }
+
+[pypi-dependencies]
+detect-test-pollution = ">=1.2.0, <2"

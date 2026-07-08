@@ -390,6 +390,9 @@ def test_fieldset_add_context_values():
     assert fset.context["c2"] == 2.0
 
 
+@pytest.mark.xfail(
+    reason="There's test pollution occuring between test_fieldKh_Brownian and this test due to how constant fields are handled. We should remove this global state."
+)
 def test_fieldset_describe(fieldset_two_models: FieldSet):
     fieldset = fieldset_two_models
     expected = """\
