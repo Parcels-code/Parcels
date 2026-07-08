@@ -35,6 +35,8 @@ cf_xarray = ">=0.8.6"
 cftime = ">=1.6.3"
 pooch = ">=1.8.0"
 polars = ">=1.31.0"
+tabulate = ">=0.10.0"
+
 
 [dependencies]
 parcels = { path = "." }
@@ -155,6 +157,7 @@ numpydoc-lint = { cmd = "python tools/numpydoc-public-api.py", description = "Li
 mypy = "*"
 lxml = "*" # in CI
 types-tqdm = "*"
+pandas-stubs = "*"
 
 [feature.typing.tasks]
 typing = { cmd = "mypy src/parcels --install-types", description = "Run static type checking with mypy." }
@@ -177,3 +180,6 @@ test-notebooks = { features = ["test", "notebooks"], solve-group = "main" }
 docs = { features = ["docs", "notebooks"], solve-group = "docs" }
 typing = { features = ["typing"], solve-group = "main" }
 build = { features = ["rattler-build"] }
+
+[pypi-dependencies]
+detect-test-pollution = ">=1.2.0, <2"
