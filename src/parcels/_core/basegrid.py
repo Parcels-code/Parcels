@@ -8,8 +8,8 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from parcels._core.spatialhash import SpatialHash
 import parcels._typing as ptyping
+from parcels._core.spatialhash import SpatialHash
 
 if TYPE_CHECKING:
     import numpy as np
