@@ -15,6 +15,7 @@ if TYPE_CHECKING:
     from parcels import Field, FieldSet, ParticleSet
     from parcels._core.field import VectorField
     from parcels._core.model import ModelData
+    from parcels._core.utils.time import TimeInterval
 
 
 def fieldset_repr(fieldset: FieldSet) -> str:
@@ -206,6 +207,12 @@ def _print_table(rows: list[_FieldSetDescriptionRow]) -> str:
     return pd.DataFrame(dicts).sort_values(["Dataset origin", "Type", "Name"]).to_markdown(index=False)
 
 
+def _print_time_interval(time_interval: TimeInterval | None) -> str:
+    if time_interval is None:
+        return repr(time_interval)
+    return repr((time_interval.left, time_interval.right))
+
+
 def fieldset_describe(fieldset: FieldSet) -> str:
     rows: list[_FieldSetDescriptionRow] = []
     models: dict[int, int] = {}  # mapping of memory ID to a human readable ID
@@ -239,7 +246,14 @@ def fieldset_describe(fieldset: FieldSet) -> str:
                 interp_method_or_value=repr(v),
             )
         )
-    return _print_table(rows)
+    return (
+        _print_table(rows)
+        + f"""\
+
+
+mesh: {fieldset.models[0].grid._mesh}
+time interval: {_print_time_interval(fieldset.time_interval)}"""
+    )
 
 
 def _get_parent_model(field: Field | VectorField) -> ModelData:

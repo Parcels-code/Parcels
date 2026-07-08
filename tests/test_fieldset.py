@@ -390,7 +390,7 @@ def test_fieldset_add_context_values():
     assert fset.context["c2"] == 2.0
 
 
-def test_fieldset_describe(fieldset_two_models):
+def test_fieldset_describe(fieldset_two_models: FieldSet):
     fieldset = fieldset_two_models
     expected = """\
 | Type        | Dataset origin   | Name           | Interp method / value   |
@@ -403,6 +403,9 @@ def test_fieldset_describe(fieldset_two_models):
 | Field       | 1                | U_wind         | XLinear(...)            |
 | Field       | 1                | V_wind         | XLinear(...)            |
 | VectorField | 1                | UV_wind        | XLinear_Velocity(...)   |
-| Field       | 2                | constant_field | XConstantField(...)     |"""
+| Field       | 2                | constant_field | XConstantField(...)     |
+
+mesh: flat
+time interval: (np.datetime64('2000-01-01T00:00:00.000000000'), np.datetime64('2001-01-01T00:00:00.000000000'))"""
     actual = fieldset.describe()
     assert actual == expected
