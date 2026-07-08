@@ -9,6 +9,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 from parcels._core.spatialhash import SpatialHash
+import parcels._typing as ptyping
 
 if TYPE_CHECKING:
     import numpy as np
@@ -25,6 +26,7 @@ class BaseGrid(ABC):
     """Base class for parcels.XGrid and parcels.UxGrid defining common methods and properties"""
 
     _spatialhash: SpatialHash | None
+    _mesh: ptyping.Mesh
 
     @abstractmethod
     def search(self, z: float, y: float, x: float, ei=None) -> dict[str, tuple[int, float | np.ndarray]]:
