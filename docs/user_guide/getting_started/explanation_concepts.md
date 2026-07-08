@@ -13,7 +13,7 @@ Here, we will explain the most important classes and functions. This overview ca
 A Parcels simulation is generally built up from four different components:
 
 1. [**FieldSet**](#1-fieldset). The input dataset of gridded fields (e.g. ocean current velocity, temperature) in which virtual particles are defined.
-2. [**ParticleSet**](#2-particleset). The dataset of virtual particles. These always contain time, z, y, and x, for which initial values must be defined. The ParticleSet may also contain other, custom variables.
+2. [**ParticleSet**](#2-particleset). The dataset of virtual particles. These always contain t, z, y, and x, for which initial values must be defined. The ParticleSet may also contain other, custom variables.
 3. [**Kernels**](#3-kernels). Kernels perform some specific operation on the particles every time step (e.g. advect the particles with the three-dimensional flow; or interpolate the temperature field to the particle location).
 4. [**Execute**](#4-execute). Execute the simulation. The core method which integrates the operations defined in Kernels for a given runtime and timestep, and writes output to a ParticleFile.
 
@@ -82,16 +82,16 @@ Once the environment has a `parcels.FieldSet` object, you can start defining you
 
 1. The `parcels.FieldSet` object in which the particles will be released.
 2. The type of `parcels.Particle`: A default `Particle` or a custom `Particle`-type with additional `Variable`s (see the [custom kernel example](custom-kernel)).
-3. Initial conditions for each `Variable` defined in the `Particle`, most notably the release coordinates of `time`, `z`, `y` and `x`.
+3. Initial conditions for each `Variable` defined in the `Particle`, most notably the release coordinates of `t`, `z`, `y` and `x`.
 
 ```python
-time = np.array([0])
+t = np.array([0])
 z = np.array([0])
 y = np.array([0])
 x = np.array([0])
 
 # Create a ParticleSet
-pset = parcels.ParticleSet(fieldset=fieldset, pclass=parcels.Particle, time=time, z=z, y=y, x=x)
+pset = parcels.ParticleSet(fieldset=fieldset, pclass=parcels.Particle, t=t, z=z, y=y, x=x)
 ```
 
 ```{admonition} 🖥️ Learn more about how to create ParticleSets
@@ -126,7 +126,7 @@ def AdvectionEE(particles, fieldset):
 Basic kernels are included in Parcels to compute advection and diffusion. The standard advection kernel is `parcels.kernels.AdvectionRK2`, a [second-order Runge-Kutta integrator](https://en.wikipedia.org/wiki/Runge%E2%80%93Kutta_methods#The_Runge%E2%80%93Kutta_method) of the advection function.
 
 ```{warning}
-It is advised _not_ to update the particle coordinates (`particles.time`, `particles.z`, `particles.y`, or `particles.x`) directly within a Kernel, as that can negatively interfere with the way that particle movements by different kernels are vectorially added. Use a change in the coordinates: `particles.dy`, `particles.dx` and/or `particles.dz`. Read the [kernel loop tutorial](../examples/explanation_kernelloop.md) to understand why.
+It is advised _not_ to update the particle coordinates (`particles.t`, `particles.z`, `particles.y`, or `particles.x`) directly within a Kernel, as that can negatively interfere with the way that particle movements by different kernels are vectorially added. Use a change in the coordinates: `particles.dy`, `particles.dx` and/or `particles.dz`. Read the [kernel loop tutorial](../examples/explanation_kernelloop.md) to understand why.
 ```
 
 (custom-kernel)=
@@ -186,7 +186,7 @@ pset.execute(kernels=kernels, dt=dt, runtime=runtime)
 
 ### Output
 
-To analyse the particle data generated in the simulation, we need to define a `parcels.ParticleFile` and add it as an argument to `parcels.ParticleSet.execute()`. The output will be written in a [parquet format](https://parquet.apache.org/), which can be opened as a `polars.DataFrame`. The dataset will contain the particle data with at least `time`, `z`, `y` and `x`, for each particle at timesteps defined by the `outputdt` argument.
+To analyse the particle data generated in the simulation, we need to define a `parcels.ParticleFile` and add it as an argument to `parcels.ParticleSet.execute()`. The output will be written in a [parquet format](https://parquet.apache.org/), which can be opened as a `polars.DataFrame`. The dataset will contain the particle data with at least `t`, `z`, `y` and `x`, for each particle at timesteps defined by the `outputdt` argument.
 
 There are many ways to analyze particle output, and although we provide [a short tutorial to get started](./tutorial_output.ipynb), we recommend writing your own analysis code and checking out [related Lagrangian analysis projects in our community page](../../community/index.md#analysis-code).
 
