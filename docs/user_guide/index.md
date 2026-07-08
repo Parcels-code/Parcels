@@ -9,11 +9,14 @@ The tutorials written for Parcels v3 are currently being updated for Parcels v4.
 
 ## Getting started
 
-🎓 [Quickstart Tutorial](../getting_started/tutorial_quickstart.md)
-
-🎓 [Output Tutorial](../getting_started/tutorial_output.ipynb)
-
-📖 [Conceptual workflow](../getting_started/explanation_concepts.md)
+```{toctree}
+:caption: Getting Started
+:name: getting-started
+:titlesonly:
+../getting_started/tutorial_quickstart.md
+../getting_started/tutorial_output.ipynb
+../getting_started/explanation_concepts.md
+```
 
 ## How to
 
@@ -21,8 +24,11 @@ The tutorials written for Parcels v3 are currently being updated for Parcels v4.
 **Migrate from v3 to v4** using [this migration guide](v4-migration.md)
 ```
 
+## Set up FieldSets
+
 ```{toctree}
 :caption: Set up FieldSets
+:name: setup-fieldsets
 :titlesonly:
 examples/explanation_grids.md
 examples/tutorial_nemo.ipynb
@@ -38,14 +44,20 @@ examples/tutorial_manipulating_field_data.ipynb
 <!-- examples/documentation_indexing.ipynb -->
 <!-- examples/tutorial_timevaryingdepthdimensions.ipynb -->
 
+## Create ParticleSets
+
 ```{toctree}
 :caption: Create ParticleSets
+:name: create-particlesets
 :titlesonly:
 examples/tutorial_delaystart.ipynb
 ```
 
+## Write Kernels
+
 ```{toctree}
 :caption: Write Kernels
+:name: write-kernels
 :titlesonly:
 
 examples/explanation_kernelloop.md
@@ -54,8 +66,11 @@ examples/tutorial_statuscodes.ipynb
 examples/tutorial_write_in_kernel.ipynb
 ```
 
+## Set interpolation methods
+
 ```{toctree}
-:caption: Set interpolation method
+:caption: Set interpolation methods
+:name: interpolation-methods
 :titlesonly:
 
 examples/explanation_interpolation.md
@@ -66,9 +81,11 @@ examples/tutorial_interpolation.ipynb
 <!-- examples/tutorial_analyticaladvection.ipynb -->
 <!-- examples/tutorial_kernelloop.ipynb -->
 
+## Run a simulation
+
 ```{toctree}
 :caption: Run a simulation
-:name: tutorial-execute
+:name: run-simulation
 :titlesonly:
 
 examples/tutorial_dt_integrators.ipynb
@@ -88,8 +105,11 @@ examples/tutorial_dt_integrators.ipynb
 <!-- examples/documentation_unstuck_Agrid.ipynb -->
 <!-- examples/documentation_geospatial.ipynb -->
 
+## Example Kernels
+
 ```{toctree}
 :caption: Example Kernels
+:name: example-kernels
 :titlesonly:
 examples/tutorial_gsw_density.ipynb
 examples/tutorial_Argofloats.ipynb
