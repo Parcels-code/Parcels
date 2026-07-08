@@ -18,6 +18,21 @@ from tests import utils
 ds = datasets_structured["ds_2d_left"]
 
 
+@pytest.fixture
+def fieldset_two_models():
+    ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]].rename({"U_A_grid": "U", "V_A_grid": "V"})
+    ds2 = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]].rename(
+        {"U_A_grid": "U_wind", "V_A_grid": "V_wind"}
+    )
+
+    fset1 = FieldSet.from_sgrid_conventions(ds1, mesh="flat")
+    fset2 = FieldSet.from_sgrid_conventions(ds2, mesh="flat", vector_fields={"UV_wind": ("U_wind", "V_wind")})
+    fset2.add_context("my_value", 2.0)
+    fset2.add_context("my_list", [1, 2, "hello"])
+    fset2.add_constant_field("constant_field", 3.0)
+    return fset1 + fset2
+
+
 def test_fieldset_init_wrong_types():
     with pytest.raises(ValueError, match="Expected `model` to be a ModelData object. Got .*"):
         FieldSet([1.0, 2.0, 3.0])
@@ -373,3 +388,27 @@ def test_fieldset_add_context_values():
 
     assert fset.context["c1"] == 1.0
     assert fset.context["c2"] == 2.0
+
+
+@pytest.mark.xfail(
+    reason="There's test pollution occuring between test_fieldKh_Brownian and this test due to how constant fields are handled. We should remove this global state."
+)
+def test_fieldset_describe(fieldset_two_models: FieldSet):
+    fieldset = fieldset_two_models
+    expected = """\
+| Name           | Type        | Grid number   | Interp method / value   |
+|:---------------|:------------|:--------------|:------------------------|
+| my_list        | Context     | -             | [1, 2, 'hello']         |
+| my_value       | Context     | -             | 2.0                     |
+| U              | Field       | 0             | XLinear(...)            |
+| V              | Field       | 0             | XLinear(...)            |
+| UV             | VectorField | 0             | XLinear_Velocity(...)   |
+| U_wind         | Field       | 1             | XLinear(...)            |
+| V_wind         | Field       | 1             | XLinear(...)            |
+| UV_wind        | VectorField | 1             | XLinear_Velocity(...)   |
+| constant_field | Field       | 2             | XConstantField(...)     |
+
+mesh: flat
+time interval: (np.datetime64('2000-01-01T00:00:00.000000000'), np.datetime64('2001-01-01T00:00:00.000000000'))"""
+    actual = fieldset.describe()
+    assert actual == expected
