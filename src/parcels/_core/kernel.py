@@ -109,7 +109,7 @@ class Kernel:
         particles.x += particles.dx
         particles.y += particles.dy
         particles.z += particles.dz
-        particles.time += particles.dt
+        particles.t += particles.dt
 
         particles.dx = 0
         particles.dy = 0
@@ -190,7 +190,7 @@ class Kernel:
         pset._data["state"][:] = StatusCode.Evaluate
 
         while (len(pset) > 0) and np.any(np.isin(pset.state, [StatusCode.Evaluate, StatusCode.Repeat])):
-            time_to_endtime = compute_time_direction * (endtime - pset.time)
+            time_to_endtime = compute_time_direction * (endtime - pset.t)
 
             evaluate_particles = (np.isin(pset.state, [StatusCode.Success, StatusCode.Evaluate])) & (
                 time_to_endtime >= 0
@@ -228,7 +228,7 @@ class Kernel:
                 pset._data["dt"][:] = dt
 
             # Set particle state for particles that reached endtime
-            particles_endofloop = (pset.state == StatusCode.Evaluate) & (pset.time == endtime)
+            particles_endofloop = (pset.state == StatusCode.Evaluate) & (pset.t == endtime)
             pset[particles_endofloop].state = StatusCode.EndofLoop
 
             # delete particles that signalled deletion
@@ -242,7 +242,7 @@ class Kernel:
                 if np.any(pset.state == error_code):
                     inds = pset.state == error_code
                     if error_code == StatusCode.ErrorOutsideTimeInterval:
-                        error_func(pset[inds].time)
+                        error_func(pset[inds].t)
                     else:
                         error_func(pset[inds].z, pset[inds].y, pset[inds].x)
 

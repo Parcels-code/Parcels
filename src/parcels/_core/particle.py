@@ -127,7 +127,7 @@ def get_default_particle(spatial_dtype: type[np.float32] | type[np.float64]) -> 
     return ParticleClass(
         variables=[
             Variable(
-                "time",
+                "t",
                 dtype=np.float64,
                 attrs={
                     "standard_name": "time",

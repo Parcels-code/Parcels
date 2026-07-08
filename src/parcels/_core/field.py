@@ -138,12 +138,12 @@ class Field:
                 stacklevel=2,
             )
 
-    def eval(self, time: datetime, z, y, x, particles=None):
+    def eval(self, t: datetime, z, y, x, particles=None):
         """Interpolate field values in space and time.
 
         Parameters
         ----------
-        time : float or array-like
+        t : float or array-like
             Time(s) at which to sample the field.
         z, y, x : scalar or array-like
             Vertical (z), latitudinal (y) and longitudinal (x) positions to sample.
@@ -171,7 +171,7 @@ class Field:
         y = np.atleast_1d(y)
         x = np.atleast_1d(x)
 
-        particle_positions, grid_positions = _get_positions(self, time, z, y, x, particles, _ei)
+        particle_positions, grid_positions = _get_positions(self, t, z, y, x, particles, _ei)
 
         value = self.interp_method.interp(particle_positions, grid_positions, self)
 
@@ -184,7 +184,7 @@ class Field:
         self._check_velocitysampling()
         try:
             if isinstance(key, ParticleSetView):
-                return self.eval(key.time, key.z, key.y, key.x, key)
+                return self.eval(key.t, key.z, key.y, key.x, key)
             else:
                 return self.eval(*key)
         except tuple(AllParcelsErrorCodes.keys()) as error:
@@ -243,12 +243,12 @@ class VectorField:
             raise ValueError(f"method must be a `VectorInterpolator` object. Got {type(method)=!r}")
         self._interp_method = method
 
-    def eval(self, time: datetime, z, y, x, particles=None):
+    def eval(self, t: datetime, z, y, x, particles=None):
         """Interpolate vectorfield values in space and time.
 
         Parameters
         ----------
-        time : float or array-like
+        t : float or array-like
             Time(s) at which to sample the field.
         z, y, x : scalar or array-like
             Vertical (z), latitudinal (y) and longitudinal (x) positions to sample.
@@ -277,7 +277,7 @@ class VectorField:
         y = np.atleast_1d(y)
         x = np.atleast_1d(x)
 
-        particle_positions, grid_positions = _get_positions(self.U, time, z, y, x, particles, _ei)
+        particle_positions, grid_positions = _get_positions(self.U, t, z, y, x, particles, _ei)
 
         (u, v, w) = self._interp_method.interp(particle_positions, grid_positions, self)
 
@@ -293,7 +293,7 @@ class VectorField:
     def __getitem__(self, key):
         try:
             if isinstance(key, ParticleSetView):
-                return self.eval(key.time, key.z, key.y, key.x, key)
+                return self.eval(key.t, key.z, key.y, key.x, key)
             else:
                 return self.eval(*key)
         except tuple(AllParcelsErrorCodes.keys()) as error:
@@ -387,11 +387,11 @@ def _assert_same_time_interval(fields: Sequence[Field]) -> None:
             )
 
 
-def _get_positions(field: Field, time, z, y, x, particles, _ei) -> tuple[dict, dict]:
+def _get_positions(field: Field, t, z, y, x, particles, _ei) -> tuple[dict, dict]:
     """Initialize and populate particle_positions and grid_positions dictionaries"""
-    particle_positions = {"time": time, "z": z, "y": y, "x": x}
+    particle_positions = {"t": t, "z": z, "y": y, "x": x}
     grid_positions = {}
-    grid_positions.update(_search_time_index(field, time))
+    grid_positions.update(_search_time_index(field, t))
     grid_positions.update(field.grid.search(z, y, x, ei=_ei))
     _update_particles_ei(particles, grid_positions, field)
     _update_particle_states_position(particles, grid_positions)
