@@ -1,11 +1,10 @@
 # User guide
 
-The core of our user guide is a series of Jupyter notebooks which document how to implement specific Lagrangian simulations with the flexibility of **Parcels**. Before diving into these advanced _how-to_ guides (🖥️), we suggest users get started by reading the explanation (📖) of the core concepts and trying the tutorials (🎓). For a description of the specific classes and functions, check out the [API reference](../reference/parcels/index). To discover other community resources, check out our [Community](../community/index.md) page.
+The core of our user guide is a series of Jupyter notebooks which document how to implement specific Lagrangian simulations with the flexibility of **Parcels**.
 
-```{note}
-The tutorials written for Parcels v3 are currently being updated for Parcels v4. Shown below are only the notebooks which have been updated.
-[Feel free to post a Discussion on GitHub](https://github.com/Parcels-code/Parcels/discussions/categories/ideas) if you feel like v4 needs a specific tutorial that wasn't in v3, or [post an issue](https://github.com/Parcels-code/Parcels/issues/new?template=01_feature.md) if you feel that the notebooks below can be improved!
-```
+Before diving into these advanced _how-to_ guides (🖥️), we suggest users get started by reading the explanation (📖) of the core concepts and trying the tutorials (🎓).
+
+For a description of the specific classes and functions, check out the [API reference](../reference/parcels/index). To discover other community resources, check out our [Community](../community/index.md) page.
 
 ## Installation
 
@@ -14,6 +13,10 @@ The tutorials written for Parcels v3 are currently being updated for Parcels v4.
 :name: installation
 :titlesonly:
 getting_started/installation.md
+```
+
+```{note}
+If you have code that uses Parcels v3, you can migrate to Parcels v4 using [this migration guide](v4-migration.md)
 ```
 
 ## Getting started
@@ -25,10 +28,6 @@ getting_started/installation.md
 getting_started/tutorial_quickstart.md
 getting_started/tutorial_output.ipynb
 getting_started/explanation_concepts.md
-```
-
-```{note}
-Migrate from Parcels v3 to v4 using [this migration guide](v4-migration.md)
 ```
 
 ## Set up FieldSets
