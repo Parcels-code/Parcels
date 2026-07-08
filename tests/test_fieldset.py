@@ -393,17 +393,17 @@ def test_fieldset_add_context_values():
 def test_fieldset_describe(fieldset_two_models: FieldSet):
     fieldset = fieldset_two_models
     expected = """\
-| Type        | Dataset origin   | Name           | Interp method / value   |
-|:------------|:-----------------|:---------------|:------------------------|
-| Context     | -                | my_list        | [1, 2, 'hello']         |
-| Context     | -                | my_value       | 2.0                     |
-| Field       | 0                | U              | XLinear(...)            |
-| Field       | 0                | V              | XLinear(...)            |
-| VectorField | 0                | UV             | XLinear_Velocity(...)   |
-| Field       | 1                | U_wind         | XLinear(...)            |
-| Field       | 1                | V_wind         | XLinear(...)            |
-| VectorField | 1                | UV_wind        | XLinear_Velocity(...)   |
-| Field       | 2                | constant_field | XConstantField(...)     |
+| Name           | Type        | Dataset origin   | Interp method / value   |
+|:---------------|:------------|:-----------------|:------------------------|
+| my_list        | Context     | -                | [1, 2, 'hello']         |
+| my_value       | Context     | -                | 2.0                     |
+| U              | Field       | 0                | XLinear(...)            |
+| V              | Field       | 0                | XLinear(...)            |
+| UV             | VectorField | 0                | XLinear_Velocity(...)   |
+| U_wind         | Field       | 1                | XLinear(...)            |
+| V_wind         | Field       | 1                | XLinear(...)            |
+| UV_wind        | VectorField | 1                | XLinear_Velocity(...)   |
+| constant_field | Field       | 2                | XConstantField(...)     |
 
 mesh: flat
 time interval: (np.datetime64('2000-01-01T00:00:00.000000000'), np.datetime64('2001-01-01T00:00:00.000000000'))"""

@@ -193,9 +193,9 @@ class _FieldSetDescriptionRow:
 
     def to_dict(self) -> dict[str, str]:
         return {
+            "Name": self.name,
             "Type": self.type_,
             "Dataset origin": str(self.model_id) if self.model_id is not None else "-",
-            "Name": self.name,
             "Interp method / value": self.interp_method_or_value,
         }
 
