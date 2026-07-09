@@ -17,9 +17,8 @@ Collaboration on v4 development is happening on the [Parcels v4 Project Board](h
 The pages below provide further background on the development of Parcels v4. You can think of this page as a "living" document as we work towards the release of v4.
 
 ```{toctree}
-installation
 nojit
 TODO
-Parcels v4 Project Board <https://github.com/orgs/Parcels-code/projects/5>
+Parcels v4 Issue Tracker <https://github.com/Parcels-code/Parcels/issues?q=sort%3Aupdated-desc%20is%3Aissue%20is%3Aopen%20(milestone%3A%22Parcels%20v4.0%20(preview)%22%20OR%20milestone%3A%22Parcels%20v4.x%20(stable)%22)>
 Parcels v4 migration guide <../user_guide/v4-migration>
 ```
