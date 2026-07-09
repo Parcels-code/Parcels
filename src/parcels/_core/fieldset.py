@@ -287,7 +287,15 @@ class FieldSet:
         return cls([model])
 
     def describe(self, buf: IO | None = None) -> None:
-        """Return a table description of a FieldSet, which fields it has and their interpolation methods."""
+        """
+        Summary of a FieldSet including available Fields, associated
+        interpolators, and context values.
+
+        Parameters
+        ----------
+        buf : file-like, default: sys.stdout
+            writable buffer
+        """
         if buf is None:
             buf = sys.stdout
         assert buf is not None
