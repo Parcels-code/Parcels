@@ -175,7 +175,9 @@ def interpolate(phi: Callable[[float], list[float]], f: list[float], xsi: float)
     return np.dot(phi(xsi), f)
 
 
-def _geodetic_distance(lat1: float, lat2: float, lon1: float, lon2: float, mesh: Mesh, lat: float, deg2m: float = 1852 * 60.0) -> float:
+def _geodetic_distance(
+    lat1: float, lat2: float, lon1: float, lon2: float, mesh: Mesh, lat: float, deg2m: float = 1852 * 60.0
+) -> float:
     if mesh == "spherical":
         rad = np.pi / 180.0
         return np.sqrt(((lon2 - lon1) * deg2m * np.cos(rad * lat)) ** 2 + ((lat2 - lat1) * deg2m) ** 2)

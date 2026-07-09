@@ -10,10 +10,11 @@ import os
 from collections.abc import Callable, Mapping
 from datetime import datetime
 from typing import TYPE_CHECKING, Any, Literal, get_args
-from parcels._core.mesh import SphericalMesh
 
 import numpy as np
 from cftime import datetime as cftime_datetime
+
+from parcels._core.mesh import SphericalMesh
 
 if TYPE_CHECKING:
     import xgcm
