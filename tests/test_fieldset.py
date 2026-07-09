@@ -1,4 +1,5 @@
 from datetime import timedelta
+from io import StringIO
 
 import cf_xarray  # noqa: F401
 import cftime
@@ -395,6 +396,7 @@ def test_fieldset_add_context_values():
 )
 def test_fieldset_describe(fieldset_two_models: FieldSet):
     fieldset = fieldset_two_models
+    io = StringIO()
     expected = """\
 | Name           | Type        | Grid number   | Interp method / value   |
 |:---------------|:------------|:--------------|:------------------------|
@@ -409,6 +411,8 @@ def test_fieldset_describe(fieldset_two_models: FieldSet):
 | constant_field | Field       | 2             | XConstantField(...)     |
 
 mesh: flat
-time interval: (np.datetime64('2000-01-01T00:00:00.000000000'), np.datetime64('2001-01-01T00:00:00.000000000'))"""
-    actual = fieldset.describe()
+time interval: (np.datetime64('2000-01-01T00:00:00.000000000'), np.datetime64('2001-01-01T00:00:00.000000000'))
+"""
+    fieldset.describe(io)
+    actual = io.getvalue()
     assert actual == expected

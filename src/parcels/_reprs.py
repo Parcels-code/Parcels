@@ -252,7 +252,8 @@ def fieldset_describe(fieldset: FieldSet) -> str:
 
 
 mesh: {fieldset.models[0].grid._mesh}
-time interval: {_print_time_interval(fieldset.time_interval)}"""
+time interval: {_print_time_interval(fieldset.time_interval)}
+"""
     )
 
 
