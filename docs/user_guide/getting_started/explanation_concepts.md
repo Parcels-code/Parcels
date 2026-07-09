@@ -41,16 +41,13 @@ ds_fset = parcels.convert.copernicusmarine_to_sgrid(fields=fields)
 fieldset = parcels.FieldSet.from_sgrid_conventions(ds_fset)
 ```
 
-In some cases, we might want to combine `parcels.Field`s from different sources in the same `parcels.FieldSet`, such as ocean currents from one dataset and Stokes drift from another. This is possible in Parcels by adding each `parcels.Field` separately:
+In some cases, we might want to combine fields from different sources in the same `parcels.FieldSet`, such as ocean currents from one dataset and Stokes drift from another. This is possible in Parcels by creating multiple `parcels.FieldSet` objects and combining them into a single `parcels.FieldSet`:
 
 ```python
-dataset1 = xr.dataset("insert_current_data_files.nc")
 dataset2 = xr.dataset("insert_stokes_data_files.nc")
-
-Ucurrent = parcels.Field(name="Ucurrent", data=dataset1["Ucurrent"], grid=parcels.XGrid.from_dataset(dataset1), interp_method=parcels.interpolators.XLinear)
-Ustokes = parcels.Field(name="Ustokes", data=dataset2["Ustokes"], grid=parcels.XGrid.from_dataset(dataset2), interp_method=parcels.interpolators.XLinear)
-
-fieldset = parcels.FieldSet([Ucurrent, Ustokes])
+fields2 = {"Ustokes": ds_fields["ustokes"], "Vstokes": ds_fields["vstokes"]}
+ds_fset = parcels.convert.copernicusmarine_to_sgrid(fields=fields2)
+fieldset += parcels.FieldSet.from_sgrid_conventions(ds_fset, vector_fields={"UVstokes": ["Ustokes", "Vstokes"]})
 ```
 
 ### Grid
