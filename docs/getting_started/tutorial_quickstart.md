@@ -52,11 +52,10 @@ ds_fset = parcels.convert.copernicusmarine_to_sgrid(fields=fields)
 fieldset = parcels.FieldSet.from_sgrid_conventions(ds_fset)
 ```
 
-You can inspect the `fieldset` by simply printing it:
+You can inspect the `parcels.FieldSet` object with the `describe` method in order to see which `parcels.Field`s are included, and which grid and interpolation method is used for each field. This also gives information on the type of mesh and the time interval of the `parcels.FieldSet`:
 
 ```{code-cell}
-:tags: [hide-output]
-print(fieldset)
+fieldset.describe()
 ```
 
 The subset contains a region of the Agulhas current along the southeastern coast of Africa:
