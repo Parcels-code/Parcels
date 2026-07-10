@@ -79,6 +79,7 @@ def test_to_windowed_arrays_wraps_dask_but_not_numpy():
     # construction is never windowing -- it is opt-in via the fieldset method
     assert not isinstance(fset_np.U.data, WindowedArray)
     assert not isinstance(fset_dk.U.data, WindowedArray)
+    assert isinstance(fset_dk.U.data.data, da.Array)  # chunked input stays lazy (dask-backed)
 
     assert fset_np.to_windowed_arrays() is fset_np  # chainable
     fset_dk.to_windowed_arrays()
