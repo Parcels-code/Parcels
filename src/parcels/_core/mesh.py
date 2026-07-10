@@ -11,7 +11,7 @@ class SphericalMesh:
 
     def __init__(self, radius: float | None = None):
         if radius is not None and not isinstance(radius, (int, float, np.number)):
-            raise TypeError(f"radius must be a number of None, got {type(radius).__name__}")
+            raise TypeError(f"radius must be a number or None, got {type(radius).__name__}")
         if radius is not None and radius <= 0:
             raise ValueError(f"radius must be positive, got {radius}")
         self.radius = radius
