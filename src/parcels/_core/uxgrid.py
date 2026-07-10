@@ -81,7 +81,7 @@ class UxGrid(BaseGrid):
 
     @property
     def deg2m(self) -> float:
-        """Metres per degree of arc for this grid's mesh."""
+        """Metres per arcdegree for this grid's mesh."""
         if self._radius is None:
             return 1852 * 60.0
         else:
