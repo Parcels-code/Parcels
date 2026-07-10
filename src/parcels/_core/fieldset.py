@@ -166,8 +166,15 @@ class FieldSet:
         Parameters
         ----------
         max_levels : int, optional
-            Cap on the number of time levels kept resident per field. ``None``
-            (default) retains every level the advancing clock still brackets.
+            Hard cap on the number of time levels kept resident per field.
+            With the default ``None``, each interpolation call decides what
+            stays resident: the cache keeps exactly the span of time indices
+            that call requests and evicts every level outside it. During time
+            integration particles bracket the current time between two
+            adjacent levels, so the default keeps at most two levels resident.
+            Only when a single call requests a wider time span (e.g. particles
+            spread across many time levels) does the window grow beyond that,
+            and ``max_levels`` then bounds its size.
 
         Returns
         -------
