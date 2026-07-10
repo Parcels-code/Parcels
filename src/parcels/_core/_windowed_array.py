@@ -83,10 +83,14 @@ class WindowedArray:
         t_ind = sel[self._tdim]
         t_vals = np.asarray(t_ind.values if isinstance(t_ind, xr.DataArray) else t_ind)
         levels = np.unique(t_vals)
-        self._ensure(levels)
-
-        # stack the resident levels into one small NumPy block; remap to local indices
-        block = np.stack([self._cache[int(lvl)] for lvl in levels])  # (nlevels, *rest)
+        if levels.size == 0:
+            # empty selection (e.g. a kernel evaluating an empty particle subset):
+            # nothing to load or evict; gather from an empty NumPy block below
+            block = np.empty((0, *self._data.shape[1:]), dtype=self._data.dtype)
+        else:
+            self._ensure(levels)
+            # stack the resident levels into one small NumPy block; remap to local indices
+            block = np.stack([self._cache[int(lvl)] for lvl in levels])  # (nlevels, *rest)
         nda = xr.DataArray(block, dims=self._data.dims)  # NumPy-backed, original dim order
         local = np.searchsorted(levels, t_vals)
         sel[self._tdim] = xr.DataArray(local, dims=getattr(t_ind, "dims", ()))

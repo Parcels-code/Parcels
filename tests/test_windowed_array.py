@@ -105,6 +105,34 @@ def test_to_windowed_arrays_is_idempotent_and_forwards_max_levels():
     assert fs.U.data is first
 
 
+def test_windowed_isel_empty_selection():
+    """An empty pointwise selection (a kernel evaluating an empty particle subset,
+    as in the Argo floats tutorial's phase kernels) must return an empty result
+    without touching the cache, matching plain xarray/dask isel behaviour.
+    """
+    ntime, n = 4, 8
+    base = np.arange(ntime * 3 * n * n, dtype=float).reshape(ntime, 3, n, n)
+    lazy = xr.DataArray(da.from_array(base, chunks=(1, 3, n, n)), dims=("time", "depth", "lat", "lon"))
+    win = WindowedArray(lazy)
+
+    empty = xr.DataArray(np.array([], dtype=int), dims="p")
+    sel = dict(time=empty, depth=empty, lat=empty, lon=empty)
+    got = win.isel(sel)
+    ref = lazy.isel(sel)
+
+    assert got.shape == ref.shape == (0,)
+    assert got.dtype == base.dtype
+    assert win.loads == 0  # nothing read
+    assert win._cache == {}  # nothing cached, nothing evicted
+
+    # a warm cache must survive an interleaved empty call (no spurious eviction)
+    full = xr.DataArray(np.zeros(5, dtype=int), dims="p")
+    win.isel(dict(time=full, depth=full, lat=full, lon=full))
+    assert sorted(win._cache) == [0]
+    win.isel(sel)
+    assert sorted(win._cache) == [0]
+
+
 def test_maybe_windowed_passthrough_for_non_time_leading():
     da_no_time = xr.DataArray(da.zeros((3, 4), chunks=(3, 4)), dims=("lat", "lon"))
     assert maybe_windowed(da_no_time) is da_no_time  # not wrapped (no leading time dim)
