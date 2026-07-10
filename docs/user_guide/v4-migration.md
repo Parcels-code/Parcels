@@ -1,63 +1,81 @@
+---
+html_theme.sidebar_primary.remove: true
+html_theme.sidebar_secondary.remove: true
+---
+
 # Parcels v4 migration guide
 
-```{warning}
-Version 4 of Parcels is unreleased at the moment. The information in this migration guide is a work in progress, and is subject to change. If you would like to provide feedback on this migration guide (or generally on the development of v4) please [submit an issue](https://github.com/Parcels-code/Parcels/issues/new/choose).
-```
+This migration guide gives some tips if you want to migrate your Parcels v3 code to Parcels v4. The biggest changes are in the [Kernel API](#kernels) and the way that [FieldSets are created](#fieldset). The other changes are mostly small and should be easy to fix.
 
 ## Kernels
 
-- The Kernel loop has been 'vectorized', so that the input of a Kernel is not one particle anymore, but a collection of particles. This means that `if`-statements in Kernels don't work anymore. Replace `if`-statements with `numpy.where` statements.
-- `particle.delete()` is no longer valid. Instead, use `particle.state = StatusCode.Delete`.
-- Sharing state between kernels must be done via the particle data (as the kernels are not combined under the hood anymore).
-- `particl_dlon`, `particle_dlat` etc have been renamed to `particle.dlon` and `particle.dlat`.
-- The `time` argument in the Kernel signature has been removed in the Kernel API, so can't be used. Use `particle.t` instead.
-- The `particle` argument in the Kernel signature has been renamed to `particles`.
-- `math` functions should be replaced with array compatible equivalents (e.g., `math.sin` -> `np.sin`). Instead of `ParcelsRandom` you should use numpy's random functions.
-- `particle.depth` has been changed to `particles.z` to be consistent with the [CF conventions for trajectory data](https://cfconventions.org/cf-conventions/cf-conventions.html#trajectory-data), and to make Parcels also generalizable to atmospheric contexts.
-- The `InteractionKernel` class has been removed. Since normal Kernels now have access to _all_ particles, particle-particle interaction can be performed within normal Kernels.
-- Users need to explicitly use `convert_z_to_sigma_croco` in sampling kernels (such as the `AdvectionRK4_3D_CROCO` or `SampleOMegaCroco` kernels) when working with CROCO data, as the automatic conversion from depth to sigma grids under the hood has been removed.
-- We added a new AdvectionRK2 Kernel. The AdvectionRK4 kernel is still available, but RK2 is now the recommended default advection scheme as it is faster while the accuracy is comparable for most applications. See also the Choosing an integration method tutorial.
-- Functions shouldn't be converted to Kernels before adding to a pset.execute() call. Instead, simply pass the function(s) as a list to pset.execute().
-- Kernel variables `time`, `lat` and `lon` have been renamed to `t`, `y` and `x`, and `dlat` and `dlon` have been renamed to `dy` and `dx`. These changes are also reflected on the ParticleSet as well as the ParticleFile output.
+| #   | Description of change                                                                                                                                                    | How to migrate                                                                                                                                                                               |
+| --- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 1   | The Kernel loop has been 'vectorized': the input of a Kernel is a collection of particles                                                                                | Replace `if`-statements with `numpy.where` statements or boolean indexing                                                                                                                    |
+| 2   | Functions that work on particles should be vectorized, i.e. they should work on a collection of particles instead of a single particle                                   | Use `numpy` functions instead of `math` functions                                                                                                                                            |
+| 3   | The `time` argument in the Kernel signature has been removed                                                                                                             | Use `particle.t`                                                                                                                                                                             |
+| 4   | `particle.lon`, `particle.lat` and `particle.depth` have been renamed                                                                                                    | Use `particles.x`, `particles.y` and `particles.z`                                                                                                                                           |
+| 5   | `particle_dlon` `particle_dlat` and `particle_ddepth` have been renamed                                                                                                  | Use `particles.dx`, `particles.dy` and `particles.dz`                                                                                                                                        |
+| 6   | The `particle` argument in the Kernel signature has been renamed to `particles`                                                                                          | Change the argument name in your Kernel signature to `particles`                                                                                                                             |
+| 7   | `particle.delete()` is no longer valid                                                                                                                                   | Use `particle.state = StatusCode.Delete`                                                                                                                                                     |
+| 8   | Kernels are not concatenated under the hood, so can't access each others variables or states                                                                             | Use fieldset.context or particle data to share information between kernels                                                                                                                   |
+| 9   | The `InteractionKernel` class has been removed. Since normal Kernels now have access to _all_ particles                                                                  | Particle-particle interaction can be [performed within normal Kernels](examples/tutorial_interaction)                                                                                        |
+| 10  | Automatic conversion from depth to sigma grids under the hood has been removed                                                                                           | Explicitly use `convert_z_to_sigma_croco` in sampling kernels (such as the `AdvectionRK4_3D_CROCO` or `SampleOMegaCroco` kernels) when working with [CROCO data](examples/tutorial_croco_3D) |
+| 11  | The default advection scheme has been changed from RK4 to RK2 as it is [faster while the accuracy is comparable for most applications](examples/tutorial_dt_integrators) | Use `pset.execute(parcels.AdvectionRK2)` for advection                                                                                                                                       |
 
 ## FieldSet
 
-- `interp_method` has to be an Interpolation function, instead of a string.
-- `.add_constant` has been renamed to `.add_context` to reflect that this value no longer has to be constant
+| #   | Description of change                                                                            | How to migrate                                                                                          |
+| --- | ------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------- |
+| 12  | `FieldSet.interp_method` doesn't accept a string (e.g. `"linear"` or `"nearest"`)                | Use an Interpolation function such as `parcels.interpolators.Linear` or `parcels.interpolators.Nearest` |
+| 13  | `FieldSet.add_constant` has been removed to reflect that this value no longer has to be constant | Use `FieldSet.add_context` to add a context variable to the FieldSet                                    |
 
 ## Particle
 
-- `Particle.add_variables()` has been replaced by `Particle.add_variable()`, which now also takes a list of `Variables`.
+| #   | Description of change                      | How to migrate                                                    |
+| --- | ------------------------------------------ | ----------------------------------------------------------------- |
+| 14  | `Particle.add_variable()` has been removed | Use `Particle.add_variables()`, which takes a list of `Variables` |
 
 ## ParticleSet
 
-- `repeatdt` and `lonlatdepth_dtype` have been removed from the ParticleSet.
-- ParticleSet.execute() expects `numpy.datetime64`/`numpy.timedelta.64` for `endtime`. While floats are supported for `runtime` and `dt`, using `numpy.datetime64`/`numpy.timedelta.64` for these arguments too is encouraged.
-- `ParticleSet.from_field()`, `ParticleSet.from_line()`, `ParticleSet.from_list()` have been removed.
+| #   | Description of change                                                                                            | How to migrate                                                                                                                                         |
+| --- | ---------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ |
+| 15  | pset.execute() does not require Kernel objects                                                                   | Simply pass the function(s) as a list to pset.execute()                                                                                                |
+| 16  | `repeatdt` has been removed                                                                                      | See the [Delayed starts tutorial](examples/tutorial_delaystart.ipynb#release-particles-repeatedly) for how to implement repeated releases of particles |
+| 17  | `lonlatdepth_dtype` has been removed                                                                             | Remove it from your code                                                                                                                               |
+| 18  | ParticleSet.execute() expects `datatime`, `numpy.datetime64` or `numpy.timedelta.64` for `runtime` and `endtime` | Update `runtime` and `endtime` to use `numpy.datetime64` or `numpy.timedelta.64`                                                                       |
+| 19  | `ParticleSet.from_field()`, `ParticleSet.from_line()`, `ParticleSet.from_list()` have been removed               | Use `ParticleSet` constructor directly                                                                                                                 |
 
 ## ParticleFile
 
-- ParticleFiles output is now written in parquet format by default, instead of zarr. This means that ParticleFiles can now be read with `polars.read_parquet`. We also provide a helper function `parcels.read_particlefile` to read ParticleFiles, which automatically converts the cftime.
-- Particlefiles should be created by `ParticleFile(...)` instead of `pset.ParticleFile(...)`
-- `ParticleFile` writing behaviour now errors out if there's existing output (this be being further discussed in https://github.com/Parcels-code/Parcels/issues/2593 )
-- A utility to read in ParticleFile output is now available. `parcels.read_particlefile()`
-- "trajectory" is now called "particle_id" in the particle file output
-- The `name` argument in `ParticleFile` has been replaced by `path` and can now be a string or a Path.
-- The `chunks` argument in `ParticleFile` has been removed.
-- The `to_write="once"`option has been removed. A variable can now only be either written at every output time step, or not written at all.
-- Particles are not written when they are deleted. You can use the functionality to call `ParticleFile.write()` inside a kernel to write out deleted particles if you want to keep track of them.
+| #   | Description of change                                                             | How to migrate                                                                                                                                     |
+| --- | --------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 20  | ParticleFiles output is now written in parquet format by default, instead of zarr | Read the output with `polars.read_parquet` or (to automatically handle cftime) `parcels.read_particlefile`                                         |
+| 21  | `ParticleFile` is not a method of the `ParticleSet` class anymore                 | Use `ParticleFile(...)` instead of `pset.ParticleFile(...)`                                                                                        |
+| 22  | `ParticleFile` writing behaviour errors out if there's existing output            | Remove the existing output file or add `mode="w"` to overwrite                                                                                     |
+| 23  | The output file does not have a `trajectory` dimension                            | Use `particle_id` instead of `trajectory` in your code                                                                                             |
+| 24  | `ParticleFile` does not have a `name` attribute anymore                           | Use `ParticleFile.path`, which can be a string or a Path                                                                                           |
+| 25  | `ParticleFile` does not have a `chunks` argument anymore                          | Remove the `chunks` argument from your code                                                                                                        |
+| 26  | `ParticleFile` does not have a `to_write` argument anymore                        | Remove the `to_write` argument from your code                                                                                                      |
+| 27  | Particles are not written when they are deleted                                   | Call `ParticleFile.write()` [inside a kernel to write out](examples/tutorial_write_in_kernel.ipynb#writing-on-particle-deletion) deleted particles |
 
 ## Field
 
-- `Field.eval()` returns an array of floats instead of a single float (related to the vectorization)
-- `Field.eval()` does not throw OutOfBounds or other errors
-- The `NestedField` class has been removed. See the Nested Grids how-to guide for how to set up Nested Grids in v4.
-- `applyConversion` has been removed. Interpolation on VectorFields automatically converts from m/s to degrees/s for spherical meshes. Other conversion of units should be handled in Interpolators or Kernels.
+| #   | Description of change                                                                                    | How to migrate                                                                                                                                                            |
+| --- | -------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 28  | Calling `Field.eval()` directly only warns if any values are out of bounds, instead of throwing an error | Use `Field.eval()` as before, but check for warnings                                                                                                                      |
+| 29  | `Field.eval()` returns an array of floats (related to the vectorization)                                 | Use `Field.eval()` as before, but expect an array of floats instead of a single float                                                                                     |
+| 30  | The `NestedField` class has been removed                                                                 | See the [Nested Grids tutorial](examples/tutorial_nestedgrids) for how to set up Nested Grids in v4                                                                       |
+| 31  | `applyConversion` has been removed                                                                       | Interpolation on VectorFields automatically converts from m/s to degrees/s for spherical meshes. Other conversion of units should be handled in Interpolators or Kernels. |
 
 ## GridSet
 
-- `GridSet` is now a list, so change `fieldset.gridset.grids[0]` to `fieldset.gridset[0]`.
+| #   | Description of change   | How to migrate                                              |
+| --- | ----------------------- | ----------------------------------------------------------- |
+| 32  | `GridSet` is now a list | Change `fieldset.gridset.grids[0]` to `fieldset.gridset[0]` |
 
 ## UnitConverters
 
-- UnitConverters have been removed. Instead, Interpolation functions should handle unit conversion internally, based on the value of `grid._mesh` ("spherical" or "flat").
+| #   | Description of change                      | How to migrate                                                                                                                                                                   |
+| --- | ------------------------------------------ | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 33  | The `UnitConverter` class has been removed | Remove any `UnitConverter` usage from your code and Interpolation functions should handle unit conversion internally, based on the value of `grid._mesh` ("spherical" or "flat") |
