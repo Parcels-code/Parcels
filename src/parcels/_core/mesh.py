@@ -5,8 +5,9 @@ class SphericalMesh:
     """Spherical mesh object with configurable planetary radius.
 
     Pass to FieldSet object as ``mesh=SphericalMesh(radius=...)``.
-    radius is in meters; None reverts degree to meter conversion
-    to 1852 * 60 .
+    radius is in meters; None reverts to default for Earth, where 
+    arcdegree to meter conversion is defined as 1852 * 60
+    (1852 meters per arcminute * 60 arcminutes per arcdegree).
     """
 
     def __init__(self, radius: float | None = None):
