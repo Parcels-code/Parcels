@@ -62,7 +62,7 @@ ds_fields.load()  # load the dataset into memory
 # Create an idealised wind field and add it to the dataset
 tdim, ydim, xdim = (len(ds_fields.time),len(ds_fields.latitude), len(ds_fields.longitude))
 ds_fields["UWind"] = xr.DataArray(
-    data=np.ones((tdim, ydim, xdim)) * np.sin(ds_fields.latitude.values)[None, :, None],
+    data=0.5 * np.ones((tdim, ydim, xdim)) * np.sin(ds_fields.latitude.values - ds_fields.latitude.values.mean())[None, :, None],
     coords=[ds_fields.time, ds_fields.latitude, ds_fields.longitude])
 
 ds_fields["VWind"] = xr.DataArray(
@@ -88,10 +88,12 @@ fieldset = parcels.FieldSet.from_sgrid_conventions(
 Now we define a wind Kernel that uses a forward Euler method to apply the wind forcing. Note that we update the `particles.dx` and `particles.dy` variables, rather than `particles.x` and `particles.y` directly.
 
 ```{code-cell}
-def wind_kernel(particles, fieldset):
-    uwind, vwind = fieldset.Wind[particles]
-    particles.dx += uwind * particles.dt
-    particles.dy += vwind * particles.dt
+def windRK2(particles, fieldset):
+    (u1, v1) = fieldset.Wind[particles]
+    x1, y1 = (particles.x + u1 * 0.5 * particles.dt, particles.y + v1 * 0.5 * particles.dt)
+    (u2, v2) = fieldset.Wind[particles.t + 0.5 * particles.dt, particles.z, y1, x1, particles]
+    particles.dx += u2 * particles.dt
+    particles.dy += v2 * particles.dt
 ```
 
 First run a simulation where we apply Kernels as `[AdvectionRK2, wind_kernel]`
@@ -100,7 +102,7 @@ First run a simulation where we apply Kernels as `[AdvectionRK2, wind_kernel]`
 :tags: [hide-output]
 npart = 10
 z = np.repeat(ds_fields.depth[0].values, npart)
-lons = np.repeat(31, npart)
+lons = np.repeat(32.2, npart)
 lats = np.linspace(-32.5, -30.5, npart)
 
 pset = parcels.ParticleSet(fieldset, pclass=parcels.Particle, z=z, y=lats, x=lons)
@@ -108,14 +110,14 @@ output_file = parcels.ParticleFile(
     path="advection_then_wind.parquet", outputdt=np.timedelta64(6,'h')
 )
 pset.execute(
-    [parcels.kernels.AdvectionRK2, wind_kernel],
+    [parcels.kernels.AdvectionRK2, windRK2],
     runtime=np.timedelta64(5,'D'),
     dt=np.timedelta64(1,'h'),
     output_file=output_file,
 )
 ```
 
-Then also run a simulation where we apply the Kernels in the reverse order as `[wind_kernel, AdvectionRK2]`
+Then also run a simulation where we apply the Kernels in the reverse order as `[windRK2, AdvectionRK2]`
 
 ```{code-cell}
 :tags: [hide-output]
@@ -126,7 +128,7 @@ output_file_reverse = parcels.ParticleFile(
     path="wind_then_advection.parquet", outputdt=np.timedelta64(6,"h")
 )
 pset_reverse.execute(
-    [wind_kernel, parcels.kernels.AdvectionRK2],
+    [windRK2, parcels.kernels.AdvectionRK2],
     runtime=np.timedelta64(5,"D"),
     dt=np.timedelta64(1,"h"),
     output_file=output_file_reverse,
