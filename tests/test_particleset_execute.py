@@ -171,7 +171,6 @@ def test_particleset_interpolate_on_domainedge(zonal_flow_fieldset):
     def SampleU(particles, fieldset):  # pragma: no cover
         particles.var = fieldset.U[particles]
 
-    print(fieldset.U.grid.lon)
     pset = ParticleSet(fieldset, pclass=MyParticle, x=fieldset.U.grid.lon[-1], y=fieldset.U.grid.lat[-1])
     pset.execute(SampleU, runtime=np.timedelta64(1, "D"), dt=np.timedelta64(1, "D"))
     np.testing.assert_equal(pset[0].var, 1)

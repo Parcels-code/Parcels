@@ -17,9 +17,9 @@ A Parcels simulation is generally built up from four different components:
 3. [**Kernels**](#3-kernels). Kernels perform some specific operation on the particles every time step (e.g. advect the particles with the three-dimensional flow; or interpolate the temperature field to the particle location).
 4. [**Execute**](#4-execute). Execute the simulation. The core method which integrates the operations defined in Kernels for a given runtime and timestep, and writes output to a ParticleFile.
 
-We discuss each component in more detail below. The subsections titled **"Learn how to"** link to more detailed [how-to guide notebooks](../user_guide/index.md) and more detailed _explanations_ of Parcels functionality are included under **"Read more about"** subsections. The full list of classes and methods is in the [API reference](../reference/parcels/index). If you want to learn by doing, check out the [quickstart tutorial](./tutorial_quickstart.md) to start creating your first Parcels simulation.
+We discuss each component in more detail below. The subsections titled **"Learn how to"** link to more detailed [how-to guide notebooks](../index.md) and more detailed _explanations_ of Parcels functionality are included under **"Read more about"** subsections. The full list of classes and methods is in the [API reference](../../reference/parcels/index). If you want to learn by doing, check out the [quickstart tutorial](./tutorial_quickstart.md) to start creating your first Parcels simulation.
 
-```{figure} ../_static/concepts_diagram.png
+```{figure} ../../_static/concepts_diagram.png
 :alt: Parcels concepts diagram
 :width: 100%
 
@@ -41,16 +41,13 @@ ds_fset = parcels.convert.copernicusmarine_to_sgrid(fields=fields)
 fieldset = parcels.FieldSet.from_sgrid_conventions(ds_fset)
 ```
 
-In some cases, we might want to combine `parcels.Field`s from different sources in the same `parcels.FieldSet`, such as ocean currents from one dataset and Stokes drift from another. This is possible in Parcels by adding each `parcels.Field` separately:
+In some cases, we might want to combine fields from different sources in the same `parcels.FieldSet`, such as ocean currents from one dataset and Stokes drift from another. This is possible in Parcels by creating multiple `parcels.FieldSet` objects and combining them into a single `parcels.FieldSet`:
 
 ```python
-dataset1 = xr.dataset("insert_current_data_files.nc")
 dataset2 = xr.dataset("insert_stokes_data_files.nc")
-
-Ucurrent = parcels.Field(name="Ucurrent", data=dataset1["Ucurrent"], grid=parcels.XGrid.from_dataset(dataset1), interp_method=parcels.interpolators.XLinear)
-Ustokes = parcels.Field(name="Ustokes", data=dataset2["Ustokes"], grid=parcels.XGrid.from_dataset(dataset2), interp_method=parcels.interpolators.XLinear)
-
-fieldset = parcels.FieldSet([Ucurrent, Ustokes])
+fields2 = {"Ustokes": ds_fields["ustokes"], "Vstokes": ds_fields["vstokes"]}
+ds_fset = parcels.convert.copernicusmarine_to_sgrid(fields=fields2)
+fieldset += parcels.FieldSet.from_sgrid_conventions(ds_fset, vector_fields={"UVstokes": ["Ustokes", "Vstokes"]})
 ```
 
 ### Grid
@@ -59,7 +56,7 @@ Each `parcels.Field` is defined on a grid. With Parcels, we can simulate particl
 
 ```{admonition} 📖 Read more about grids
 :class: seealso
-- [Grids explanation](../user_guide/examples/explanation_grids.md)
+- [Grids explanation](../examples/explanation_grids.md)
 ```
 
 ### Interpolation
@@ -68,12 +65,12 @@ To find the value of a `parcels.Field` at any particle location, Parcels interpo
 
 ```{admonition} 📖 Read more about interpolation
 :class: seealso
-- [Interpolation explanation](../user_guide/examples/explanation_interpolation.md)
+- [Interpolation explanation](../examples/explanation_interpolation.md)
 ```
 
 ```{admonition} 🖥️ Learn how to use Parcels interpolators
 :class: seealso
-- [Interpolators guide](../user_guide/examples/tutorial_interpolation.ipynb)
+- [Interpolators guide](../examples/tutorial_interpolation.ipynb)
 ```
 
 ## 2. ParticleSet
@@ -96,7 +93,7 @@ pset = parcels.ParticleSet(fieldset=fieldset, pclass=parcels.Particle, t=t, z=z,
 
 ```{admonition} 🖥️ Learn more about how to create ParticleSets
 :class: seealso
-- [Release particles at different times](../user_guide/examples/tutorial_delaystart.ipynb)
+- [Release particles at different times](../examples/tutorial_delaystart.ipynb)
 ```
 
 ## 3. Kernels
@@ -126,7 +123,7 @@ def AdvectionEE(particles, fieldset):
 Basic kernels are included in Parcels to compute advection and diffusion. The standard advection kernel is `parcels.kernels.AdvectionRK2`, a [second-order Runge-Kutta integrator](https://en.wikipedia.org/wiki/Runge%E2%80%93Kutta_methods#The_Runge%E2%80%93Kutta_method) of the advection function.
 
 ```{warning}
-It is advised _not_ to update the particle coordinates (`particles.t`, `particles.z`, `particles.y`, or `particles.x`) directly within a Kernel, as that can negatively interfere with the way that particle movements by different kernels are vectorially added. Use a change in the coordinates: `particles.dy`, `particles.dx` and/or `particles.dz`. Read the [kernel loop tutorial](../user_guide/examples/explanation_kernelloop.md) to understand why.
+It is advised _not_ to update the particle coordinates (`particles.t`, `particles.z`, `particles.y`, or `particles.x`) directly within a Kernel, as that can negatively interfere with the way that particle movements by different kernels are vectorially added. Use a change in the coordinates: `particles.dy`, `particles.dx` and/or `particles.dz`. Read the [kernel loop tutorial](../examples/explanation_kernelloop.md) to understand why.
 ```
 
 (custom-kernel)=
@@ -151,20 +148,20 @@ Every Kernel must be a function with the following (and only those) arguments: `
 ```
 
 ```{warning}
-We have to be careful with kernels that sample velocities on "spherical" grids (so with longitude and latitude in degrees). Parcels can automatically convert velocities from m s<sup>-1</sup> to degrees s<sup>-1</sup>, but only when using `VectorFields`. [This guide](../user_guide/examples/tutorial_velocityconversion.ipynb) describes how to use velocities on a "spherical" grid in Parcels.
+We have to be careful with kernels that sample velocities on "spherical" grids (so with longitude and latitude in degrees). Parcels can automatically convert velocities from m s<sup>-1</sup> to degrees s<sup>-1</sup>, but only when using `VectorFields`. [This guide](../examples/tutorial_velocityconversion.ipynb) describes how to use velocities on a "spherical" grid in Parcels.
 ```
 
 ```{admonition} 📖 Read more about the Kernel loop
 :class: seealso
-- [The Kernel loop](../user_guide/examples/explanation_kernelloop.md)
+- [The Kernel loop](../examples/explanation_kernelloop.md)
 ```
 
 ```{admonition} 🖥️ Learn how to write Kernels
 :class: seealso
-- [Sample fields like temperature](../user_guide/examples/tutorial_sampling.ipynb).
-- [Mimic the behaviour of ARGO floats](../user_guide/examples/tutorial_Argofloats.ipynb).
-- [Add diffusion to approximate subgrid-scale processes and unresolved physics](../user_guide/examples/tutorial_diffusion.ipynb).
-- [Convert velocities between units in m s<sup>-1</sup> and degrees s<sup>-1</sup>](../user_guide/examples/tutorial_velocityconversion.ipynb).
+- [Sample fields like temperature](../examples/tutorial_sampling.ipynb).
+- [Mimic the behaviour of ARGO floats](../examples/tutorial_Argofloats.ipynb).
+- [Add diffusion to approximate subgrid-scale processes and unresolved physics](../examples/tutorial_diffusion.ipynb).
+- [Convert velocities between units in m s<sup>-1</sup> and degrees s<sup>-1</sup>](../examples/tutorial_velocityconversion.ipynb).
 ```
 
 ## 4. Execute
@@ -188,10 +185,10 @@ pset.execute(kernels=kernels, dt=dt, runtime=runtime)
 
 To analyse the particle data generated in the simulation, we need to define a `parcels.ParticleFile` and add it as an argument to `parcels.ParticleSet.execute()`. The output will be written in a [parquet format](https://parquet.apache.org/), which can be opened as a `polars.DataFrame`. The dataset will contain the particle data with at least `t`, `z`, `y` and `x`, for each particle at timesteps defined by the `outputdt` argument.
 
-There are many ways to analyze particle output, and although we provide [a short tutorial to get started](./tutorial_output.ipynb), we recommend writing your own analysis code and checking out [related Lagrangian analysis projects in our community page](../community/index.md#analysis-code).
+There are many ways to analyze particle output, and although we provide [a short tutorial to get started](./tutorial_output.ipynb), we recommend writing your own analysis code and checking out [related Lagrangian analysis projects in our community page](../../community/index.md#analysis-code).
 
 ```{admonition} 🖥️ Learn how to run a simulation
 :class: seealso
-- [Choose an appropriate timestep and integrator](../user_guide/examples/tutorial_dt_integrators.ipynb)
+- [Choose an appropriate timestep and integrator](../examples/tutorial_dt_integrators.ipynb)
 - [Work with Parcels output](./tutorial_output.ipynb)
 ```

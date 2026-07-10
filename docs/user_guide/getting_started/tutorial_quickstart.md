@@ -52,11 +52,10 @@ ds_fset = parcels.convert.copernicusmarine_to_sgrid(fields=fields)
 fieldset = parcels.FieldSet.from_sgrid_conventions(ds_fset)
 ```
 
-You can inspect the `fieldset` by simply printing it:
+You can inspect the `parcels.FieldSet` object with the `describe` method in order to see which `parcels.Field`s are included, and which grid and interpolation method is used for each field. This also gives information on the type of mesh and the time interval of the `parcels.FieldSet`:
 
 ```{code-cell}
-:tags: [hide-output]
-print(fieldset)
+fieldset.describe()
 ```
 
 The subset contains a region of the Agulhas current along the southeastern coast of Africa:
@@ -74,7 +73,7 @@ the virtual particles for which we will calculate the trajectories.
 We need to create a {py:obj}`parcels.ParticleSet` object with the particles' initial time and position. The `parcels.ParticleSet`
 object also needs to know about the `FieldSet` in which the particles "live". Finally, we need to specify the type of
 {py:obj}`parcels.ParticleClass` we want to use. The default particles have `t`, `z`, `y`, and `x`, but you can easily add
-other {py:obj}`parcels.Variable`s such as size, temperature, or age to create your own particles to mimic plastic or an [ARGO float](../user_guide/examples/tutorial_Argofloats.ipynb).
+other {py:obj}`parcels.Variable`s such as size, temperature, or age to create your own particles to mimic plastic or an [ARGO float](../examples/tutorial_Argofloats.ipynb).
 
 ```{code-cell}
 # Particle locations and initial time

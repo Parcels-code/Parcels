@@ -1,8 +1,9 @@
 from __future__ import annotations
 
 import functools
+import sys
 from collections.abc import Iterable
-from typing import TYPE_CHECKING
+from typing import IO, TYPE_CHECKING
 
 import cf_xarray  # noqa: F401
 import numpy as np
@@ -311,9 +312,21 @@ class FieldSet:
         model = StructuredModelData.from_sgrid_conventions(ds, mesh, vector_fields)
         return cls([model])
 
-    def describe(self):
-        """Return a table description of a FieldSet, which fields it has and their interpolation methods."""
-        return fieldset_describe(self)
+    def describe(self, buf: IO | None = None) -> None:
+        """
+        Summary of a FieldSet including available Fields, associated
+        interpolators, and context values.
+
+        Parameters
+        ----------
+        buf : file-like, default: sys.stdout
+            writable buffer
+        """
+        if buf is None:
+            buf = sys.stdout
+        assert buf is not None
+
+        buf.write(fieldset_describe(self))
 
 
 def assert_compatible_fieldsets(left: FieldSet, right: FieldSet) -> None:
