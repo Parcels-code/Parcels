@@ -46,16 +46,18 @@ class SpatialHash:
         if isinstance_noimport(grid, "XGrid"):
             self._coord_dim = 2  # Number of computational coordinates is 2 (bilinear interpolation)
             if self._source_grid._mesh == "spherical":
-                # Boundaries of the hash grid are the unit cube
-                self._xmin = -1.0
-                self._ymin = -1.0
-                self._zmin = -1.0
-                self._xmax = 1.0
-                self._ymax = 1.0
-                self._zmax = 1.0  # Compute the cell centers of the source grid (for now, assuming Xgrid)
                 lon = np.deg2rad(self._source_grid.lon)
                 lat = np.deg2rad(self._source_grid.lat)
                 x, y, z = _latlon_rad_to_xyz(lat, lon)
+                # Boundaries of the hash grid are the Cartesian bounding box of the
+                # transformed grid, so that regional domains retain full quantization
+                # resolution instead of spreading it over the whole unit cube
+                self._xmin = x.min()
+                self._xmax = x.max()
+                self._ymin = y.min()
+                self._ymax = y.max()
+                self._zmin = z.min()
+                self._zmax = z.max()
                 _xbound = np.stack(
                     (
                         x[:-1, :-1],
@@ -149,19 +151,20 @@ class SpatialHash:
         elif isinstance_noimport(grid, "UxGrid"):
             self._coord_dim = grid.uxgrid.n_max_face_nodes  # Number of barycentric coordinates
             if self._source_grid._mesh == "spherical":
-                # Boundaries of the hash grid are the unit cube
-                self._xmin = -1.0
-                self._ymin = -1.0
-                self._zmin = -1.0
-                self._xmax = 1.0
-                self._ymax = 1.0
-                self._zmax = 1.0  # Compute the cell centers of the source grid (for now, assuming Xgrid)
                 # Reshape node coordinates to (nfaces, nnodes_per_face)
                 nids = self._source_grid.uxgrid.face_node_connectivity.values
                 lon = self._source_grid.uxgrid.node_lon.values[nids]
                 lat = self._source_grid.uxgrid.node_lat.values[nids]
-                x, y, z = _latlon_rad_to_xyz(np.deg2rad(lat), np.deg2rad(lon))
                 _xbound, _ybound, _zbound = _latlon_rad_to_xyz(np.deg2rad(lat), np.deg2rad(lon))
+                # Boundaries of the hash grid are the Cartesian bounding box of the
+                # transformed grid, so that regional domains retain full quantization
+                # resolution instead of spreading it over the whole unit cube
+                self._xmin = _xbound.min()
+                self._xmax = _xbound.max()
+                self._ymin = _ybound.min()
+                self._ymax = _ybound.max()
+                self._zmin = _zbound.min()
+                self._zmax = _zbound.max()
 
                 # Compute bounding box of each face
                 self._xlow = np.atleast_2d(np.min(_xbound, axis=-1))
@@ -588,10 +591,15 @@ def quantize_coordinates(x, y, z, xmin, xmax, ymin, ymax, zmin, zmax, bitwidth=1
         zn = np.where(dz != 0, (z - zmin) / dz, 0.0)
 
     # --- 2) Quantize to (0..bitwidth). ---
-    # Multiply by bitwidth, round down, and clip to be safe against slight overshoot.
-    xq = np.clip((xn * bitwidth).astype(np.uint32), 0, bitwidth)
-    yq = np.clip((yn * bitwidth).astype(np.uint32), 0, bitwidth)
-    zq = np.clip((zn * bitwidth).astype(np.uint32), 0, bitwidth)
+    # Multiply by bitwidth, round down, and clip to be safe against overshoot.
+    # Clip in float space before casting: out-of-range queries (e.g., points outside
+    # a regional domain) would otherwise wrap around when a negative float is cast to uint32.
+    # NaN queries produce arbitrary codes here; they are discarded downstream by the
+    # finite-coordinate mask in SpatialHash.query.
+    with np.errstate(invalid="ignore"):
+        xq = np.clip(xn * bitwidth, 0, bitwidth).astype(np.uint32)
+        yq = np.clip(yn * bitwidth, 0, bitwidth).astype(np.uint32)
+        zq = np.clip(zn * bitwidth, 0, bitwidth).astype(np.uint32)
 
     return xq, yq, zq
 
