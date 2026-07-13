@@ -241,6 +241,21 @@ def _maybe_swap_depth_direction(ds: xr.Dataset) -> xr.Dataset:
     return ds
 
 
+def _maybe_expand_depth_dimension(ds: xr.Dataset) -> xr.Dataset:
+    if "depth" not in ds.dims:
+        ds = ds.expand_dims(dim={"depth": [0]}, axis=1)
+        logger.info("No depth dimension found in dataset. Added a singleton depth dimension.")
+    return ds
+
+
+def _maybe_fill_na_to_zeros(ds: xr.Dataset) -> xr.Dataset:
+    for var in ds.data_vars:
+        if ds[var].isnull().any():
+            ds[var] = ds[var].fillna(0)
+            logger.info(f"Filled NaN values in variable '{var}' with zeros.")
+    return ds
+
+
 # TODO is this function still needed, now that we require users to provide field names explicitly?
 def _discover_U_and_V(ds: xr.Dataset, cf_standard_names_fallbacks) -> xr.Dataset:
     # Assumes that the dataset has U and V data
@@ -541,6 +556,9 @@ def copernicusmarine_to_sgrid(
     ds.attrs.clear()  # Clear global attributes from the merging
 
     ds = _maybe_rename_coords(ds, _COPERNICUS_MARINE_AXIS_VARNAMES)
+    ds = _maybe_expand_depth_dimension(ds)
+    ds = _maybe_fill_na_to_zeros(ds)
+
     if "W" in ds.data_vars:
         # Negate W to convert from up positive to down positive (as that's the direction of positive z)
         ds["W"].data *= -1

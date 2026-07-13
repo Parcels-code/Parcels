@@ -174,6 +174,23 @@ def test_convert_copernicusmarine_no_logs(ds, caplog):
     assert caplog.text == ""
 
 
+def test_convert_copernicusmarine_withnans(caplog):
+    ds = datasets_circulation_models["ds_copernicusmarine"]
+    ds["uo"].data[0, 0, 0, 0] = float("nan")
+    ds_fset = convert.copernicusmarine_to_sgrid(fields={"uo": ds["uo"]})
+    fieldset = FieldSet.from_sgrid_conventions(ds_fset)
+    assert fieldset.uo.data[0, 0, 0, 0] == 0.0
+    assert "Filled NaN values in variable 'uo' with zeros." in caplog.text
+
+
+def test_convert_copernicusmarine_nodepth(caplog):
+    ds = datasets_circulation_models["ds_copernicusmarine"]
+    ds = ds.isel(depth=0).drop_vars("depth")
+    ds_fset = convert.copernicusmarine_to_sgrid(fields={"uo": ds["uo"]})
+    FieldSet.from_sgrid_conventions(ds_fset)
+    assert "No depth dimension found in dataset. Added a singleton depth dimension." in caplog.text
+
+
 def test_convert_fesom_to_ugrid():
     grid_file = open_remote_dataset("Benchmarks_FESOM2-baroclinic-gyre/grid")
     data_files = open_remote_dataset("Benchmarks_FESOM2-baroclinic-gyre/data")
