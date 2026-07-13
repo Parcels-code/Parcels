@@ -137,9 +137,9 @@ def test_particleset_run_to_endtime(fieldset):
     def SampleU(particles, fieldset):  # pragma: no cover
         _ = fieldset.U[particles]
 
-    pset = ParticleSet(fieldset, x=[0.2], y=[5.0], time=[starttime])
+    pset = ParticleSet(fieldset, x=[0.2], y=[5.0], t=[starttime])
     pset.execute(SampleU, endtime=endtime, dt=np.timedelta64(1, "D"))
-    assert np.timedelta64(int(pset[0].time), "s") + fieldset.time_interval.left == endtime
+    assert np.timedelta64(int(pset[0].t), "s") + fieldset.time_interval.left == endtime
 
 
 @pytest.mark.parametrize("kernel", [AdvectionEE, AdvectionRK2, AdvectionRK4, AdvectionRK45])
@@ -153,14 +153,14 @@ def test_particleset_run_RK_to_endtime_fwd_bwd(fieldset, kernel, dt):
     fieldset.U.data[:] = 0.0
     fieldset.V.data[:] = 0.0
 
-    pset = ParticleSet(fieldset, pclass=DEFAULT_PARTICLES[kernel], x=[0.2], y=[5.0], time=[starttime])
+    pset = ParticleSet(fieldset, pclass=DEFAULT_PARTICLES[kernel], x=[0.2], y=[5.0], t=[starttime])
     pset.execute(kernel, endtime=endtime, dt=dt)
-    assert pset[0].time == fieldset.time_interval.time_length_as_flt
+    assert pset[0].t == fieldset.time_interval.time_length_as_flt
 
     pset._requires_prepended_positionupdate_kernel = False  # Reset positionupdate_kernel use for backward
 
     pset.execute(kernel, endtime=starttime, dt=-dt)
-    assert pset[0].time == 0.0
+    assert pset[0].t == 0.0
 
 
 def test_particleset_interpolate_on_domainedge(zonal_flow_fieldset):
@@ -171,7 +171,6 @@ def test_particleset_interpolate_on_domainedge(zonal_flow_fieldset):
     def SampleU(particles, fieldset):  # pragma: no cover
         particles.var = fieldset.U[particles]
 
-    print(fieldset.U.grid.lon)
     pset = ParticleSet(fieldset, pclass=MyParticle, x=fieldset.U.grid.lon[-1], y=fieldset.U.grid.lat[-1])
     pset.execute(SampleU, runtime=np.timedelta64(1, "D"), dt=np.timedelta64(1, "D"))
     np.testing.assert_equal(pset[0].var, 1)
@@ -223,10 +222,10 @@ def test_pset_stop_simulation(fieldset, npart):
     pset = ParticleSet(fieldset, x=np.zeros(npart), y=np.zeros(npart), pclass=Particle)
 
     def Delete(particles, fieldset):  # pragma: no cover
-        particles[particles.time >= 4].state = StatusCode.StopExecution
+        particles[particles.t >= 4].state = StatusCode.StopExecution
 
     pset.execute(Delete, dt=np.timedelta64(1, "s"), runtime=np.timedelta64(21, "s"))
-    assert pset[0].time == 4
+    assert pset[0].t == 4
 
 
 @pytest.mark.parametrize("with_delete", [True, False])
@@ -254,9 +253,9 @@ def test_execution_endtime(fieldset, starttime, endtime, dt):
     starttime = fieldset.time_interval.left + np.timedelta64(starttime, "s")
     endtime = fieldset.time_interval.left + np.timedelta64(endtime, "s")
     dt = np.timedelta64(dt, "s")
-    pset = ParticleSet(fieldset, time=starttime, x=0, y=0)
+    pset = ParticleSet(fieldset, t=starttime, x=0, y=0)
     pset.execute(DoNothing, endtime=endtime, dt=dt)
-    assert pset.time == timedelta_to_float(endtime - fieldset.time_interval.left)
+    assert pset.t == timedelta_to_float(endtime - fieldset.time_interval.left)
 
 
 def test_dont_run_particles_outside_starttime(fieldset):
@@ -267,12 +266,12 @@ def test_dont_run_particles_outside_starttime(fieldset):
     def AddLon(particles, fieldset):  # pragma: no cover
         particles.x += 1
 
-    pset = ParticleSet(fieldset, x=np.zeros(len(start_times)), y=np.zeros(len(start_times)), time=start_times)
+    pset = ParticleSet(fieldset, x=np.zeros(len(start_times)), y=np.zeros(len(start_times)), t=start_times)
     pset.execute(AddLon, dt=np.timedelta64(1, "s"), endtime=endtime)
 
     np.testing.assert_array_equal(pset.x, [8, 6, 0])
-    assert pset.time[0:1] == timedelta_to_float(endtime - fieldset.time_interval.left)
-    assert pset.time[2] == timedelta_to_float(
+    assert pset.t[0:1] == timedelta_to_float(endtime - fieldset.time_interval.left)
+    assert pset.t[2] == timedelta_to_float(
         start_times[2] - fieldset.time_interval.left
     )  # this particle has not been executed
 
@@ -280,12 +279,12 @@ def test_dont_run_particles_outside_starttime(fieldset):
     start_times = [fieldset.time_interval.right - np.timedelta64(t, "s") for t in [0, 2, 10]]
     endtime = fieldset.time_interval.right - np.timedelta64(8, "s")
 
-    pset = ParticleSet(fieldset, x=np.zeros(len(start_times)), y=np.zeros(len(start_times)), time=start_times)
+    pset = ParticleSet(fieldset, x=np.zeros(len(start_times)), y=np.zeros(len(start_times)), t=start_times)
     pset.execute(AddLon, dt=-np.timedelta64(1, "s"), endtime=endtime)
 
     np.testing.assert_array_equal(pset.x, [8, 6, 0])
-    assert pset.time[0:1] == timedelta_to_float(endtime - fieldset.time_interval.left)
-    assert pset.time[2] == timedelta_to_float(
+    assert pset.t[0:1] == timedelta_to_float(endtime - fieldset.time_interval.left)
+    assert pset.t[2] == timedelta_to_float(
         start_times[2] - fieldset.time_interval.left
     )  # this particle has not been executed
 
@@ -302,7 +301,7 @@ def test_some_particles_throw_outofbounds(zonal_flow_fieldset):
 def test_delete_on_all_errors(fieldset):
     def MoveRight(particles, fieldset):  # pragma: no cover
         particles.dx += 1
-        fieldset.U[particles.time, particles.z, particles.y, particles.x, particles]
+        fieldset.U[particles.t, particles.z, particles.y, particles.x, particles]
 
     def DeleteAllErrorParticles(particles, fieldset):  # pragma: no cover
         particles[particles.state > 20].state = StatusCode.Delete
@@ -314,10 +313,10 @@ def test_delete_on_all_errors(fieldset):
 
 def test_some_particles_throw_outoftime(fieldset):
     time = [fieldset.time_interval.left + np.timedelta64(t, "D") for t in [0, 350]]
-    pset = ParticleSet(fieldset, x=np.zeros_like(time), y=np.zeros_like(time), time=time)
+    pset = ParticleSet(fieldset, x=np.zeros_like(time), y=np.zeros_like(time), t=time)
 
     def FieldAccessOutsideTime(particles, fieldset):  # pragma: no cover
-        fieldset.U[particles.time + 400 * 86400, particles.z, particles.y, particles.x, particles]
+        fieldset.U[particles.t + 400 * 86400, particles.z, particles.y, particles.x, particles]
 
     with pytest.raises(OutsideTimeInterval):
         pset.execute(FieldAccessOutsideTime, runtime=np.timedelta64(1, "D"), dt=np.timedelta64(10, "D"))
@@ -335,7 +334,7 @@ def test_errorinterpolation(fieldset):
             return np.nan * np.zeros_like(particle_positions["x"])
 
     def SampleU(particles, fieldset):  # pragma: no cover
-        fieldset.U[particles.time, particles.z, particles.y, particles.x, particles]
+        fieldset.U[particles.t, particles.z, particles.y, particles.x, particles]
 
     fieldset.U.interp_method = NaNInterpolator()
     pset = ParticleSet(fieldset, x=[0, 2], y=[0, 0])
@@ -351,14 +350,14 @@ def test_execution_check_stopallexecution(fieldset):
     pset = ParticleSet(fieldset, x=[0, 0], y=[0, 0])
     pset.execute(addoneLon, runtime=np.timedelta64(20, "s"), dt=np.timedelta64(1, "s"))
     np.testing.assert_allclose(pset.x, 9)
-    np.testing.assert_allclose(pset.time, 9)
+    np.testing.assert_allclose(pset.t, 9)
 
 
 def test_execution_recover_out_of_bounds(fieldset):
     npart = 2
 
     def MoveRight(particles, fieldset):  # pragma: no cover
-        fieldset.U[particles.time, particles.z, particles.y, particles.x + 0.1, particles]
+        fieldset.U[particles.t, particles.z, particles.y, particles.x + 0.1, particles]
         particles.dx += 0.1
 
     def MoveLeft(particles, fieldset):  # pragma: no cover
@@ -385,9 +384,9 @@ def test_execution_runtime(fieldset, starttime_flt, runtime_flt, dt, npart):
     runtime = np.timedelta64(runtime_flt, "s")
     sign_dt = np.sign(dt)
     dt = np.timedelta64(dt, "s")
-    pset = ParticleSet(fieldset, time=starttime, x=np.zeros(npart), y=np.zeros(npart))
+    pset = ParticleSet(fieldset, t=starttime, x=np.zeros(npart), y=np.zeros(npart))
     pset.execute(DoNothing, runtime=runtime, dt=dt)
-    assert all([abs(p.time - starttime_flt - runtime_flt * sign_dt) < 1e-3 for p in pset])
+    assert all([abs(p.t - starttime_flt - runtime_flt * sign_dt) < 1e-3 for p in pset])
 
 
 def test_changing_dt_in_kernel(fieldset):
@@ -398,7 +397,7 @@ def test_changing_dt_in_kernel(fieldset):
     pset.execute(KernelCounter, dt=np.timedelta64(2, "s"), runtime=np.timedelta64(5, "s"))
     assert pset.x == 3
     assert pset.dt == 2
-    assert pset.time == 5
+    assert pset.t == 5
 
 
 @pytest.mark.parametrize("npart", [1, 100])
@@ -406,14 +405,14 @@ def test_execution_fail_python_exception(fieldset, npart):
     pset = ParticleSet(fieldset, x=np.linspace(0, 1, npart), y=np.linspace(1, 0, npart))
 
     def PythonFail(particles, fieldset):  # pragma: no cover
-        inds = np.argwhere(particles.time >= 10)
+        inds = np.argwhere(particles.t >= 10)
         if inds.size > 0:
             raise RuntimeError("Enough is enough!")
 
     with pytest.raises(RuntimeError):
         pset.execute(PythonFail, runtime=np.timedelta64(20, "s"), dt=np.timedelta64(2, "s"))
     assert len(pset) == npart
-    assert all(pset.time == 10)
+    assert all(pset.t == 10)
 
 
 @pytest.mark.parametrize(
@@ -473,7 +472,7 @@ def test_uxstommelgyre_pset_execute():
         x=[30.0],
         y=[5.0],
         z=[50.0],
-        time=[np.timedelta64(0, "s")],
+        t=[np.timedelta64(0, "s")],
         pclass=Particle,
     )
     pset.execute(
@@ -493,7 +492,7 @@ def test_uxstommelgyre_multiparticle_pset_execute():
         x=[30.0, 32.0],
         y=[5.0, 5.0],
         z=[50.0, 50.0],
-        time=[np.timedelta64(0, "s")],
+        t=[np.timedelta64(0, "s")],
         pclass=Particle,
     )
     pset.execute(
@@ -512,7 +511,7 @@ def test_uxstommelgyre_pset_execute_output():
         x=[30.0],
         y=[5.0],
         z=[50.0],
-        time=[0.0],
+        t=[0.0],
         pclass=Particle,
     )
     output_file = ParticleFile(

@@ -93,19 +93,19 @@ def test_pset_custominit_on_pclass(fieldset, pset_override):
 )
 def test_particleset_init_time_type(fieldset, time, expectation):
     with expectation:
-        ParticleSet(fieldset, x=[0.2], y=[5.0], time=[time], pclass=Particle)
+        ParticleSet(fieldset, x=[0.2], y=[5.0], t=[time], pclass=Particle)
 
 
 def test_pset_create_outside_time(fieldset):
     time = xr.date_range("1999", "2001", 20)
     with pytest.warns(ParticleSetWarning, match="Some particles are set to be released*"):
-        ParticleSet(fieldset, pclass=Particle, x=[0] * len(time), y=[0] * len(time), time=time)
+        ParticleSet(fieldset, pclass=Particle, x=[0] * len(time), y=[0] * len(time), t=time)
 
 
 def test_pset_starttime_not_multiple_dt(fieldset):
     times = [0, 1, 2]
     datetimes = [fieldset.time_interval.left + np.timedelta64(t, "s") for t in times]
-    pset = ParticleSet(fieldset, x=[0] * len(times), y=[0] * len(times), pclass=Particle, time=datetimes)
+    pset = ParticleSet(fieldset, x=[0] * len(times), y=[0] * len(times), pclass=Particle, t=datetimes)
 
     def Addlon(particles, fieldset):  # pragma: no cover
         particles.dx += particles.dt

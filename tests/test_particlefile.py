@@ -68,9 +68,9 @@ def test_write_fieldset_without_time(tmp_parquet):
     pset.execute(DoNothing, runtime=np.timedelta64(1, "s"), dt=np.timedelta64(1, "s"), output_file=ofile)
 
     table = pq.read_table(tmp_parquet)
-    assert table.schema.field("time").metadata[b"units"] == b"seconds"
-    assert b"calendar" not in table.schema.field("time").metadata
-    assert table["time"].to_numpy()[1] == 1.0
+    assert table.schema.field("t").metadata[b"units"] == b"seconds"
+    assert b"calendar" not in table.schema.field("t").metadata
+    assert table["t"].to_numpy()[1] == 1.0
 
 
 def test_pfile_array_remove_particles(fieldset, tmp_parquet):
@@ -81,14 +81,14 @@ def test_pfile_array_remove_particles(fieldset, tmp_parquet):
         pclass=Particle,
         x=np.linspace(0, 1, npart),
         y=0.5 * np.ones(npart),
-        time=fieldset.time_interval.left,
+        t=fieldset.time_interval.left,
     )
     pfile = ParticleFile(tmp_parquet, outputdt=np.timedelta64(1, "s"))
-    pset._data["time"][:] = 0
-    pfile.write(pset, time=fieldset.time_interval.left)
+    pset._data["t"][:] = 0
+    pfile.write(pset, t=fieldset.time_interval.left)
     pset.remove_indices(3)
     new_time = 86400  # s in a day
-    pset._data["time"][:] = new_time
+    pset._data["t"][:] = new_time
     pfile.write(pset, new_time)
     pfile.close()
 
@@ -100,10 +100,10 @@ def test_pfile_array_remove_all_particles(fieldset, tmp_parquet):
         pclass=Particle,
         x=np.linspace(0, 1, npart),
         y=0.5 * np.ones(npart),
-        time=fieldset.time_interval.left,
+        t=fieldset.time_interval.left,
     )
     pfile = ParticleFile(tmp_parquet, outputdt=np.timedelta64(1, "s"))
-    pfile.write(pset, time=0)
+    pfile.write(pset, t=0)
     for _ in range(npart):
         pset.remove_indices(-1)
     pfile.write(pset, fieldset.time_interval.left + np.timedelta64(1, "D"))
@@ -132,9 +132,9 @@ def test_write_dtypes_pfile(fieldset, tmp_parquet):
     extra_vars = [Variable(f"v_{d.__name__}", dtype=d, initial=0.0) for d in dtypes]
     MyParticle = Particle.add_variable(extra_vars)
 
-    pset = ParticleSet(fieldset, pclass=MyParticle, x=0, y=0, time=fieldset.time_interval.left)
+    pset = ParticleSet(fieldset, pclass=MyParticle, x=0, y=0, t=fieldset.time_interval.left)
     pfile = ParticleFile(tmp_parquet, outputdt=np.timedelta64(1, "s"))
-    pfile.write(pset, time=fieldset.time_interval.left)
+    pfile.write(pset, t=fieldset.time_interval.left)
     pfile.close()
 
     tab = pq.read_table(tmp_parquet)
@@ -159,7 +159,7 @@ def test_pset_repeated_release_delayed_adding_deleting(fieldset, tmp_parquet, dt
         x=np.zeros(npart),
         y=np.zeros(npart),
         pclass=MyParticle,
-        time=fieldset.time_interval.left + [np.timedelta64(i + 1, "s") for i in range(npart)],
+        t=fieldset.time_interval.left + [np.timedelta64(i + 1, "s") for i in range(npart)],
     )
     pfile = ParticleFile(tmp_parquet, outputdt=abs(dt))
 
@@ -183,7 +183,7 @@ def test_pset_repeated_release_delayed_adding_deleting(fieldset, tmp_parquet, dt
 
 
 def test_file_warnings(fieldset, tmp_parquet):
-    pset = ParticleSet(fieldset, x=[0, 0], y=[0, 0], time=[np.timedelta64(0, "s"), np.timedelta64(1, "s")])
+    pset = ParticleSet(fieldset, x=[0, 0], y=[0, 0], t=[np.timedelta64(0, "s"), np.timedelta64(1, "s")])
     pfile = ParticleFile(tmp_parquet, outputdt=np.timedelta64(2, "s"))
     with pytest.warns(ParticleSetWarning, match="Some of the particles have a start time difference.*"):
         pset.execute(AdvectionRK4, runtime=3, dt=1, output_file=pfile)
@@ -208,7 +208,7 @@ def test_outputdt_types(outputdt, expectation, tmp_parquet):
 
 def test_write_timebackward(fieldset, tmp_parquet):
     release_time = fieldset.time_interval.left + [np.timedelta64(i + 1, "s") for i in range(3)]
-    pset = ParticleSet(fieldset, y=[0, 1, 2], x=[0, 0, 0], time=release_time)
+    pset = ParticleSet(fieldset, y=[0, 1, 2], x=[0, 0, 0], t=release_time)
     pfile = ParticleFile(tmp_parquet, outputdt=np.timedelta64(1, "s"))
     pset.execute(DoNothing, runtime=np.timedelta64(3, "s"), dt=-np.timedelta64(1, "s"), output_file=pfile)
 
@@ -218,7 +218,7 @@ def test_write_timebackward(fieldset, tmp_parquet):
     assert bool(
         df.groupby("particle_id")
         .apply(
-            lambda x: (np.diff(x["time"]) < 0).all()  # for each particle - set True if it has decreasing time
+            lambda x: (np.diff(x["t"]) < 0).all()  # for each particle - set True if it has decreasing time
         )
         .all()  # ensure for all particles
     )
@@ -253,7 +253,7 @@ def test_write_xiyi(fieldset, tmp_parquet):
         particles.pyi = fieldset.U.unravel_index(particles.ei)[1]
 
     def SampleP(particles, fieldset):  # pragma: no cover
-        if np.any(particles.time > 5 * 3600):
+        if np.any(particles.t > 5 * 3600):
             _ = fieldset.P[particles]  # To trigger sampling of the P field
 
     pset = ParticleSet(fieldset, pclass=XiYiParticle, x=[0, 0.2], y=[0.2, 1])
@@ -290,7 +290,7 @@ def test_time_is_age(fieldset, tmp_parquet, outputdt):
         particles.age += particles.dt
 
     time = fieldset.time_interval.left + np.arange(npart) * np.timedelta64(1, "s")
-    pset = ParticleSet(fieldset, pclass=AgeParticle, x=npart * [0], y=npart * [0], time=time)
+    pset = ParticleSet(fieldset, pclass=AgeParticle, x=npart * [0], y=npart * [0], t=time)
     ofile = ParticleFile(tmp_parquet, outputdt=outputdt)
 
     pset.execute(IncreaseAge, runtime=np.timedelta64(npart * 2, "s"), dt=np.timedelta64(1, "s"), output_file=ofile)
@@ -300,7 +300,7 @@ def test_time_is_age(fieldset, tmp_parquet, outputdt):
     # Map sorted particle IDs to release times (0, 1, ..., npart-1 seconds)
     for i, df_traj in enumerate(df.partition_by("particle_id", maintain_order=True)):
         release_time = pd.Timestamp(time[i]).to_pydatetime()
-        traj_time = (df_traj["time"] - release_time).dt.total_seconds()
+        traj_time = (df_traj["t"] - release_time).dt.total_seconds()
         assert (df_traj["age"] == traj_time).all()
 
 
@@ -333,7 +333,7 @@ def test_correct_misaligned_outputdt_dt(fieldset, tmp_parquet):
 
     df = pd.read_parquet(tmp_parquet)
     assert np.allclose(df["x"].values, [0, 3, 6, 9])
-    assert np.allclose(df.time - df.time.min(), [0, 3, 6, 9])
+    assert np.allclose(df["t"] - df["t"].min(), [0, 3, 6, 9])
 
 
 def setup_pset_execute(*, fieldset: FieldSet, outputdt: timedelta, execute_kwargs, particle_class=Particle):
@@ -363,7 +363,7 @@ def test_pset_execute_outputdt_forwards(fieldset):
     dt = timedelta(minutes=5)
 
     df = setup_pset_execute(fieldset=fieldset, outputdt=outputdt, execute_kwargs=dict(runtime=runtime, dt=dt))
-    particle_0_times = df.filter(pl.col("particle_id") == 0)["time"]
+    particle_0_times = df.filter(pl.col("particle_id") == 0)["t"]
     np.testing.assert_equal(np.diff(particle_0_times) / 1e9, outputdt.seconds)
 
 
@@ -374,8 +374,8 @@ def test_pset_execute_output_time_forwards(fieldset):
     dt = np.timedelta64(5, "m")
 
     df = setup_pset_execute(fieldset=fieldset, outputdt=outputdt, execute_kwargs=dict(runtime=runtime, dt=dt))
-    assert df["time"].min() == pd.Timestamp(fieldset.time_interval.left)
-    assert df["time"].max() - df["time"].min() == runtime
+    assert df["t"].min() == pd.Timestamp(fieldset.time_interval.left)
+    assert df["t"].max() - df["t"].min() == runtime
 
 
 def test_pset_execute_outputdt_backwards(fieldset):
@@ -385,7 +385,7 @@ def test_pset_execute_outputdt_backwards(fieldset):
     dt = -timedelta(minutes=5)
 
     df = setup_pset_execute(fieldset=fieldset, outputdt=outputdt, execute_kwargs=dict(runtime=runtime, dt=dt))
-    particle_0_times = df.filter(pl.col("particle_id") == 0)["time"]
+    particle_0_times = df.filter(pl.col("particle_id") == 0)["t"]
     np.testing.assert_equal(np.diff(particle_0_times) / 1e9, -outputdt.seconds)
 
 
@@ -404,7 +404,7 @@ def test_pset_execute_outputdt_backwards_fieldset_timevarying():
     fieldset = FieldSet.from_sgrid_conventions(ds_fset)
 
     df = setup_pset_execute(outputdt=outputdt, execute_kwargs=dict(runtime=runtime, dt=dt), fieldset=fieldset)
-    particle_0_times = df.filter(pl.col("particle_id") == 0)["time"]
+    particle_0_times = df.filter(pl.col("particle_id") == 0)["t"]
     np.testing.assert_equal(np.diff(particle_0_times) / 1e9, -outputdt.seconds)
 
 
@@ -500,7 +500,7 @@ def test_pfile_set_towrite_False(fieldset, tmp_parquet):
     pset.execute(Update_lon, runtime=10, output_file=pfile)
 
     ds = xr.open_zarr(tmp_parquet)
-    assert "time" in ds
+    assert "t" in ds
     assert "z" not in ds
     assert "lat" not in ds
     ds.close()
@@ -550,7 +550,7 @@ def test_particle_schema(particle):
         strict=False,
     ):
         assert variable.name == pyarrow_field.name
-        if variable.name != "time":
+        if variable.name != "t":
             assert variable.attrs == {k.decode(): v.decode() for k, v in pyarrow_field.metadata.items()}
         else:
             assert b"units" in pyarrow_field.metadata

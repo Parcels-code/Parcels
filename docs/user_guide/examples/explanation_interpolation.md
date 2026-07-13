@@ -14,13 +14,13 @@ particles.temperature = fieldset.temperature[particles]
 ````{note}
 The statement above is shorthand for
 ```python
-particles.temperature = fieldset.temperature[particles.time, particles.z, particles.y, particles.x, particles]
+particles.temperature = fieldset.temperature[particles.t, particles.z, particles.y, particles.x, particles]
 ```
 where the `particles` argument at the end provides the grid search algorithm with a first guess for the element indices to interpolate on.
 
 If you want to sample at a different location, or time, that is not necessarily close to the particles location, you can use
 ```python
-particles.temperature = fieldset.temperature[time, z, y, x]
+particles.temperature = fieldset.temperature[t, z, y, x]
 ```
 but this could be slower for curvilinear and unstructured Grids because the entire grid needs to be searched.
 ````
@@ -53,7 +53,7 @@ If we want to create a custom interpolation method, we need to look at the inter
 The `particle_positions` dictionary contains:
 
 ```
-particle_positions = {"time", time, "z", z, "y", y, "x", x}
+particle_positions = {"t", t, "z", z, "y", y, "x", x}
 ```
 
 For structured (`X`) grids, the `grid_positions` dictionary contains:
@@ -63,7 +63,7 @@ grid_positions = {
     "T": {"index": ti, "bcoord": tau},
     "Z": {"index": zi, "bcoord": zeta},
     "Y": {"index": yi, "bcoord": eta},
-    "X": {"index": xi, "bcoord", xsi},
+    "X": {"index": xi, "bcoord": xsi},
 }
 ```
 

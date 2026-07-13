@@ -123,7 +123,7 @@ def compare_datasets(ds1, ds2, ds1_name="Dataset 1", ds2_name="Dataset 2", verbo
     for dim_name in ds1_dims.intersection(ds2_dims):
         verbose_print(f"  Dimension '{dim_name}':")
         # Sizes will differ due to DIM_SIZE, so we don't strictly compare them.
-        verbose_print(f"    {ds1_name} size: {ds1.dims[dim_name]}, {ds2_name} size: {ds2.dims[dim_name]}")
+        verbose_print(f"    {ds1_name} size: {ds1.sizes[dim_name]}, {ds2_name} size: {ds2.sizes[dim_name]}")
         # Check if coordinates associated with dimensions are sorted (increasing)
         if dim_name in ds1.coords and dim_name in ds2.coords:
             check_val = (
