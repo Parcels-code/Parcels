@@ -182,6 +182,14 @@ Use <code>pset.execute(parcels.AdvectionRK2)</code> for advection
 <div class="migration-chat">
 
 <div class="migration-bubble migration-change">
+<code>FieldSet.from_&lt;modelname&gt;()</code> is removed
+</div>
+<div class="migration-bubble migration-how">
+Convert the model data first to <a href="https://sgrid.github.io/sgrid/">SGrid</a> (for example with a <code>parcels.covert_&lt;MODEL&gt;_to_sgrid()</code> function) and then use <code>FieldSet.from_sgrid_conventions()</code>, as also described in the <a href="getting_started/tutorial_quickstart.html#input-flow-fields-fieldset">Quickstart tutorial</a>
+</div>
+<hr class="migration-divider" />
+
+<div class="migration-bubble migration-change">
 <code>FieldSet.interp_method</code> doesn't accept a string (e.g. <code>"linear"</code> or <code>"nearest"</code>)
 </div>
 <div class="migration-bubble migration-how">
