@@ -7,7 +7,7 @@ import uxarray as ux
 
 from parcels._core.basegrid import BaseGrid
 from parcels._core.index_search import GRID_SEARCH_ERROR, _search_1d_array, uxgrid_point_in_cell
-from parcels._core.mesh import SphericalMesh, EARTH_RADIUS
+from parcels._core.mesh import EARTH_RADIUS, SphericalMesh
 from parcels._typing import assert_valid_mesh
 
 _UXGRID_AXES = Literal["Z", "FACE"]
@@ -82,7 +82,7 @@ class UxGrid(BaseGrid):
     @property
     def deg2m(self) -> float:
         """Metres per arcdegree for this grid's mesh."""
-        if self._radius is None: # flat mesh; None causes crash in advection
+        if self._radius is None:  # flat mesh; None causes crash in advection
             return 1.0
         return self._radius * np.pi / 180.0
 
