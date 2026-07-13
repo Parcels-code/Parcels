@@ -1,20 +1,28 @@
 from __future__ import annotations
 
 import functools
+import sys
 from collections.abc import Iterable
-from typing import TYPE_CHECKING
+from typing import IO, TYPE_CHECKING
 
 import cf_xarray  # noqa: F401
 import numpy as np
 import uxarray as ux
 import xarray as xr
 
+import parcels._typing as ptyping
 from parcels._core.field import Field, VectorField
-from parcels._core.model import CONSTANT_FIELD_MODELS, ModelData, StructuredModelData, UnstructuredModelData
+from parcels._core.model import (
+    CONSTANT_FIELD_MODELS,
+    ModelData,
+    StructuredModelData,
+    UnstructuredModelData,
+)
 from parcels._core.utils.string import _assert_str_and_python_varname
 from parcels._core.utils.time import get_datetime_type_calendar
 from parcels._core.utils.time import is_compatible as datetime_is_compatible
-from parcels._typing import Mesh
+from parcels._python import NOTSET, NotSetType
+from parcels._reprs import fieldset_describe
 from parcels.interpolators import (
     XConstantField,
 )
@@ -144,7 +152,40 @@ class FieldSet:
 
         self.fields[name] = field
 
-    def add_constant_field(self, name: str, value, mesh: Mesh = "spherical"):
+    def to_windowed_arrays(self, *, max_levels: int | None = None):
+        """Wrap dask-backed field data in rolling time-window caches.
+
+        Opt-in optimization for forward-marching simulations where all particles
+        share a single clock. Delegates to each underlying model; dask-backed,
+        time-leading fields are served through a resident NumPy window (each time
+        level loaded once and evicted as the clock advances) instead of re-reading
+        chunks on every kernel step. NumPy-backed (eager) and non-time-leading
+        fields are left unchanged, and re-invoking is idempotent, so this is safe
+        to call more than once.
+
+        Parameters
+        ----------
+        max_levels : int, optional
+            Hard cap on the number of time levels kept resident per field.
+            With the default ``None``, each interpolation call decides what
+            stays resident: the cache keeps exactly the span of time indices
+            that call requests and evicts every level outside it. During time
+            integration particles bracket the current time between two
+            adjacent levels, so the default keeps at most two levels resident.
+            Only when a single call requests a wider time span (e.g. particles
+            spread across many time levels) does the window grow beyond that,
+            and ``max_levels`` then bounds its size.
+
+        Returns
+        -------
+        FieldSet
+            ``self``, to allow chaining.
+        """
+        for model in self.models:
+            model.to_windowed_arrays(max_levels=max_levels)
+        return self
+
+    def add_constant_field(self, name: str, value, mesh: ptyping.Mesh = "spherical"):
         """Wrapper function to add a Field that is constant in space,
            useful e.g. when using constant horizontal diffusivity
 
@@ -201,7 +242,12 @@ class FieldSet:
         return grids
 
     @classmethod
-    def from_ugrid_conventions(cls, ds: ux.UxDataset, mesh: str = "spherical"):
+    def from_ugrid_conventions(
+        cls,
+        ds: ux.UxDataset,
+        mesh: str = "spherical",
+        vector_fields: ptyping.VectorFields | NotSetType = NOTSET,
+    ):
         """Create a FieldSet from a Parcels compliant uxarray.UxDataset.
 
         This is the primary ingestion method in Parcels for structured grid datasets.
@@ -215,6 +261,10 @@ class FieldSet:
         ----------
         ds : uxarray.UxDataset
             uxarray.UxDataset as obtained from the uxarray package but with appropriate named vertical dimensions
+        vector_fields : Mapping[str, tuple[str, ...]], optional
+            Mapping of vector field names to tuples of component variable names in the dataset.
+            For example, ``{"UV": ("U", "V"), "UVW": ("U", "V", "W")}``.
+            If omitted (default), vector fields are auto-discovered from standard variable names (``U``/``V``/``W``).
 
         Returns
         -------
@@ -225,12 +275,15 @@ class FieldSet:
         -----
         See https://ugrid-conventions.github.io/ugrid-conventions/ for more information on the UGRID conventions.
         """
-        model = UnstructuredModelData.from_ugrid_conventions(ds, mesh)
+        model = UnstructuredModelData.from_ugrid_conventions(ds, mesh, vector_fields)
         return cls([model])
 
     @classmethod
     def from_sgrid_conventions(
-        cls, ds: xr.Dataset, mesh: Mesh | None = None
+        cls,
+        ds: xr.Dataset,
+        mesh: ptyping.Mesh | None = None,
+        vector_fields: ptyping.VectorFields | NotSetType = NOTSET,
     ):  # TODO: Update mesh to be discovered from the dataset metadata
         """Create a FieldSet from a dataset using SGRID convention metadata.
 
@@ -245,6 +298,10 @@ class FieldSet:
         mesh : str
             String indicating the type of mesh coordinates used during
             velocity interpolation. Options are "spherical" or "flat".
+        vector_fields : Mapping[str, tuple[str, ...]], optional
+            Mapping of vector field names to tuples of component variable names in the dataset.
+            For example, ``{"UV": ("U", "V"), "UVW": ("U", "V", "W")}``.
+            If omitted (default), vector fields are auto-discovered from standard variable names (``U``/``V``/``W``).
 
         Returns
         -------
@@ -259,8 +316,24 @@ class FieldSet:
 
         See https://sgrid.github.io/sgrid/ for more information on the SGRID conventions.
         """
-        model = StructuredModelData.from_sgrid_conventions(ds, mesh)
+        model = StructuredModelData.from_sgrid_conventions(ds, mesh, vector_fields)
         return cls([model])
+
+    def describe(self, buf: IO | None = None) -> None:
+        """
+        Summary of a FieldSet including available Fields, associated
+        interpolators, and context values.
+
+        Parameters
+        ----------
+        buf : file-like, default: sys.stdout
+            writable buffer
+        """
+        if buf is None:
+            buf = sys.stdout
+        assert buf is not None
+
+        buf.write(fieldset_describe(self))
 
 
 def assert_compatible_fieldsets(left: FieldSet, right: FieldSet) -> None:
@@ -356,9 +429,3 @@ _COPERNICUS_MARINE_CF_STANDARD_NAME_FALLBACKS = {
     ],
     "W": ["upward_sea_water_velocity", "vertical_sea_water_velocity"],
 }
-
-
-def _is_agrid(ds: xr.Dataset) -> bool:
-    # check if U and V are defined on the same dimensions
-    # if yes, interpret as A grid
-    return set(ds["U"].dims) == set(ds["V"].dims)

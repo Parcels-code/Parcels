@@ -33,67 +33,67 @@ def _constrain_dt_to_within_time_interval(time_interval, time, dt):
 
 def AdvectionRK2(particles, fieldset):  # pragma: no cover
     """Advection of particles using second-order Runge-Kutta integration."""
-    dt = _constrain_dt_to_within_time_interval(fieldset.time_interval, particles.time, particles.dt)
+    dt = _constrain_dt_to_within_time_interval(fieldset.time_interval, particles.t, particles.dt)
     (u1, v1) = fieldset.UV[particles]
-    lon1, lat1 = (particles.lon + u1 * 0.5 * dt, particles.lat + v1 * 0.5 * dt)
-    (u2, v2) = fieldset.UV[particles.time + 0.5 * dt, particles.z, lat1, lon1, particles]
-    particles.dlon += u2 * dt
-    particles.dlat += v2 * dt
+    x1, y1 = (particles.x + u1 * 0.5 * dt, particles.y + v1 * 0.5 * dt)
+    (u2, v2) = fieldset.UV[particles.t + 0.5 * dt, particles.z, y1, x1, particles]
+    particles.dx += u2 * dt
+    particles.dy += v2 * dt
 
 
 def AdvectionRK2_3D(particles, fieldset):  # pragma: no cover
     """Advection of particles using second-order Runge-Kutta integration including vertical velocity."""
-    dt = _constrain_dt_to_within_time_interval(fieldset.time_interval, particles.time, particles.dt)
+    dt = _constrain_dt_to_within_time_interval(fieldset.time_interval, particles.t, particles.dt)
     (u1, v1, w1) = fieldset.UVW[particles]
-    lon1 = particles.lon + u1 * 0.5 * dt
-    lat1 = particles.lat + v1 * 0.5 * dt
+    x1 = particles.x + u1 * 0.5 * dt
+    y1 = particles.y + v1 * 0.5 * dt
     z1 = particles.z + w1 * 0.5 * dt
-    (u2, v2, w2) = fieldset.UVW[particles.time + 0.5 * dt, z1, lat1, lon1, particles]
-    particles.dlon += u2 * dt
-    particles.dlat += v2 * dt
+    (u2, v2, w2) = fieldset.UVW[particles.t + 0.5 * dt, z1, y1, x1, particles]
+    particles.dx += u2 * dt
+    particles.dy += v2 * dt
     particles.dz += w2 * dt
 
 
 def AdvectionRK4(particles, fieldset):  # pragma: no cover
     """Advection of particles using fourth-order Runge-Kutta integration."""
-    dt = _constrain_dt_to_within_time_interval(fieldset.time_interval, particles.time, particles.dt)
+    dt = _constrain_dt_to_within_time_interval(fieldset.time_interval, particles.t, particles.dt)
     (u1, v1) = fieldset.UV[particles]
-    lon1, lat1 = (particles.lon + u1 * 0.5 * dt, particles.lat + v1 * 0.5 * dt)
-    (u2, v2) = fieldset.UV[particles.time + 0.5 * dt, particles.z, lat1, lon1, particles]
-    lon2, lat2 = (particles.lon + u2 * 0.5 * dt, particles.lat + v2 * 0.5 * dt)
-    (u3, v3) = fieldset.UV[particles.time + 0.5 * dt, particles.z, lat2, lon2, particles]
-    lon3, lat3 = (particles.lon + u3 * dt, particles.lat + v3 * dt)
-    (u4, v4) = fieldset.UV[particles.time + dt, particles.z, lat3, lon3, particles]
-    particles.dlon += (u1 + 2 * u2 + 2 * u3 + u4) / 6.0 * dt
-    particles.dlat += (v1 + 2 * v2 + 2 * v3 + v4) / 6.0 * dt
+    x1, y1 = (particles.x + u1 * 0.5 * dt, particles.y + v1 * 0.5 * dt)
+    (u2, v2) = fieldset.UV[particles.t + 0.5 * dt, particles.z, y1, x1, particles]
+    x2, y2 = (particles.x + u2 * 0.5 * dt, particles.y + v2 * 0.5 * dt)
+    (u3, v3) = fieldset.UV[particles.t + 0.5 * dt, particles.z, y2, x2, particles]
+    x3, y3 = (particles.x + u3 * dt, particles.y + v3 * dt)
+    (u4, v4) = fieldset.UV[particles.t + dt, particles.z, y3, x3, particles]
+    particles.dx += (u1 + 2 * u2 + 2 * u3 + u4) / 6.0 * dt
+    particles.dy += (v1 + 2 * v2 + 2 * v3 + v4) / 6.0 * dt
 
 
 def AdvectionRK4_3D(particles, fieldset):  # pragma: no cover
     """Advection of particles using fourth-order Runge-Kutta integration including vertical velocity."""
-    dt = _constrain_dt_to_within_time_interval(fieldset.time_interval, particles.time, particles.dt)
+    dt = _constrain_dt_to_within_time_interval(fieldset.time_interval, particles.t, particles.dt)
     (u1, v1, w1) = fieldset.UVW[particles]
-    lon1 = particles.lon + u1 * 0.5 * dt
-    lat1 = particles.lat + v1 * 0.5 * dt
+    x1 = particles.x + u1 * 0.5 * dt
+    y1 = particles.y + v1 * 0.5 * dt
     z1 = particles.z + w1 * 0.5 * dt
-    (u2, v2, w2) = fieldset.UVW[particles.time + 0.5 * dt, z1, lat1, lon1, particles]
-    lon2 = particles.lon + u2 * 0.5 * dt
-    lat2 = particles.lat + v2 * 0.5 * dt
+    (u2, v2, w2) = fieldset.UVW[particles.t + 0.5 * dt, z1, y1, x1, particles]
+    x2 = particles.x + u2 * 0.5 * dt
+    y2 = particles.y + v2 * 0.5 * dt
     z2 = particles.z + w2 * 0.5 * dt
-    (u3, v3, w3) = fieldset.UVW[particles.time + 0.5 * dt, z2, lat2, lon2, particles]
-    lon3 = particles.lon + u3 * dt
-    lat3 = particles.lat + v3 * dt
+    (u3, v3, w3) = fieldset.UVW[particles.t + 0.5 * dt, z2, y2, x2, particles]
+    x3 = particles.x + u3 * dt
+    y3 = particles.y + v3 * dt
     z3 = particles.z + w3 * dt
-    (u4, v4, w4) = fieldset.UVW[particles.time + dt, z3, lat3, lon3, particles]
-    particles.dlon += (u1 + 2 * u2 + 2 * u3 + u4) / 6 * dt
-    particles.dlat += (v1 + 2 * v2 + 2 * v3 + v4) / 6 * dt
+    (u4, v4, w4) = fieldset.UVW[particles.t + dt, z3, y3, x3, particles]
+    particles.dx += (u1 + 2 * u2 + 2 * u3 + u4) / 6 * dt
+    particles.dy += (v1 + 2 * v2 + 2 * v3 + v4) / 6 * dt
     particles.dz += (w1 + 2 * w2 + 2 * w3 + w4) / 6 * dt
 
 
 def AdvectionEE(particles, fieldset):  # pragma: no cover
     """Advection of particles using Explicit Euler (aka Euler Forward) integration."""
     (u1, v1) = fieldset.UV[particles]
-    particles.dlon += u1 * particles.dt
-    particles.dlat += v1 * particles.dt
+    particles.dx += u1 * particles.dt
+    particles.dy += v1 * particles.dt
 
 
 def AdvectionRK45(particles, fieldset):  # pragma: no cover
@@ -105,7 +105,7 @@ def AdvectionRK45(particles, fieldset):  # pragma: no cover
     Time-step dt is halved if error is larger than fieldset.RK45_tol,
     and doubled if error is smaller than 1/10th of tolerance.
     """
-    dt = _constrain_dt_to_within_time_interval(fieldset.time_interval, particles.time, particles.dt)
+    dt = _constrain_dt_to_within_time_interval(fieldset.time_interval, particles.t, particles.dt)
     sign_dt = np.sign(dt)
 
     c = [1.0 / 4.0, 3.0 / 8.0, 12.0 / 13.0, 1.0, 1.0 / 2.0]
@@ -120,39 +120,39 @@ def AdvectionRK45(particles, fieldset):  # pragma: no cover
     b5 = [16.0 / 135.0, 0.0, 6656.0 / 12825.0, 28561.0 / 56430.0, -9.0 / 50.0, 2.0 / 55.0]
 
     (u1, v1) = fieldset.UV[particles]
-    lon1, lat1 = (particles.lon + u1 * A[0][0] * dt, particles.lat + v1 * A[0][0] * dt)
-    (u2, v2) = fieldset.UV[particles.time + c[0] * dt, particles.z, lat1, lon1, particles]
-    lon2, lat2 = (
-        particles.lon + (u1 * A[1][0] + u2 * A[1][1]) * dt,
-        particles.lat + (v1 * A[1][0] + v2 * A[1][1]) * dt,
+    x1, y1 = (particles.x + u1 * A[0][0] * dt, particles.y + v1 * A[0][0] * dt)
+    (u2, v2) = fieldset.UV[particles.t + c[0] * dt, particles.z, y1, x1, particles]
+    x2, y2 = (
+        particles.x + (u1 * A[1][0] + u2 * A[1][1]) * dt,
+        particles.y + (v1 * A[1][0] + v2 * A[1][1]) * dt,
     )
-    (u3, v3) = fieldset.UV[particles.time + c[1] * dt, particles.z, lat2, lon2, particles]
-    lon3, lat3 = (
-        particles.lon + (u1 * A[2][0] + u2 * A[2][1] + u3 * A[2][2]) * dt,
-        particles.lat + (v1 * A[2][0] + v2 * A[2][1] + v3 * A[2][2]) * dt,
+    (u3, v3) = fieldset.UV[particles.t + c[1] * dt, particles.z, y2, x2, particles]
+    x3, y3 = (
+        particles.x + (u1 * A[2][0] + u2 * A[2][1] + u3 * A[2][2]) * dt,
+        particles.y + (v1 * A[2][0] + v2 * A[2][1] + v3 * A[2][2]) * dt,
     )
-    (u4, v4) = fieldset.UV[particles.time + c[2] * dt, particles.z, lat3, lon3, particles]
-    lon4, lat4 = (
-        particles.lon + (u1 * A[3][0] + u2 * A[3][1] + u3 * A[3][2] + u4 * A[3][3]) * dt,
-        particles.lat + (v1 * A[3][0] + v2 * A[3][1] + v3 * A[3][2] + v4 * A[3][3]) * dt,
+    (u4, v4) = fieldset.UV[particles.t + c[2] * dt, particles.z, y3, x3, particles]
+    x4, y4 = (
+        particles.x + (u1 * A[3][0] + u2 * A[3][1] + u3 * A[3][2] + u4 * A[3][3]) * dt,
+        particles.y + (v1 * A[3][0] + v2 * A[3][1] + v3 * A[3][2] + v4 * A[3][3]) * dt,
     )
-    (u5, v5) = fieldset.UV[particles.time + c[3] * dt, particles.z, lat4, lon4, particles]
-    lon5, lat5 = (
-        particles.lon + (u1 * A[4][0] + u2 * A[4][1] + u3 * A[4][2] + u4 * A[4][3] + u5 * A[4][4]) * dt,
-        particles.lat + (v1 * A[4][0] + v2 * A[4][1] + v3 * A[4][2] + v4 * A[4][3] + v5 * A[4][4]) * dt,
+    (u5, v5) = fieldset.UV[particles.t + c[3] * dt, particles.z, y4, x4, particles]
+    x5, y5 = (
+        particles.x + (u1 * A[4][0] + u2 * A[4][1] + u3 * A[4][2] + u4 * A[4][3] + u5 * A[4][4]) * dt,
+        particles.y + (v1 * A[4][0] + v2 * A[4][1] + v3 * A[4][2] + v4 * A[4][3] + v5 * A[4][4]) * dt,
     )
-    (u6, v6) = fieldset.UV[particles.time + c[4] * dt, particles.z, lat5, lon5, particles]
+    (u6, v6) = fieldset.UV[particles.t + c[4] * dt, particles.z, y5, x5, particles]
 
-    lon_4th = (u1 * b4[0] + u2 * b4[1] + u3 * b4[2] + u4 * b4[3] + u5 * b4[4]) * dt
-    lat_4th = (v1 * b4[0] + v2 * b4[1] + v3 * b4[2] + v4 * b4[3] + v5 * b4[4]) * dt
-    lon_5th = (u1 * b5[0] + u2 * b5[1] + u3 * b5[2] + u4 * b5[3] + u5 * b5[4] + u6 * b5[5]) * dt
-    lat_5th = (v1 * b5[0] + v2 * b5[1] + v3 * b5[2] + v4 * b5[3] + v5 * b5[4] + v6 * b5[5]) * dt
+    x_4th = (u1 * b4[0] + u2 * b4[1] + u3 * b4[2] + u4 * b4[3] + u5 * b4[4]) * dt
+    y_4th = (v1 * b4[0] + v2 * b4[1] + v3 * b4[2] + v4 * b4[3] + v5 * b4[4]) * dt
+    x_5th = (u1 * b5[0] + u2 * b5[1] + u3 * b5[2] + u4 * b5[3] + u5 * b5[4] + u6 * b5[5]) * dt
+    y_5th = (v1 * b5[0] + v2 * b5[1] + v3 * b5[2] + v4 * b5[3] + v5 * b5[4] + v6 * b5[5]) * dt
 
-    kappa = np.sqrt(np.pow(lon_5th - lon_4th, 2) + np.pow(lat_5th - lat_4th, 2))
+    kappa = np.sqrt(np.pow(x_5th - x_4th, 2) + np.pow(y_5th - y_4th, 2))
 
     good_particles = (kappa <= fieldset.RK45_tol) | (np.fabs(dt) <= np.fabs(fieldset.RK45_min_dt))
-    particles.dlon += np.where(good_particles, lon_5th, 0)
-    particles.dlat += np.where(good_particles, lat_5th, 0)
+    particles.dx += np.where(good_particles, x_5th, 0)
+    particles.dy += np.where(good_particles, y_5th, 0)
 
     increase_dt_particles = (
         good_particles & (kappa <= fieldset.RK45_tol / 10) & (np.fabs(dt * 2) <= np.fabs(fieldset.RK45_max_dt))
@@ -193,7 +193,7 @@ def AdvectionAnalytical(particles, fieldset):  # pragma: no cover
     withW = True if "W" in [f.name for f in fieldset.fields.values()] else False
     withTime = True if len(fieldset.U.grid.time) > 1 else False
     tau, zeta, eta, xsi, ti, zi, yi, xi = fieldset.U._search_indices(
-        particles.z, particles.lat, particles.lon, particles=particles
+        particles.z, particles.y, particles.x, particles=particles
     )
     ds_t = dt
     if withTime:
@@ -227,14 +227,14 @@ def AdvectionAnalytical(particles, fieldset):  # pragma: no cover
 
     grid = fieldset.U.grid
     if grid._gtype < 2:
-        px = np.array([grid.lon[xi], grid.lon[xi + 1], grid.lon[xi + 1], grid.lon[xi]])
-        py = np.array([grid.lat[yi], grid.lat[yi], grid.lat[yi + 1], grid.lat[yi + 1]])
+        px = np.array([grid.x[xi], grid.x[xi + 1], grid.x[xi + 1], grid.x[xi]])
+        py = np.array([grid.y[yi], grid.y[yi], grid.y[yi + 1], grid.y[yi + 1]])
     else:
-        px = np.array([grid.lon[yi, xi], grid.lon[yi, xi + 1], grid.lon[yi + 1, xi + 1], grid.lon[yi + 1, xi]])
-        py = np.array([grid.lat[yi, xi], grid.lat[yi, xi + 1], grid.lat[yi + 1, xi + 1], grid.lat[yi + 1, xi]])
+        px = np.array([grid.x[yi, xi], grid.x[yi, xi + 1], grid.x[yi + 1, xi + 1], grid.x[yi + 1, xi]])
+        py = np.array([grid.y[yi, xi], grid.y[yi, xi + 1], grid.y[yi + 1, xi + 1], grid.y[yi + 1, xi]])
     if grid.mesh == "spherical":
-        px[0] = px[0] + 360 if px[0] < particles.lon - 225 else px[0]
-        px[0] = px[0] - 360 if px[0] > particles.lat + 225 else px[0]
+        px[0] = px[0] + 360 if px[0] < particles.x - 225 else px[0]
+        px[0] = px[0] - 360 if px[0] > particles.y + 225 else px[0]
         px[1:] = np.where(px[1:] - px[0] > 180, px[1:] - 360, px[1:])
         px[1:] = np.where(-px[1:] + px[0] > 180, px[1:] + 360, px[1:])
     if withW:
@@ -249,7 +249,7 @@ def AdvectionAnalytical(particles, fieldset):  # pragma: no cover
     c4 = i_u._geodetic_distance(py[3], py[0], px[3], px[0], grid.mesh, np.dot(i_u.phi2D_lin(eta, 0.0), py))
     rad = np.pi / 180.0
     deg2m = 1852 * 60.0
-    meshJac = (deg2m * deg2m * math.cos(rad * particles.lat)) if grid.mesh == "spherical" else 1
+    meshJac = (deg2m * deg2m * math.cos(rad * particles.y)) if grid.mesh == "spherical" else 1
     dxdy = i_u._compute_jacobian_determinant(py, px, eta, xsi) * meshJac
 
     if withW:
@@ -324,19 +324,19 @@ def AdvectionAnalytical(particles, fieldset):  # pragma: no cover
     rs_x = compute_rs(xsi, B_x, delta_x, s_min)
     rs_y = compute_rs(eta, B_y, delta_y, s_min)
 
-    particles.dlon += (
+    particles.dx += (
         (1.0 - rs_x) * (1.0 - rs_y) * px[0]
         + rs_x * (1.0 - rs_y) * px[1]
         + rs_x * rs_y * px[2]
         + (1.0 - rs_x) * rs_y * px[3]
-        - particles.lon
+        - particles.x
     )
-    particles.dlat += (
+    particles.dy += (
         (1.0 - rs_x) * (1.0 - rs_y) * py[0]
         + rs_x * (1.0 - rs_y) * py[1]
         + rs_x * rs_y * py[2]
         + (1.0 - rs_x) * rs_y * py[3]
-        - particles.lat
+        - particles.y
     )
 
     if withW:

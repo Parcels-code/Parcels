@@ -16,7 +16,7 @@ from parcels._core.statuscodes import (
     _raise_grid_searching_error,
     _raise_outside_time_interval_error,
 )
-from parcels._core.warnings import KernelWarning
+from parcels._core.warnings import FieldEvalWarning, KernelWarning
 from parcels._python import assert_same_function_signature
 from parcels.kernels import (
     AdvectionAnalytical,
@@ -106,13 +106,13 @@ class Kernel:
             pset.remove_indices(indices)
 
     def _position_update(self, particles, fieldset):
-        particles.lon += particles.dlon
-        particles.lat += particles.dlat
+        particles.x += particles.dx
+        particles.y += particles.dy
         particles.z += particles.dz
-        particles.time += particles.dt
+        particles.t += particles.dt
 
-        particles.dlon = 0
-        particles.dlat = 0
+        particles.dx = 0
+        particles.dy = 0
         particles.dz = 0
 
         if hasattr(self.fieldset, "RK45_tol"):
@@ -190,7 +190,7 @@ class Kernel:
         pset._data["state"][:] = StatusCode.Evaluate
 
         while (len(pset) > 0) and np.any(np.isin(pset.state, [StatusCode.Evaluate, StatusCode.Repeat])):
-            time_to_endtime = compute_time_direction * (endtime - pset.time)
+            time_to_endtime = compute_time_direction * (endtime - pset.t)
 
             evaluate_particles = (np.isin(pset.state, [StatusCode.Success, StatusCode.Evaluate])) & (
                 time_to_endtime >= 0
@@ -206,13 +206,16 @@ class Kernel:
 
             # run kernels for all particles that need to be evaluated
             for f in self._kernels:
-                f(pset[evaluate_particles], self._fieldset)
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore", FieldEvalWarning)
 
-                # check for particles that have to be repeated
-                repeat_particles = pset.state == StatusCode.Repeat
-                while np.any(repeat_particles):
-                    f(pset[repeat_particles], self._fieldset)
+                    f(pset[evaluate_particles], self._fieldset)
+
+                    # check for particles that have to be repeated
                     repeat_particles = pset.state == StatusCode.Repeat
+                    while np.any(repeat_particles):
+                        f(pset[repeat_particles], self._fieldset)
+                        repeat_particles = pset.state == StatusCode.Repeat
 
             # apply position/time update only to particles still in a normal state
             # (particles that signalled Stop*/Delete/errors should not have time/position advanced)
@@ -225,7 +228,7 @@ class Kernel:
                 pset._data["dt"][:] = dt
 
             # Set particle state for particles that reached endtime
-            particles_endofloop = (pset.state == StatusCode.Evaluate) & (pset.time == endtime)
+            particles_endofloop = (pset.state == StatusCode.Evaluate) & (pset.t == endtime)
             pset[particles_endofloop].state = StatusCode.EndofLoop
 
             # delete particles that signalled deletion
@@ -239,8 +242,8 @@ class Kernel:
                 if np.any(pset.state == error_code):
                     inds = pset.state == error_code
                     if error_code == StatusCode.ErrorOutsideTimeInterval:
-                        error_func(pset[inds].time)
+                        error_func(pset[inds].t)
                     else:
-                        error_func(pset[inds].z, pset[inds].lat, pset[inds].lon)
+                        error_func(pset[inds].z, pset[inds].y, pset[inds].x)
 
         return pset

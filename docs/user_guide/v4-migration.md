@@ -10,7 +10,7 @@ Version 4 of Parcels is unreleased at the moment. The information in this migrat
 - `particle.delete()` is no longer valid. Instead, use `particle.state = StatusCode.Delete`.
 - Sharing state between kernels must be done via the particle data (as the kernels are not combined under the hood anymore).
 - `particl_dlon`, `particle_dlat` etc have been renamed to `particle.dlon` and `particle.dlat`.
-- The `time` argument in the Kernel signature has been removed in the Kernel API, so can't be used. Use `particle.time` instead.
+- The `time` argument in the Kernel signature has been removed in the Kernel API, so can't be used. Use `particle.t` instead.
 - The `particle` argument in the Kernel signature has been renamed to `particles`.
 - `math` functions should be replaced with array compatible equivalents (e.g., `math.sin` -> `np.sin`). Instead of `ParcelsRandom` you should use numpy's random functions.
 - `particle.depth` has been changed to `particles.z` to be consistent with the [CF conventions for trajectory data](https://cfconventions.org/cf-conventions/cf-conventions.html#trajectory-data), and to make Parcels also generalizable to atmospheric contexts.
@@ -18,6 +18,7 @@ Version 4 of Parcels is unreleased at the moment. The information in this migrat
 - Users need to explicitly use `convert_z_to_sigma_croco` in sampling kernels (such as the `AdvectionRK4_3D_CROCO` or `SampleOMegaCroco` kernels) when working with CROCO data, as the automatic conversion from depth to sigma grids under the hood has been removed.
 - We added a new AdvectionRK2 Kernel. The AdvectionRK4 kernel is still available, but RK2 is now the recommended default advection scheme as it is faster while the accuracy is comparable for most applications. See also the Choosing an integration method tutorial.
 - Functions shouldn't be converted to Kernels before adding to a pset.execute() call. Instead, simply pass the function(s) as a list to pset.execute().
+- Kernel variables `time`, `lat` and `lon` have been renamed to `t`, `y` and `x`, and `dlat` and `dlon` have been renamed to `dy` and `dx`. These changes are also reflected on the ParticleSet as well as the ParticleFile output.
 
 ## FieldSet
 
@@ -44,6 +45,7 @@ Version 4 of Parcels is unreleased at the moment. The information in this migrat
 - The `name` argument in `ParticleFile` has been replaced by `path` and can now be a string or a Path.
 - The `chunks` argument in `ParticleFile` has been removed.
 - The `to_write="once"`option has been removed. A variable can now only be either written at every output time step, or not written at all.
+- Particles are not written when they are deleted. You can use the functionality to call `ParticleFile.write()` inside a kernel to write out deleted particles if you want to keep track of them.
 
 ## Field
 

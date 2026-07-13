@@ -8,9 +8,9 @@ import parcels._datasets.remote as _parcels_remote
 import parcels.tutorial
 from parcels import (
     FieldSet,
+    convert,
 )
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
-from parcels.convert import fesom_to_ugrid, icon_to_ugrid
 from parcels.interpolators import (
     UxConstantFaceConstantZC,
     UxLinearNodeLinearZF,
@@ -30,7 +30,7 @@ def ds_fesom_channel() -> ux.UxDataset:
         str(_fesom_dir / "w.fesom_channel.nc"),
     ]
     ds = ux.open_mfdataset(grid_path, data_path).rename_vars({"u": "U", "v": "V", "w": "W"})
-    ds = fesom_to_ugrid(ds)
+    ds = convert.fesom_to_ugrid(ds)
     return ds
 
 
@@ -53,7 +53,7 @@ def test_fesom2_square_delaunay_uniform_z_coordinate_eval():
     Since the underlying data is constant, we can check that the values are as expected.
     """
     ds = datasets_unstructured["fesom2_square_delaunay_uniform_z_coordinate"]
-    ds = fesom_to_ugrid(ds)
+    ds = convert.fesom_to_ugrid(ds)
     fieldset = FieldSet.from_ugrid_conventions(ds)
 
     assert isinstance(fieldset.U.interp_method, UxConstantFaceConstantZC)
@@ -61,29 +61,29 @@ def test_fesom2_square_delaunay_uniform_z_coordinate_eval():
     assert isinstance(fieldset.W.interp_method, UxLinearNodeLinearZF)
     assert isinstance(fieldset.p.interp_method, UxLinearNodeLinearZF)
 
-    (u, v, w) = fieldset.UVW.eval(time=[0.0], z=[1.0], y=[30.0], x=[30.0])
+    (u, v, w) = fieldset.UVW.eval(t=[0.0], z=[1.0], y=[30.0], x=[30.0])
     assert np.allclose([u.item(), v.item(), w.item()], [1.0, 1.0, 0.0], rtol=1e-3, atol=1e-6)
 
     assert np.isclose(
-        fieldset.U.eval(time=[0.0], z=[1.0], y=[30.0], x=[30.0]),
+        fieldset.U.eval(t=[0.0], z=[1.0], y=[30.0], x=[30.0]),
         1.0,
         rtol=1e-3,
         atol=1e-6,
     )
     assert np.isclose(
-        fieldset.V.eval(time=[0.0], z=[1.0], y=[30.0], x=[30.0]),
+        fieldset.V.eval(t=[0.0], z=[1.0], y=[30.0], x=[30.0]),
         1.0,
         rtol=1e-3,
         atol=1e-6,
     )
     assert np.isclose(
-        fieldset.W.eval(time=[0.0], z=[1.0], y=[30.0], x=[30.0]),
+        fieldset.W.eval(t=[0.0], z=[1.0], y=[30.0], x=[30.0]),
         0.0,
         rtol=1e-3,
         atol=1e-6,
     )
     assert np.isclose(
-        fieldset.p.eval(time=[0.0], z=[1.0], y=[30.0], x=[30.0]),
+        fieldset.p.eval(t=[0.0], z=[1.0], y=[30.0], x=[30.0]),
         1.0,
         rtol=1e-3,
         atol=1e-6,
@@ -97,19 +97,19 @@ def test_fesom2_square_delaunay_antimeridian_eval():
     Since the underlying data is constant, we can check that the values are as expected.
     """
     ds = datasets_unstructured["fesom2_square_delaunay_antimeridian"]
-    ds = fesom_to_ugrid(ds)
+    ds = convert.fesom_to_ugrid(ds)
     fieldset = FieldSet.from_ugrid_conventions(ds)
     fieldset.p.interp_method = UxLinearNodeLinearZF()
 
-    assert np.isclose(fieldset.p.eval(time=[0], z=[1.0], y=[30.0], x=[-170.0]), 1.0)
-    assert np.isclose(fieldset.p.eval(time=[0], z=[1.0], y=[30.0], x=[-180.0]), 1.0)
-    assert np.isclose(fieldset.p.eval(time=[0], z=[1.0], y=[30.0], x=[180.0]), 1.0)
-    assert np.isclose(fieldset.p.eval(time=[0], z=[1.0], y=[30.0], x=[170.0]), 1.0)
+    assert np.isclose(fieldset.p.eval(t=[0], z=[1.0], y=[30.0], x=[-170.0]), 1.0)
+    assert np.isclose(fieldset.p.eval(t=[0], z=[1.0], y=[30.0], x=[-180.0]), 1.0)
+    assert np.isclose(fieldset.p.eval(t=[0], z=[1.0], y=[30.0], x=[180.0]), 1.0)
+    assert np.isclose(fieldset.p.eval(t=[0], z=[1.0], y=[30.0], x=[170.0]), 1.0)
 
 
 def test_icon_evals():
     ds = datasets_unstructured["icon_square_delaunay_uniform_z_coordinate"].copy(deep=True)
-    ds = icon_to_ugrid(ds)
+    ds = convert.icon_to_ugrid(ds)
     fieldset = FieldSet.from_ugrid_conventions(ds, mesh="flat")
 
     # Query points, are chosen to be just a fraction off from the center of a cell for testing
@@ -128,19 +128,19 @@ def test_icon_evals():
     # The exact function for U is U=z*x . The U variable is center registered both laterally and
     # vertically. In this case, piecewise constant interpolation is expected in both directions.
     # The expected value for interpolation is then just computed using the cell center locations
-    assert np.allclose(fieldset.U.eval(time=tq, z=zq, y=yq, x=xq), zc * xc)
+    assert np.allclose(fieldset.U.eval(t=tq, z=zq, y=yq, x=xq), zc * xc)
 
     # The exact function for V is V=z*y . The V variable is center registered both laterally and
     # vertically. In this case, piecewise constant interpolation is expected in both directions
     # The expected value for interpolation is then just computed using the cell center locations
-    assert np.allclose(fieldset.V.eval(time=tq, z=zq, y=yq, x=xq), zc * yc)
+    assert np.allclose(fieldset.V.eval(t=tq, z=zq, y=yq, x=xq), zc * yc)
 
     # The exact function for W is W=z*x*y . The W variable is center registered laterally and
     # interface registered vertically. In this case, piecewise constant interpolation is expected
     # laterally, while piecewise linear is expected vertically.
     # The expected value for interpolation is then just computed using the cell center locations
     # for the latitude and longitude, and the query point for the vertical interpolation
-    assert np.allclose(fieldset.W.eval(time=tq, z=zq, y=yq, x=xq), zq * yc * xc)
+    assert np.allclose(fieldset.W.eval(t=tq, z=zq, y=yq, x=xq), zq * yc * xc)
 
     # The exact function for P is P=z*(x+y) . The P variable is node registered laterally and
     # center registered vertically. In this case, barycentric interpolation is expected
@@ -148,4 +148,4 @@ def test_icon_evals():
     # Since barycentric interpolation is exact for functions f=a*x+b*y laterally, the expected
     # value for interpolation is then just computed using query point locations
     # for the latitude and longitude, and the layer centers vertically.
-    assert np.allclose(fieldset.p.eval(time=tq, z=zq, y=yq, x=xq), zc * (xq + yq))
+    assert np.allclose(fieldset.p.eval(t=tq, z=zq, y=yq, x=xq), zc * (xq + yq))

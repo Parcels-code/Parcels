@@ -123,7 +123,6 @@ exclude_patterns = [
     "**.ipynb_checkpoints",
     "user_guide/examples_v3",
     ".jupyter_cache",
-    "user_guide/examples/explanation_kernelloop.md",  # TODO v4: https://github.com/Parcels-code/Parcels/issues/2695
 ]
 
 # The reST default role (used for this markup: `text`) to use for all
@@ -188,11 +187,12 @@ numpydoc_class_members_toctree = False  # https://stackoverflow.com/a/73294408
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
+html_css_files = ["custom.css"]
 html_theme_options = {
     "logo": {
         "alt_text": "Parcels - Home",
-        "image_light": "logo-horo-transparent.png",
-        "image_dark": "logo-horo-transparent-dark.png",
+        "image_light": "_static/logo-horo-transparent.png",
+        "image_dark": "_static/logo-horo-transparent-dark.png",
     },
     "use_edit_page_button": True,
     "github_url": "https://github.com/Parcels-code/parcels",

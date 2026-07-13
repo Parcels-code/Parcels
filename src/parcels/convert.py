@@ -319,7 +319,7 @@ def nemo_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.Da
     if "time" in coords.dims:
         if coords.sizes["time"] != 1:
             raise ValueError("Time dimension in coords must be length 1 (i.e., no time-varying grid).")
-        coords = coords.isel(time=0).drop("time")
+        coords = coords.isel(time=0).drop_vars("time")
 
     if (
         len(coords.dims) == 3

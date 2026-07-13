@@ -1,10 +1,14 @@
 # Generic Python helpers
+import enum
 import inspect
 from collections.abc import Callable, Mapping
 from typing import TypeVar
 
 K = TypeVar("K")
 V = TypeVar("V")
+
+NotSetType = enum.Enum("NotSetType", "VALUE")
+NOTSET = NotSetType.VALUE
 
 
 def isinstance_noimport(obj, class_or_tuple):

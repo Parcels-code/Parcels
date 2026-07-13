@@ -132,7 +132,7 @@ class XConstantField(ScalarInterpolator):
         field: Field,
     ):
         """Returning the single value of a Constant Field (with a size=(1,1,1,1) array)"""
-        return field.data[0, 0, 0, 0].values
+        return field.data[0, 0, 0, 0].values * np.ones_like(particle_positions["x"])
 
 
 class XLinear_Velocity(VectorInterpolator):  # noqa:  N801
@@ -149,13 +149,13 @@ class XLinear_Velocity(VectorInterpolator):  # noqa:  N801
         u = _xlinear.interp(particle_positions, grid_positions, vectorfield.U)
         v = _xlinear.interp(particle_positions, grid_positions, vectorfield.V)
         if vectorfield.grid._mesh == "spherical":
-            u /= 1852 * 60 * np.cos(np.deg2rad(particle_positions["lat"]))
+            u /= 1852 * 60 * np.cos(np.deg2rad(particle_positions["y"]))
             v /= 1852 * 60
 
         if vectorfield.W:
             w = _xlinear.interp(particle_positions, grid_positions, vectorfield.W)
         else:
-            w = 0.0
+            w = np.zeros_like(u)
         return u, v, w
 
 
@@ -304,7 +304,7 @@ class CGrid_Velocity(VectorInterpolator):  # noqa:  N801
             v = v.compute()
 
         if grid._mesh == "spherical":
-            conversion = 1852 * 60.0 * np.cos(np.deg2rad(particle_positions["lat"]))
+            conversion = 1852 * 60.0 * np.cos(np.deg2rad(particle_positions["y"]))
             u /= conversion
             v /= conversion
 
@@ -502,7 +502,7 @@ def _Spatialslip(
 
         w *= f_w
     else:
-        w = None
+        w = np.zeros_like(u)
     return u, v, w
 
 
