@@ -12,7 +12,7 @@ import parcels._sgrid as sgrid
 import parcels._typing as ptyping
 from parcels._core.basegrid import BaseGrid
 from parcels._core.index_search import _search_1d_array, _search_indices_curvilinear_2d
-from parcels._core.mesh import SphericalMesh
+from parcels._core.mesh import SphericalMesh, EARTH_RADIUS
 from parcels._sgrid.accessor import _get_dim_to_axis_mapping
 from parcels._sgrid.core import SGRID_PADDING_TO_XGCM_POSITION
 
@@ -175,7 +175,7 @@ class XGrid(BaseGrid):
             self._radius = mesh.radius
         else:
             self._mesh = mesh
-            self._radius = None
+            self._radius = EARTH_RADIUS if mesh == "spherical" else None
         self._spatialhash = None
         ds = model_data
 
@@ -258,10 +258,9 @@ class XGrid(BaseGrid):
     @property
     def deg2m(self) -> float:
         """Metres per degree of arc for this grid's mesh."""
-        if self._radius is None:
-            return 1852 * 60.0
-        else:
-            return self._radius * np.pi / 180.0
+        if self._radius is None: # flat mesh; None causes crash in advection
+            return 1.0
+        return self._radius * np.pi / 180.0
 
     @cached_property
     def xdim(self) -> int:
