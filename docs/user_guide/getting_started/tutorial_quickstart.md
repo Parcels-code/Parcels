@@ -31,8 +31,6 @@ hydrodynamics fields in which the particles are tracked. Here we provide an exam
 
 ```{code-cell}
 ds_fields = parcels.tutorial.open_dataset("CopernicusMarine_data_for_Argo_tutorial/data")
-
-ds_fields.load()  # load the dataset into memory
 ds_fields
 ```
 
@@ -50,6 +48,15 @@ Below, we use a combination of {py:func}`parcels.convert.copernicusmarine_to_sgr
 fields = {"U": ds_fields["uo"], "V": ds_fields["vo"]}
 ds_fset = parcels.convert.copernicusmarine_to_sgrid(fields=fields)
 fieldset = parcels.FieldSet.from_sgrid_conventions(ds_fset)
+```
+
+Now, in order to improve performance, we can convert the `parcels.FieldSet` to windowed arrays. This is especially useful for large datasets with many timeslices, as it allows Parcels to load only the necessary timeslices into memory during the simulation.
+
+#TODO add link to performance explanation notebook here.
+
+```{code-cell}
+# Convert the FieldSet to windowed arrays for better performance
+fieldset = fieldset.to_windowed_arrays()
 ```
 
 You can inspect the `parcels.FieldSet` object with the `describe` method in order to see which `parcels.Field`s are included, and which grid and interpolation method is used for each field. This also gives information on the type of mesh and the time interval of the `parcels.FieldSet`:
