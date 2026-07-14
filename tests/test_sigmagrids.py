@@ -3,7 +3,7 @@ import numpy as np
 import parcels
 import parcels.tutorial
 from parcels import Particle, ParticleSet, Variable
-from parcels.kernels import AdvectionRK4_3D_CROCO, SampleOmegaCroco, convert_z_to_sigma_croco
+from parcels.kernels import AdvectionRK2_3D_CROCO, SampleOmegaCroco, convert_z_to_sigma_croco
 
 
 def test_conversion_3DCROCO():
@@ -71,7 +71,7 @@ def test_advection_3DCROCO():
     pset = ParticleSet(fieldset=fieldset, pclass=pclass, x=X, y=Y, z=Z)
 
     pset.execute(
-        [AdvectionRK4_3D_CROCO, SampleOmegaCroco], runtime=np.timedelta64(runtime, "s"), dt=np.timedelta64(100, "s")
+        [AdvectionRK2_3D_CROCO, SampleOmegaCroco], runtime=np.timedelta64(runtime, "s"), dt=np.timedelta64(100, "s")
     )
     np.testing.assert_allclose(pset.z, Z.flatten(), atol=5)  # TODO lower this atol
     np.testing.assert_allclose(pset.x, [x + runtime for x in X.flatten()], atol=1e-3)
