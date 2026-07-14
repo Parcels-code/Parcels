@@ -129,5 +129,4 @@ examples/tutorial_interaction.ipynb
 :hidden:
 :caption: Other
 v3 to v4 migration guide <v4-migration>
-Example scripts <additional_examples>
 ```
