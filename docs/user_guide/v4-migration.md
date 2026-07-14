@@ -2,7 +2,7 @@
 html_theme.sidebar_secondary.remove: true
 ---
 
-# Parcels v4 migration guide
+# 🎓 Parcels v4 migration guide
 
 This migration guide gives some tips if you want to migrate your Parcels v3 code to Parcels v4. The biggest changes are in the [Kernel API](#kernels) and the way that [FieldSets are created](#fieldset). The other changes are mostly small and should be easy to fix.
 
