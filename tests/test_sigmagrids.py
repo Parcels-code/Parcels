@@ -46,7 +46,6 @@ def test_conversion_3DCROCO():
 
 def test_advection_3DCROCO():
     ds_fields = parcels.tutorial.open_dataset("CROCOidealized_data/data")
-    ds_fields.load()
 
     fields = {
         "U": ds_fields["u"],
@@ -61,6 +60,7 @@ def test_advection_3DCROCO():
     ds_fset = parcels.convert.croco_to_sgrid(fields=fields, coords=ds_fields)
 
     fieldset = parcels.FieldSet.from_sgrid_conventions(ds_fset)
+    fieldset = fieldset.to_windowed_arrays()
     fieldset.add_context("hc", ds_fields.hc.item())
 
     runtime = 10_000

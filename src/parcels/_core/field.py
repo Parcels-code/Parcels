@@ -101,7 +101,7 @@ class Field:
 
     @property
     def data(self):
-        return self.model.data[self.name]
+        return self.model.field_data(self.name)
 
     @property
     def grid(self):  # TODO PR: Remove in favour of referencing model grid directly
