@@ -14,7 +14,7 @@ def convert_z_to_sigma_croco(fieldset, t, z, y, x, particle):
     h = fieldset.h.eval(t, np.zeros_like(z), y, x, particles=particle)
     zeta = fieldset.zeta.eval(t, np.zeros_like(z), y, x, particles=particle)
     sigma_levels = fieldset.U.grid.depth
-    cs_w = fieldset.Cs_w.data[0, :, 0, 0].values
+    cs_w = fieldset.Cs_w.data.values.flatten()
 
     z0 = fieldset.hc * sigma_levels[None, :] + (h[:, None] - fieldset.hc) * cs_w[None, :]
     zvec = z0 + zeta[:, None] * (1.0 + (z0 / h[:, None]))
