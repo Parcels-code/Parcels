@@ -7,6 +7,7 @@ import numpy as np
 import pandas as pd
 import pytest
 
+import parcels.tutorial
 from parcels import Field, ParticleFile, ParticleSet, XGrid, convert
 from parcels._core.fieldset import FieldSet, _datetime_to_msg
 from parcels._core.model import _default_vector_field_components
@@ -398,20 +399,70 @@ def test_fieldset_describe(fieldset_two_models: FieldSet):
     fieldset = fieldset_two_models
     io = StringIO()
     expected = """\
-| Name           | Type        | Grid number   | Interp method / value   |
-|:---------------|:------------|:--------------|:------------------------|
-| my_list        | Context     | -             | [1, 2, 'hello']         |
-| my_value       | Context     | -             | 2.0                     |
-| U              | Field       | 0             | XLinear(...)            |
-| V              | Field       | 0             | XLinear(...)            |
-| UV             | VectorField | 0             | XLinear_Velocity(...)   |
-| U_wind         | Field       | 1             | XLinear(...)            |
-| V_wind         | Field       | 1             | XLinear(...)            |
-| UV_wind        | VectorField | 1             | XLinear_Velocity(...)   |
-| constant_field | Field       | 2             | XConstantField(...)     |
+| Name           | Type        | Grid number   | Interp method / value   | Backend   |
+|:---------------|:------------|:--------------|:------------------------|:----------|
+| my_list        | Context     | -             | [1, 2, 'hello']         | -         |
+| my_value       | Context     | -             | 2.0                     | -         |
+| U              | Field       | 0             | XLinear(...)            | NumPy     |
+| V              | Field       | 0             | XLinear(...)            | NumPy     |
+| UV             | VectorField | 0             | XLinear_Velocity(...)   | -         |
+| U_wind         | Field       | 1             | XLinear(...)            | NumPy     |
+| V_wind         | Field       | 1             | XLinear(...)            | NumPy     |
+| UV_wind        | VectorField | 1             | XLinear_Velocity(...)   | -         |
+| constant_field | Field       | 2             | XConstantField(...)     | NumPy     |
 
 mesh: flat
 time interval: (np.datetime64('2000-01-01T00:00:00.000000000'), np.datetime64('2001-01-01T00:00:00.000000000'))
+"""
+    fieldset.describe(io)
+    actual = io.getvalue()
+    assert actual == expected
+
+
+def test_fieldset_describe_backends():
+    ds_u = parcels.tutorial.open_dataset("NemoNorthSeaORCA025-N006_data/U")
+    ds_v = parcels.tutorial.open_dataset("NemoNorthSeaORCA025-N006_data/V")
+    ds_w = parcels.tutorial.open_dataset("NemoNorthSeaORCA025-N006_data/W")
+    ds_coords = parcels.tutorial.open_dataset("NemoNorthSeaORCA025-N006_data/mesh_mask")[["glamf", "gphif"]]
+
+    ds_fset = convert.nemo_to_sgrid(
+        fields={"U": ds_u["uo"], "V": ds_v["vo"], "W": ds_w["wo"]},
+        coords=ds_coords,
+    )
+    fieldset = FieldSet.from_sgrid_conventions(ds_fset)
+
+    io = StringIO()
+    expected = """\
+| Name   | Type        |   Grid number | Interp method / value   | Backend   |
+|:-------|:------------|--------------:|:------------------------|:----------|
+| U      | Field       |             0 | XLinear(...)            | Dask      |
+| V      | Field       |             0 | XLinear(...)            | Dask      |
+| W      | Field       |             0 | XLinear(...)            | Dask      |
+| UV     | VectorField |             0 | CGrid_Velocity(...)     | -         |
+| UVW    | VectorField |             0 | CGrid_Velocity(...)     | -         |
+
+mesh: spherical
+time interval: (np.datetime64('2000-01-02T12:00:00.000000000'), np.datetime64('2000-01-27T12:00:00.000000000'))
+"""
+    fieldset.describe(io)
+    actual = io.getvalue()
+    assert actual == expected
+
+    # Also run with WindowedArray backend
+    fieldset = fieldset.to_windowed_arrays()
+
+    io = StringIO()
+    expected = """\
+| Name   | Type        |   Grid number | Interp method / value   | Backend       |
+|:-------|:------------|--------------:|:------------------------|:--------------|
+| U      | Field       |             0 | XLinear(...)            | WindowedArray |
+| V      | Field       |             0 | XLinear(...)            | WindowedArray |
+| W      | Field       |             0 | XLinear(...)            | WindowedArray |
+| UV     | VectorField |             0 | CGrid_Velocity(...)     | -             |
+| UVW    | VectorField |             0 | CGrid_Velocity(...)     | -             |
+
+mesh: spherical
+time interval: (np.datetime64('2000-01-02T12:00:00.000000000'), np.datetime64('2000-01-27T12:00:00.000000000'))
 """
     fieldset.describe(io)
     actual = io.getvalue()
