@@ -241,66 +241,38 @@ class SpatialHash:
         num_hash_per_face = (nx * ny * nz).astype(
             np.int32, copy=False
         )  # Since nx, ny, nz are in the 10-bit range, their product fits in int32
-        total_hash_entries = int(num_hash_per_face.sum())
+        # Sums over faces can exceed int32, so accumulate in int64
+        total_hash_entries = int(num_hash_per_face.sum(dtype=np.int64))
+        # Entry indices fit in int32 for all but extreme cases; fall back to int64 when needed
+        idx_dtype = np.int64 if total_hash_entries > np.iinfo(np.int32).max else np.int32
 
-        # Preallocate output arrays
-        morton_codes = np.zeros(total_hash_entries, dtype=np.uint32)
-
-        # Compute the j, i indices corresponding to each hash entry
+        # Every face overlaps at least one hash cell (nx, ny, nz >= 1 since quantization
+        # is monotone), and contributes one hash entry per cell of its quantized bounding
+        # box. Entries are generated in face-major order: face_ids maps each entry to its
+        # face, and intra enumerates the cells of that face's box (0..num_hash_per_face-1).
         nface = np.size(self._xlow)
         face_ids = np.repeat(np.arange(nface, dtype=np.int32), num_hash_per_face)
-        offsets = np.concatenate(([0], np.cumsum(num_hash_per_face))).astype(np.int32)[:-1]
+        face_starts = np.concatenate(([0], np.cumsum(num_hash_per_face, dtype=np.int64)))[:-1]
+        intra = np.arange(total_hash_entries, dtype=idx_dtype) - np.repeat(
+            face_starts.astype(idx_dtype, copy=False), num_hash_per_face
+        )
 
-        valid = num_hash_per_face != 0
-        if not np.any(valid):
-            # nothing to do
-            pass
-        else:
-            # Grab only valid faces to avoid empty arrays
-            nx_v = np.asarray(nx[valid], dtype=np.int32)
-            ny_v = np.asarray(ny[valid], dtype=np.int32)
-            nz_v = np.asarray(nz[valid], dtype=np.int32)
-            xlow_v = np.asarray(xqlow[valid], dtype=np.int32)
-            ylow_v = np.asarray(yqlow[valid], dtype=np.int32)
-            zlow_v = np.asarray(zqlow[valid], dtype=np.int32)
-            starts_v = np.asarray(offsets[valid], dtype=np.int32)
+        # Derive (xi, yi, zi) cell offsets within each face's box from intra,
+        # then shift by the per-face low corner to get quantized cell coordinates
+        ny_nz = np.repeat(ny * nz, num_hash_per_face)
+        nz_rep = np.repeat(nz, num_hash_per_face)
 
-            # Count of elements per valid face (should match num_hash_per_face[valid])
-            counts = (nx_v * ny_v * nz_v).astype(np.int32)
-            total = int(counts.sum())
+        xi = intra // ny_nz
+        rem = intra % ny_nz
+        yi = rem // nz_rep
+        zi = rem % nz_rep
 
-            # Map each global element to its face and output position
-            start_for_elem = np.repeat(starts_v, counts)  # shape (total,)
+        xq = np.repeat(xqlow, num_hash_per_face) + xi
+        yq = np.repeat(yqlow, num_hash_per_face) + yi
+        zq = np.repeat(zqlow, num_hash_per_face) + zi
 
-            # Intra-face linear index for each element (0..counts_i-1)
-            # Offsets per face within the concatenation of valid faces:
-            face_starts_local = np.cumsum(np.r_[0, counts[:-1]])
-            intra = np.arange(total, dtype=np.int32) - np.repeat(face_starts_local, counts)
-
-            # Derive (zi, yi, xi) from intra using per-face sizes
-            ny_nz = np.repeat(ny_v * nz_v, counts)
-            nz_rep = np.repeat(nz_v, counts)
-
-            xi = intra // ny_nz
-            rem = intra % ny_nz
-            yi = rem // nz_rep
-            zi = rem % nz_rep
-
-            # Add per-face lows
-            x0 = np.repeat(xlow_v, counts)
-            y0 = np.repeat(ylow_v, counts)
-            z0 = np.repeat(zlow_v, counts)
-
-            xq = x0 + xi
-            yq = y0 + yi
-            zq = z0 + zi
-
-            # Vectorized morton encode for all elements at once
-            codes_all = _encode_quantized_morton3d(xq, yq, zq)
-
-            # Scatter into the preallocated output using computed absolute indices
-            out_idx = start_for_elem + intra
-            morton_codes[out_idx] = codes_all
+        # Vectorized morton encode for all entries at once, already in face-major order
+        morton_codes = _encode_quantized_morton3d(xq, yq, zq)
 
         # Sort face indices by morton code
         order = np.argsort(morton_codes)
