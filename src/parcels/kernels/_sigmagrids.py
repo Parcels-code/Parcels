@@ -1,7 +1,5 @@
 import numpy as np
 
-from parcels.kernels._advection import _constrain_dt_to_within_time_interval
-
 
 def convert_z_to_sigma_croco(fieldset, t, z, y, x, particle):
     """Calculate local sigma level of the particles, by linearly interpolating the
@@ -41,7 +39,7 @@ def AdvectionRK4_3D_CROCO(particles, fieldset):  # pragma: no cover
     This kernel assumes the vertical velocity is the 'w' field from CROCO output and works on sigma-layers.
     It also uses linear interpolation of the W field, which gives much better results than the default C-grid interpolation.
     """
-    dt = _constrain_dt_to_within_time_interval(fieldset.time_interval, particles.t, particles.dt)
+    dt = particles.dt
     sigma = particles.z / fieldset.h[particles.t, np.zeros_like(particles.z), particles.y, particles.x]
 
     sig = convert_z_to_sigma_croco(fieldset, particles.t, particles.z, particles.y, particles.x, particles)
