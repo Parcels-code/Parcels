@@ -200,7 +200,7 @@ class _FieldSetDescriptionRow:
             "Type": self.type_,
             "Grid number": str(self.model_id) if self.model_id is not None else "-",
             "Interp method / value": self.interp_method_or_value,
-            "Backend": self.backend if self.backend is not None else "-",
+            "Parcels backend": self.backend if self.backend is not None else "-",
         }
 
 

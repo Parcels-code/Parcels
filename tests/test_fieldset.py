@@ -400,16 +400,17 @@ def test_fieldset_describe(fieldset_two_models: FieldSet):
     io = StringIO()
     expected = """\
 | Name           | Type        | Grid number   | Interp method / value   | Backend   |
-|:---------------|:------------|:--------------|:------------------------|:----------|
-| my_list        | Context     | -             | [1, 2, 'hello']         | -         |
-| my_value       | Context     | -             | 2.0                     | -         |
-| U              | Field       | 0             | XLinear(...)            | NumPy     |
-| V              | Field       | 0             | XLinear(...)            | NumPy     |
-| UV             | VectorField | 0             | XLinear_Velocity(...)   | -         |
-| U_wind         | Field       | 1             | XLinear(...)            | NumPy     |
-| V_wind         | Field       | 1             | XLinear(...)            | NumPy     |
-| UV_wind        | VectorField | 1             | XLinear_Velocity(...)   | -         |
-| constant_field | Field       | 2             | XConstantField(...)     | NumPy     |
+| Name           | Type        | Grid number   | Interp method / value   | Parcels backend   |
+|:---------------|:------------|:--------------|:------------------------|:------------------|
+| my_list        | Context     | -             | [1, 2, 'hello']         | -                 |
+| my_value       | Context     | -             | 2.0                     | -                 |
+| U              | Field       | 0             | XLinear(...)            | NumPy             |
+| V              | Field       | 0             | XLinear(...)            | NumPy             |
+| UV             | VectorField | 0             | XLinear_Velocity(...)   | -                 |
+| U_wind         | Field       | 1             | XLinear(...)            | NumPy             |
+| V_wind         | Field       | 1             | XLinear(...)            | NumPy             |
+| UV_wind        | VectorField | 1             | XLinear_Velocity(...)   | -                 |
+| constant_field | Field       | 2             | XConstantField(...)     | NumPy             |
 
 mesh: flat
 time interval: (np.datetime64('2000-01-01T00:00:00.000000000'), np.datetime64('2001-01-01T00:00:00.000000000'))
@@ -433,13 +434,13 @@ def test_fieldset_describe_backends():
 
     io = StringIO()
     expected = """\
-| Name   | Type        |   Grid number | Interp method / value   | Backend   |
-|:-------|:------------|--------------:|:------------------------|:----------|
-| U      | Field       |             0 | XLinear(...)            | Dask      |
-| V      | Field       |             0 | XLinear(...)            | Dask      |
-| W      | Field       |             0 | XLinear(...)            | Dask      |
-| UV     | VectorField |             0 | CGrid_Velocity(...)     | -         |
-| UVW    | VectorField |             0 | CGrid_Velocity(...)     | -         |
+| Name   | Type        |   Grid number | Interp method / value   | Parcels backend   |
+|:-------|:------------|--------------:|:------------------------|:------------------|
+| U      | Field       |             0 | XLinear(...)            | Dask              |
+| V      | Field       |             0 | XLinear(...)            | Dask              |
+| W      | Field       |             0 | XLinear(...)            | Dask              |
+| UV     | VectorField |             0 | CGrid_Velocity(...)     | -                 |
+| UVW    | VectorField |             0 | CGrid_Velocity(...)     | -                 |
 
 mesh: spherical
 time interval: (np.datetime64('2000-01-02T12:00:00.000000000'), np.datetime64('2000-01-27T12:00:00.000000000'))
@@ -453,13 +454,13 @@ time interval: (np.datetime64('2000-01-02T12:00:00.000000000'), np.datetime64('2
 
     io = StringIO()
     expected = """\
-| Name   | Type        |   Grid number | Interp method / value   | Backend       |
-|:-------|:------------|--------------:|:------------------------|:--------------|
-| U      | Field       |             0 | XLinear(...)            | WindowedArray |
-| V      | Field       |             0 | XLinear(...)            | WindowedArray |
-| W      | Field       |             0 | XLinear(...)            | WindowedArray |
-| UV     | VectorField |             0 | CGrid_Velocity(...)     | -             |
-| UVW    | VectorField |             0 | CGrid_Velocity(...)     | -             |
+| Name   | Type        |   Grid number | Interp method / value   | Parcels backend   |
+|:-------|:------------|--------------:|:------------------------|:------------------|
+| U      | Field       |             0 | XLinear(...)            | WindowedArray     |
+| V      | Field       |             0 | XLinear(...)            | WindowedArray     |
+| W      | Field       |             0 | XLinear(...)            | WindowedArray     |
+| UV     | VectorField |             0 | CGrid_Velocity(...)     | -                 |
+| UVW    | VectorField |             0 | CGrid_Velocity(...)     | -                 |
 
 mesh: spherical
 time interval: (np.datetime64('2000-01-02T12:00:00.000000000'), np.datetime64('2000-01-27T12:00:00.000000000'))
