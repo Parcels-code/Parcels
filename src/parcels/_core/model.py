@@ -7,6 +7,7 @@ from typing import Any, Self
 import cf_xarray  # noqa: F401
 import uxarray as ux
 import xarray as xr
+from dask import is_dask_collection
 
 import parcels._sgrid as sgrid
 import parcels._typing as ptyping
@@ -102,6 +103,12 @@ class ModelData(ABC):
             and ``max_levels`` then bounds its size.
         """
         windowed = self.__dict__.setdefault("_windowed", {})
+        for dim in ["lon", "lat"]:
+            # ensure lon and lat are loaded into memory for dask-backed datasets
+            if is_dask_collection(self.data[dim]):
+                self.data[dim].load()
+        if "depth" in self.data.dims and is_dask_collection(self.data["depth"]):
+            self.data["depth"].load()
         for name in self.scalar_field_names:
             current = windowed.get(name, self.data[name])
             windowed[name] = maybe_windowed(current, max_levels=max_levels)
