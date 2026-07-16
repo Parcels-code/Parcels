@@ -2,8 +2,6 @@ import warnings
 
 import numpy as np
 
-from parcels.kernels._advection import _constrain_dt_to_within_time_interval
-
 
 def convert_z_to_sigma_croco(fieldset, t, z, y, x, particle):
     """Calculate local sigma level of the particles, by linearly interpolating the
@@ -49,27 +47,26 @@ def AdvectionRK2_3D_CROCO(particles, fieldset):  # pragma: no cover
             category=RuntimeWarning,
         )  # Needed because of linear sampling of W with sigma conversion
 
-        dt = _constrain_dt_to_within_time_interval(fieldset.time_interval, particles.t, particles.dt)
         sigma = particles.z / fieldset.h[particles.t, np.zeros_like(particles.z), particles.y, particles.x]
 
         sig = convert_z_to_sigma_croco(fieldset, particles.t, particles.z, particles.y, particles.x, particles)
         (u1, v1) = fieldset.UV[particles.t, sig, particles.y, particles.x, particles]
         w1 = fieldset.W[particles.t, sig, particles.y, particles.x, particles]
         w1 *= sigma / fieldset.h[particles.t, np.zeros_like(particles.z), particles.y, particles.x]
-        x1 = particles.x + u1 * 0.5 * dt
-        y1 = particles.y + v1 * 0.5 * dt
-        sig_dep1 = sigma + w1 * 0.5 * dt
+        x1 = particles.x + u1 * 0.5 * particles.dt
+        y1 = particles.y + v1 * 0.5 * particles.dt
+        sig_dep1 = sigma + w1 * 0.5 * particles.dt
         dep1 = sig_dep1 * fieldset.h[particles.t, np.zeros_like(particles.z), y1, x1]
 
-        sig1 = convert_z_to_sigma_croco(fieldset, particles.t + 0.5 * dt, dep1, y1, x1, particles)
-        (u2, v2) = fieldset.UV[particles.t + 0.5 * dt, sig1, y1, x1, particles]
-        w2 = fieldset.W[particles.t + 0.5 * dt, sig1, y1, x1, particles]
-        w2 *= sig_dep1 / fieldset.h[particles.t + 0.5 * dt, np.zeros_like(particles.z), y1, x1]
-        x2 = particles.x + u2 * 0.5 * dt
-        y2 = particles.y + v2 * 0.5 * dt
-        sig_dep2 = sigma + w2 * 0.5 * dt
-        dep2 = sig_dep2 * fieldset.h[particles.t + 0.5 * dt, np.zeros_like(particles.z), y2, x2]
+        sig1 = convert_z_to_sigma_croco(fieldset, particles.t + 0.5 * particles.dt, dep1, y1, x1, particles)
+        (u2, v2) = fieldset.UV[particles.t + 0.5 * particles.dt, sig1, y1, x1, particles]
+        w2 = fieldset.W[particles.t + 0.5 * particles.dt, sig1, y1, x1, particles]
+        w2 *= sig_dep1 / fieldset.h[particles.t + 0.5 * particles.dt, np.zeros_like(particles.z), y1, x1]
+        x2 = particles.x + u2 * 0.5 * particles.dt
+        y2 = particles.y + v2 * 0.5 * particles.dt
+        sig_dep2 = sigma + w2 * 0.5 * particles.dt
+        dep2 = sig_dep2 * fieldset.h[particles.t + 0.5 * particles.dt, np.zeros_like(particles.z), y2, x2]
 
-        particles.dx += u2 * dt
-        particles.dy += v2 * dt
+        particles.dx += u2 * particles.dt
+        particles.dy += v2 * particles.dt
         particles.dz += (dep1 - particles.z) + (dep2 - particles.z)
