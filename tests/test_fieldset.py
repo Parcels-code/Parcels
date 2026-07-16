@@ -431,7 +431,6 @@ def test_fieldset_describe_backends(tmp_path):
         coords=ds_coords,
     )
     fieldset = FieldSet.from_sgrid_conventions(ds_fset)
-    print(fieldset.describe())
 
     io = StringIO()
     expected = """\
@@ -444,7 +443,7 @@ def test_fieldset_describe_backends(tmp_path):
 | UVW    | VectorField |             0 | CGrid_Velocity(...)     | -                 |
 
 mesh: spherical
-time interval: (np.datetime64('2000-01-02T12:00:00.000000000'), np.datetime64('2000-01-27T12:00:00.000000000'))
+time interval: (np.datetime64('2000-01-02T12:00:00.000000000'), np.datetime64('2000-01-12T12:00:00.000000000'))
 """
     fieldset.describe(io)
     actual = io.getvalue()
@@ -452,7 +451,6 @@ time interval: (np.datetime64('2000-01-02T12:00:00.000000000'), np.datetime64('2
 
     # Also run with WindowedArray backend
     fieldset = fieldset.to_windowed_arrays()
-    print(fieldset.describe())
 
     io = StringIO()
     expected = """\
@@ -465,7 +463,7 @@ time interval: (np.datetime64('2000-01-02T12:00:00.000000000'), np.datetime64('2
 | UVW    | VectorField |             0 | CGrid_Velocity(...)     | -                 |
 
 mesh: spherical
-time interval: (np.datetime64('2000-01-02T12:00:00.000000000'), np.datetime64('2000-01-27T12:00:00.000000000'))
+time interval: (np.datetime64('2000-01-02T12:00:00.000000000'), np.datetime64('2000-01-12T12:00:00.000000000'))
 """
     fieldset.describe(io)
     actual = io.getvalue()
@@ -475,7 +473,6 @@ time interval: (np.datetime64('2000-01-02T12:00:00.000000000'), np.datetime64('2
     ds_fset.to_zarr(path)
     ds_zarr = open_raw_zarr(path)
     fieldset = FieldSet.from_sgrid_conventions(ds_zarr)
-    print(fieldset.describe())
 
     io = StringIO()
     expected = """\
@@ -488,7 +485,7 @@ time interval: (np.datetime64('2000-01-02T12:00:00.000000000'), np.datetime64('2
 | UVW    | VectorField |             0 | CGrid_Velocity(...)     | -                 |
 
 mesh: spherical
-time interval: (np.datetime64('2000-01-02T12:00:00.000000000'), np.datetime64('2000-01-27T12:00:00.000000000'))
+time interval: (np.datetime64('2000-01-02T12:00:00.000000000'), np.datetime64('2000-01-12T12:00:00.000000000'))
 """
     fieldset.describe(io)
     actual = io.getvalue()
