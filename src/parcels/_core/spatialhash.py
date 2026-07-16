@@ -285,15 +285,25 @@ class SpatialHash:
         packed <<= np.uint64(32)
         np.bitwise_or(packed, face_ids, out=packed)
         del face_ids
+        # Perform a single sort on the packed (morton_code | face_id ) list
         packed.sort()
-        face_sorted = packed.astype(np.uint32)  # truncating cast keeps the low 32 bits
+        # Trunctating back to a uint32 keeps the lower 32 bits (the face_id's)
+        face_sorted = packed.astype(np.uint32)
+        # Purge the face ids from the packed list to retain only the morton codes
         packed >>= np.uint64(32)
+        # Cast the morton codes back to uint32
         morton_codes_sorted = packed.astype(np.uint32)
         del packed
         j_sorted, i_sorted = np.unravel_index(face_sorted, self._xlow.shape)
 
-        # Get a list of unique morton codes and their corresponding starts and counts (CSR format)
-        keys, starts, counts = np.unique(morton_codes_sorted, return_index=True, return_counts=True)
+        # Get a list of unique morton codes and their corresponding starts and counts (CSR format).
+        # The codes are already sorted at this point, first by morton code, then by face_id
+        # Starting indices of the matrix rows are located by finding indices where the morton codes differ
+        starts = np.concatenate(([0], np.flatnonzero(morton_codes_sorted[1:] != morton_codes_sorted[:-1]) + 1))
+        # The unique keys for the hash table are the unique morton codes
+        keys = morton_codes_sorted[starts]
+        # The number of faces per hash keys (morton codes) is easily calculated as the difference betwee the start values
+        counts = np.diff(np.concatenate((starts, [morton_codes_sorted.size])))
 
         hash_table = {
             "keys": keys,
