@@ -251,7 +251,7 @@ class SpatialHash:
         # box. Entries are generated in face-major order: face_ids maps each entry to its
         # face, and intra enumerates the cells of that face's box (0..num_hash_per_face-1).
         nface = np.size(self._xlow)
-        face_ids = np.repeat(np.arange(nface, dtype=np.int32), num_hash_per_face)
+        face_ids = np.repeat(np.arange(nface, dtype=np.uint32), num_hash_per_face)
         face_starts = np.concatenate(([0], np.cumsum(num_hash_per_face, dtype=np.int64)))[:-1]
         intra = np.arange(total_hash_entries, dtype=idx_dtype) - np.repeat(
             face_starts.astype(idx_dtype, copy=False), num_hash_per_face
@@ -273,11 +273,23 @@ class SpatialHash:
 
         # Vectorized morton encode for all entries at once, already in face-major order
         morton_codes = _encode_quantized_morton3d(xq, yq, zq)
+        del intra, rem, xi, yi, zi, ny_nz, nz_rep, xq, yq, zq
 
-        # Sort face indices by morton code
-        order = np.argsort(morton_codes)
-        morton_codes_sorted = morton_codes[order]
-        face_sorted = face_ids[order]
+        # Sort entries by morton code. Each (code, face) pair is fused into one uint64
+        # with the code in the high 32 bits and the face id in the low 32 bits: unsigned
+        # comparison then orders by code, with ties broken by ascending face id. Sorting
+        # the fused array in place avoids the argsort permutation array and the gather
+        # copies it would imply. Pairs are unique, so the ordering is deterministic.
+        packed = morton_codes.astype(np.uint64)
+        del morton_codes
+        packed <<= np.uint64(32)
+        np.bitwise_or(packed, face_ids, out=packed)
+        del face_ids
+        packed.sort()
+        face_sorted = packed.astype(np.uint32)  # truncating cast keeps the low 32 bits
+        packed >>= np.uint64(32)
+        morton_codes_sorted = packed.astype(np.uint32)
+        del packed
         j_sorted, i_sorted = np.unravel_index(face_sorted, self._xlow.shape)
 
         # Get a list of unique morton codes and their corresponding starts and counts (CSR format)
