@@ -8,7 +8,7 @@ import pandas as pd
 import pytest
 
 import parcels.tutorial
-from parcels import Field, ParticleFile, ParticleSet, XGrid, convert
+from parcels import Field, ParticleFile, ParticleSet, XGrid, convert, open_raw_zarr
 from parcels._core.fieldset import FieldSet, _datetime_to_msg
 from parcels._core.model import _default_vector_field_components
 from parcels._datasets.structured.generic import datasets as datasets_structured
@@ -420,7 +420,7 @@ time interval: (np.datetime64('2000-01-01T00:00:00.000000000'), np.datetime64('2
     assert actual == expected
 
 
-def test_fieldset_describe_backends():
+def test_fieldset_describe_backends(tmp_path):
     ds_u = parcels.tutorial.open_dataset("NemoNorthSeaORCA025-N006_data/U")
     ds_v = parcels.tutorial.open_dataset("NemoNorthSeaORCA025-N006_data/V")
     ds_w = parcels.tutorial.open_dataset("NemoNorthSeaORCA025-N006_data/W")
@@ -459,6 +459,27 @@ time interval: (np.datetime64('2000-01-02T12:00:00.000000000'), np.datetime64('2
 | U      | Field       |             0 | XLinear(...)            | WindowedArray     |
 | V      | Field       |             0 | XLinear(...)            | WindowedArray     |
 | W      | Field       |             0 | XLinear(...)            | WindowedArray     |
+| UV     | VectorField |             0 | CGrid_Velocity(...)     | -                 |
+| UVW    | VectorField |             0 | CGrid_Velocity(...)     | -                 |
+
+mesh: spherical
+time interval: (np.datetime64('2000-01-02T12:00:00.000000000'), np.datetime64('2000-01-27T12:00:00.000000000'))
+"""
+    fieldset.describe(io)
+    actual = io.getvalue()
+    assert actual == expected
+
+    path = tmp_path / "ds.zarr"
+    ds_fset.to_zarr(path)
+    ds_zarr = open_raw_zarr(path)
+    fieldset = FieldSet.from_sgrid_conventions(ds_zarr)
+    io = StringIO()
+    expected = """\
+| Name   | Type        |   Grid number | Interp method / value   | Parcels backend   |
+|:-------|:------------|--------------:|:------------------------|:------------------|
+| U      | Field       |             0 | XLinear(...)            | Zarr              |
+| V      | Field       |             0 | XLinear(...)            | Zarr              |
+| W      | Field       |             0 | XLinear(...)            | Zarr              |
 | UV     | VectorField |             0 | CGrid_Velocity(...)     | -                 |
 | UVW    | VectorField |             0 | CGrid_Velocity(...)     | -                 |
 

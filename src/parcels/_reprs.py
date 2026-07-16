@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING, Any, Literal, cast
 
 import numpy as np
 import xarray as xr
+import zarr
 from dask.base import is_dask_collection
 
 from parcels._core._windowed_array import WindowedArray
@@ -223,6 +224,8 @@ def _field_backend(field: Field | VectorField) -> str | None:
             return "WindowedArray"
         elif is_dask_collection(field.data.data):
             return "Dask"
+        elif isinstance(field.data.variable._data, zarr.Array):
+            return "Zarr"
         elif isinstance(field.data.data, np.ndarray):
             return "NumPy"
         else:
