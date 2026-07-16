@@ -7,6 +7,7 @@ import numpy as np
 import numpy.typing as npt
 import xarray as xr
 import xgcm
+from dask import is_dask_collection
 
 import parcels._sgrid as sgrid
 import parcels._typing as ptyping
@@ -207,6 +208,9 @@ class XGrid(BaseGrid):
             _ = self.xgcm_grid.axes["X"]
         except KeyError:
             return np.zeros(1)
+        # ensure lon is loaded into memory for dask-backed datasets, as it is used in the search method
+        if is_dask_collection(self._ds["lon"].data):
+            self._ds["lon"].load()
         return self._ds["lon"].values
 
     @property
@@ -221,6 +225,9 @@ class XGrid(BaseGrid):
             _ = self.xgcm_grid.axes["Y"]
         except KeyError:
             return np.zeros(1)
+        # ensure lat is loaded into memory for dask-backed datasets, as it is used in the search method
+        if is_dask_collection(self._ds["lat"].data):
+            self._ds["lat"].load()
         return self._ds["lat"].values
 
     @property
