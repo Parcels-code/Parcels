@@ -8,7 +8,10 @@ from typing import TYPE_CHECKING, Any, Literal, cast
 
 import numpy as np
 import xarray as xr
+import zarr
+from dask.base import is_dask_collection
 
+from parcels._core._windowed_array import WindowedArray
 from parcels._python import isinstance_noimport
 
 if TYPE_CHECKING:
@@ -190,6 +193,7 @@ class _FieldSetDescriptionRow:
     model_id: int | None
     name: str
     interp_method_or_value: str
+    backend: str | None = None
 
     def to_dict(self) -> dict[str, str]:
         return {
@@ -197,6 +201,7 @@ class _FieldSetDescriptionRow:
             "Type": self.type_,
             "Grid number": str(self.model_id) if self.model_id is not None else "-",
             "Interp method / value": self.interp_method_or_value,
+            "Parcels backend": self.backend if self.backend is not None else "-",
         }
 
 
@@ -211,6 +216,22 @@ def _print_time_interval(time_interval: TimeInterval | None) -> str:
     if time_interval is None:
         return repr(time_interval)
     return repr((time_interval.left, time_interval.right))
+
+
+def _field_backend(field: Field | VectorField) -> str | None:
+    if hasattr(field, "data"):
+        if isinstance(field.data, WindowedArray):
+            return "WindowedArray"
+        elif is_dask_collection(field.data.data):
+            return "Dask"
+        elif isinstance(field.data.variable._data, zarr.Array):
+            return "Zarr"
+        elif isinstance(field.data.data, np.ndarray):
+            return "NumPy"
+        else:
+            return type(field.data).__name__
+    else:
+        return None
 
 
 def fieldset_describe(fieldset: FieldSet) -> str:
@@ -235,6 +256,7 @@ def fieldset_describe(fieldset: FieldSet) -> str:
                 model_id=model_id,
                 name=field.name,
                 interp_method_or_value=repr(field.interp_method),
+                backend=_field_backend(field),
             )
         )
     for k, v in fieldset.context.items():
@@ -244,6 +266,7 @@ def fieldset_describe(fieldset: FieldSet) -> str:
                 model_id=None,
                 name=k,
                 interp_method_or_value=repr(v),
+                backend=None,
             )
         )
     return (
