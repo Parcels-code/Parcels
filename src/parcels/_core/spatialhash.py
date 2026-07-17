@@ -11,6 +11,17 @@ from parcels._core.index_search import (
 from parcels._core.warnings import FieldSetWarning
 from parcels._python import isinstance_noimport
 
+# Budget on the total number of (face, hash cell) pairs in the hash table:
+# max(_HASH_ENTRIES_PER_FACE * nfaces, _HASH_ENTRY_BUDGET_MIN).
+# When the hash grid cell size, set by the bitwidth, would result in too many
+# hash entries per face, the hash grid is coarsened by lowering the bitwidth
+# The target value for the number of hash entries per face is chosen to keep
+# the number of particle in cell checks as small as possible, while also
+# minimizing the hash table construction memory footprint.
+_HASH_ENTRIES_PER_FACE = 16
+_HASH_ENTRY_BUDGET_MIN = 2**22
+_HASH_MAX_BITWIDTH = 1023
+
 
 class SpatialHash:
     """Custom data structure that is used for performing grid searches using Spatial Hashing. This class constructs an overlying
@@ -31,7 +42,6 @@ class SpatialHash:
     def __init__(
         self,
         grid,
-        bitwidth=1023,
     ):
         if isinstance_noimport(grid, "XGrid"):
             self._point_in_cell = curvilinear_point_in_cell
@@ -41,7 +51,7 @@ class SpatialHash:
             raise ValueError("Expected `grid` to be a parcels.XGrid or parcels.UxGrid")
 
         self._source_grid = grid
-        self._bitwidth = bitwidth  # Max integer to use per coordinate in quantization (10 bits = 0..1023)
+        self._bitwidth = _HASH_MAX_BITWIDTH  # Max integer to use per coordinate in quantization (10 bits = 0..1023)
 
         if isinstance_noimport(grid, "XGrid"):
             self._coord_dim = 2  # Number of computational coordinates is 2 (bilinear interpolation)
@@ -196,8 +206,59 @@ class SpatialHash:
                 self._zlow = np.zeros_like(self._xlow)
                 self._zhigh = np.zeros_like(self._xlow)
 
+        # Cap the quantization resolution so the hash table stays within a fixed entry
+        # budget. 
+        budget = max(_HASH_ENTRIES_PER_FACE * np.size(self._xlow), _HASH_ENTRY_BUDGET_MIN)
+        if self._total_hash_entries(self._bitwidth) > budget:
+            # Binary search for the largest bitwidth whose table fits the budget. The
+            # entry count is not perfectly monotone in bitwidth (cell-boundary flooring
+            # effects), so the result may sit marginally below the true maximum; any
+            # in-budget bitwidth is valid. At bitwidth 1 the count equals nfaces, which
+            # is always within budget, so the search cannot fail.
+            lo, hi = 1, self._bitwidth
+            while lo < hi:
+                mid = (lo + hi + 1) // 2
+                if self._total_hash_entries(mid) <= budget:
+                    lo = mid
+                else:
+                    hi = mid - 1
+            self._bitwidth = lo
+
         # Generate the mapping from the hash indices to unstructured grid elements
         self._hash_table = self._initialize_hash_table()
+
+    def _total_hash_entries(self, bitwidth):
+        """Total number of (face, hash cell) pairs the hash table would hold at a given
+        quantization resolution, i.e. the summed hash-cell count of all face bounding boxes.
+        """
+        xqlow, yqlow, zqlow = quantize_coordinates(
+            self._xlow,
+            self._ylow,
+            self._zlow,
+            self._xmin,
+            self._xmax,
+            self._ymin,
+            self._ymax,
+            self._zmin,
+            self._zmax,
+            bitwidth,
+        )
+        xqhigh, yqhigh, zqhigh = quantize_coordinates(
+            self._xhigh,
+            self._yhigh,
+            self._zhigh,
+            self._xmin,
+            self._xmax,
+            self._ymin,
+            self._ymax,
+            self._zmin,
+            self._zmax,
+            bitwidth,
+        )
+        nx = xqhigh.astype(np.int64) - xqlow + 1
+        ny = yqhigh.astype(np.int64) - yqlow + 1
+        nz = zqhigh.astype(np.int64) - zqlow + 1
+        return int((nx * ny * nz).sum())
 
     def _initialize_hash_table(self):
         """Create a mapping that relates unstructured grid faces to hash indices by determining
@@ -355,7 +416,16 @@ class SpatialHash:
             qz = np.zeros_like(qx)
 
         query_codes = _encode_morton3d(
-            qx, qy, qz, self._xmin, self._xmax, self._ymin, self._ymax, self._zmin, self._zmax
+            qx,
+            qy,
+            qz,
+            self._xmin,
+            self._xmax,
+            self._ymin,
+            self._ymax,
+            self._zmin,
+            self._zmax,
+            bitwidth=self._bitwidth,
         ).ravel()
         num_queries = query_codes.size
 
