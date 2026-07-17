@@ -8,6 +8,7 @@ import xarray as xr
 from parcels import FieldSet, ParticleSet
 from parcels._core._windowed_array import WindowedArray, maybe_windowed
 from parcels._datasets.structured.generated import simple_UV_dataset
+from parcels._datasets.unstructured.generic import _ux_constant_flow_face_centered_2D
 from parcels.kernels import AdvectionRK2
 
 
@@ -70,8 +71,7 @@ def test_windowed_isel_backward_clock_loads_once_and_evicts():
     assert win.loads == ntime  # each time level read exactly once, going backward
     assert max_cache <= 2  # only the bracketing levels resident
 
-
-def test_to_windowed_arrays_wraps_dask_but_not_numpy():
+def test_structured_windowed_arrays_wraps_dask_but_not_numpy():
     ds = simple_UV_dataset(mesh="flat")
     fset_np = FieldSet.from_sgrid_conventions(ds, mesh="flat")
     fset_dk = FieldSet.from_sgrid_conventions(ds.chunk({"time": 1}), mesh="flat")
@@ -91,6 +91,25 @@ def test_to_windowed_arrays_wraps_dask_but_not_numpy():
     assert fset_dk.U.data.dims == fset_np.U.data.dims
     assert fset_dk.U.data.shape == fset_np.U.data.shape
 
+def test_unstructured_windowed_arrays_wraps_dask_but_not_numpy():
+    ds = _ux_constant_flow_face_centered_2D()
+    fset_np = FieldSet.from_ugrid_conventions(ds, mesh="flat")
+    fset_dk = FieldSet.from_ugrid_conventions(ds.chunk({"time": 1}), mesh="flat")
+
+    # construction is never windowing -- it is opt-in via the fieldset method
+    assert not isinstance(fset_np.U.data, WindowedArray)
+    assert not isinstance(fset_dk.U.data, WindowedArray)
+    assert isinstance(fset_dk.U.data.data, da.Array)  # chunked input stays lazy (dask-backed)
+
+    assert fset_np.to_windowed_arrays() is fset_np  # chainable
+    fset_dk.to_windowed_arrays()
+
+    # numpy-backed field is left eager; dask-backed field gets wrapped
+    assert not isinstance(fset_np.U.data, WindowedArray)
+    assert isinstance(fset_dk.U.data, WindowedArray)
+    # transparency: forwarded attributes still behave like the DataArray
+    assert fset_dk.U.data.dims == fset_np.U.data.dims
+    assert fset_dk.U.data.shape == fset_np.U.data.shape
 
 def test_to_windowed_arrays_is_idempotent_and_forwards_max_levels():
     ds = simple_UV_dataset(mesh="flat")
