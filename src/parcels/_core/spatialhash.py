@@ -294,7 +294,6 @@ class SpatialHash:
         # Cast the morton codes back to uint32
         morton_codes_sorted = packed.astype(np.uint32)
         del packed
-        j_sorted, i_sorted = np.unravel_index(face_sorted, self._xlow.shape)
 
         # Get a list of unique morton codes and their corresponding starts and counts (CSR format).
         # The codes are already sorted at this point, first by morton code, then by face_id
@@ -305,12 +304,14 @@ class SpatialHash:
         # The number of faces per hash keys (morton codes) is easily calculated as the difference betwee the start values
         counts = np.diff(np.concatenate((starts, [morton_codes_sorted.size])))
 
+        # The flat face id is stored (4 bytes per entry); query() unravels the gathered
+        # candidates to (j, i) on demand, instead of holding two precomputed int64
+        # index arrays (16 bytes per entry) for the lifetime of the grid.
         hash_table = {
             "keys": keys,
             "starts": starts,
             "counts": counts,
-            "i": i_sorted,
-            "j": j_sorted,
+            "faces": face_sorted,
         }
         return hash_table
 
@@ -338,8 +339,7 @@ class SpatialHash:
         keys = self._hash_table["keys"]
         starts = self._hash_table["starts"]
         counts = self._hash_table["counts"]
-        i = self._hash_table["i"]
-        j = self._hash_table["j"]
+        faces = self._hash_table["faces"]
 
         y = np.asarray(y)
         x = np.asarray(x)
@@ -415,9 +415,10 @@ class SpatialHash:
         # use to quickly gather the (i,j) pairs for each query
         source_idx = starts[hash_positions].astype(np.int32) + intra
 
-        # Gather all candidate (j,i) pairs in one shot
-        j_all = j[source_idx]
-        i_all = i[source_idx]
+        # Gather all candidate face ids in one shot and unravel them to (j, i) pairs;
+        # only the gathered candidates are unraveled, not the whole table
+        face_all = faces[source_idx]
+        j_all, i_all = np.unravel_index(face_all, self._xlow.shape)
 
         # Now we need to construct arrays that repeats the y and x coordinates for each candidate
         # to enable vectorized point-in-cell checks
