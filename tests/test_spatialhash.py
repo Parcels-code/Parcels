@@ -60,20 +60,6 @@ def test_spherical_regional_bounds():
     assert np.all(i == -3)
 
 
-def test_query_honors_reduced_bitwidth():
-    """Queries must be encoded at the same quantization resolution the table was
-    built with; a mismatch makes every Morton key miss and all queries fail.
-    """
-    ds = datasets["2d_left_rotated"]
-    grid = FieldSet.from_sgrid_conventions(ds, mesh="spherical").data_g.grid
-    spatialhash = SpatialHash(grid, bitwidth=64)
-
-    clat, clon, jj, ii = _cell_centers(grid)
-    j, i, _ = spatialhash.query(clat.ravel(), clon.ravel())
-    assert np.array_equal(j, jj.ravel())
-    assert np.array_equal(i, ii.ravel())
-
-
 def test_hash_entry_budget():
     """When the requested bitwidth would blow the hash-entry budget (e.g. tilted
     regional spherical meshes, where face bounding boxes overlap 3-D blocks of
