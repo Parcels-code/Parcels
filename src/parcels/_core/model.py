@@ -105,7 +105,7 @@ class ModelData(ABC):
         windowed = self.__dict__.setdefault("_windowed", {})
         for dim in ["lon", "lat"]:
             # ensure lon and lat are loaded into memory for dask-backed datasets
-            if is_dask_collection(self.data[dim]):
+            if dim in self.data and is_dask_collection(self.data[dim]):
                 self.data[dim].load()
         if "depth" in self.data.dims and is_dask_collection(self.data["depth"]):
             self.data["depth"].load()
