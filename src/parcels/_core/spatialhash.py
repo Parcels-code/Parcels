@@ -207,7 +207,7 @@ class SpatialHash:
                 self._zhigh = np.zeros_like(self._xlow)
 
         # Cap the quantization resolution so the hash table stays within a fixed entry
-        # budget. 
+        # budget.
         budget = max(_HASH_ENTRIES_PER_FACE * np.size(self._xlow), _HASH_ENTRY_BUDGET_MIN)
         if self._total_hash_entries(self._bitwidth) > budget:
             # Binary search for the largest bitwidth whose table fits the budget. The
