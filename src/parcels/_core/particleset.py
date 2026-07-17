@@ -420,6 +420,7 @@ class ParticleSet:
             pbar = tqdm(
                 total=sign_dt * (end_time - start_time),
                 file=sys.stdout,
+                disable=None,
                 bar_format="{desc} {percentage:3.0f}%|{bar}| [{elapsed}<{remaining}, {rate_fmt}]",
             )
             pbar.set_description_str(

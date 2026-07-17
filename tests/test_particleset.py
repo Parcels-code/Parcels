@@ -1,3 +1,4 @@
+import sys
 from contextlib import nullcontext as does_not_raise
 from datetime import datetime, timedelta
 from operator import attrgetter
@@ -31,6 +32,23 @@ def test_create_empty_pset(fieldset):
 
     pset.execute(DoNothing, endtime=1.0, dt=1.0)
     assert pset.size == 0
+
+
+@pytest.mark.parametrize(
+    ("is_tty", "expect_progress"),
+    [(True, True), (False, False)],
+)
+def test_pset_execute_progress_respects_stdout_tty(fieldset, monkeypatch, capsys, is_tty, expect_progress):
+    monkeypatch.setattr(sys.stdout, "isatty", lambda: is_tty)
+    pset = ParticleSet(fieldset, x=0, y=0, pclass=Particle)
+
+    pset.execute(
+        DoNothing,
+        runtime=np.timedelta64(1, "s"),
+        dt=np.timedelta64(1, "s"),
+    )
+
+    assert bool(capsys.readouterr().out) is expect_progress
 
 
 @pytest.mark.parametrize("offset", [0, 1, 200])
