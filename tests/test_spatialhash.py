@@ -1,7 +1,7 @@
 import numpy as np
 
 from parcels._core.fieldset import FieldSet
-from parcels._core.spatialhash import _HASH_ENTRIES_PER_FACE, _HASH_ENTRY_BUDGET_MIN, SpatialHash
+from parcels._core.spatialhash import _HASH_ENTRIES_PER_FACE, _HASH_ENTRY_BUDGET_MIN
 from parcels._datasets.structured.generic import datasets
 
 
