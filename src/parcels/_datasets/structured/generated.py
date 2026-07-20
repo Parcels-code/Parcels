@@ -333,23 +333,23 @@ def stommel_gyre_dataset(xdim=200, ydim=200, grid_type="A"):
                 U[j, i] = -(1 - math.exp(-xi / es) - xi) * math.pi**2 * np.cos(math.pi * yi) * scalefac
                 V[j, i] = (math.exp(-xi / es) / es - 1) * math.pi * np.sin(math.pi * yi) * scalefac
     if grid_type == "C":
-        V[:, 1:] = (P[:, 1:] - P[:, 0:-1]) / dx * a
         U[1:, :] = -(P[1:, :] - P[0:-1, :]) / dy * b
-        Udims = ["YC", "XG"]
-        Vdims = ["YG", "XC"]
+        V[:, 1:] = (P[:, 1:] - P[:, 0:-1]) / dx * a
+        Udims = ["YG", "XC"]
+        Vdims = ["YC", "XG"]
     else:
-        Udims = ["YG", "XG"]
-        Vdims = ["YG", "XG"]
+        Udims = ["YC", "XC"]
+        Vdims = ["YC", "XC"]
 
     return xr.Dataset(
         {"U": (Udims, U), "V": (Vdims, V), "P": (["YG", "XG"], P)},
         coords={
-            "YC": (["YC"], np.arange(ydim) + 0.5, {"axis": "Y"}),
-            "YG": (["YG"], np.arange(ydim), {"axis": "Y", "c_grid_axis_shift": -0.5}),
-            "XC": (["XC"], np.arange(xdim) + 0.5, {"axis": "X"}),
-            "XG": (["XG"], np.arange(xdim), {"axis": "X", "c_grid_axis_shift": -0.5}),
-            "lat": (["YG"], lat, {"axis": "Y", "c_grid_axis_shift": 0.5}),
-            "lon": (["XG"], lon, {"axis": "X", "c_grid_axis_shift": -0.5}),
+            "YC": (["YC"], np.arange(ydim) - 0.5, {"axis": "Y", "c_grid_axis_shift": +0.5}),
+            "YG": (["YG"], np.arange(ydim), {"axis": "Y"}),
+            "XC": (["XC"], np.arange(xdim) - 0.5, {"axis": "X", "c_grid_axis_shift": +0.5}),
+            "XG": (["XG"], np.arange(xdim), {"axis": "X"}),
+            "lat": (["YG"], lat, {"axis": "Y"}),
+            "lon": (["XG"], lon, {"axis": "X"}),
         },
     ).pipe(
         sgrid._attach_sgrid_metadata,
@@ -360,7 +360,7 @@ def stommel_gyre_dataset(xdim=200, ydim=200, grid_type="A"):
             node_coordinates=("lon", "lat"),
             face_dimensions=(
                 sgrid.FaceNodePadding("XC", "XG", sgrid.Padding.LOW),
-                sgrid.FaceNodePadding("YC", "YG", sgrid.Padding.HIGH),
+                sgrid.FaceNodePadding("YC", "YG", sgrid.Padding.LOW),
             ),
         ),
     )
