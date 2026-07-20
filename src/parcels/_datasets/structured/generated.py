@@ -230,8 +230,8 @@ def peninsula_dataset(xdim=100, ydim=50, mesh="flat", grid_type="A"):
         http://archimer.ifremer.fr/doc/00157/26792/24888.pdf
     """
     domainsizeX, domainsizeY = (1.0e5, 5.0e4)
-    La = np.linspace(1e3, domainsizeX, xdim, dtype=np.float32)
-    Wa = np.linspace(1e3, domainsizeY, ydim, dtype=np.float32)
+    La = np.linspace(0, domainsizeX, xdim, dtype=np.float32)
+    Wa = np.linspace(0, domainsizeY, ydim, dtype=np.float32)
 
     u0 = 1
     x0 = domainsizeX / 2
@@ -253,15 +253,15 @@ def peninsula_dataset(xdim=100, ydim=50, mesh="flat", grid_type="A"):
         V[:, :] = -2 * u0 * R**2 * ((x - x0) * y) / (((x - x0) ** 2 + y**2) ** 2)
         U[landpoints] = 0.0
         V[landpoints] = 0.0
-        Udims = ["YG", "XG"]
-        Vdims = ["YG", "XG"]
+        Udims = ["YC", "XC"]
+        Vdims = ["YC", "XC"]
     elif grid_type == "C":
         U = np.zeros(P.shape)
         V = np.zeros(P.shape)
-        V[:, 1:] = (P[:, 1:] - P[:, :-1]) / (La[1] - La[0])
         U[1:, :] = -(P[1:, :] - P[:-1, :]) / (Wa[1] - Wa[0])
-        Udims = ["YC", "XG"]
-        Vdims = ["YG", "XC"]
+        V[:, 1:] = (P[:, 1:] - P[:, :-1]) / (La[1] - La[0])
+        Udims = ["YG", "XC"]
+        Vdims = ["YC", "XG"]
     else:
         raise ValueError(f"Grid_type {grid_type} is not a valid option")
 
@@ -273,15 +273,15 @@ def peninsula_dataset(xdim=100, ydim=50, mesh="flat", grid_type="A"):
         {
             "U": (Udims, U),
             "V": (Vdims, V),
-            "P": (["YG", "XG"], P),
+            "P": (["YC", "XC"], P),
         },
         coords={
-            "YC": (["YC"], np.arange(ydim) + 0.5, {"axis": "Y"}),
-            "YG": (["YG"], np.arange(ydim), {"axis": "Y", "c_grid_axis_shift": -0.5}),
-            "XC": (["XC"], np.arange(xdim) + 0.5, {"axis": "X"}),
-            "XG": (["XG"], np.arange(xdim), {"axis": "X", "c_grid_axis_shift": -0.5}),
-            "lat": (["YG"], lat, {"axis": "Y", "c_grid_axis_shift": 0.5}),
-            "lon": (["XG"], lon, {"axis": "X", "c_grid_axis_shift": -0.5}),
+            "YC": (["YC"], np.arange(ydim) - 0.5, {"axis": "Y", "c_grid_axis_shift": +0.5}),
+            "YG": (["YG"], np.arange(ydim), {"axis": "Y"}),
+            "XC": (["XC"], np.arange(xdim) - 0.5, {"axis": "X", "c_grid_axis_shift": +0.5}),
+            "XG": (["XG"], np.arange(xdim), {"axis": "X"}),
+            "lat": (["YG"], lat, {"axis": "Y"}),
+            "lon": (["XG"], lon, {"axis": "X"}),
         },
     ).pipe(
         sgrid._attach_sgrid_metadata,
@@ -292,7 +292,7 @@ def peninsula_dataset(xdim=100, ydim=50, mesh="flat", grid_type="A"):
             node_coordinates=("lon", "lat"),
             face_dimensions=(
                 sgrid.FaceNodePadding("XC", "XG", sgrid.Padding.LOW),
-                sgrid.FaceNodePadding("YC", "YG", sgrid.Padding.HIGH),
+                sgrid.FaceNodePadding("YC", "YG", sgrid.Padding.LOW),
             ),
         ),
     )
