@@ -71,11 +71,15 @@ def test_windowed_isel_backward_clock_loads_once_and_evicts():
     assert win.loads == ntime  # each time level read exactly once, going backward
     assert max_cache <= 2  # only the bracketing levels resident
 
-@pytest.mark.parametrize("fset_convention, ds", 
-                         [(FieldSet.from_sgrid_conventions, simple_UV_dataset(mesh="flat")), 
-                          (FieldSet.from_ugrid_conventions, _ux_constant_flow_face_centered_2D())],
-                          ids=["structured", "unstructured"]
-                         )
+
+@pytest.mark.parametrize(
+    "fset_convention, ds",
+    [
+        (FieldSet.from_sgrid_conventions, simple_UV_dataset(mesh="flat")),
+        (FieldSet.from_ugrid_conventions, _ux_constant_flow_face_centered_2D()),
+    ],
+    ids=["structured", "unstructured"],
+)
 def test_windowed_arrays_wraps_dask_but_not_numpy(fset_convention: callable, ds: xr.Dataset):
     fset_np = fset_convention(ds, mesh="flat")
     fset_dk = fset_convention(ds.chunk({"time": 1}), mesh="flat")
@@ -95,11 +99,15 @@ def test_windowed_arrays_wraps_dask_but_not_numpy(fset_convention: callable, ds:
     assert fset_dk.U.data.dims == fset_np.U.data.dims
     assert fset_dk.U.data.shape == fset_np.U.data.shape
 
-@pytest.mark.parametrize("fset_convention, ds", 
-                         [(FieldSet.from_sgrid_conventions, simple_UV_dataset(mesh="flat")), 
-                          (FieldSet.from_ugrid_conventions, _ux_constant_flow_face_centered_2D())],
-                          ids=["structured", "unstructured"]
-                          )
+
+@pytest.mark.parametrize(
+    "fset_convention, ds",
+    [
+        (FieldSet.from_sgrid_conventions, simple_UV_dataset(mesh="flat")),
+        (FieldSet.from_ugrid_conventions, _ux_constant_flow_face_centered_2D()),
+    ],
+    ids=["structured", "unstructured"],
+)
 def test_to_windowed_arrays_is_idempotent_and_forwards_max_levels(fset_convention: callable, ds: xr.Dataset):
     fs = fset_convention(ds.chunk({"time": 1}), mesh="flat")
 
@@ -170,6 +178,7 @@ def test_dask_advection_matches_numpy_on_structured_grids(mesh, dt_minutes):
     np.testing.assert_allclose(x_dk, x_np, atol=1e-9)
     np.testing.assert_allclose(y_dk, y_np, atol=1e-9)
 
+
 @pytest.mark.parametrize("mesh", ["flat", "spherical"])
 @pytest.mark.parametrize("dt_minutes", [15, -15], ids=["forward", "backward"])
 def test_dask_advection_matches_numpy_on_unstructured_grids(mesh, dt_minutes):
@@ -184,7 +193,7 @@ def test_dask_advection_matches_numpy_on_unstructured_grids(mesh, dt_minutes):
         fs = FieldSet.from_ugrid_conventions(d, mesh=mesh)
         if chunked:
             fs.to_windowed_arrays()
-        pset = ParticleSet(fs, x=10*np.ones(10), y=np.linspace(5, 15, 10))
+        pset = ParticleSet(fs, x=10 * np.ones(10), y=np.linspace(5, 15, 10))
         pset.execute(AdvectionRK2, runtime=3600, dt=np.timedelta64(dt_minutes, "m"))
         return np.array(pset.x), np.array(pset.y)
 
