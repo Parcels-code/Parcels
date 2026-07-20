@@ -42,12 +42,12 @@ The algorithm has two phases: **initialisation** (once, when the grid is first u
 
 The hash grid is three-dimensional regardless of the source grid:
 
-| Source grid | Mesh type | Hash-grid space                       |
-| ----------- | --------- | ------------------------------------- |
-| `XGrid`     | spherical | Cartesian unit cube (lon/lat → x,y,z) |
-| `XGrid`     | flat      | 2-D lon/lat bounding box (z set to 0) |
-| `UxGrid`    | spherical | Cartesian unit cube                   |
-| `UxGrid`    | flat      | 2-D lon/lat bounding box              |
+| Source grid | Mesh type | Hash-grid space                          |
+| ----------- | --------- | ---------------------------------------- |
+| `XGrid`     | spherical | Cartesian bounding box (lon/lat → x,y,z) |
+| `XGrid`     | flat      | 2-D lon/lat bounding box (z set to 0)    |
+| `UxGrid`    | spherical | Cartesian bounding box (lon/lat → x,y,z) |
+| `UxGrid`    | flat      | 2-D lon/lat bounding box                 |
 
 For spherical grids, node coordinates are converted from degrees to radians and then to Cartesian (x, y, z) on the unit sphere using `parcels._core.index_search._latlon_rad_to_xyz`:
 
@@ -57,7 +57,7 @@ y = sin(lon) * cos(lat)
 z = sin(lat)
 ```
 
-The hash grid then spans the unit cube `[-1, 1]³`. Working in Cartesian space avoids the longitude wrap-around discontinuity that would otherwise cause the bounding boxes of cells crossing the antimeridian to erroneously span the entire domain.
+The hash grid then spans the axis-aligned Cartesian bounding box of the transformed grid nodes. For a global grid this is (nearly) the unit cube `[-1, 1]³`; for a regional grid it is much tighter, so the full quantization resolution (1024 bins per axis) is spent on the region actually covered by the grid rather than the whole sphere. Working in Cartesian space avoids the longitude wrap-around discontinuity that would otherwise cause the bounding boxes of cells crossing the antimeridian to erroneously span the entire domain.
 
 For flat meshes the hash grid simply spans `[lon_min, lon_max] × [lat_min, lat_max]`, with z fixed at 0.
 
