@@ -219,7 +219,7 @@ class FieldSet:
         self.reconstruct_fields()
         field = getattr(self, name)
         field.interp_method = XConstantField()
-        _warn_if_fields_use_different_meshes(self.fields.values())
+        #_warn_if_fields_use_different_meshes(self.fields.values())
 
     def add_context(self, name, value):
         """Add context variable to the FieldSet.
