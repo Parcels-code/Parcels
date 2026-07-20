@@ -45,7 +45,6 @@ examples/tutorial_schism.ipynb
 examples/tutorial_velocityconversion.ipynb
 examples/tutorial_nestedgrids.ipynb
 examples/tutorial_manipulating_field_data.ipynb
-examples/documentation_indexing.ipynb
 ```
 
 ## Create ParticleSets
