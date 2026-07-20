@@ -71,10 +71,14 @@ def test_windowed_isel_backward_clock_loads_once_and_evicts():
     assert win.loads == ntime  # each time level read exactly once, going backward
     assert max_cache <= 2  # only the bracketing levels resident
 
-def test_structured_windowed_arrays_wraps_dask_but_not_numpy():
-    ds = simple_UV_dataset(mesh="flat")
-    fset_np = FieldSet.from_sgrid_conventions(ds, mesh="flat")
-    fset_dk = FieldSet.from_sgrid_conventions(ds.chunk({"time": 1}), mesh="flat")
+@pytest.mark.parametrize("fset_convention, ds", 
+                         [(FieldSet.from_sgrid_conventions, simple_UV_dataset(mesh="flat")), 
+                          (FieldSet.from_ugrid_conventions, _ux_constant_flow_face_centered_2D())],
+                          ids=["structured", "unstructured"]
+                         )
+def test_windowed_arrays_wraps_dask_but_not_numpy(fset_convention: callable, ds: xr.Dataset):
+    fset_np = fset_convention(ds, mesh="flat")
+    fset_dk = fset_convention(ds.chunk({"time": 1}), mesh="flat")
 
     # construction is never windowing -- it is opt-in via the fieldset method
     assert not isinstance(fset_np.U.data, WindowedArray)
@@ -91,29 +95,13 @@ def test_structured_windowed_arrays_wraps_dask_but_not_numpy():
     assert fset_dk.U.data.dims == fset_np.U.data.dims
     assert fset_dk.U.data.shape == fset_np.U.data.shape
 
-def test_unstructured_windowed_arrays_wraps_dask_but_not_numpy():
-    ds = _ux_constant_flow_face_centered_2D()
-    fset_np = FieldSet.from_ugrid_conventions(ds, mesh="flat")
-    fset_dk = FieldSet.from_ugrid_conventions(ds.chunk({"time": 1}), mesh="flat")
-
-    # construction is never windowing -- it is opt-in via the fieldset method
-    assert not isinstance(fset_np.U.data, WindowedArray)
-    assert not isinstance(fset_dk.U.data, WindowedArray)
-    assert isinstance(fset_dk.U.data.data, da.Array)  # chunked input stays lazy (dask-backed)
-
-    assert fset_np.to_windowed_arrays() is fset_np  # chainable
-    fset_dk.to_windowed_arrays()
-
-    # numpy-backed field is left eager; dask-backed field gets wrapped
-    assert not isinstance(fset_np.U.data, WindowedArray)
-    assert isinstance(fset_dk.U.data, WindowedArray)
-    # transparency: forwarded attributes still behave like the DataArray
-    assert fset_dk.U.data.dims == fset_np.U.data.dims
-    assert fset_dk.U.data.shape == fset_np.U.data.shape
-
-def test_to_windowed_arrays_is_idempotent_and_forwards_max_levels():
-    ds = simple_UV_dataset(mesh="flat")
-    fs = FieldSet.from_sgrid_conventions(ds.chunk({"time": 1}), mesh="flat")
+@pytest.mark.parametrize("fset_convention, ds", 
+                         [(FieldSet.from_sgrid_conventions, simple_UV_dataset(mesh="flat")), 
+                          (FieldSet.from_ugrid_conventions, _ux_constant_flow_face_centered_2D())],
+                          ids=["structured", "unstructured"]
+                          )
+def test_to_windowed_arrays_is_idempotent_and_forwards_max_levels(fset_convention: callable, ds: xr.Dataset):
+    fs = fset_convention(ds.chunk({"time": 1}), mesh="flat")
 
     fs.to_windowed_arrays(max_levels=3)
     first = fs.U.data
@@ -160,10 +148,10 @@ def test_maybe_windowed_passthrough_for_non_time_leading():
 
 @pytest.mark.parametrize("mesh", ["flat", "spherical"])
 @pytest.mark.parametrize("dt_minutes", [15, -15], ids=["forward", "backward"])
-def test_dask_advection_matches_numpy(mesh, dt_minutes):
+def test_dask_advection_matches_numpy_on_structured_grids(mesh, dt_minutes):
     """An identical advection must give identical trajectories whether the field
     is numpy-backed or dask-backed (windowed) -- for both forward (dt > 0) and
-    backward (dt < 0) integration.
+    backward (dt < 0) integration on structured grids.
     """
     ds = simple_UV_dataset(mesh=mesh)
     ds["U"].data[:] = 1.0  # steady zonal flow -> in-bounds, deterministic
@@ -175,6 +163,29 @@ def test_dask_advection_matches_numpy(mesh, dt_minutes):
             fs.to_windowed_arrays()
         pset = ParticleSet(fs, x=np.zeros(10), y=np.linspace(-10, 10, 10))
         pset.execute(AdvectionRK2, runtime=7200, dt=np.timedelta64(dt_minutes, "m"))
+        return np.array(pset.x), np.array(pset.y)
+
+    x_np, y_np = run(False)
+    x_dk, y_dk = run(True)
+    np.testing.assert_allclose(x_dk, x_np, atol=1e-9)
+    np.testing.assert_allclose(y_dk, y_np, atol=1e-9)
+
+@pytest.mark.parametrize("mesh", ["flat", "spherical"])
+@pytest.mark.parametrize("dt_minutes", [15, -15], ids=["forward", "backward"])
+def test_dask_advection_matches_numpy_on_unstructured_grids(mesh, dt_minutes):
+    """An identical advection must give identical trajectories whether the field
+    is numpy-backed or dask-backed (windowed) -- for both forward (dt > 0) and
+    backward (dt < 0) integration on unstructured grids.
+    """
+    ds = _ux_constant_flow_face_centered_2D()
+
+    def run(chunked):
+        d = ds.chunk({"time": 1}) if chunked else ds
+        fs = FieldSet.from_ugrid_conventions(d, mesh=mesh)
+        if chunked:
+            fs.to_windowed_arrays()
+        pset = ParticleSet(fs, x=10*np.ones(10), y=np.linspace(5, 15, 10))
+        pset.execute(AdvectionRK2, runtime=3600, dt=np.timedelta64(dt_minutes, "m"))
         return np.array(pset.x), np.array(pset.y)
 
     x_np, y_np = run(False)
