@@ -31,7 +31,7 @@ def fieldset_two_models():
     fset2 = FieldSet.from_sgrid_conventions(ds2, mesh="flat", vector_fields={"UV_wind": ("U_wind", "V_wind")})
     fset2.add_context("my_value", 2.0)
     fset2.add_context("my_list", [1, 2, "hello"])
-    fset2.add_constant_field("constant_field", 3.0)
+    fset2.add_constant_field("constant_field", 3.0, mesh="flat")
     return fset1 + fset2
 
 
@@ -68,7 +68,7 @@ def test_fieldset_add_context_invalid_name(fieldset, name):
 
 
 def test_fieldset_add_constant_field(fieldset):
-    fieldset.add_constant_field("test_constant_field", 1.0)
+    fieldset.add_constant_field("test_constant_field", 1.0, mesh="flat")
 
     # Get a point in the domain
     time = ds["time"].mean()
@@ -85,7 +85,7 @@ def test_fieldset_gridset(fieldset):
     assert fieldset.fields["UV"].grid in fieldset.gridset
     assert len(fieldset.gridset) == 1
 
-    fieldset.add_constant_field("constant_field", 1.0)
+    fieldset.add_constant_field("constant_field", 1.0, mesh="flat")
     assert len(fieldset.gridset) == 2
 
 
@@ -232,7 +232,7 @@ def test_fieldset_time_interval():
     field2 = Field("field2", ds2["U_A_grid"], grid2, interp_method=XLinear)
 
     fieldset = FieldSet([field1, field2])
-    fieldset.add_constant_field("constant_field", 1.0)
+    fieldset.add_constant_field("constant_field", 1.0, mesh="flat")
 
     assert fieldset.time_interval.left == np.datetime64("2000-01-02")
     assert fieldset.time_interval.right == np.datetime64("2001-01-01")

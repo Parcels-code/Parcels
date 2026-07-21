@@ -219,7 +219,7 @@ class FieldSet:
         self.reconstruct_fields()
         field = getattr(self, name)
         field.interp_method = XConstantField()
-        # _warn_if_fields_use_different_meshes(self.fields.values())
+        _warn_if_fields_use_different_meshes(self.fields.values())
 
     def add_context(self, name, value):
         """Add context variable to the FieldSet.
@@ -385,7 +385,7 @@ def _warn_if_fields_use_different_meshes(fields: Iterable[Field | VectorField]):
         warnings.warn(
             f"FieldSet has multiple different meshes: {meshes}. This may lead to unexpected behavior during execution.",
             category=FieldSetWarning,
-            stacklevel=2,
+            stacklevel=3,
         )
 
 
