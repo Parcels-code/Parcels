@@ -475,8 +475,17 @@ def _Spatialslip(
             f_v,
         )
 
-    u *= f_u
-    v *= f_v
+    if is_dask_collection(u):
+        u = u.compute()
+        v = v.compute()
+
+    u = u * f_u
+    v = v * f_v
+
+    if vectorfield.grid._mesh == "spherical":
+        u /= 1852 * 60 * np.cos(np.deg2rad(particle_positions["y"]))
+        v /= 1852 * 60
+
     if vectorfield.W:
         f_w = np.ones_like(zeta)
         f_w = np.where(
@@ -500,7 +509,7 @@ def _Spatialslip(
             f_w,
         )
 
-        w *= f_w
+        w = w * f_w
     else:
         w = np.zeros_like(u)
     return u, v, w
