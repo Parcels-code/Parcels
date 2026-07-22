@@ -8,67 +8,67 @@ This migration guide gives some tips if you want to migrate your Parcels v3 code
 
 <style>
 .migration-chat {
-	--migration-change-bg: #eaf3ff;
-	--migration-change-border: #9fc3f6;
-	--migration-how-bg: #edfced;
-	--migration-how-border: #9fd9a6;
-	--migration-header-change-bg: #dcecff;
-	--migration-header-change-border: #7fa9eb;
-	--migration-header-how-bg: #dcf7dc;
-	--migration-header-how-border: #7fc48a;
-	--migration-divider: #74777c;
-	--migration-radius: 10px;
-	--migration-width: 85%;
+    --migration-change-bg: light-dark(#eaf3ff, #1e3a5f);
+    --migration-change-border: light-dark(#9fc3f6, #4a7ba7);
+    --migration-how-bg: light-dark(#edfced, #1f3a1f);
+    --migration-how-border: light-dark(#9fd9a6, #4a7d4a);
+    --migration-header-change-bg: light-dark(#dcecff, #2d4a7a);
+    --migration-header-change-border: light-dark(#7fa9eb, #5a8bc9);
+    --migration-header-how-bg: light-dark(#dcf7dc, #2d5a2d);
+    --migration-header-how-border: light-dark(#7fc48a, #5ab85a);
+    --migration-divider: light-dark(#74777c, #8b8e93);
+    --migration-radius: 10px;
+    --migration-width: 85%;
 }
 
 .migration-chat .migration-bubble {
-	border-radius: var(--migration-radius);
-	max-width: var(--migration-width);
+    border-radius: var(--migration-radius);
+    max-width: var(--migration-width);
 }
 
 .migration-chat .migration-change {
-	background-color: var(--migration-change-bg);
-	border: 1px solid var(--migration-change-border);
-	padding: 0.7em 0.9em;
-	margin: 0.6em 0 0.4em 0;
+    background-color: var(--migration-change-bg);
+    border: 1px solid var(--migration-change-border);
+    padding: 0.7em 0.9em;
+    margin: 0.6em 0 0.4em 0;
 }
 
 .migration-chat .migration-how {
-	background-color: var(--migration-how-bg);
-	border: 1px solid var(--migration-how-border);
-	padding: 0.7em 0.9em;
-	margin: 0.2em 0 0.6em auto;
-	text-align: right;
+    background-color: var(--migration-how-bg);
+    border: 1px solid var(--migration-how-border);
+    padding: 0.7em 0.9em;
+    margin: 0.2em 0 0.6em auto;
+    text-align: right;
 }
 
 .migration-chat .migration-header {
-	font-weight: 700;
-	padding: 0.55em 0.9em;
+    font-weight: 700;
+    padding: 0.55em 0.9em;
 }
 
 .migration-chat .migration-header-change {
-	background-color: var(--migration-header-change-bg);
-	border: 1px solid var(--migration-header-change-border);
-	margin: 0.6em 0 0.4em 0;
+    background-color: var(--migration-header-change-bg);
+    border: 1px solid var(--migration-header-change-border);
+    margin: 0.6em 0 0.4em 0;
 }
 
 .migration-chat .migration-header-how {
-	background-color: var(--migration-header-how-bg);
-	border: 1px solid var(--migration-header-how-border);
-	margin: 0.2em 0 0.8em auto;
-	text-align: right;
+    background-color: var(--migration-header-how-bg);
+    border: 1px solid var(--migration-header-how-border);
+    margin: 0.2em 0 0.8em auto;
+    text-align: right;
 }
 
 .migration-chat .migration-divider {
-	border: none;
-	border-top: 2px solid var(--migration-divider);
-	margin: 0.8em 0 1em 0;
+    border: none;
+    border-top: 2px solid var(--migration-divider);
+    margin: 0.8em 0 1em 0;
 }
 
 @media (max-width: 768px) {
-	.migration-chat {
-		--migration-width: 100%;
-	}
+    .migration-chat {
+        --migration-width: 100%;
+    }
 }
 </style>
 
