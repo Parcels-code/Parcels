@@ -30,6 +30,7 @@ class SphericalMesh(BaseMesh):
     @property
     def deg2m(self) -> float:
         """Meters per degree of arc."""
+        assert self.radius is not None
         return self.radius * np.pi / 180.0
 
     def is_spherical(self):
