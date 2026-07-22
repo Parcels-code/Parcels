@@ -104,6 +104,14 @@ Use <code>numpy</code> functions instead of <code>math</code> functions
 <hr class="migration-divider" />
 
 <div class="migration-bubble migration-change">
+Functions shouldn't be converted to <code>Kernel</code> objects in a <code>pset.execute()</code> call
+</div>
+<div class="migration-bubble migration-how">
+Simply pass the function(s) as a list to <code>pset.execute()</code>
+</div>
+<hr class="migration-divider" />
+
+<div class="migration-bubble migration-change">
 The <code>time</code> argument in the Kernel signature is removed
 </div>
 <div class="migration-bubble migration-how">
