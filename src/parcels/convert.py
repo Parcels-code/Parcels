@@ -567,6 +567,130 @@ def copernicusmarine_to_sgrid(
     return ds
 
 
+def swash_to_sgrid(coord_file, data_file, total_depth) -> xr.Dataset:
+    """Create an sgrid-compliant xarray.Dataset from a dataset of SWASH netcdf files.
+    """
+    import scipy.io as sio
+    import re
+    import parcels._sgrid as sgrid 
+    import pandas as pd
+    ## First load the coordinates and data files (SWASH output - matlab binary format)
+    coord = sio.loadmat(coord_file)
+    x = coord["Xp"][0, :]
+    y = coord["Yp"][:, 0]
+    bot = coord["Botlev"]
+
+    mat = sio.loadmat(data_file)
+    keys = [k for k in mat.keys() if not k.startswith("__")]
+
+    time_keys = sorted(set(
+        (int(m.group(1)), int(m.group(2)))
+        for k in keys
+        for m in [re.search(r"_(\d{6})_(\d{3})$", k)] if m
+    ))
+    times = [t[0] + t[1] / 1000 for t in time_keys]
+
+    n_layers = max(
+        int(re.search(r"Vksi_k(\d+)_", k).group(1))
+        for k in keys if re.search(r"Vksi_k(\d+)_", k)
+    )
+    n_w_layers = n_layers
+
+    nx, ny, nt = len(x), len(y), len(times)
+
+    watlev = np.full((nt, ny, nx), np.nan, dtype=np.float32)
+    vksi = np.full((nt, n_layers, ny, nx), np.nan, dtype=np.float32)
+    veta = np.full((nt, n_layers, ny, nx), np.nan, dtype=np.float32)
+    w = np.full((nt, n_w_layers, ny, nx), np.nan, dtype=np.float32)
+
+    for ti, (ts_int, ts_dec) in enumerate(time_keys):
+        ts_str = f"{ts_int:06d}_{ts_dec:03d}"
+        for k in keys:
+            if re.match(rf"Watlev_{ts_str}$", k):
+                watlev[ti, :, :] = mat[k]
+            m = re.match(rf"Vksi_k(\d+)_{ts_str}$", k)
+            if m:
+                vksi[ti, int(m.group(1)) - 1, :, :] = mat[k]
+            m = re.match(rf"Veta_k(\d+)_{ts_str}$", k)
+            if m:
+                veta[ti, int(m.group(1)) - 1, :, :] = mat[k]
+            m = re.match(rf"w(\d+)_{ts_str}$", k)
+            if m and int(m.group(1)) < n_w_layers:
+                w[ti, int(m.group(1)), :, :] = mat[k]
+
+    t0 = pd.Timestamp("2026-06-01 00:00:00")
+    time_dt = np.array([t0 + pd.to_timedelta(t, unit="s") for t in times], dtype="datetime64[ns]")
+
+    ds = xr.Dataset(
+        {
+            "watlev": (["time", "y", "x"], watlev),
+            "U": (["time", "depth", "y", "x"], vksi),
+            "V": (["time", "depth", "y", "x"], veta),
+            "W": (["time", "depth_f", "y", "x"], w),
+            "botlev": (["y", "x"], bot),
+        },
+        coords={
+            "time": time_dt,
+            "depth": np.arange(1, n_layers + 1),
+            "depth_f": np.arange(0, n_w_layers),
+            "y": y,
+            "x": x,
+        },
+    )
+    ds.attrs.update(source="SWASH version 11.01ABC", project="progWave", run="A14", Conventions="CF-1.8")
+
+    n_layers = ds.sizes["depth"]
+    n_layers_f = ds.sizes["depth_f"]
+    if n_layers_f != n_layers:
+        raise ValueError(
+            f"Expected depth_f to match depth in length (got {n_layers_f} vs {n_layers})"
+        )
+
+    depth_centers = np.array(
+        [total_depth * (i - 0.5) / n_layers for i in range(1, n_layers + 1)], dtype=np.float32
+    )
+    depth_interfaces = np.array(
+        [total_depth * i / n_layers for i in range(n_layers_f)], dtype=np.float32
+    )
+
+    # Rename x/y -> lon/lat: Parcels' from_sgrid_conventions expects these names
+    # literally, even on a flat/Cartesian mesh (units stay in meters).
+    ds = ds.rename({"x": "lon", "y": "lat"})
+
+    ds = ds.assign_coords({
+        "depth": ("depth", depth_centers),
+        "depth_f": ("depth_f", depth_interfaces),
+    })
+
+    ds["time"].attrs.update(axis="T")
+    ds["lon"].attrs.update(axis="X", units="m")
+    ds["lat"].attrs.update(axis="Y", units="m")
+    ds["depth"].attrs.update(axis="Z", units="m", positive="down")
+    ds["depth_f"].attrs.update(axis="Z", units="m", positive="down")
+
+    if "grid" in ds.cf.cf_roles:
+        raise ValueError("Dataset already has a 'grid' variable (cf_role grid_topology).")
+
+    ds["grid"] = xr.DataArray(
+        0,
+        attrs=sgrid.SGrid2DMetadata(
+            cf_role="grid_topology",
+            topology_dimension=2,
+            node_dimensions=("lon", "lat"),
+            node_coordinates=("lon", "lat"),
+            face_dimensions=(
+                sgrid.FaceNodePadding("lon", "lon", sgrid.Padding.NONE),
+                sgrid.FaceNodePadding("lat", "lat", sgrid.Padding.NONE),
+            ),
+            vertical_dimensions=(
+                sgrid.FaceNodePadding("depth", "depth_f", sgrid.Padding.LOW),
+            ),
+        ).to_attrs(),
+    )
+        
+    return ds
+
+
 # Known vertical dimension mappings by model
 _FESOM2_VERTICAL_DIMS = {"interface": "nz", "center": "nz1"}
 _ICON_VERTICAL_DIMS = {"interface": "depth_2", "center": "depth"}

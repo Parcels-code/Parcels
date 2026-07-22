@@ -17,7 +17,7 @@ def list_datasets() -> list[str]:
     return _list_remote_datasets(purpose="tutorial")
 
 
-def open_dataset(name: str):
+def open_dataset(name: str, download_only=False):
     """Download and open a tutorial dataset as an :class:`xarray.Dataset`.
 
     Use :func:`list_datasets` to see the available dataset names.
@@ -33,4 +33,4 @@ def open_dataset(name: str):
     xarray.Dataset
         The requested dataset.
     """
-    return _open_remote_dataset(name, purpose="tutorial")
+    return _open_remote_dataset(name, purpose="tutorial", download_only=download_only)
