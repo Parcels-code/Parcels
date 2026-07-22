@@ -2,7 +2,10 @@ import numpy as np
 import pytest
 
 from parcels import (
+    KernelWarning,
+    Particle,
     ParticleSet,
+    Variable,
 )
 from parcels._core.kernel import Kernel
 from parcels.kernels import AdvectionRK4, AdvectionRK45
@@ -105,6 +108,18 @@ def test_RK45Kernel_error_no_next_dt(fieldset):
 
     with pytest.raises(ValueError, match='ParticleClass requires a "next_dt" for AdvectionRK45 Kernel.'):
         Kernel(kernels=[AdvectionRK45], pset=pset)
+
+
+def test_rk45_kernel_warnings(fieldset):
+    pset = ParticleSet(
+        fieldset=fieldset,
+        pclass=Particle.add_variable(Variable("next_dt", dtype=np.float32, initial=1)),
+        x=[0],
+        y=[0],
+        next_dt=1,
+    )
+    with pytest.warns(KernelWarning):
+        pset.execute(AdvectionRK45, runtime=1, dt=1)
 
 
 def test_kernel_signature(fieldset):
