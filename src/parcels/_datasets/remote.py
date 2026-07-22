@@ -1,5 +1,6 @@
 import abc
 import enum
+import fnmatch
 import os
 from collections.abc import Callable
 from pathlib import Path
@@ -107,6 +108,10 @@ _ODIE_REGISTRY_FILES: list[str] = (
         "data/SWASH_data/field_0065552.nc",
         "data/SWASH_data/field_0065557.nc",
     ]
+    + [
+        "data-matlab/F1ALL.mat",
+        "data-matlab/F1GRD.mat",
+    ]
     # + [f"data/WOA_data/woa18_decav_t{m:02d}_04.nc" for m in range(1, 13)]
     + ["data/CROCOidealized_data/CROCO_idealized.nc"]
     # These datasets are from v4 of Parcels where we're opting for Zipped zarr datasets
@@ -145,8 +150,15 @@ class _V3Dataset(_ParcelsDataset):
         first, second, *_ = path_relative_to_pup.split("/")
         self.v3_dataset_name = f"{first}/{second}"  # e.g., data/my_dataset
 
-    def open_dataset(self) -> xr.Dataset:
+    def open_dataset(self, download_only=False) -> xr.Dataset:
         self.download_relevant_files()
+        if download_only: ## Chit Yan Toe
+            import glob
+            matches = sorted(glob.glob(f"{self.pup.path}/{self.path_relative_to_root}"))
+            return matches if len(matches) != 1 else matches[0]
+        # if download_only:
+        #     return f"{self.pup.path}/{self.path_relative_to_root}"
+        
         with xr.set_options(use_new_combine_kwarg_defaults=True):
             ds = xr.open_mfdataset(
                 f"{self.pup.path}/{self.path_relative_to_root}",
@@ -163,9 +175,15 @@ class _V3Dataset(_ParcelsDataset):
         ds = xr.decode_cf(ds)
         return ds
 
-    def download_relevant_files(self) -> None:
+    # def download_relevant_files(self) -> None:
+    #     for file in self.pup.registry:
+    #         if self.v3_dataset_name in file:
+    #             self.pup.fetch(file)
+    #     return
+
+    def download_relevant_files(self) -> None: # Chit Yan Toe 
         for file in self.pup.registry:
-            if self.v3_dataset_name in file:
+            if fnmatch.fnmatch(file, self.path_relative_to_root):
                 self.pup.fetch(file)
         return
 
@@ -240,6 +258,7 @@ _DATASET_KEYS_AND_CONFIGS: dict[str, tuple[_ParcelsDataset, _Purpose]] = dict([
     # ("SWASH_data/data", (_V3Dataset(_ODIE,"data/SWASH_data/field_00655*.nc"), _Purpose.TUTORIAL)),
     # ("WOA_data/data", (_V3Dataset(_ODIE,"data/WOA_data/woa18_decav_t*_04.nc", _preprocess_set_cf_calendar_360_day), _Purpose.TUTORIAL)),
     ("CROCOidealized_data/data", (_V3Dataset(_ODIE,"data/CROCOidealized_data/CROCO_idealized.nc"), _Purpose.TUTORIAL)),
+    ("SWASH_data/data", (_V3Dataset(_ODIE,"data-matlab/F1*.mat"), _Purpose.TUTORIAL)),
 ] + [
     ("Benchmarks_FESOM2-baroclinic-gyre/data", (_ZarrZipDataset(_ODIE, 'data-zarr/Benchmarks_FESOM2-baroclinic-gyre/data.zip', zarr_format=2), _Purpose.TESTING)),
     ("Benchmarks_FESOM2-baroclinic-gyre/grid", (_ZarrZipDataset(_ODIE, 'data-zarr/Benchmarks_FESOM2-baroclinic-gyre/grid.zip', zarr_format=2),_Purpose.TESTING)),
@@ -275,7 +294,7 @@ def list_remote_datasets(purpose: _TPurpose | Literal["any"] = "any") -> list[st
     return [k for (k, (_, p)) in _DATASET_KEYS_AND_CONFIGS.items() if p == purpose_enum]
 
 
-def open_remote_dataset(name: str, purpose: _TPurpose | Literal["any"] = "any"):
+def open_remote_dataset(name: str, purpose: _TPurpose | Literal["any"] = "any", download_only=False):
     """Download and open a remote dataset as an :class:`xarray.Dataset`.
 
     Use :func:`list_datasets` to see the available dataset names.
@@ -300,4 +319,4 @@ def open_remote_dataset(name: str, purpose: _TPurpose | Literal["any"] = "any"):
         )
 
     dataset_config = _DATASET_KEYS_AND_CONFIGS[name][0]
-    return dataset_config.open_dataset()
+    return dataset_config.open_dataset(download_only=download_only)
