@@ -149,6 +149,7 @@ class StructuredModelData(ModelData):
 
     def assert_valid_field_data(self, field_data: xr.DataArray) -> None:
         # assert_all_field_dims_have_axis(field_data, self.grid.xgcm_grid) #! TODO v4: These checks should be revisited
+        _assert_no_nan_in_field_data(field_data)
         _assert_has_time_coordinate(field_data)
 
     @property
@@ -507,3 +508,11 @@ def _assert_has_time_coordinate(da: xr.DataArray) -> None:
         if "time" not in da.coords:
             raise ValueError("Field data is missing a 'time' coordinate.")
     return
+
+
+def _assert_no_nan_in_field_data(field_data: xr.DataArray) -> None:
+    arr = field_data.isel(time=0) if "time" in field_data.dims else field_data
+    if xr.ufuncs.isnan(arr).any():
+        raise ValueError(
+            f"Field data {field_data.name!r} contains NaN values. Please fill or remove NaN values before using this field in a Parcels simulation."
+        )
