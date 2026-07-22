@@ -6,8 +6,10 @@ import cftime
 import numpy as np
 import pandas as pd
 import pytest
+import xarray as xr
 
-from parcels import Field, ParticleFile, ParticleSet, XGrid, convert
+import parcels.tutorial
+from parcels import Field, ParticleFile, ParticleSet, XGrid, convert, open_raw_zarr
 from parcels._core.fieldset import FieldSet, _datetime_to_msg
 from parcels._core.model import _default_vector_field_components
 from parcels._datasets.structured.generic import datasets as datasets_structured
@@ -30,7 +32,7 @@ def fieldset_two_models():
     fset2 = FieldSet.from_sgrid_conventions(ds2, mesh="flat", vector_fields={"UV_wind": ("U_wind", "V_wind")})
     fset2.add_context("my_value", 2.0)
     fset2.add_context("my_list", [1, 2, "hello"])
-    fset2.add_constant_field("constant_field", 3.0)
+    fset2.add_constant_field("constant_field", 3.0, mesh="flat")
     return fset1 + fset2
 
 
@@ -67,7 +69,7 @@ def test_fieldset_add_context_invalid_name(fieldset, name):
 
 
 def test_fieldset_add_constant_field(fieldset):
-    fieldset.add_constant_field("test_constant_field", 1.0)
+    fieldset.add_constant_field("test_constant_field", 1.0, mesh="flat")
 
     # Get a point in the domain
     time = ds["time"].mean()
@@ -84,7 +86,7 @@ def test_fieldset_gridset(fieldset):
     assert fieldset.fields["UV"].grid in fieldset.gridset
     assert len(fieldset.gridset) == 1
 
-    fieldset.add_constant_field("constant_field", 1.0)
+    fieldset.add_constant_field("constant_field", 1.0, mesh="flat")
     assert len(fieldset.gridset) == 2
 
 
@@ -231,7 +233,7 @@ def test_fieldset_time_interval():
     field2 = Field("field2", ds2["U_A_grid"], grid2, interp_method=XLinear)
 
     fieldset = FieldSet([field1, field2])
-    fieldset.add_constant_field("constant_field", 1.0)
+    fieldset.add_constant_field("constant_field", 1.0, mesh="flat")
 
     assert fieldset.time_interval.left == np.datetime64("2000-01-02")
     assert fieldset.time_interval.right == np.datetime64("2001-01-01")
@@ -359,6 +361,17 @@ def test_fieldset_add():
     assert set(fields_before) == set(fset.fields.keys())
 
 
+def test_vectorfields_without_time():
+    """Test that vector fields without a time dimension can be evaluated."""
+    ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]].rename({"U_A_grid": "U", "V_A_grid": "V"})
+    ds2 = ds1.isel(time=0).drop_vars("time").rename({"U": "U_const", "V": "V_const"})
+    ds = xr.merge([ds1, ds2])
+
+    fset = FieldSet.from_sgrid_conventions(ds, mesh="flat", vector_fields={"UV_const": ("U_const", "V_const")})
+    fset.UV_const.eval(t=0, z=0, y=0, x=0)
+    fset.U_const.eval(t=0, z=0, y=0, x=0)
+
+
 def test_fieldset_add_error_on_duplicate_context_values():
     """Test that adding FieldSets with overlapping context value names raises a ValueError."""
     ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "grid"]].rename({"U_A_grid": "U1"})
@@ -398,20 +411,93 @@ def test_fieldset_describe(fieldset_two_models: FieldSet):
     fieldset = fieldset_two_models
     io = StringIO()
     expected = """\
-| Name           | Type        | Grid number   | Interp method / value   |
-|:---------------|:------------|:--------------|:------------------------|
-| my_list        | Context     | -             | [1, 2, 'hello']         |
-| my_value       | Context     | -             | 2.0                     |
-| U              | Field       | 0             | XLinear(...)            |
-| V              | Field       | 0             | XLinear(...)            |
-| UV             | VectorField | 0             | XLinear_Velocity(...)   |
-| U_wind         | Field       | 1             | XLinear(...)            |
-| V_wind         | Field       | 1             | XLinear(...)            |
-| UV_wind        | VectorField | 1             | XLinear_Velocity(...)   |
-| constant_field | Field       | 2             | XConstantField(...)     |
+| Name           | Type        | Grid number   | Interp method / value   | Backend   |
+| Name           | Type        | Grid number   | Interp method / value   | Parcels backend   |
+|:---------------|:------------|:--------------|:------------------------|:------------------|
+| my_list        | Context     | -             | [1, 2, 'hello']         | -                 |
+| my_value       | Context     | -             | 2.0                     | -                 |
+| U              | Field       | 0             | XLinear(...)            | NumPy             |
+| V              | Field       | 0             | XLinear(...)            | NumPy             |
+| UV             | VectorField | 0             | XLinear_Velocity(...)   | -                 |
+| U_wind         | Field       | 1             | XLinear(...)            | NumPy             |
+| V_wind         | Field       | 1             | XLinear(...)            | NumPy             |
+| UV_wind        | VectorField | 1             | XLinear_Velocity(...)   | -                 |
+| constant_field | Field       | 2             | XConstantField(...)     | NumPy             |
 
 mesh: flat
 time interval: (np.datetime64('2000-01-01T00:00:00.000000000'), np.datetime64('2001-01-01T00:00:00.000000000'))
+"""
+    fieldset.describe(io)
+    actual = io.getvalue()
+    assert actual == expected
+
+
+def test_fieldset_describe_backends(tmp_path):
+    ds_u = parcels.tutorial.open_dataset("NemoNorthSeaORCA025-N006_data/U")
+    ds_v = parcels.tutorial.open_dataset("NemoNorthSeaORCA025-N006_data/V")
+    ds_w = parcels.tutorial.open_dataset("NemoNorthSeaORCA025-N006_data/W")
+    ds_coords = parcels.tutorial.open_dataset("NemoNorthSeaORCA025-N006_data/mesh_mask")[["glamf", "gphif"]]
+
+    ds_fset = convert.nemo_to_sgrid(
+        fields={"U": ds_u["uo"], "V": ds_v["vo"], "W": ds_w["wo"]},
+        coords=ds_coords,
+    )
+    fieldset = FieldSet.from_sgrid_conventions(ds_fset)
+
+    io = StringIO()
+    expected = """\
+| Name   | Type        |   Grid number | Interp method / value   | Parcels backend   |
+|:-------|:------------|--------------:|:------------------------|:------------------|
+| U      | Field       |             0 | XLinear(...)            | Dask              |
+| V      | Field       |             0 | XLinear(...)            | Dask              |
+| W      | Field       |             0 | XLinear(...)            | Dask              |
+| UV     | VectorField |             0 | CGrid_Velocity(...)     | -                 |
+| UVW    | VectorField |             0 | CGrid_Velocity(...)     | -                 |
+
+mesh: spherical
+time interval: (np.datetime64('2000-01-02T12:00:00.000000000'), np.datetime64('2000-01-12T12:00:00.000000000'))
+"""
+    fieldset.describe(io)
+    actual = io.getvalue()
+    assert actual == expected
+
+    # Also run with WindowedArray backend
+    fieldset = fieldset.to_windowed_arrays()
+
+    io = StringIO()
+    expected = """\
+| Name   | Type        |   Grid number | Interp method / value   | Parcels backend   |
+|:-------|:------------|--------------:|:------------------------|:------------------|
+| U      | Field       |             0 | XLinear(...)            | WindowedArray     |
+| V      | Field       |             0 | XLinear(...)            | WindowedArray     |
+| W      | Field       |             0 | XLinear(...)            | WindowedArray     |
+| UV     | VectorField |             0 | CGrid_Velocity(...)     | -                 |
+| UVW    | VectorField |             0 | CGrid_Velocity(...)     | -                 |
+
+mesh: spherical
+time interval: (np.datetime64('2000-01-02T12:00:00.000000000'), np.datetime64('2000-01-12T12:00:00.000000000'))
+"""
+    fieldset.describe(io)
+    actual = io.getvalue()
+    assert actual == expected
+
+    path = tmp_path / "ds.zarr"
+    ds_fset.to_zarr(path)
+    ds_zarr = open_raw_zarr(path)
+    fieldset = FieldSet.from_sgrid_conventions(ds_zarr)
+
+    io = StringIO()
+    expected = """\
+| Name   | Type        |   Grid number | Interp method / value   | Parcels backend   |
+|:-------|:------------|--------------:|:------------------------|:------------------|
+| U      | Field       |             0 | XLinear(...)            | Zarr              |
+| V      | Field       |             0 | XLinear(...)            | Zarr              |
+| W      | Field       |             0 | XLinear(...)            | Zarr              |
+| UV     | VectorField |             0 | CGrid_Velocity(...)     | -                 |
+| UVW    | VectorField |             0 | CGrid_Velocity(...)     | -                 |
+
+mesh: spherical
+time interval: (np.datetime64('2000-01-02T12:00:00.000000000'), np.datetime64('2000-01-12T12:00:00.000000000'))
 """
     fieldset.describe(io)
     actual = io.getvalue()

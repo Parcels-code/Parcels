@@ -7,9 +7,11 @@ from typing import Any, Self
 import cf_xarray  # noqa: F401
 import uxarray as ux
 import xarray as xr
+from dask import is_dask_collection
 
 import parcels._sgrid as sgrid
 import parcels._typing as ptyping
+from parcels._core._windowed_array import maybe_windowed
 from parcels._core.basegrid import BaseGrid
 from parcels._core.field import Field, VectorField
 from parcels._core.utils.time import TimeInterval
@@ -60,6 +62,54 @@ class ModelData(ABC):
                 e.add_note(f"Error validating field {field_name!r}.")
                 raise e
         return
+
+    def field_data(self, name: str) -> Any:
+        """Return the array backing field ``name``.
+
+        Normally this is the ``xr.DataArray`` held in the dataset. After
+        :meth:`to_windowed_arrays`, dask-backed fields are served through a
+        cached :class:`~parcels._core._windowed_array.WindowedArray` instead.
+        """
+        windowed = self.__dict__.get("_windowed")
+        if windowed is not None and name in windowed:
+            return windowed[name]
+        return self.data[name]
+
+    def to_windowed_arrays(self, *, max_levels: int | None = None) -> Self:
+        """Wrap dask-backed field data in rolling time-window caches.
+
+        Opt-in optimization for forward-marching simulations where all particles
+        share a single clock. For each dask-backed, time-leading field, ``isel``
+        then samples a resident NumPy window (each time level loaded once and
+        evicted as the clock advances) instead of re-reading chunks and paying the
+        dask scheduling overhead on every kernel step. NumPy-backed (eager) fields
+        and non-time-leading fields are left unchanged.
+
+        Idempotent: re-invoking reuses the existing wrapper (and its warm cache)
+        rather than rebuilding it.
+
+        Parameters
+        ----------
+        max_levels : int, optional
+            Hard cap on the number of time levels kept resident per field.
+            With the default ``None``, each interpolation call decides what
+            stays resident: the cache keeps exactly the span of time indices
+            that call requests and evicts every level outside it. During time
+            integration particles bracket the current time between two
+            adjacent levels, so the default keeps at most two levels resident.
+            Only when a single call requests a wider time span (e.g. particles
+            spread across many time levels) does the window grow beyond that,
+            and ``max_levels`` then bounds its size.
+        """
+        windowed = self.__dict__.setdefault("_windowed", {})
+        for dim in ["lon", "lat", "depth"]:
+            # ensure lon, lat, depth are loaded into memory for dask-backed datasets
+            if dim in self.data and is_dask_collection(self.data[dim]):
+                self.data[dim].load()
+        for name in self.scalar_field_names:
+            current = windowed.get(name, self.data[name])
+            windowed[name] = maybe_windowed(current, max_levels=max_levels)
+        return self
 
     @property
     def time_interval(self) -> TimeInterval | None:

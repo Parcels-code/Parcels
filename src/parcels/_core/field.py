@@ -101,7 +101,7 @@ class Field:
 
     @property
     def data(self):
-        return self.model.data[self.name]
+        return self.model.field_data(self.name)
 
     @property
     def grid(self):  # TODO PR: Remove in favour of referencing model grid directly
@@ -109,6 +109,9 @@ class Field:
 
     @property
     def time_interval(self):  # TODO PR: Remove in favour of referencing model time_interval directly
+        if "time" not in self.model.data[self.name].dims:
+            # This field does not have a time-dimension
+            return None
         return self.model.time_interval
 
     def __repr__(self):

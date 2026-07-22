@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import functools
 import sys
+import warnings
 from collections.abc import Iterable
 from typing import IO, TYPE_CHECKING
 
@@ -21,6 +22,7 @@ from parcels._core.model import (
 from parcels._core.utils.string import _assert_str_and_python_varname
 from parcels._core.utils.time import get_datetime_type_calendar
 from parcels._core.utils.time import is_compatible as datetime_is_compatible
+from parcels._core.warnings import FieldSetWarning
 from parcels._python import NOTSET, NotSetType
 from parcels._reprs import fieldset_describe
 from parcels.interpolators import (
@@ -73,6 +75,7 @@ class FieldSet:
         self._fields: dict[str, Field | VectorField] | None = None
         self.reconstruct_fields()
         self.context: dict[str, float] = {}
+        _warn_if_fields_use_different_meshes(self.fields.values())
 
     def __setattr__(self, name, value):
         """Set field attribute by name. If context exists and name in context, raise error to prevent overwriting context variable."""
@@ -151,6 +154,40 @@ class FieldSet:
             raise ValueError(f"FieldSet already has a Field with name '{name}'")
 
         self.fields[name] = field
+        _warn_if_fields_use_different_meshes(self.fields.values())
+
+    def to_windowed_arrays(self, *, max_levels: int | None = None):
+        """Wrap dask-backed field data in rolling time-window caches.
+
+        Opt-in optimization for forward-marching simulations where all particles
+        share a single clock. Delegates to each underlying model; dask-backed,
+        time-leading fields are served through a resident NumPy window (each time
+        level loaded once and evicted as the clock advances) instead of re-reading
+        chunks on every kernel step. NumPy-backed (eager) and non-time-leading
+        fields are left unchanged, and re-invoking is idempotent, so this is safe
+        to call more than once.
+
+        Parameters
+        ----------
+        max_levels : int, optional
+            Hard cap on the number of time levels kept resident per field.
+            With the default ``None``, each interpolation call decides what
+            stays resident: the cache keeps exactly the span of time indices
+            that call requests and evicts every level outside it. During time
+            integration particles bracket the current time between two
+            adjacent levels, so the default keeps at most two levels resident.
+            Only when a single call requests a wider time span (e.g. particles
+            spread across many time levels) does the window grow beyond that,
+            and ``max_levels`` then bounds its size.
+
+        Returns
+        -------
+        FieldSet
+            ``self``, to allow chaining.
+        """
+        for model in self.models:
+            model.to_windowed_arrays(max_levels=max_levels)
+        return self
 
     def add_constant_field(self, name: str, value, mesh: ptyping.TMesh = "spherical"):
         """Wrapper function to add a Field that is constant in space,
@@ -182,6 +219,7 @@ class FieldSet:
         self.reconstruct_fields()
         field = getattr(self, name)
         field.interp_method = XConstantField()
+        _warn_if_fields_use_different_meshes(self.fields.values())
 
     def add_context(self, name, value):
         """Add context variable to the FieldSet.
@@ -326,6 +364,28 @@ def assert_compatible_fieldsets(left: FieldSet, right: FieldSet) -> None:
     if common_context:
         raise ValueError(
             f"Cannot add FieldSets that have context value names in common. Duplicate context value names are: {sorted(common_context)}"
+        )
+
+
+def _warn_if_fields_use_different_meshes(fields: Iterable[Field | VectorField]):
+    """Warn if multiple fields use different meshes on the underlying grids.
+
+    Parameters
+    ----------
+    fields : Iterable[Field | VectorField]
+        The fields to check for conflicting meshes.
+
+    Warns
+    -----
+    FieldSetWarning
+        If the fields have different meshes on the underlying grids.
+    """
+    meshes = {field.grid._mesh for field in fields}
+    if len(meshes) > 1:
+        warnings.warn(
+            f"FieldSet has multiple different meshes: {meshes}. This may lead to unexpected behavior during execution.",
+            category=FieldSetWarning,
+            stacklevel=3,
         )
 
 
