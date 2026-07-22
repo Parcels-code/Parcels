@@ -425,93 +425,64 @@ def _Spatialslip(
         vval = corner_dataV[ti, zi, yi, xi, :]
         return np.where(np.isclose(uval, 0.0) & np.isclose(vval, 0.0), True, False)
 
-    f_u = np.ones_like(xsi)
-    f_v = np.ones_like(eta)
-
-    if lenZ == 1:
-        f_u = np.where(is_land(0, 0, 0, 0) & is_land(0, 0, 0, 1) & (eta > 0), f_u * (a + b * eta) / eta, f_u)
-        f_u = np.where(is_land(0, 0, 1, 0) & is_land(0, 0, 1, 1) & (eta < 1), f_u * (1 - b * eta) / (1 - eta), f_u)
-        f_v = np.where(is_land(0, 0, 0, 0) & is_land(0, 0, 1, 0) & (xsi > 0), f_v * (a + b * xsi) / xsi, f_v)
-        f_v = np.where(is_land(0, 0, 0, 1) & is_land(0, 0, 1, 1) & (xsi < 1), f_v * (1 - b * xsi) / (1 - xsi), f_v)
-    else:
-        f_u = np.where(
-            is_land(0, 0, 0, 0) & is_land(0, 0, 0, 1) & is_land(0, 1, 0, 0) & is_land(0, 1, 0, 1) & (eta > 0),
-            f_u * (a + b * eta) / eta,
-            f_u,
-        )
-        f_u = np.where(
-            is_land(0, 0, 1, 0) & is_land(0, 0, 1, 1) & is_land(0, 1, 1, 0) & is_land(0, 1, 1, 1) & (eta < 1),
-            f_u * (1 - b * eta) / (1 - eta),
-            f_u,
-        )
-        f_v = np.where(
-            is_land(0, 0, 0, 0) & is_land(0, 0, 1, 0) & is_land(0, 1, 0, 0) & is_land(0, 1, 1, 0) & (xsi > 0),
-            f_v * (a + b * xsi) / xsi,
-            f_v,
-        )
-        f_v = np.where(
-            is_land(0, 0, 0, 1) & is_land(0, 0, 1, 1) & is_land(0, 1, 0, 1) & is_land(0, 1, 1, 1) & (xsi < 1),
-            f_v * (1 - b * xsi) / (1 - xsi),
-            f_v,
-        )
-        f_u = np.where(
-            is_land(0, 0, 0, 0) & is_land(0, 0, 0, 1) & is_land(0, 0, 1, 0) & is_land(0, 0, 1, 1) & (zeta > 0),
-            f_u * (a + b * zeta) / zeta,
-            f_u,
-        )
-        f_u = np.where(
-            is_land(0, 1, 0, 0) & is_land(0, 1, 0, 1) & is_land(0, 1, 1, 0) & is_land(0, 1, 1, 1) & (zeta < 1),
-            f_u * (1 - b * zeta) / (1 - zeta),
-            f_u,
-        )
-        f_v = np.where(
-            is_land(0, 0, 0, 0) & is_land(0, 0, 0, 1) & is_land(0, 0, 1, 0) & is_land(0, 0, 1, 1) & (zeta > 0),
-            f_v * (a + b * zeta) / zeta,
-            f_v,
-        )
-        f_v = np.where(
-            is_land(0, 1, 0, 0) & is_land(0, 1, 0, 1) & is_land(0, 1, 1, 0) & is_land(0, 1, 1, 1) & (zeta < 1),
-            f_v * (1 - b * zeta) / (1 - zeta),
-            f_v,
-        )
-
     if is_dask_collection(u):
         u = u.compute()
         v = v.compute()
+        if vectorfield.W:
+            w = w.compute()
+
+    f_u = np.ones_like(xsi)
+    if lenZ == 1:
+        land = is_land(0, 0, 0, 0) & is_land(0, 0, 0, 1) & (eta > 0)
+    else:
+        land = is_land(0, 0, 0, 0) & is_land(0, 0, 0, 1) & is_land(0, 1, 0, 0) & is_land(0, 1, 0, 1) & (eta > 0)
+    f_u[land] = f_u[land] * (a + b * eta[land]) / eta[land]
+
+    if lenZ == 1:
+        land = is_land(0, 0, 1, 0) & is_land(0, 0, 1, 1) & (eta < 1)
+    else:
+        land = is_land(0, 0, 1, 0) & is_land(0, 0, 1, 1) & is_land(0, 1, 1, 0) & is_land(0, 1, 1, 1) & (eta < 1)
+    f_u[land] = f_u[land] * (1 - b * eta[land]) / (1 - eta[land])
 
     u = u * f_u
-    v = v * f_v
-
     if vectorfield.grid._mesh == "spherical":
         u /= 1852 * 60 * np.cos(np.deg2rad(particle_positions["y"]))
+
+    f_v = np.ones_like(eta)
+    if lenZ == 1:
+        land = is_land(0, 0, 0, 0) & is_land(0, 0, 1, 0) & (xsi > 0)
+    else:
+        land = is_land(0, 0, 0, 0) & is_land(0, 0, 1, 0) & is_land(0, 1, 0, 0) & is_land(0, 1, 1, 0) & (xsi > 0)
+    f_v[land] = f_v[land] * (a + b * xsi[land]) / xsi[land]
+
+    if lenZ == 1:
+        land = is_land(0, 0, 0, 1) & is_land(0, 0, 1, 1) & (xsi < 1)
+    else:
+        land = is_land(0, 0, 0, 1) & is_land(0, 0, 1, 1) & is_land(0, 1, 0, 1) & is_land(0, 1, 1, 1) & (xsi < 1)
+    f_v[land] = f_v[land] * (1 - b * xsi[land]) / (1 - xsi[land])
+
+    v = v * f_v
+    if vectorfield.grid._mesh == "spherical":
         v /= 1852 * 60
 
     if vectorfield.W:
         f_w = np.ones_like(zeta)
-        f_w = np.where(
-            is_land(0, 0, 0, 0) & is_land(0, 0, 0, 1) & is_land(0, 1, 0, 0) & is_land(0, 1, 0, 1) & (eta > 0),
-            f_w * (a + b * eta) / eta,
-            f_w,
-        )
-        f_w = np.where(
-            is_land(0, 0, 1, 0) & is_land(0, 0, 1, 1) & is_land(0, 1, 1, 0) & is_land(0, 1, 1, 1) & (eta < 1),
-            f_w * (a - b * eta) / (1 - eta),
-            f_w,
-        )
-        f_w = np.where(
-            is_land(0, 0, 0, 0) & is_land(0, 0, 1, 0) & is_land(0, 1, 0, 0) & is_land(0, 1, 1, 0) & (xsi > 0),
-            f_w * (a + b * xsi) / xsi,
-            f_w,
-        )
-        f_w = np.where(
-            is_land(0, 0, 0, 1) & is_land(0, 0, 1, 1) & is_land(0, 1, 0, 1) & is_land(0, 1, 1, 1) & (xsi < 1),
-            f_w * (a - b * xsi) / (1 - xsi),
-            f_w,
-        )
+        land = is_land(0, 0, 0, 0) & is_land(0, 0, 0, 1) & is_land(0, 1, 0, 0) & is_land(0, 1, 0, 1) & (eta > 0)
+        f_w[land] = f_w[land] * (a + b * eta[land]) / eta[land]
+
+        land = is_land(0, 0, 1, 0) & is_land(0, 0, 1, 1) & is_land(0, 1, 1, 0) & is_land(0, 1, 1, 1) & (eta < 1)
+        f_w[land] = f_w[land] * (1 - b * eta[land]) / (1 - eta[land])
+
+        land = is_land(0, 0, 0, 0) & is_land(0, 0, 1, 0) & is_land(0, 1, 0, 0) & is_land(0, 1, 1, 0) & (xsi > 0)
+        f_w[land] = f_w[land] * (a + b * xsi[land]) / xsi[land]
+
+        land = is_land(0, 0, 0, 1) & is_land(0, 0, 1, 1) & is_land(0, 1, 0, 1) & is_land(0, 1, 1, 1) & (xsi < 1)
+        f_w[land] = f_w[land] * (1 - b * xsi[land]) / (1 - xsi[land])
 
         w = w * f_w
     else:
         w = np.zeros_like(u)
+
     return u, v, w
 
 
@@ -657,7 +628,7 @@ class XLinearInvdistLandTracer(ScalarInterpolator):
                 values[some_land] = val[some_land] / w_sum[some_land]
 
                 # If a particle hits exactly one of the 8 corner points, extract it
-                exact_mask = dist2 == 0 & valid_mask
+                exact_mask = (dist2 == 0) & valid_mask
                 exact_vals = np.sum(np.where(exact_mask, corner_data, 0.0), axis=(0, 1, 2, 3))
                 has_exact = np.any(exact_mask, axis=(0, 1, 2, 3))
 
