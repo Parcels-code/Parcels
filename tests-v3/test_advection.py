@@ -44,22 +44,6 @@ def depth():
 
 
 @pytest.mark.v4alpha
-@pytest.mark.xfail(reason="When refactoring fieldfilebuffer croco support was dropped. This will be fixed in v4.")
-def test_advection_2DCROCO():
-    fieldset = FieldSet.from_modulefile(TEST_DATA / "fieldset_CROCO2D.py")
-
-    runtime = 1e4
-    X = np.array([40e3, 80e3, 120e3])
-    Y = np.ones(X.size) * 100e3
-    Z = np.zeros(X.size)
-    pset = ParticleSet(fieldset=fieldset, pclass=Particle, lon=X, lat=Y, depth=Z)
-
-    pset.execute([AdvectionRK4], runtime=runtime, dt=100)
-    assert np.allclose(pset.depth, Z.flatten(), atol=1e-3)
-    assert np.allclose(pset.lon_nextloop, [x + runtime for x in X], atol=1e-3)
-
-
-@pytest.mark.v4alpha
 @pytest.mark.xfail(reason="GH1946")
 def test_analyticalAgrid():
     lon = np.arange(0, 15, dtype=np.float32)
