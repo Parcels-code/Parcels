@@ -77,8 +77,8 @@ def _search_time_index(field: Field, time: np.ndarray):
     if field.time_interval is None:
         return {
             "T": {
-                "index": np.zeros(shape=time.shape, dtype=np.int32),
-                "bcoord": np.zeros(shape=time.shape, dtype=np.float32),
+                "index": np.zeros(shape=np.atleast_1d(time).shape, dtype=np.int32),
+                "bcoord": np.zeros(shape=np.atleast_1d(time).shape, dtype=np.float32),
             }
         }
 
