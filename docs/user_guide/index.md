@@ -103,8 +103,7 @@ examples/tutorial_gsw_density.ipynb
 examples/tutorial_Argofloats.ipynb
 examples/tutorial_diffusion.ipynb
 examples/tutorial_interaction.ipynb
-examples/tutorial_particle_field_interaction.ipynb
-examples/documentation_homepage_animation.ipynb
+examples/documentation_homepage_animation.md
 ```
 
 ```{toctree}
