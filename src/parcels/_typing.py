@@ -9,12 +9,12 @@ used for runtime parameter validation (to ensure users are only using the right 
 import os
 from collections.abc import Callable, Mapping
 from datetime import datetime
-from typing import TYPE_CHECKING, Any, Literal, get_args
+from typing import TYPE_CHECKING, Literal, get_args
 
 import numpy as np
 from cftime import datetime as cftime_datetime
 
-from parcels._core.mesh import SphericalMesh
+from parcels._core.mesh import TMesh  # noqa: F401
 
 if TYPE_CHECKING:
     import xgcm
@@ -35,7 +35,6 @@ InterpMethod = (
     InterpMethodOption | dict[str, InterpMethodOption]
 )  # corresponds with `interp_method` (which can also be dict mapping field names to method)
 PathLike = str | os.PathLike
-Mesh = Literal["spherical", "flat"]  # corresponds with `mesh`
 VectorType = Literal["3D", "3DSigma", "2D"] | None  # corresponds with `vector_type`
 GridIndexingType = Literal["pop", "mom5", "mitgcm", "nemo", "croco"]  # corresponds with `gridindexingtype`
 NetcdfEngine = Literal["netcdf4", "xarray", "scipy"]
@@ -71,10 +70,3 @@ def _validate_against_pure_literal(value, typing_literal):
     if value not in get_args(typing_literal):
         msg = f"Invalid value {value!r}. Valid options are {get_args(typing_literal)!r}"
         raise ValueError(msg)
-
-
-# Assertion functions to clean user input
-def assert_valid_mesh(value: Any):
-    if isinstance(value, SphericalMesh):
-        return
-    _validate_against_pure_literal(value, Mesh)

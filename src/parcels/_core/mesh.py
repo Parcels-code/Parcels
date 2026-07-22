@@ -1,9 +1,19 @@
+from abc import ABC, abstractmethod
+from typing import Literal
+
 import numpy as np
 
 EARTH_RADIUS = 6366707.019493707
 
 
-class SphericalMesh:
+class BaseMesh(ABC):
+    radius: float | None
+
+    @abstractmethod
+    def is_spherical(self) -> bool: ...
+
+
+class SphericalMesh(BaseMesh):
     """Spherical mesh object with configurable planetary radius.
 
     Pass to FieldSet object as ``mesh=SphericalMesh(radius=...)``.
@@ -22,5 +32,41 @@ class SphericalMesh:
         """Meters per degree of arc."""
         return self.radius * np.pi / 180.0
 
+    def is_spherical(self):
+        return True
+
     def __repr__(self) -> str:
         return f"SphericalMesh(radius={self.radius})"
+
+
+class FlatMesh(BaseMesh):
+    """Flat mesh object."""
+
+    def __init__(self):
+        self.radius = None
+        return
+
+    def __repr__(self) -> str:
+        return "FlatMesh()"
+
+    def is_spherical(self):
+        return False
+
+
+TMesh = SphericalMesh | Literal["spherical", "flat"]  # corresponds with `mesh`
+
+
+def get_mesh(mesh: TMesh):
+    if isinstance(mesh, SphericalMesh):
+        return mesh
+    if mesh == "flat":
+        return FlatMesh()
+    if mesh == "spherical":
+        return SphericalMesh(EARTH_RADIUS)
+    raise ValueError(f"mesh must be 'flat', 'spherical', or a SphericalMesh object. Got {mesh=!r}")
+
+
+def is_spherical(mesh: FlatMesh | SphericalMesh):
+    if isinstance(mesh, SphericalMesh):
+        return True
+    return False

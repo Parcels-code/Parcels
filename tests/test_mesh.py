@@ -26,8 +26,8 @@ def test_spherical_mesh_deg2m():
 )
 def test_xgrid_radius_and_deg2m(mesh, exp_radius, exp_deg2m):
     grid = FieldSet.from_sgrid_conventions(simple_UV_dataset(), mesh=mesh).U.grid
-    assert grid._mesh == "spherical"
-    assert grid._radius == exp_radius
+    assert isinstance(grid._mesh, SphericalMesh)
+    assert grid._mesh.radius == exp_radius
     assert grid.deg2m == pytest.approx(exp_deg2m)
 
 

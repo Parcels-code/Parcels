@@ -7,8 +7,7 @@ import uxarray as ux
 
 from parcels._core.basegrid import BaseGrid
 from parcels._core.index_search import GRID_SEARCH_ERROR, _search_1d_array, uxgrid_point_in_cell
-from parcels._core.mesh import EARTH_RADIUS, SphericalMesh
-from parcels._typing import assert_valid_mesh
+from parcels._core.mesh import SphericalMesh, get_mesh
 
 _UXGRID_AXES = Literal["Z", "FACE"]
 
@@ -19,7 +18,9 @@ class UxGrid(BaseGrid):
     for interpolation on unstructured grids.
     """
 
-    def __init__(self, grid: ux.grid.Grid, z: ux.UxDataArray, mesh) -> None:
+    def __init__(
+        self, grid: ux.grid.Grid, z: ux.UxDataArray, mesh: Literal["flat", "spherical"] | SphericalMesh
+    ) -> None:
         """
         Initializes the UxGrid with a uxarray grid and vertical coordinate array.
 
@@ -42,15 +43,8 @@ class UxGrid(BaseGrid):
         if z.ndim != 1:
             raise ValueError("z must be a 1D array of vertical coordinates")
         self.z = z
-        if isinstance(mesh, SphericalMesh):
-            self._mesh = "spherical"
-            self._radius = mesh.radius
-        else:
-            self._mesh = mesh
-            self._radius = EARTH_RADIUS if mesh == "spherical" else None
+        self._mesh = get_mesh(mesh)
         self._spatialhash = None
-
-        assert_valid_mesh(mesh)
 
     @property
     def depth(self):
@@ -82,9 +76,9 @@ class UxGrid(BaseGrid):
     @property
     def deg2m(self) -> float:
         """Metres per arcdegree for this grid's mesh."""
-        if self._radius is None:  # flat mesh; None causes crash in advection
+        if not self._mesh.is_spherical():
             return 1.0
-        return self._radius * np.pi / 180.0
+        return self._mesh.deg2m
 
     def search(self, z, y, x, ei=None, tol=1e-6):
         """

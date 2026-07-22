@@ -12,7 +12,7 @@ import parcels._sgrid as sgrid
 import parcels._typing as ptyping
 from parcels._core.basegrid import BaseGrid
 from parcels._core.index_search import _search_1d_array, _search_indices_curvilinear_2d
-from parcels._core.mesh import EARTH_RADIUS, SphericalMesh
+from parcels._core.mesh import SphericalMesh, get_mesh
 from parcels._sgrid.accessor import _get_dim_to_axis_mapping
 from parcels._sgrid.core import SGRID_PADDING_TO_XGCM_POSITION
 
@@ -165,17 +165,12 @@ class XGrid(BaseGrid):
 
     """
 
-    def __init__(self, model_data: xr.Dataset, mesh):
+    def __init__(self, model_data: xr.Dataset, mesh: Literal["flat", "spherical"] | SphericalMesh):
         self.sgrid_metadata = model_data.sgrid.metadata
         self._ds = model_data
         grid = XgcmLikeGrid(self.sgrid_metadata, model_data)
         self.xgcm_grid = grid
-        if isinstance(mesh, SphericalMesh):
-            self._mesh = "spherical"
-            self._radius = mesh.radius
-        else:
-            self._mesh = mesh
-            self._radius = EARTH_RADIUS if mesh == "spherical" else None
+        self._mesh = get_mesh(mesh)
         self._spatialhash = None
         ds = model_data
 
@@ -191,7 +186,6 @@ class XGrid(BaseGrid):
         if "Z" in grid.axes:
             assert_valid_depth(ds["depth"])
 
-        ptyping.assert_valid_mesh(mesh)
         self._ds = ds
 
     # def __repr__(self):
@@ -258,9 +252,9 @@ class XGrid(BaseGrid):
     @property
     def deg2m(self) -> float:
         """Metres per degree of arc for this grid's mesh."""
-        if self._radius is None:  # flat mesh; None causes crash in advection
+        if not self._mesh.is_spherical():
             return 1.0
-        return self._radius * np.pi / 180.0
+        return self._mesh.deg2m
 
     @cached_property
     def xdim(self) -> int:

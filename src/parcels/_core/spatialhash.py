@@ -45,7 +45,7 @@ class SpatialHash:
 
         if isinstance_noimport(grid, "XGrid"):
             self._coord_dim = 2  # Number of computational coordinates is 2 (bilinear interpolation)
-            if self._source_grid._mesh == "spherical":
+            if self._source_grid._mesh.is_spherical():
                 # Boundaries of the hash grid are the unit cube
                 self._xmin = -1.0
                 self._ymin = -1.0
@@ -148,7 +148,7 @@ class SpatialHash:
 
         elif isinstance_noimport(grid, "UxGrid"):
             self._coord_dim = grid.uxgrid.n_max_face_nodes  # Number of barycentric coordinates
-            if self._source_grid._mesh == "spherical":
+            if self._source_grid._mesh.is_spherical():
                 # Boundaries of the hash grid are the unit cube
                 self._xmin = -1.0
                 self._ymin = -1.0
@@ -346,7 +346,7 @@ class SpatialHash:
 
         y = np.asarray(y)
         x = np.asarray(x)
-        if self._source_grid._mesh == "spherical":
+        if self._source_grid._mesh.is_spherical():
             # Convert coords to Cartesian coordinates (x, y, z)
             lat = np.deg2rad(y)
             lon = np.deg2rad(x)

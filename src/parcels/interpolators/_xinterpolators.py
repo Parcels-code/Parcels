@@ -148,7 +148,7 @@ class XLinear_Velocity(VectorInterpolator):  # noqa:  N801
         _xlinear = XLinear()
         u = _xlinear.interp(particle_positions, grid_positions, vectorfield.U)
         v = _xlinear.interp(particle_positions, grid_positions, vectorfield.V)
-        if vectorfield.grid._mesh == "spherical":
+        if vectorfield.grid._mesh.is_spherical():
             u /= vectorfield.grid.deg2m * np.cos(np.deg2rad(particle_positions["y"]))
             v /= vectorfield.grid.deg2m
 
@@ -196,7 +196,7 @@ class CGrid_Velocity(VectorInterpolator):  # noqa:  N801
             px = np.array([grid.lon[yi, xi], grid.lon[yi, xi + 1], grid.lon[yi + 1, xi + 1], grid.lon[yi + 1, xi]])
             py = np.array([grid.lat[yi, xi], grid.lat[yi, xi + 1], grid.lat[yi + 1, xi + 1], grid.lat[yi + 1, xi]])
 
-        if grid._mesh == "spherical":
+        if grid._mesh.is_spherical():
             px = ((px + 180.0) % 360.0) - 180.0
             px[1:] = np.where(px[1:] - px[0] > 180, px[1:] - 360, px[1:])
             px[1:] = np.where(-px[1:] + px[0] > 180, px[1:] + 360, px[1:])
@@ -282,7 +282,7 @@ class CGrid_Velocity(VectorInterpolator):  # noqa:  N801
         V1 = corner_data[1, :] * c3
         Vvel = (1 - eta) * V0 + eta * V1
 
-        if grid._mesh == "spherical":
+        if grid._mesh.is_spherical():
             jac = i_u._compute_jacobian_determinant(py, px, eta, xsi) * grid.deg2m
         else:
             jac = i_u._compute_jacobian_determinant(py, px, eta, xsi)
@@ -303,7 +303,7 @@ class CGrid_Velocity(VectorInterpolator):  # noqa:  N801
             u = u.compute()
             v = v.compute()
 
-        if grid._mesh == "spherical":
+        if grid._mesh.is_spherical():
             conversion = grid.deg2m * np.cos(np.deg2rad(particle_positions["y"]))
             u /= conversion
             v /= conversion

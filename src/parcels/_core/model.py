@@ -21,7 +21,6 @@ from parcels._core.xgrid import (
 )
 from parcels._logger import logger
 from parcels._python import NOTSET, NotSetType
-from parcels._typing import Mesh
 from parcels.convert import _ds_rename_using_standard_names
 from parcels.interpolators import (
     CGrid_Velocity,
@@ -83,7 +82,7 @@ def preprocess_sgrid_model_data(ds: xr.Dataset) -> xr.Dataset:
 
 
 class StructuredModelData(ModelData):
-    def __init__(self, data: xr.Dataset, mesh: Mesh, vector_field_components: ptyping.VectorFields):
+    def __init__(self, data: xr.Dataset, mesh: ptyping.TMesh, vector_field_components: ptyping.VectorFields):
         if not isinstance(data, xr.Dataset):
             raise ValueError(f"Expected `data` to be an xarray.Dataset . Got {type(data)}")
 
@@ -132,7 +131,7 @@ class StructuredModelData(ModelData):
 
     @classmethod
     def from_sgrid_conventions(
-        cls, ds: xr.Dataset, mesh: Mesh | None, vector_fields: ptyping.VectorFields | NotSetType
+        cls, ds: xr.Dataset, mesh: ptyping.TMesh | None, vector_fields: ptyping.VectorFields | NotSetType
     ) -> Self:
         ds = ds.copy()
         if mesh is None:
@@ -279,7 +278,9 @@ class UnstructuredModelData(ModelData):
         return list(self.data.data_vars)
 
     @classmethod
-    def from_ugrid_conventions(cls, ds: ux.UxDataset, mesh: Mesh, vector_fields: ptyping.VectorFields | NotSetType):
+    def from_ugrid_conventions(
+        cls, ds: ux.UxDataset, mesh: ptyping.TMesh, vector_fields: ptyping.VectorFields | NotSetType
+    ):
         ds_dims = list(ds.dims)
         if not all(dim in ds_dims for dim in ["time", "zf", "zc"]):
             raise ValueError(
@@ -303,7 +304,7 @@ class UnstructuredModelData(ModelData):
 
 
 # TODO: Refactor later into something like `parcels._metadata.discover(dataset)` helper that can be used to discover important metadata like this. I think this whole metadata handling should be refactored into its own module.
-def _get_mesh_type_from_sgrid_dataset(ds_sgrid: xr.Dataset) -> Mesh:
+def _get_mesh_type_from_sgrid_dataset(ds_sgrid: xr.Dataset) -> ptyping.TMesh:
     """Small helper to inspect SGRID metadata and dataset metadata to determine mesh type."""
     sgrid_metadata = ds_sgrid.sgrid.metadata
 
