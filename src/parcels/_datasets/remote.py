@@ -137,6 +137,9 @@ _ODIE = pooch.create(
 
 class _ParcelsDataset(abc.ABC):
     @abc.abstractmethod
+    def get_dataset_files(self) -> list[str]: ...
+
+    @abc.abstractmethod
     def open_dataset(self) -> xr.Dataset: ...
 
 
@@ -186,6 +189,11 @@ class _ZarrZipDataset(_ParcelsDataset):
         self.pup = pup
         self.path_relative_to_root = path_relative_to_pup
         self.zarr_format = zarr_format
+
+    def get_dataset_files(self) -> list[str]:
+        raise NotImplementedError(
+            "get_dataset_files is not supported for zipped zarr datasets. Use open_dataset instead."
+        )
 
     def open_dataset(self) -> xr.Dataset:
         self.pup.fetch(self.path_relative_to_root)

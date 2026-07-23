@@ -599,7 +599,11 @@ def swash_to_sgrid(data_file: str, coord_file: str, total_depth: float) -> xr.Da
     )
     times = np.array([t[0] * 1000 + t[1] for t in time_keys]).astype("timedelta64[ms]")
 
-    n_layers = max(int(re.search(r"Vksi_k(\d+)_", k).group(1)) for k in keys if re.search(r"Vksi_k(\d+)_", k))
+    layer_indices = []
+    for key in keys:
+        match = re.search(r"Vksi_k(\d+)_", key)
+        layer_indices.append(int(match.group(1)))
+    n_layers = max(layer_indices)
     n_layers_f = n_layers + 1
     depth_centers = np.array([total_depth * (i - 0.5) / n_layers for i in range(1, n_layers + 1)], dtype=np.float32)
     depth_interfaces = np.array([total_depth * i / n_layers for i in range(n_layers_f)], dtype=np.float32)
