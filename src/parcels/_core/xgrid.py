@@ -20,7 +20,7 @@ from parcels._sgrid.core import SGRID_PADDING_TO_XGCM_POSITION
 _FIELD_DATA_ORDERING: Sequence[ptyping.XgcmAxisDirection] = "TZYX"
 _XGRID_AXES_ORDERING: Sequence[ptyping.XgridAxis] = "ZYX"
 
-_DEFAULT_XGCM_KWARGS: dict[str, Any] = {"periodic": False}
+_DEFAULT_XGCM_KWARGS: dict[str, Any] = {"padding": "fill"}
 
 
 def get_cell_count_along_dim(ds: xr.Dataset, axis: xgcm.Axis) -> int:
