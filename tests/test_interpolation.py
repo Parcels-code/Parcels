@@ -13,6 +13,7 @@ from parcels import (
     VectorField,
 )
 from parcels._core.index_search import _search_time_index
+from parcels._core.mesh import get_mesh
 from parcels._datasets.structured.generated import simple_UV_dataset
 from parcels.interpolators import (
     XFreeslip,
@@ -134,7 +135,7 @@ def test_raw_2d_interpolation(field, interpolator, t, z, y, x, expected):
     ],
 )
 def test_spatial_slip_interpolation(field, func, t, z, y, x, expected, mesh):
-    field.grid._mesh = mesh
+    field.grid._mesh = get_mesh(mesh)
     field.data[:] = 1.0
     field.data[:, :, 1:3, 1:3] = 0.0  # Set zero land value to test spatial slip
     U = field

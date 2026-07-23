@@ -445,7 +445,7 @@ def _Spatialslip(
     f_u[land] = f_u[land] * (1 - b * eta[land]) / (1 - eta[land])
 
     u = u * f_u
-    if vectorfield.grid._mesh == "spherical":
+    if vectorfield.grid._mesh.is_spherical():
         u /= 1852 * 60 * np.cos(np.deg2rad(particle_positions["y"]))
 
     f_v = np.ones_like(eta)
@@ -462,7 +462,7 @@ def _Spatialslip(
     f_v[land] = f_v[land] * (1 - b * xsi[land]) / (1 - xsi[land])
 
     v = v * f_v
-    if vectorfield.grid._mesh == "spherical":
+    if vectorfield.grid._mesh.is_spherical():
         v /= 1852 * 60
 
     if vectorfield.W:
