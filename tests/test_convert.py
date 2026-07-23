@@ -175,7 +175,7 @@ def test_convert_copernicusmarine_no_logs(ds, caplog):
 
 
 def test_convert_swash():
-    data_file, coord_file = parcels.tutorial.open_dataset("SWASH_data/data", download_only=True)
+    data_file, coord_file = parcels.tutorial.get_dataset_files("SWASH_data/data")
 
     ds_fset = convert.swash_to_sgrid(data_file=data_file, coord_file=coord_file, total_depth=8.0)
     FieldSet.from_sgrid_conventions(ds_fset)

@@ -151,12 +151,13 @@ class _V3Dataset(_ParcelsDataset):
         first, second, *_ = path_relative_to_pup.split("/")
         self.v3_dataset_name = f"{first}/{second}"  # e.g., data/my_dataset
 
-    def open_dataset(self, download_only=False) -> xr.Dataset:
+    def get_dataset_files(self) -> list[str]:
         self.download_relevant_files()
-        if download_only:
-            matches = sorted(glob.glob(f"{self.pup.path}/{self.path_relative_to_root}"))
-            return matches if len(matches) != 1 else matches[0]
+        matches = sorted(glob.glob(f"{self.pup.path}/{self.path_relative_to_root}"))
+        return matches
 
+    def open_dataset(self) -> xr.Dataset:
+        self.download_relevant_files()
         with xr.set_options(use_new_combine_kwarg_defaults=True):
             ds = xr.open_mfdataset(
                 f"{self.pup.path}/{self.path_relative_to_root}",
@@ -186,10 +187,8 @@ class _ZarrZipDataset(_ParcelsDataset):
         self.path_relative_to_root = path_relative_to_pup
         self.zarr_format = zarr_format
 
-    def open_dataset(self, download_only=False) -> xr.Dataset:
+    def open_dataset(self) -> xr.Dataset:
         self.pup.fetch(self.path_relative_to_root)
-        if download_only:
-            raise ValueError("download_only is not supported for zarr datasets.")
         return xr.open_zarr(ZipStore(Path(self.pup.path) / self.path_relative_to_root), zarr_format=self.zarr_format)
 
 
@@ -288,7 +287,7 @@ def list_remote_datasets(purpose: _TPurpose | Literal["any"] = "any") -> list[st
     return [k for (k, (_, p)) in _DATASET_KEYS_AND_CONFIGS.items() if p == purpose_enum]
 
 
-def open_remote_dataset(name: str, purpose: _TPurpose | Literal["any"] = "any", download_only=False):
+def open_remote_dataset(name: str, purpose: _TPurpose | Literal["any"] = "any"):
     """Download and open a remote dataset as an :class:`xarray.Dataset`.
 
     Use :func:`list_datasets` to see the available dataset names.
@@ -313,4 +312,32 @@ def open_remote_dataset(name: str, purpose: _TPurpose | Literal["any"] = "any", 
         )
 
     dataset_config = _DATASET_KEYS_AND_CONFIGS[name][0]
-    return dataset_config.open_dataset(download_only=download_only)
+    return dataset_config.open_dataset()
+
+
+def get_remote_dataset(name: str, purpose: _TPurpose | Literal["any"] = "any") -> list[str]:
+    """Download the files of a remote dataset.
+
+    Use :func:`list_datasets` to see the available dataset names.
+
+    Parameters
+    ----------
+    name : str
+        Name of the dataset to open. Must be one of the keys returned by
+        :func:`list_datasets`.
+    purpose : {'any', 'testing', 'tutorial'}, optional
+        Purpose filter used to populate the error message when ``name`` is not
+        found. Defaults to ``'any'``.
+
+    Returns
+    -------
+    list of str
+        The list of dataset files.
+    """
+    if name not in list_remote_datasets(purpose=purpose):
+        raise ValueError(
+            f"Dataset {name!r} not found. Available datasets are: " + ", ".join(list_remote_datasets(purpose=purpose))
+        )
+
+    dataset_config = _DATASET_KEYS_AND_CONFIGS[name][0]
+    return dataset_config.get_dataset_files()
