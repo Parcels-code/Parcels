@@ -11,7 +11,7 @@ from parcels import (
 from parcels._core.kernel import Kernel
 from parcels._datasets.structured.generated import simple_UV_dataset
 from parcels.kernels import AdvectionRK4, AdvectionRK45
-from tests.common_kernels import MoveEast, MoveNorth
+from tests.common_kernels import DoNothing, MoveEast, MoveNorth
 
 
 def test_unknown_var_in_kernel(fieldset):
@@ -216,3 +216,27 @@ def test_multi_kernel_duplicate_varnames(fieldset):
     pset = ParticleSet(fieldset, x=[0.5], y=[0.5])
     pset.execute([Kernel1, Kernel2], runtime=1.0, dt=1.0)
     np.testing.assert_allclose(pset.x, 0.3, rtol=1e-5)
+
+
+@pytest.mark.xfail(reason="Modifying dt in a kernel doesn't work GH2765")
+def test_dt_modify_in_kernel(fieldset):
+    TestParticle = Particle.add_variable(Variable("age", dtype=np.float32, initial=0))
+    pset = ParticleSet(fieldset, pclass=TestParticle, x=[0.5], y=[0])
+
+    def ModifyDt(particles, fieldset):  # pragma: no cover
+        particles.age += particles.dt
+        particles.dt = 2
+
+    runtime = 10
+    expected_age = 1 + 2 * (runtime - 2)  # 1 for the first step; 2 for the remaining steps (except last)
+    pset.execute(ModifyDt, runtime=runtime, dt=1.0)
+    np.testing.assert_allclose(pset.t[0], runtime)
+    np.testing.assert_allclose(pset.age[0], expected_age)
+
+
+@pytest.mark.parametrize("dt", [1e-2, 1e-5, 1e-6, 1e-9])
+def test_small_dt(fieldset, dt):
+    pset = ParticleSet(fieldset, x=[0], y=[0])
+
+    pset.execute(DoNothing, dt=dt, runtime=dt * 100)
+    assert np.allclose([p.t for p in pset], dt * 100)
