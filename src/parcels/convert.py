@@ -584,6 +584,13 @@ def swash_to_sgrid(data_file: str, coord_file: str) -> xr.Dataset:
     xarray.Dataset
         Dataset object following SGRID conventions to be (optionally) modified and passed to a FieldSet constructor.
     """
+    warnings.warn(
+        "The swash_to_sgrid function is experimental and may not work for all SWASH datasets. "
+        "Furthermore, we are not entirely confident that the SGrid layout for SWASH is implemented correctly. "
+        "Please report any issues to the Parcels GitHub repository.",
+        UserWarning,
+        stacklevel=2,
+    )
     coord = sio.loadmat(coord_file)
     lon = coord["Xp"]
     lat = coord["Yp"]
@@ -624,6 +631,7 @@ def swash_to_sgrid(data_file: str, coord_file: str) -> xr.Dataset:
             if m and int(m.group(1)) < nz:
                 w[ti, int(m.group(1)), :, :] = mat[k]
 
+    # TODO double-check that the C-grid definition for SWASH here is correct
     ds = xr.Dataset(
         {
             "watlev": (["time", "YG", "XG"], watlev),
