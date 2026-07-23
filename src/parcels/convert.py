@@ -13,11 +13,13 @@ be determined before they pass it to the FieldSet constructor.
 from __future__ import annotations
 
 import enum
+import re
 import typing
 import warnings
 from typing import cast
 
 import numpy as np
+import scipy.io as sio
 import xarray as xr
 
 import parcels._sgrid as sgrid
@@ -567,16 +569,23 @@ def copernicusmarine_to_sgrid(
     return ds
 
 
-def swash_to_sgrid(coord_file, data_file, total_depth) -> xr.Dataset:
-    """Create an sgrid-compliant xarray.Dataset from a dataset of SWASH netcdf files."""
-    import re
+def swash_to_sgrid(data_file: str, coord_file: str, total_depth: float) -> xr.Dataset:
+    """Create an sgrid-compliant xarray.Dataset from a dataset of SWASH netcdf files.
 
-    import pandas as pd
-    import scipy.io as sio
+    Parameters
+    ----------
+    data_file : str
+        Path to the SWASH data file (MATLAB binary format).
+    coord_file : str
+        Path to the SWASH coordinate file (MATLAB binary format).
+    total_depth : float
+        Total depth of the water column.
 
-    import parcels._sgrid as sgrid
-
-    ## First load the coordinates and data files (SWASH output - matlab binary format)
+    Returns
+    -------
+    xarray.Dataset
+        Dataset object following SGRID conventions to be (optionally) modified and passed to a FieldSet constructor.
+    """
     coord = sio.loadmat(coord_file)
     x = coord["Xp"][0, :]
     y = coord["Yp"][:, 0]
@@ -588,17 +597,18 @@ def swash_to_sgrid(coord_file, data_file, total_depth) -> xr.Dataset:
     time_keys = sorted(
         set((int(m.group(1)), int(m.group(2))) for k in keys for m in [re.search(r"_(\d{6})_(\d{3})$", k)] if m)
     )
-    times = [t[0] + t[1] / 1000 for t in time_keys]
+    times = np.array([t[0] * 1000 + t[1] for t in time_keys]).astype("timedelta64[ms]")
 
     n_layers = max(int(re.search(r"Vksi_k(\d+)_", k).group(1)) for k in keys if re.search(r"Vksi_k(\d+)_", k))
-    n_w_layers = n_layers
+    n_layers_f = n_layers + 1
+    depth_centers = np.array([total_depth * (i - 0.5) / n_layers for i in range(1, n_layers + 1)], dtype=np.float32)
+    depth_interfaces = np.array([total_depth * i / n_layers for i in range(n_layers_f)], dtype=np.float32)
 
-    nx, ny, nt = len(x), len(y), len(times)
-
+    nt, ny, nx = len(times), len(y), len(x)
     watlev = np.full((nt, ny, nx), np.nan, dtype=np.float32)
     vksi = np.full((nt, n_layers, ny, nx), np.nan, dtype=np.float32)
     veta = np.full((nt, n_layers, ny, nx), np.nan, dtype=np.float32)
-    w = np.full((nt, n_w_layers, ny, nx), np.nan, dtype=np.float32)
+    w = np.full((nt, n_layers_f, ny, nx), np.nan, dtype=np.float32)
 
     for ti, (ts_int, ts_dec) in enumerate(time_keys):
         ts_str = f"{ts_int:06d}_{ts_dec:03d}"
@@ -612,57 +622,29 @@ def swash_to_sgrid(coord_file, data_file, total_depth) -> xr.Dataset:
             if m:
                 veta[ti, int(m.group(1)) - 1, :, :] = mat[k]
             m = re.match(rf"w(\d+)_{ts_str}$", k)
-            if m and int(m.group(1)) < n_w_layers:
+            if m and int(m.group(1)) < n_layers:
                 w[ti, int(m.group(1)), :, :] = mat[k]
-
-    t0 = pd.Timestamp("2026-06-01 00:00:00")
-    time_dt = np.array([t0 + pd.to_timedelta(t, unit="s") for t in times], dtype="datetime64[ns]")
 
     ds = xr.Dataset(
         {
-            "watlev": (["time", "y", "x"], watlev),
-            "U": (["time", "depth", "y", "x"], vksi),
-            "V": (["time", "depth", "y", "x"], veta),
-            "W": (["time", "depth_f", "y", "x"], w),
-            "botlev": (["y", "x"], bot),
+            "watlev": (["time", "lat", "lon"], watlev),
+            "U": (["time", "depth", "lat", "lon"], vksi),
+            "V": (["time", "depth", "lat", "lon"], veta),
+            "W": (["time", "depth_f", "lat", "lon"], w),
+            "botlev": (["lat", "lon"], bot),
         },
         coords={
-            "time": time_dt,
-            "depth": np.arange(1, n_layers + 1),
-            "depth_f": np.arange(0, n_w_layers),
-            "y": y,
-            "x": x,
+            "time": (["time"], times, {"axis": "T", "units": "ms"}),
+            "depth": (["depth"], depth_centers, {"axis": "Z", "units": "m", "positive": "down"}),
+            "depth_f": (["depth_f"], depth_interfaces, {"axis": "Z", "units": "m", "positive": "down"}),
+            "lat": (["lat"], y, {"axis": "Y", "units": "m"}),
+            "lon": (["lon"], x, {"axis": "X", "units": "m"}),
         },
     )
-    ds.attrs.update(source="SWASH version 11.01ABC", project="progWave", run="A14", Conventions="CF-1.8")
-
-    n_layers = ds.sizes["depth"]
-    n_layers_f = ds.sizes["depth_f"]
-    if n_layers_f != n_layers:
-        raise ValueError(f"Expected depth_f to match depth in length (got {n_layers_f} vs {n_layers})")
-
-    depth_centers = np.array([total_depth * (i - 0.5) / n_layers for i in range(1, n_layers + 1)], dtype=np.float32)
-    depth_interfaces = np.array([total_depth * i / n_layers for i in range(n_layers_f)], dtype=np.float32)
-
-    # Rename x/y -> lon/lat: Parcels' from_sgrid_conventions expects these names
-    # literally, even on a flat/Cartesian mesh (units stay in meters).
-    ds = ds.rename({"x": "lon", "y": "lat"})
-
-    ds = ds.assign_coords(
-        {
-            "depth": ("depth", depth_centers),
-            "depth_f": ("depth_f", depth_interfaces),
-        }
-    )
-
-    ds["time"].attrs.update(axis="T")
-    ds["lon"].attrs.update(axis="X", units="m")
-    ds["lat"].attrs.update(axis="Y", units="m")
-    ds["depth"].attrs.update(axis="Z", units="m", positive="down")
-    ds["depth_f"].attrs.update(axis="Z", units="m", positive="down")
-
-    if "grid" in ds.cf.cf_roles:
-        raise ValueError("Dataset already has a 'grid' variable (cf_role grid_topology).")
+    header = mat["__header__"]
+    if isinstance(header, bytes):
+        header = header.decode("utf-8")
+    ds.attrs.update(header=header, version=mat["__version__"], globals=mat["__globals__"])
 
     ds["grid"] = xr.DataArray(
         0,
