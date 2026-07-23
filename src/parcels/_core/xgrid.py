@@ -1,7 +1,7 @@
 from collections.abc import Hashable, Sequence
 from dataclasses import dataclass
 from functools import cached_property
-from typing import Any, Literal, cast
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 import numpy as np
 import numpy.typing as npt
@@ -17,20 +17,23 @@ from parcels._core.mesh import SphericalMesh, get_mesh
 from parcels._sgrid.accessor import _get_dim_to_axis_mapping
 from parcels._sgrid.core import SGRID_PADDING_TO_XGCM_POSITION
 
+if TYPE_CHECKING:
+    import xgcm.axis
+
 _FIELD_DATA_ORDERING: Sequence[ptyping.XgcmAxisDirection] = "TZYX"
 _XGRID_AXES_ORDERING: Sequence[ptyping.XgridAxis] = "ZYX"
 
 _DEFAULT_XGCM_KWARGS: dict[str, Any] = {"padding": "fill"}
 
 
-def get_cell_count_along_dim(ds: xr.Dataset, axis: xgcm.Axis) -> int:
+def get_cell_count_along_dim(ds: xr.Dataset, axis: xgcm.axis.Axis) -> int:
     first_coord = list(axis.coords.items())[0]
     _, coord_var = first_coord
 
     return ds[coord_var].size - 1
 
 
-def get_time(ds: xr.Dataset, axis: xgcm.Axis) -> npt.NDArray:
+def get_time(ds: xr.Dataset, axis: xgcm.axis.Axis) -> npt.NDArray:
     return ds[axis.coords["center"]].values
 
 

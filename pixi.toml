@@ -61,7 +61,7 @@ pyarrow = "20.0.*"
 uxarray = "==2026.04.1"
 dask = "2024.6.*"
 zarr = "3.0.*"
-xgcm = { version = "0.9.*", channel = "conda-forge" }
+xgcm = { git = "https://github.com/xgcm/xgcm", rev = "master" } # TODO: Switch to release version after release is cut
 cf_xarray = "0.10.*"
 cftime = "1.6.*"
 pooch = "1.8.*"
