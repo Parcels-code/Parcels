@@ -72,7 +72,7 @@ def test_xgrid_axes(fieldset):
 @pytest.mark.parametrize("mesh", ["flat", "spherical"])
 def test_uxgrid_mesh(ds, mesh):
     grid = FieldSet.from_sgrid_conventions(ds, mesh=mesh).data_g.grid
-    assert grid._mesh == mesh
+    assert mesh in grid._mesh.__class__.__name__.lower()
 
 
 @pytest.mark.skip(
