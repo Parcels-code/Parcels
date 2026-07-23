@@ -112,5 +112,5 @@ examples/documentation_homepage_animation.md
 v3 to v4 migration guide <v4-migration>
 examples/documentation_stuck_particles.ipynb
 examples/documentation_unstuck_Agrid.ipynb
-examples/documentation_geospatial.ipynb
+<!-- examples/documentation_geospatial.ipynb -->
 ```
