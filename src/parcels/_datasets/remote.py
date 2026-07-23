@@ -1,6 +1,7 @@
 import abc
 import enum
 import fnmatch
+import glob
 import os
 from collections.abc import Callable
 from pathlib import Path
@@ -152,13 +153,9 @@ class _V3Dataset(_ParcelsDataset):
 
     def open_dataset(self, download_only=False) -> xr.Dataset:
         self.download_relevant_files()
-        if download_only:  ## Chit Yan Toe
-            import glob
-
+        if download_only:
             matches = sorted(glob.glob(f"{self.pup.path}/{self.path_relative_to_root}"))
             return matches if len(matches) != 1 else matches[0]
-        # if download_only:
-        #     return f"{self.pup.path}/{self.path_relative_to_root}"
 
         with xr.set_options(use_new_combine_kwarg_defaults=True):
             ds = xr.open_mfdataset(
@@ -176,13 +173,7 @@ class _V3Dataset(_ParcelsDataset):
         ds = xr.decode_cf(ds)
         return ds
 
-    # def download_relevant_files(self) -> None:
-    #     for file in self.pup.registry:
-    #         if self.v3_dataset_name in file:
-    #             self.pup.fetch(file)
-    #     return
-
-    def download_relevant_files(self) -> None:  # Chit Yan Toe
+    def download_relevant_files(self) -> None:
         for file in self.pup.registry:
             if fnmatch.fnmatch(file, self.path_relative_to_root):
                 self.pup.fetch(file)
