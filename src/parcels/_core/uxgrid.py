@@ -76,9 +76,9 @@ class UxGrid(BaseGrid):
     @property
     def deg2m(self) -> float:
         """Metres per arcdegree for this grid's mesh."""
-        if not self._mesh.is_spherical():
-            return 1.0
-        return self._mesh.deg2m
+        if self._mesh.is_spherical():
+            return self._mesh.deg2m
+        return 1.0
 
     def search(self, z, y, x, ei=None, tol=1e-6):
         """
