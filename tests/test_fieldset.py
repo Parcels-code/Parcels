@@ -454,7 +454,7 @@ def test_fieldset_describe_backends(tmp_path):
 | UV     | VectorField |             0 | CGrid_Velocity(...)     | -                 |
 | UVW    | VectorField |             0 | CGrid_Velocity(...)     | -                 |
 
-mesh: spherical
+mesh: SphericalMesh(radius=6366707.019493707)
 time interval: (np.datetime64('2000-01-02T12:00:00.000000000'), np.datetime64('2000-01-12T12:00:00.000000000'))
 """
     fieldset.describe(io)
@@ -474,7 +474,7 @@ time interval: (np.datetime64('2000-01-02T12:00:00.000000000'), np.datetime64('2
 | UV     | VectorField |             0 | CGrid_Velocity(...)     | -                 |
 | UVW    | VectorField |             0 | CGrid_Velocity(...)     | -                 |
 
-mesh: spherical
+mesh: SphericalMesh(radius=6366707.019493707)
 time interval: (np.datetime64('2000-01-02T12:00:00.000000000'), np.datetime64('2000-01-12T12:00:00.000000000'))
 """
     fieldset.describe(io)
@@ -496,7 +496,7 @@ time interval: (np.datetime64('2000-01-02T12:00:00.000000000'), np.datetime64('2
 | UV     | VectorField |             0 | CGrid_Velocity(...)     | -                 |
 | UVW    | VectorField |             0 | CGrid_Velocity(...)     | -                 |
 
-mesh: spherical
+mesh: SphericalMesh(radius=6366707.019493707)
 time interval: (np.datetime64('2000-01-02T12:00:00.000000000'), np.datetime64('2000-01-12T12:00:00.000000000'))
 """
     fieldset.describe(io)

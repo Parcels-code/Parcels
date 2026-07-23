@@ -189,7 +189,7 @@ class FieldSet:
             model.to_windowed_arrays(max_levels=max_levels)
         return self
 
-    def add_constant_field(self, name: str, value, mesh: ptyping.Mesh = "spherical"):
+    def add_constant_field(self, name: str, value, mesh: ptyping.TMesh = "spherical"):
         """Wrapper function to add a Field that is constant in space,
            useful e.g. when using constant horizontal diffusivity
 
@@ -287,7 +287,7 @@ class FieldSet:
     def from_sgrid_conventions(
         cls,
         ds: xr.Dataset,
-        mesh: ptyping.Mesh | None = None,
+        mesh: ptyping.TMesh | None = None,
         vector_fields: ptyping.VectorFields | NotSetType = NOTSET,
     ):  # TODO: Update mesh to be discovered from the dataset metadata
         """Create a FieldSet from a dataset using SGRID convention metadata.
