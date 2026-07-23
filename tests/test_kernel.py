@@ -2,12 +2,14 @@ import numpy as np
 import pytest
 
 from parcels import (
+    FieldSet,
     KernelWarning,
     Particle,
     ParticleSet,
     Variable,
 )
 from parcels._core.kernel import Kernel
+from parcels._datasets.structured.generated import simple_UV_dataset
 from parcels.kernels import AdvectionRK4, AdvectionRK45
 from tests.common_kernels import MoveEast, MoveNorth
 
@@ -160,3 +162,57 @@ def test_kernel_signature(fieldset):
         match="Parameter 'fieldset' has incorrect parameter kind. Expected POSITIONAL_OR_KEYWORD, got KEYWORD_ONLY",
     ):
         Kernel(kernels=[kernel_with_forced_kwarg], pset=pset)
+
+
+@pytest.mark.parametrize("kernel_type", ["update_lon", "update_dlon"])
+def test_execution_order(kernel_type):
+    ds = simple_UV_dataset(dims=(1, 1, 2, 2), mesh="flat")
+    ds["U"].data[:, :] = [[0, 1], [2, 3]]
+    ds["lon"].data = [0, 2]
+    fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
+
+    def MoveLon_Update_X(particles, fieldset):  # pragma: no cover
+        particles.x += 0.2
+
+    def MoveLon_Update_DX(particles, fieldset):  # pragma: no cover
+        particles.dx += 0.2
+
+    def SampleP(particles, fieldset):  # pragma: no cover
+        particles.p = fieldset.U[particles]
+        print(particles.x, particles.p, fieldset.U[particles])
+
+    SampleParticle = Particle.add_variable(Variable("p", dtype=np.float32, initial=0.0))
+
+    MoveLon = MoveLon_Update_DX if kernel_type == "update_dlon" else MoveLon_Update_X
+
+    kernels = [MoveLon, SampleP]
+    lons = []
+    ps = []
+    for dir in [1, -1]:
+        pset = ParticleSet(fieldset, pclass=SampleParticle, x=0, y=0)
+        pset.execute(kernels[::dir], runtime=1, dt=1)
+        lons.append(pset.x)
+        ps.append(pset.p)
+
+    if kernel_type == "update_dlon":
+        assert np.isclose(lons[0], lons[1])
+        assert np.isclose(ps[0], ps[1])
+        assert np.allclose(lons[0], 0.2)
+    else:
+        assert np.isclose(ps[0] - ps[1], 0.1)
+        assert np.allclose(lons[0], 0.2)
+
+
+def test_multi_kernel_duplicate_varnames(fieldset):
+    # Testing for merging of two Kernels with the same variable declared
+    def Kernel1(particles, fieldset):  # pragma: no cover
+        add_lon = 0.1
+        particles.dx += add_lon
+
+    def Kernel2(particles, fieldset):  # pragma: no cover
+        add_lon = -0.3
+        particles.dx += add_lon
+
+    pset = ParticleSet(fieldset, x=[0.5], y=[0.5])
+    pset.execute([Kernel1, Kernel2], runtime=1.0, dt=1.0)
+    np.testing.assert_allclose(pset.x, 0.3, rtol=1e-5)
