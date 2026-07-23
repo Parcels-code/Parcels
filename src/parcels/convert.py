@@ -587,8 +587,10 @@ def swash_to_sgrid(data_file: str, coord_file: str, total_depth: float) -> xr.Da
         Dataset object following SGRID conventions to be (optionally) modified and passed to a FieldSet constructor.
     """
     coord = sio.loadmat(coord_file)
-    x = coord["Xp"][0, :]
-    y = coord["Yp"][:, 0]
+    lon = coord["Xp"]
+    lat = coord["Yp"]
+    XG = np.arange(lon.shape[1])
+    YG = np.arange(lat.shape[0])
     bot = coord["Botlev"]
 
     mat = sio.loadmat(data_file)
@@ -599,16 +601,12 @@ def swash_to_sgrid(data_file: str, coord_file: str, total_depth: float) -> xr.Da
     )
     times = np.array([t[0] * 1000 + t[1] for t in time_keys]).astype("timedelta64[ms]")
 
-    layer_indices = []
-    for key in keys:
-        match = re.search(r"Vksi_k(\d+)_", key)
-        layer_indices.append(int(match.group(1)))
-    n_layers = max(layer_indices)
+    n_layers = len(set([k.split("_")[1] for k in keys if "Vksi" in k]))
     n_layers_f = n_layers + 1
     depth_centers = np.array([total_depth * (i - 0.5) / n_layers for i in range(1, n_layers + 1)], dtype=np.float32)
     depth_interfaces = np.array([total_depth * i / n_layers for i in range(n_layers_f)], dtype=np.float32)
 
-    nt, ny, nx = len(times), len(y), len(x)
+    nt, ny, nx = len(times), len(YG), len(XG)
     watlev = np.full((nt, ny, nx), np.nan, dtype=np.float32)
     vksi = np.full((nt, n_layers, ny, nx), np.nan, dtype=np.float32)
     veta = np.full((nt, n_layers, ny, nx), np.nan, dtype=np.float32)
@@ -631,18 +629,22 @@ def swash_to_sgrid(data_file: str, coord_file: str, total_depth: float) -> xr.Da
 
     ds = xr.Dataset(
         {
-            "watlev": (["time", "lat", "lon"], watlev),
-            "U": (["time", "depth", "lat", "lon"], vksi),
-            "V": (["time", "depth", "lat", "lon"], veta),
-            "W": (["time", "depth_f", "lat", "lon"], w),
-            "botlev": (["lat", "lon"], bot),
+            "watlev": (["time", "YG", "XG"], watlev),
+            "U": (["time", "depth", "YC", "XC"], vksi),
+            "V": (["time", "depth", "YC", "XC"], veta),
+            "W": (["time", "depth_f", "YC", "XC"], w),
+            "botlev": (["YC", "XC"], bot),
         },
         coords={
             "time": (["time"], times, {"axis": "T", "units": "ms"}),
             "depth": (["depth"], depth_centers, {"axis": "Z", "units": "m", "positive": "down"}),
             "depth_f": (["depth_f"], depth_interfaces, {"axis": "Z", "units": "m", "positive": "down"}),
-            "lat": (["lat"], y, {"axis": "Y", "units": "m"}),
-            "lon": (["lon"], x, {"axis": "X", "units": "m"}),
+            "YG": (["YG"], YG, {"axis": "Y"}),
+            "YC": (["YC"], YG - 0.5, {"axis": "Y", "c_grid_axis_shift": +0.5}),
+            "XG": (["XG"], XG, {"axis": "X"}),
+            "XC": (["XC"], XG - 0.5, {"axis": "X", "c_grid_axis_shift": +0.5}),
+            "lat": (["YG", "XG"], lat, {"axis": "Y", "units": "m"}),
+            "lon": (["YG", "XG"], lon, {"axis": "X", "units": "m"}),
         },
     )
     header = mat["__header__"]
@@ -655,11 +657,11 @@ def swash_to_sgrid(data_file: str, coord_file: str, total_depth: float) -> xr.Da
         attrs=sgrid.SGrid2DMetadata(
             cf_role="grid_topology",
             topology_dimension=2,
-            node_dimensions=("lon", "lat"),
+            node_dimensions=("XG", "YG"),
             node_coordinates=("lon", "lat"),
             face_dimensions=(
-                sgrid.FaceNodePadding("lon", "lon", sgrid.Padding.NONE),
-                sgrid.FaceNodePadding("lat", "lat", sgrid.Padding.NONE),
+                sgrid.FaceNodePadding("XC", "XG", sgrid.Padding.LOW),
+                sgrid.FaceNodePadding("YC", "YG", sgrid.Padding.LOW),
             ),
             vertical_dimensions=(sgrid.FaceNodePadding("depth", "depth_f", sgrid.Padding.LOW),),
         ).to_attrs(),
