@@ -186,8 +186,10 @@ class _ZarrZipDataset(_ParcelsDataset):
         self.path_relative_to_root = path_relative_to_pup
         self.zarr_format = zarr_format
 
-    def open_dataset(self) -> xr.Dataset:
+    def open_dataset(self, download_only=False) -> xr.Dataset:
         self.pup.fetch(self.path_relative_to_root)
+        if download_only:
+            raise ValueError("download_only is not supported for zarr datasets.")
         return xr.open_zarr(ZipStore(Path(self.pup.path) / self.path_relative_to_root), zarr_format=self.zarr_format)
 
 
