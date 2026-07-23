@@ -152,13 +152,14 @@ class _V3Dataset(_ParcelsDataset):
 
     def open_dataset(self, download_only=False) -> xr.Dataset:
         self.download_relevant_files()
-        if download_only: ## Chit Yan Toe
+        if download_only:  ## Chit Yan Toe
             import glob
+
             matches = sorted(glob.glob(f"{self.pup.path}/{self.path_relative_to_root}"))
             return matches if len(matches) != 1 else matches[0]
         # if download_only:
         #     return f"{self.pup.path}/{self.path_relative_to_root}"
-        
+
         with xr.set_options(use_new_combine_kwarg_defaults=True):
             ds = xr.open_mfdataset(
                 f"{self.pup.path}/{self.path_relative_to_root}",
@@ -181,7 +182,7 @@ class _V3Dataset(_ParcelsDataset):
     #             self.pup.fetch(file)
     #     return
 
-    def download_relevant_files(self) -> None: # Chit Yan Toe 
+    def download_relevant_files(self) -> None:  # Chit Yan Toe
         for file in self.pup.registry:
             if fnmatch.fnmatch(file, self.path_relative_to_root):
                 self.pup.fetch(file)

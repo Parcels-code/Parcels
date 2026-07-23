@@ -568,12 +568,14 @@ def copernicusmarine_to_sgrid(
 
 
 def swash_to_sgrid(coord_file, data_file, total_depth) -> xr.Dataset:
-    """Create an sgrid-compliant xarray.Dataset from a dataset of SWASH netcdf files.
-    """
-    import scipy.io as sio
+    """Create an sgrid-compliant xarray.Dataset from a dataset of SWASH netcdf files."""
     import re
-    import parcels._sgrid as sgrid 
+
     import pandas as pd
+    import scipy.io as sio
+
+    import parcels._sgrid as sgrid
+
     ## First load the coordinates and data files (SWASH output - matlab binary format)
     coord = sio.loadmat(coord_file)
     x = coord["Xp"][0, :]
@@ -583,17 +585,12 @@ def swash_to_sgrid(coord_file, data_file, total_depth) -> xr.Dataset:
     mat = sio.loadmat(data_file)
     keys = [k for k in mat.keys() if not k.startswith("__")]
 
-    time_keys = sorted(set(
-        (int(m.group(1)), int(m.group(2)))
-        for k in keys
-        for m in [re.search(r"_(\d{6})_(\d{3})$", k)] if m
-    ))
+    time_keys = sorted(
+        set((int(m.group(1)), int(m.group(2))) for k in keys for m in [re.search(r"_(\d{6})_(\d{3})$", k)] if m)
+    )
     times = [t[0] + t[1] / 1000 for t in time_keys]
 
-    n_layers = max(
-        int(re.search(r"Vksi_k(\d+)_", k).group(1))
-        for k in keys if re.search(r"Vksi_k(\d+)_", k)
-    )
+    n_layers = max(int(re.search(r"Vksi_k(\d+)_", k).group(1)) for k in keys if re.search(r"Vksi_k(\d+)_", k))
     n_w_layers = n_layers
 
     nx, ny, nt = len(x), len(y), len(times)
@@ -642,25 +639,21 @@ def swash_to_sgrid(coord_file, data_file, total_depth) -> xr.Dataset:
     n_layers = ds.sizes["depth"]
     n_layers_f = ds.sizes["depth_f"]
     if n_layers_f != n_layers:
-        raise ValueError(
-            f"Expected depth_f to match depth in length (got {n_layers_f} vs {n_layers})"
-        )
+        raise ValueError(f"Expected depth_f to match depth in length (got {n_layers_f} vs {n_layers})")
 
-    depth_centers = np.array(
-        [total_depth * (i - 0.5) / n_layers for i in range(1, n_layers + 1)], dtype=np.float32
-    )
-    depth_interfaces = np.array(
-        [total_depth * i / n_layers for i in range(n_layers_f)], dtype=np.float32
-    )
+    depth_centers = np.array([total_depth * (i - 0.5) / n_layers for i in range(1, n_layers + 1)], dtype=np.float32)
+    depth_interfaces = np.array([total_depth * i / n_layers for i in range(n_layers_f)], dtype=np.float32)
 
     # Rename x/y -> lon/lat: Parcels' from_sgrid_conventions expects these names
     # literally, even on a flat/Cartesian mesh (units stay in meters).
     ds = ds.rename({"x": "lon", "y": "lat"})
 
-    ds = ds.assign_coords({
-        "depth": ("depth", depth_centers),
-        "depth_f": ("depth_f", depth_interfaces),
-    })
+    ds = ds.assign_coords(
+        {
+            "depth": ("depth", depth_centers),
+            "depth_f": ("depth_f", depth_interfaces),
+        }
+    )
 
     ds["time"].attrs.update(axis="T")
     ds["lon"].attrs.update(axis="X", units="m")
@@ -682,12 +675,10 @@ def swash_to_sgrid(coord_file, data_file, total_depth) -> xr.Dataset:
                 sgrid.FaceNodePadding("lon", "lon", sgrid.Padding.NONE),
                 sgrid.FaceNodePadding("lat", "lat", sgrid.Padding.NONE),
             ),
-            vertical_dimensions=(
-                sgrid.FaceNodePadding("depth", "depth_f", sgrid.Padding.LOW),
-            ),
+            vertical_dimensions=(sgrid.FaceNodePadding("depth", "depth_f", sgrid.Padding.LOW),),
         ).to_attrs(),
     )
-        
+
     return ds
 
 
