@@ -117,6 +117,13 @@ def test_particleclass_add_variable_in_loop():
         assert var1.to_write == var2.to_write
 
 
+def test_variable_special_names(fieldset):
+    """Test that checks errors thrown for special names."""
+    for vars in ["z", "x"]:
+        with pytest.raises(ValueError):
+            Particle.add_variable(Variable(vars, dtype=np.float32, initial=10.0))
+
+
 def test_particleclass_add_variable_collision():
     p_initial = ParticleClass(variables=[Variable("vara", dtype=np.float32)])
 
