@@ -1,34 +1,39 @@
 from collections.abc import Hashable, Sequence
 from dataclasses import dataclass
 from functools import cached_property
-from typing import Any, Literal, cast
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 import numpy as np
 import numpy.typing as npt
 import xarray as xr
 import xgcm
+from dask import is_dask_collection
 
 import parcels._sgrid as sgrid
 import parcels._typing as ptyping
 from parcels._core.basegrid import BaseGrid
 from parcels._core.index_search import _search_1d_array, _search_indices_curvilinear_2d
+from parcels._core.mesh import SphericalMesh, get_mesh
 from parcels._sgrid.accessor import _get_dim_to_axis_mapping
 from parcels._sgrid.core import SGRID_PADDING_TO_XGCM_POSITION
+
+if TYPE_CHECKING:
+    import xgcm.axis
 
 _FIELD_DATA_ORDERING: Sequence[ptyping.XgcmAxisDirection] = "TZYX"
 _XGRID_AXES_ORDERING: Sequence[ptyping.XgridAxis] = "ZYX"
 
-_DEFAULT_XGCM_KWARGS: dict[str, Any] = {"periodic": False}
+_DEFAULT_XGCM_KWARGS: dict[str, Any] = {"padding": "fill"}
 
 
-def get_cell_count_along_dim(ds: xr.Dataset, axis: xgcm.Axis) -> int:
+def get_cell_count_along_dim(ds: xr.Dataset, axis: xgcm.axis.Axis) -> int:
     first_coord = list(axis.coords.items())[0]
     _, coord_var = first_coord
 
     return ds[coord_var].size - 1
 
 
-def get_time(ds: xr.Dataset, axis: xgcm.Axis) -> npt.NDArray:
+def get_time(ds: xr.Dataset, axis: xgcm.axis.Axis) -> npt.NDArray:
     return ds[axis.coords["center"]].values
 
 
@@ -164,12 +169,12 @@ class XGrid(BaseGrid):
 
     """
 
-    def __init__(self, model_data: xr.Dataset, mesh):
+    def __init__(self, model_data: xr.Dataset, mesh: Literal["flat", "spherical"] | SphericalMesh):
         self.sgrid_metadata = model_data.sgrid.metadata
         self._ds = model_data
         grid = XgcmLikeGrid(self.sgrid_metadata, model_data)
         self.xgcm_grid = grid
-        self._mesh = mesh
+        self._mesh = get_mesh(mesh)
         self._spatialhash = None
         ds = model_data
 
@@ -185,7 +190,6 @@ class XGrid(BaseGrid):
         if "Z" in grid.axes:
             assert_valid_depth(ds["depth"])
 
-        ptyping.assert_valid_mesh(mesh)
         self._ds = ds
 
     # def __repr__(self):
@@ -207,6 +211,9 @@ class XGrid(BaseGrid):
             _ = self.xgcm_grid.axes["X"]
         except KeyError:
             return np.zeros(1)
+        # ensure lon is loaded into memory for dask-backed datasets, as it is used in the search method
+        if is_dask_collection(self._ds["lon"].data):
+            self._ds["lon"].load()
         return self._ds["lon"].values
 
     @property
@@ -221,6 +228,9 @@ class XGrid(BaseGrid):
             _ = self.xgcm_grid.axes["Y"]
         except KeyError:
             return np.zeros(1)
+        # ensure lat is loaded into memory for dask-backed datasets, as it is used in the search method
+        if is_dask_collection(self._ds["lat"].data):
+            self._ds["lat"].load()
         return self._ds["lat"].values
 
     @property
@@ -248,6 +258,13 @@ class XGrid(BaseGrid):
     @property
     def time(self):
         return self._datetimes.astype(np.float64) / 1e9
+
+    @property
+    def deg2m(self) -> float:
+        """Metres per degree of arc for this grid's mesh."""
+        if self._mesh.is_spherical():
+            return self._mesh.deg2m
+        return 1.0
 
     @cached_property
     def xdim(self) -> int:

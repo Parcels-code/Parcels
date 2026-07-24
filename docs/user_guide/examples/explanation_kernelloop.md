@@ -57,17 +57,16 @@ import parcels.tutorial
 
 # Load the CopernicusMarine data in the Agulhas region from the example_datasets
 ds_fields = parcels.tutorial.open_dataset("CopernicusMarine_data_for_Argo_tutorial/data")
-ds_fields.load()  # load the dataset into memory
 
 # Create an idealised wind field and add it to the dataset
-tdim, ydim, xdim = (len(ds_fields.time),len(ds_fields.latitude), len(ds_fields.longitude))
+ydim, xdim = len(ds_fields.latitude), len(ds_fields.longitude)
 ds_fields["UWind"] = xr.DataArray(
-    data=0.5 * np.ones((tdim, ydim, xdim)) * np.sin(ds_fields.latitude.values - ds_fields.latitude.values.mean())[None, :, None],
-    coords=[ds_fields.time, ds_fields.latitude, ds_fields.longitude])
+    data=0.5 * np.ones((ydim, xdim)) * np.sin(ds_fields.latitude.values - ds_fields.latitude.values.mean())[:, None],
+    coords=[ds_fields.latitude, ds_fields.longitude])
 
 ds_fields["VWind"] = xr.DataArray(
-    data=np.zeros((tdim, ydim, xdim)),
-    coords=[ds_fields.time, ds_fields.latitude, ds_fields.longitude])
+    data=np.zeros((ydim, xdim)),
+    coords=[ds_fields.latitude, ds_fields.longitude])
 
 fields = {
     "U": ds_fields["uo"],
@@ -83,6 +82,9 @@ fieldset = parcels.FieldSet.from_sgrid_conventions(
         "Wind": ("UWind", "VWind")
     }
 )
+
+# Convert the FieldSet to windowed arrays for better performance
+fieldset = fieldset.to_windowed_arrays()
 ```
 
 Now we define a wind Kernel that uses a forward Euler method to apply the wind forcing. Note that we update the `particles.dx` and `particles.dy` variables, rather than `particles.x` and `particles.y` directly.
