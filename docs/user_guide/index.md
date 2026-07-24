@@ -109,8 +109,8 @@ examples/tutorial_interaction.ipynb
 :hidden:
 :caption: Other
 v3 to v4 migration guide <v4-migration>
-examples/documentation_stuck_particles.ipynb
-examples/documentation_unstuck_Agrid.ipynb
-examples/documentation_homepage_animation.md
+examples/tutorial_stuck_particles.ipynb
+examples/tutorial_unstuck_Agrid.ipynb
+examples/tutorial_homepage_animation.md
 <!-- examples/documentation_geospatial.ipynb -->
 ```
