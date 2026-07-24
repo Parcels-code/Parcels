@@ -102,6 +102,23 @@ _COPERNICUS_MARINE_AXIS_VARNAMES: dict[XgcmAxisDirection, str] = {
     "T": "time",
 }
 
+_DELFT3D_EXPECTED_COORDS: list[tuple[str, _Status]] = [(name, _Status.REQUIRED) for name in ["XZETA", "YZETA"]]
+
+_DELFT3D_VARNAMES_MAPPING: dict[str, str] = {
+    "XZETA": "lon",
+    "YZETA": "lat",
+    "SIGMA_C": "depth",
+    "TIME": "time",
+}
+
+_DELFT3D_AXIS_VARNAMES: dict[str, XgcmAxisDirection] = {
+    "M": "X",
+    "N": "Y",
+    "LAYER": "Z",
+    "time": "T",
+}
+
+
 _CROCO_EXPECTED_COORDS: list[tuple[str, _Status]] = [
     (name, _Status.REQUIRED) for name in ["x_rho", "y_rho", "s_w", "time"]
 ]
@@ -561,6 +578,67 @@ def copernicusmarine_to_sgrid(
                 sgrid.FaceNodePadding("y_center", "lat", sgrid.Padding.LOW),
             ),
             vertical_dimensions=(sgrid.FaceNodePadding("depth_center", "depth", sgrid.Padding.LOW),),
+        ).to_attrs(),
+    )
+
+    return ds
+
+
+def delft3d_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.Dataset) -> xr.Dataset:
+    """Create an sgrid-compliant xarray.Dataset from a dataset of Delft3D netcdf files.
+
+    Parameters
+    ----------
+    fields : dict[str, xr.Dataset | xr.DataArray]
+        Dictionary of xarray.DataArray objects as obtained from a set of Delft3D netcdf files.
+    coords : xarray.Dataset, optional
+        xarray.Dataset containing coordinate variables.
+
+    Returns
+    -------
+    xarray.Dataset
+        Dataset object following SGRID conventions to be (optionally) modified and passed to a FieldSet constructor.
+
+    See the Delft3D documentation for more information on how to use Delft3D model outputs in Parcels
+
+    """
+    warnings.warn(
+        "The delft3d_to_sgrid function is experimental and may not work for all Delft3D datasets. "
+        "Furthermore, we are not entirely confident that the SGrid layout for Delft3D is implemented correctly. "
+        "Please report any issues to the Parcels GitHub repository.",
+        UserWarning,
+        stacklevel=2,
+    )
+
+    fields = fields.copy()
+    coords = _pick_expected_coords(coords, _DELFT3D_EXPECTED_COORDS)
+
+    for name, field_da in fields.items():
+        if isinstance(field_da, xr.Dataset):
+            field_da = field_da[name]
+            # TODO: logging message, warn if multiple fields are in this dataset
+        else:
+            field_da = field_da.rename(name)
+        fields[name] = field_da
+
+    ds = xr.merge(list(fields.values()) + [coords])
+
+    ds = _maybe_rename_variables(ds, _DELFT3D_VARNAMES_MAPPING)
+    ds = _set_coords(ds, _DELFT3D_AXIS_VARNAMES.keys())
+    ds = _set_axis_attrs(ds, _DELFT3D_AXIS_VARNAMES)
+
+    ds["grid"] = xr.DataArray(
+        0,
+        attrs=sgrid.SGrid2DMetadata(
+            cf_role="grid_topology",
+            topology_dimension=2,
+            node_dimensions=("M", "N"),
+            node_coordinates=("lon", "lat"),
+            face_dimensions=(  # TODO check these paddings
+                sgrid.FaceNodePadding("X", "M", sgrid.Padding.HIGH),
+                sgrid.FaceNodePadding("Y", "N", sgrid.Padding.HIGH),
+            ),
+            vertical_dimensions=(sgrid.FaceNodePadding("Z", "LAYER", sgrid.Padding.HIGH),),
         ).to_attrs(),
     )
 

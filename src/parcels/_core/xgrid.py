@@ -88,8 +88,9 @@ def _transpose_xfield_data_to_tzyx(da: xr.DataArray, sgrid_metadata: sgrid.SGrid
 
     # All dimensions must be associated with an axis in the grid
     if set(dim_to_axis) != set(da.dims):
+        dims_not_on_grid = set(da.dims) - set(dim_to_axis)
         raise ValueError(
-            f"DataArray {da.name!r} with dims {da.dims} has dimensions that are not associated with a direction on the provided grid."
+            f"DataArray {da.name!r} with dims {da.dims} has dimensions {dims_not_on_grid} that are not associated with a direction on the provided grid."
         )
 
     axes_not_in_field = set(_FIELD_DATA_ORDERING).difference(set(dim_to_axis.values()))
