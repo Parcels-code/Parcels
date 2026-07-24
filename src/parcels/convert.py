@@ -339,8 +339,6 @@ def nemo_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.Da
     ds = _maybe_remove_depth_from_lonlat(ds)
     ds = _set_axis_attrs(ds, _NEMO_AXIS_VARNAMES)
 
-    ds = ds.fillna(0)  # set NaN values to 0
-
     expected_axes = set("XYZT")  # TODO: Update after we have support for 2D spatial fields
     if missing_axes := (expected_axes - set(ds.cf.axes)):
         raise ValueError(
@@ -543,8 +541,6 @@ def copernicusmarine_to_sgrid(
     ds.attrs.clear()  # Clear global attributes from the merging
 
     ds = _maybe_rename_coords(ds, _COPERNICUS_MARINE_AXIS_VARNAMES)
-
-    ds = ds.fillna(0)  # set NaN values to 0
 
     if "W" in ds.data_vars:
         # Negate W to convert from up positive to down positive (as that's the direction of positive z)

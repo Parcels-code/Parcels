@@ -137,14 +137,13 @@ class StructuredModelData(ModelData):
         data: xr.Dataset,
         mesh: ptyping.TMesh,
         vector_field_components: ptyping.VectorFields,
-        fill_nan_to_zero: bool = True,
-        assert_valid_fields: bool = True,
+        skip_field_data_validation: bool = False,
     ):
         if not isinstance(data, xr.Dataset):
             raise ValueError(f"Expected `data` to be an xarray.Dataset . Got {type(data)}")
 
         data = preprocess_sgrid_model_data(data)
-        if fill_nan_to_zero:
+        if not skip_field_data_validation:
             data = data.fillna(0)
         grid = XGrid(data, mesh)
 
@@ -153,8 +152,7 @@ class StructuredModelData(ModelData):
         self.vector_field_components = vector_field_components
         self.field_to_interpolator = {}
         self._fields: list[Field | VectorField] | None = None
-        if assert_valid_fields:
-            self.assert_valid_model_data()
+        self.assert_valid_model_data()
 
     def assert_valid_field_data(self, field_data: xr.DataArray) -> None:
         # assert_all_field_dims_have_axis(field_data, self.grid.xgcm_grid) #! TODO v4: These checks should be revisited
@@ -195,8 +193,7 @@ class StructuredModelData(ModelData):
         ds: xr.Dataset,
         mesh: ptyping.TMesh | None,
         vector_fields: ptyping.VectorFields | NotSetType,
-        fill_nan_to_zero: bool = True,
-        assert_valid_fields: bool = True,
+        skip_field_data_validation: bool = False,
     ) -> Self:
         ds = ds.copy()
         if mesh is None:
@@ -231,8 +228,7 @@ class StructuredModelData(ModelData):
             ds,
             mesh=mesh,
             vector_field_components=vector_fields,
-            fill_nan_to_zero=fill_nan_to_zero,
-            assert_valid_fields=assert_valid_fields,
+            skip_field_data_validation=skip_field_data_validation,
         )
         model._fields = model.construct_fields()
         for f in model._fields:

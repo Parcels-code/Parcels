@@ -330,22 +330,14 @@ def test_fieldset_from_sgrid_conventions(ds_name):
     assert len(fieldset.fields) > 0
 
 
-def test_fieldset_keep_nan_values():
+def test_fieldset_skip_field_data_validation():
     ds = datasets_structured["ds_2d_left"]
     ds["U_A_grid"][:] = np.nan
 
     fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
     assert np.isfinite(fieldset.U_A_grid.data).all()
-    fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat", fill_nan_to_zero=False)
+    fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat", skip_field_data_validation=True)
     assert np.isnan(fieldset.U_A_grid.data).all()
-
-
-def test_fieldset_assert_valid_fields():
-    ds = datasets_structured["ds_2d_left"].drop("time")
-
-    FieldSet.from_sgrid_conventions(ds, mesh="flat", assert_valid_fields=False)
-    with pytest.raises(ValueError):
-        FieldSet.from_sgrid_conventions(ds, mesh="flat")
 
 
 def test_fieldset_add_error_on_duplicate_fields():
