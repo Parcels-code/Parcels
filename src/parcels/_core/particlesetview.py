@@ -1,6 +1,6 @@
 import numpy as np
 
-from parcels._reprs import particlesetview_repr
+from parcels._repr_utils import particlesetview_repr
 
 
 class ParticleSetView:

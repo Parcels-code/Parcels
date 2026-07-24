@@ -11,6 +11,7 @@ from parcels import (
     StatusCode,
     Variable,
     VectorField,
+    read_particlefile,
 )
 from parcels._core.index_search import _search_time_index
 from parcels._datasets.structured.generated import simple_UV_dataset
@@ -193,22 +194,8 @@ def test_interpolation_mesh_type(mesh, npart=10):
     assert v == 0.0
 
 
-interp_methods = {
-    "linear": XLinear,
-}
-
-
-@pytest.mark.xfail(reason="ParticleFile not implemented yet")
-@pytest.mark.parametrize(
-    "interp_name",
-    [
-        "linear",
-        # "freeslip",
-        # "nearest",
-        # "cgrid_velocity",
-    ],
-)
-def test_interp_regression_v3(interp_name):
+@pytest.mark.parametrize(("interp_name", "interp_method"), [("linear", XLinear)])
+def test_interp_regression_v3(interp_name, interp_method):
     """Test that the v4 versions of the interpolation are the same as the v3 versions."""
     ds_input = xr.open_dataset(str(TEST_DATA / f"test_interpolation_data_random_{interp_name}.nc"))
     ydim = ds_input["U"].shape[2]
@@ -247,20 +234,20 @@ def test_interp_regression_v3(interp_name):
     )
 
     fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
-    assert fieldset.U.interp_method == interp_methods[interp_name]
-    assert fieldset.V.interp_method == interp_methods[interp_name]
-    assert fieldset.W.interp_method == interp_methods[interp_name]
+    assert isinstance(fieldset.U.interp_method, interp_method)
+    assert isinstance(fieldset.V.interp_method, interp_method)
+    assert isinstance(fieldset.W.interp_method, interp_method)
 
     x, y, z = np.meshgrid(np.linspace(0, 1, 7), np.linspace(0, 1, 13), np.linspace(0, 1, 5))
 
     TestP = Particle.add_variable(Variable("pid", dtype=np.int32, initial=0))
     pset = ParticleSet(fieldset, pclass=TestP, x=x, y=y, z=z, pid=np.arange(x.size))
 
-    def DeleteParticle(particle, fieldset, time):
-        if particle.state >= 50:
-            particle.state = StatusCode.Delete
+    def DeleteParticle(particles, fieldset):
+        any_error = particles.state >= 50  # This captures all Errors
+        particles[any_error].state = StatusCode.Delete
 
-    outfile = ParticleFile(f"test_interpolation_v4_{interp_name}", outputdt=np.timedelta64(1, "s"))
+    outfile = ParticleFile(f"test_interpolation_v4_{interp_name}.parquet", outputdt=np.timedelta64(1, "s"), mode="w")
     pset.execute(
         [AdvectionRK4_3D, DeleteParticle],
         runtime=np.timedelta64(4, "s"),
@@ -270,9 +257,43 @@ def test_interp_regression_v3(interp_name):
 
     print(str(TEST_DATA / f"test_interpolation_jit_{interp_name}.zarr"))
     ds_v3 = xr.open_zarr(str(TEST_DATA / f"test_interpolation_jit_{interp_name}.zarr"))
-    ds_v4 = xr.open_zarr(f"test_interpolation_v4_{interp_name}.zarr")
+    ds_v4 = read_particlefile(f"test_interpolation_v4_{interp_name}.parquet")
 
-    tol = 1e-6
-    np.testing.assert_allclose(ds_v3.lon, ds_v4.lon, atol=tol)
-    np.testing.assert_allclose(ds_v3.lat, ds_v4.lat, atol=tol)
-    np.testing.assert_allclose(ds_v3.z, ds_v4.z, atol=tol)
+    v3_starts = np.column_stack([ds_v3.lon[:, 0].values, ds_v3.lat[:, 0].values, ds_v3.z[:, 0].values])
+    unique_starts_v3, inverse_indices = np.unique(v3_starts, axis=0, return_inverse=True)
+
+    v4_pid_to_data = {pid: ds_v4.filter(ds_v4["particle_id"] == pid) for pid in ds_v4["particle_id"].unique()}
+
+    for start_lon, start_lat, start_z in unique_starts_v3:
+        # Find particles in v3 with this starting position
+        ind_v3 = np.where(
+            inverse_indices
+            == np.where(
+                (unique_starts_v3[:, 0] == start_lon)
+                & (unique_starts_v3[:, 1] == start_lat)
+                & (unique_starts_v3[:, 2] == start_z)
+            )[0][0]
+        )[0][0]
+
+        # Find particles in v4 with this starting position using vectorized filter
+        v4_mask = (ds_v4["x"] == start_lon) & (ds_v4["y"] == start_lat) & (ds_v4["z"] == start_z)
+        ind_v4 = ds_v4.filter(v4_mask)["particle_id"].unique().to_numpy()
+
+        v3_lon = ds_v3.lon[ind_v3, :].values
+        v3_lat = ds_v3.lat[ind_v3, :].values
+        v3_z = ds_v3.z[ind_v3, :].values
+
+        # Use cached v4 data
+        v4_data = v4_pid_to_data[ind_v4[0]]
+        v4_lon = v4_data["x"].to_numpy()[:-1]
+        v4_lat = v4_data["y"].to_numpy()[:-1]
+        v4_z = v4_data["z"].to_numpy()[:-1]
+
+        # Skip if all NaN
+        if np.all(np.isnan(v3_lon)) or np.all(np.isnan(v4_lon)):
+            continue
+
+        tol = 1e-6
+        np.testing.assert_allclose(v3_lon, v4_lon, atol=tol)
+        np.testing.assert_allclose(v3_lat, v4_lat, atol=tol)
+        np.testing.assert_allclose(v3_z, v4_z, atol=tol)

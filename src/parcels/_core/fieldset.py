@@ -24,7 +24,7 @@ from parcels._core.utils.time import get_datetime_type_calendar
 from parcels._core.utils.time import is_compatible as datetime_is_compatible
 from parcels._core.warnings import FieldSetWarning
 from parcels._python import NOTSET, NotSetType
-from parcels._reprs import fieldset_describe
+from parcels._repr_utils import fieldset_describe
 from parcels.interpolators import (
     XConstantField,
 )
