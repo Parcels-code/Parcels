@@ -248,14 +248,6 @@ def _maybe_expand_depth_dimension(ds: xr.Dataset) -> xr.Dataset:
     return ds
 
 
-def _maybe_fill_na_to_zeros(ds: xr.Dataset) -> xr.Dataset:
-    for var in ds.data_vars:
-        if ds[var].isnull().any():
-            ds[var] = ds[var].fillna(0)
-            logger.info(f"Filled NaN values in variable '{var}' with zeros.")
-    return ds
-
-
 # TODO is this function still needed, now that we require users to provide field names explicitly?
 def _discover_U_and_V(ds: xr.Dataset, cf_standard_names_fallbacks) -> xr.Dataset:
     # Assumes that the dataset has U and V data
@@ -557,7 +549,6 @@ def copernicusmarine_to_sgrid(
 
     ds = _maybe_rename_coords(ds, _COPERNICUS_MARINE_AXIS_VARNAMES)
     ds = _maybe_expand_depth_dimension(ds)
-    ds = _maybe_fill_na_to_zeros(ds)
 
     if "W" in ds.data_vars:
         # Negate W to convert from up positive to down positive (as that's the direction of positive z)
