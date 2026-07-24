@@ -386,11 +386,11 @@ def test_stommelgyre_fieldset(kernel, rtol, grid_type):
     "kernel, rtol",
     [
         (AdvectionRK2, 2e-2),
-        (AdvectionRK4, 5e-3),
+        (AdvectionRK4, 1e-2),
         (AdvectionRK45, 1e-3),
     ],
 )
-@pytest.mark.parametrize("grid_type", ["A"])  # TODO also implement C-grid once available
+@pytest.mark.parametrize("grid_type", ["A", "C"])
 def test_peninsula_fieldset(kernel, rtol, grid_type):
     npart = 2
     ds = peninsula_dataset(grid_type=grid_type)

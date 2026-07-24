@@ -47,9 +47,6 @@ examples/tutorial_nestedgrids.ipynb
 examples/tutorial_manipulating_field_data.ipynb
 ```
 
-<!-- examples/documentation_indexing.ipynb -->
-<!-- examples/tutorial_timevaryingdepthdimensions.ipynb -->
-
 ## Create ParticleSets
 
 ```{toctree}
@@ -81,11 +78,10 @@ examples/tutorial_write_in_kernel.ipynb
 
 examples/explanation_interpolation.md
 examples/tutorial_interpolation.ipynb
+examples/tutorial_peninsula_AvsCgrid.ipynb
 ```
 
-<!-- examples/tutorial_particle_field_interaction.ipynb -->
 <!-- examples/tutorial_analyticaladvection.ipynb -->
-<!-- examples/tutorial_kernelloop.ipynb -->
 
 ## Run a simulation
 
@@ -96,20 +92,6 @@ examples/tutorial_interpolation.ipynb
 
 examples/tutorial_dt_integrators.ipynb
 ```
-
-<!-- examples/tutorial_peninsula_AvsCgrid.ipynb -->
-<!-- examples/documentation_advanced_zarr.ipynb -->
-<!-- examples/documentation_LargeRunsOutput.ipynb -->
-
-<!-- ```{toctree}
-:caption: Other tutorials
-:name: tutorial-other
-
-``` -->
-
-<!-- examples/documentation_stuck_particles.ipynb -->
-<!-- examples/documentation_unstuck_Agrid.ipynb -->
-<!-- examples/documentation_geospatial.ipynb -->
 
 ## Example Kernels
 
@@ -123,10 +105,12 @@ examples/tutorial_diffusion.ipynb
 examples/tutorial_interaction.ipynb
 ```
 
-<!-- examples/documentation_homepage_animation.ipynb -->
-
 ```{toctree}
 :hidden:
 :caption: Other
 v3 to v4 migration guide <v4-migration>
+examples/tutorial_stuck_particles.ipynb
+examples/tutorial_unstuck_Agrid.ipynb
+examples/tutorial_homepage_animation.md
+<!-- examples/documentation_geospatial.ipynb -->
 ```
