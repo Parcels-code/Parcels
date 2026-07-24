@@ -289,6 +289,8 @@ class FieldSet:
         ds: xr.Dataset,
         mesh: ptyping.TMesh | None = None,
         vector_fields: ptyping.VectorFields | NotSetType = NOTSET,
+        fill_nan_to_zero: bool = True,
+        assert_valid_fields: bool = True,
     ):  # TODO: Update mesh to be discovered from the dataset metadata
         """Create a FieldSet from a dataset using SGRID convention metadata.
 
@@ -307,6 +309,10 @@ class FieldSet:
             Mapping of vector field names to tuples of component variable names in the dataset.
             For example, ``{"UV": ("U", "V"), "UVW": ("U", "V", "W")}``.
             If omitted (default), vector fields are auto-discovered from standard variable names (``U``/``V``/``W``).
+        fill_nan_to_zero : bool, optional
+            If True (default), fill NaN values in the dataset with zeros, which avoids Interpolation errors.
+        assert_valid_fields : bool, optional
+            If True (default), asserts that the Fields are valid, including checks for dimensions names. In some cases, it can be useful to be able to override this check, but thread with caution, as invalid Fields can lead to unexpected behavior during execution.
 
         Returns
         -------
@@ -321,7 +327,9 @@ class FieldSet:
 
         See https://sgrid.github.io/sgrid/ for more information on the SGRID conventions.
         """
-        model = StructuredModelData.from_sgrid_conventions(ds, mesh, vector_fields)
+        model = StructuredModelData.from_sgrid_conventions(
+            ds, mesh, vector_fields, fill_nan_to_zero=fill_nan_to_zero, assert_valid_fields=assert_valid_fields
+        )
         return cls([model])
 
     def describe(self, buf: IO | None = None) -> None:

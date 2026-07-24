@@ -132,11 +132,20 @@ def preprocess_sgrid_model_data(ds: xr.Dataset) -> xr.Dataset:
 
 
 class StructuredModelData(ModelData):
-    def __init__(self, data: xr.Dataset, mesh: ptyping.TMesh, vector_field_components: ptyping.VectorFields):
+    def __init__(
+        self,
+        data: xr.Dataset,
+        mesh: ptyping.TMesh,
+        vector_field_components: ptyping.VectorFields,
+        fill_nan_to_zero: bool = True,
+        assert_valid_fields: bool = True,
+    ):
         if not isinstance(data, xr.Dataset):
             raise ValueError(f"Expected `data` to be an xarray.Dataset . Got {type(data)}")
 
         data = preprocess_sgrid_model_data(data)
+        if fill_nan_to_zero:
+            data = data.fillna(0)
         grid = XGrid(data, mesh)
 
         self.data = data
@@ -144,11 +153,11 @@ class StructuredModelData(ModelData):
         self.vector_field_components = vector_field_components
         self.field_to_interpolator = {}
         self._fields: list[Field | VectorField] | None = None
-        self.assert_valid_model_data()
+        if assert_valid_fields:
+            self.assert_valid_model_data()
 
     def assert_valid_field_data(self, field_data: xr.DataArray) -> None:
         # assert_all_field_dims_have_axis(field_data, self.grid.xgcm_grid) #! TODO v4: These checks should be revisited
-        _assert_no_nan_in_field_data(field_data)
         _assert_has_time_coordinate(field_data)
 
     @property
@@ -182,7 +191,12 @@ class StructuredModelData(ModelData):
 
     @classmethod
     def from_sgrid_conventions(
-        cls, ds: xr.Dataset, mesh: ptyping.TMesh | None, vector_fields: ptyping.VectorFields | NotSetType
+        cls,
+        ds: xr.Dataset,
+        mesh: ptyping.TMesh | None,
+        vector_fields: ptyping.VectorFields | NotSetType,
+        fill_nan_to_zero: bool = True,
+        assert_valid_fields: bool = True,
     ) -> Self:
         ds = ds.copy()
         if mesh is None:
@@ -213,7 +227,13 @@ class StructuredModelData(ModelData):
         vector_fields = resolve_vector_fields(ds, vector_fields)
         assert_valid_vector_fields(ds, vector_fields)
 
-        model = cls(ds, mesh=mesh, vector_field_components=vector_fields)
+        model = cls(
+            ds,
+            mesh=mesh,
+            vector_field_components=vector_fields,
+            fill_nan_to_zero=fill_nan_to_zero,
+            assert_valid_fields=assert_valid_fields,
+        )
         model._fields = model.construct_fields()
         for f in model._fields:
             if isinstance(f, Field):
@@ -509,11 +529,3 @@ def _assert_has_time_coordinate(da: xr.DataArray) -> None:
         if "time" not in da.coords:
             raise ValueError("Field data is missing a 'time' coordinate.")
     return
-
-
-def _assert_no_nan_in_field_data(field_data: xr.DataArray) -> None:
-    arr = field_data.isel(time=0) if "time" in field_data.dims else field_data
-    if xr.ufuncs.isnan(arr).any():
-        raise ValueError(
-            f"Field data {field_data.name!r} contains NaN values. Please fill or remove NaN values before using this field in a Parcels simulation."
-        )
