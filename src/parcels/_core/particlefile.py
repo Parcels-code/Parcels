@@ -18,7 +18,7 @@ from parcels._core.mesh import BaseMesh
 from parcels._core.particle import ParticleClass
 from parcels._core.particlesetview import ParticleSetView
 from parcels._core.utils.time import timedelta_to_float
-from parcels._reprs import particlefile_repr
+from parcels._repr_utils import particlefile_repr
 from parcels._typing import PathLike
 
 if TYPE_CHECKING:

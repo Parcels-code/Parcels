@@ -1,4 +1,4 @@
-from parcels._reprs import _format_list_items_multiline
+from parcels._repr_utils import _format_list_items_multiline
 
 
 def test_format_list_items_multiline():
