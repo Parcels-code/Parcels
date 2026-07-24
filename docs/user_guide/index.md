@@ -103,7 +103,6 @@ examples/tutorial_gsw_density.ipynb
 examples/tutorial_Argofloats.ipynb
 examples/tutorial_diffusion.ipynb
 examples/tutorial_interaction.ipynb
-examples/documentation_homepage_animation.md
 ```
 
 ```{toctree}
@@ -112,5 +111,6 @@ examples/documentation_homepage_animation.md
 v3 to v4 migration guide <v4-migration>
 examples/documentation_stuck_particles.ipynb
 examples/documentation_unstuck_Agrid.ipynb
+examples/documentation_homepage_animation.md
 <!-- examples/documentation_geospatial.ipynb -->
 ```
