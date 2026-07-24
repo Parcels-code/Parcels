@@ -330,6 +330,16 @@ def test_fieldset_from_sgrid_conventions(ds_name):
     assert len(fieldset.fields) > 0
 
 
+def test_fieldset_skip_field_data_validation():
+    ds = datasets_structured["ds_2d_left"]
+    ds["U_A_grid"][:] = np.nan
+
+    fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
+    assert np.isfinite(fieldset.U_A_grid.data).all()
+    fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat", skip_field_data_validation=True)
+    assert np.isnan(fieldset.U_A_grid.data).all()
+
+
 def test_fieldset_add_error_on_duplicate_fields():
     """Test that adding FieldSets with overlapping field names raises a ValueError."""
     ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]].rename({"U_A_grid": "U", "V_A_grid": "V"})
@@ -490,9 +500,9 @@ time interval: (np.datetime64('2000-01-02T12:00:00.000000000'), np.datetime64('2
     expected = """\
 | Name   | Type        |   Grid number | Interp method / value   | Parcels backend   |
 |:-------|:------------|--------------:|:------------------------|:------------------|
-| U      | Field       |             0 | XLinear(...)            | Zarr              |
-| V      | Field       |             0 | XLinear(...)            | Zarr              |
-| W      | Field       |             0 | XLinear(...)            | Zarr              |
+| U      | Field       |             0 | XLinear(...)            | NumPy             |
+| V      | Field       |             0 | XLinear(...)            | NumPy             |
+| W      | Field       |             0 | XLinear(...)            | NumPy             |
 | UV     | VectorField |             0 | CGrid_Velocity(...)     | -                 |
 | UVW    | VectorField |             0 | CGrid_Velocity(...)     | -                 |
 

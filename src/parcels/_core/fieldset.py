@@ -289,6 +289,7 @@ class FieldSet:
         ds: xr.Dataset,
         mesh: ptyping.TMesh | None = None,
         vector_fields: ptyping.VectorFields | NotSetType = NOTSET,
+        skip_field_data_validation: bool = False,
     ):  # TODO: Update mesh to be discovered from the dataset metadata
         """Create a FieldSet from a dataset using SGRID convention metadata.
 
@@ -307,6 +308,8 @@ class FieldSet:
             Mapping of vector field names to tuples of component variable names in the dataset.
             For example, ``{"UV": ("U", "V"), "UVW": ("U", "V", "W")}``.
             If omitted (default), vector fields are auto-discovered from standard variable names (``U``/``V``/``W``).
+        skip_field_data_validation : bool, optional
+            If True, skip validation of the field data. This can be useful for performance reasons, but may lead to unexpected behavior if the field data is invalid. Default is False.
 
         Returns
         -------
@@ -321,7 +324,9 @@ class FieldSet:
 
         See https://sgrid.github.io/sgrid/ for more information on the SGRID conventions.
         """
-        model = StructuredModelData.from_sgrid_conventions(ds, mesh, vector_fields)
+        model = StructuredModelData.from_sgrid_conventions(
+            ds, mesh, vector_fields, skip_field_data_validation=skip_field_data_validation
+        )
         return cls([model])
 
     def describe(self, buf: IO | None = None) -> None:
