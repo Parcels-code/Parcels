@@ -541,6 +541,7 @@ def copernicusmarine_to_sgrid(
     ds.attrs.clear()  # Clear global attributes from the merging
 
     ds = _maybe_rename_coords(ds, _COPERNICUS_MARINE_AXIS_VARNAMES)
+
     if "W" in ds.data_vars:
         # Negate W to convert from up positive to down positive (as that's the direction of positive z)
         ds["W"].data *= -1

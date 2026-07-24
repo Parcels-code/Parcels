@@ -132,11 +132,19 @@ def preprocess_sgrid_model_data(ds: xr.Dataset) -> xr.Dataset:
 
 
 class StructuredModelData(ModelData):
-    def __init__(self, data: xr.Dataset, mesh: ptyping.TMesh, vector_field_components: ptyping.VectorFields):
+    def __init__(
+        self,
+        data: xr.Dataset,
+        mesh: ptyping.TMesh,
+        vector_field_components: ptyping.VectorFields,
+        skip_field_data_validation: bool = False,
+    ):
         if not isinstance(data, xr.Dataset):
             raise ValueError(f"Expected `data` to be an xarray.Dataset . Got {type(data)}")
 
         data = preprocess_sgrid_model_data(data)
+        if not skip_field_data_validation:
+            data = data.fillna(0)
         grid = XGrid(data, mesh)
 
         self.data = data
@@ -181,7 +189,11 @@ class StructuredModelData(ModelData):
 
     @classmethod
     def from_sgrid_conventions(
-        cls, ds: xr.Dataset, mesh: ptyping.TMesh | None, vector_fields: ptyping.VectorFields | NotSetType
+        cls,
+        ds: xr.Dataset,
+        mesh: ptyping.TMesh | None,
+        vector_fields: ptyping.VectorFields | NotSetType,
+        skip_field_data_validation: bool = False,
     ) -> Self:
         ds = ds.copy()
         if mesh is None:
@@ -212,7 +224,12 @@ class StructuredModelData(ModelData):
         vector_fields = resolve_vector_fields(ds, vector_fields)
         assert_valid_vector_fields(ds, vector_fields)
 
-        model = cls(ds, mesh=mesh, vector_field_components=vector_fields)
+        model = cls(
+            ds,
+            mesh=mesh,
+            vector_field_components=vector_fields,
+            skip_field_data_validation=skip_field_data_validation,
+        )
         model._fields = model.construct_fields()
         for f in model._fields:
             if isinstance(f, Field):
