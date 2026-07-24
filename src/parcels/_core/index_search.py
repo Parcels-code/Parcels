@@ -139,13 +139,49 @@ def _bilinear_inverse(px, py, xq, yq):
     det2 = bb * bb - 4 * aa * cc
 
     with np.errstate(divide="ignore", invalid="ignore"):
-        det = np.where(det2 > 0, np.sqrt(det2), eta_init)
-        eta = np.where(abs(aa) < 1e-12, -cc / bb, np.where(det2 > 0, (-bb + det) / (2 * aa), eta_init))
-        xsi = np.where(
-            abs(a[1] + a[3] * eta) < 1e-12,
-            ((yq - py[0]) / (py[1] - py[0]) + (yq - py[3]) / (py[2] - py[3])) * 0.5,
-            (xq - a[0] - a[2] * eta) / (a[1] + a[3] * eta),
+        det = np.where(det2 >= 0, np.sqrt(det2), np.nan)
+        eta_plus = (-bb + det) / (2 * aa)
+        eta_minus = (-bb - det) / (2 * aa)
+
+        def _compute_xsi(eta):
+            return np.where(
+                abs(a[1] + a[3] * eta) < 1e-12,
+                ((yq - py[0]) / (py[1] - py[0]) + (yq - py[3]) / (py[2] - py[3])) * 0.5,
+                (xq - a[0] - a[2] * eta) / (a[1] + a[3] * eta),
+            )
+
+        xsi_plus = _compute_xsi(eta_plus)
+        xsi_minus = _compute_xsi(eta_minus)
+
+        tol = 1e-10
+        valid_plus = (
+            np.isfinite(xsi_plus)
+            & np.isfinite(eta_plus)
+            & (xsi_plus >= -tol)
+            & (xsi_plus <= 1 + tol)
+            & (eta_plus >= -tol)
+            & (eta_plus <= 1 + tol)
         )
+        valid_minus = (
+            np.isfinite(xsi_minus)
+            & np.isfinite(eta_minus)
+            & (xsi_minus >= -tol)
+            & (xsi_minus <= 1 + tol)
+            & (eta_minus >= -tol)
+            & (eta_minus <= 1 + tol)
+        )
+
+        eta = np.where(valid_plus, eta_plus, np.where(valid_minus, eta_minus, eta_plus))
+        xsi = np.where(valid_plus, xsi_plus, np.where(valid_minus, xsi_minus, xsi_plus))
+
+        linear = abs(aa) < 1e-12
+        eta_linear = -cc / bb
+        xsi_linear = _compute_xsi(eta_linear)
+        eta = np.where(linear, eta_linear, eta)
+        xsi = np.where(linear, xsi_linear, xsi)
+
+    eta = np.where(np.isfinite(eta), eta, eta_init)
+    xsi = np.where(np.isfinite(xsi), xsi, eta_init)
     return xsi, eta
 
 
