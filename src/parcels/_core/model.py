@@ -23,7 +23,6 @@ from parcels._core.xgrid import (
 )
 from parcels._logger import logger
 from parcels._python import NOTSET, NotSetType
-from parcels._typing import Mesh
 from parcels.convert import _ds_rename_using_standard_names
 from parcels.interpolators import (
     CGrid_Velocity,
@@ -103,12 +102,10 @@ class ModelData(ABC):
             and ``max_levels`` then bounds its size.
         """
         windowed = self.__dict__.setdefault("_windowed", {})
-        for dim in ["lon", "lat"]:
-            # ensure lon and lat are loaded into memory for dask-backed datasets
-            if is_dask_collection(self.data[dim]):
+        for dim in ["lon", "lat", "depth"]:
+            # ensure lon, lat, depth are loaded into memory for dask-backed datasets
+            if dim in self.data and is_dask_collection(self.data[dim]):
                 self.data[dim].load()
-        if "depth" in self.data.dims and is_dask_collection(self.data["depth"]):
-            self.data["depth"].load()
         for name in self.scalar_field_names:
             current = windowed.get(name, self.data[name])
             windowed[name] = maybe_windowed(current, max_levels=max_levels)
@@ -135,11 +132,19 @@ def preprocess_sgrid_model_data(ds: xr.Dataset) -> xr.Dataset:
 
 
 class StructuredModelData(ModelData):
-    def __init__(self, data: xr.Dataset, mesh: Mesh, vector_field_components: ptyping.VectorFields):
+    def __init__(
+        self,
+        data: xr.Dataset,
+        mesh: ptyping.TMesh,
+        vector_field_components: ptyping.VectorFields,
+        skip_field_data_validation: bool = False,
+    ):
         if not isinstance(data, xr.Dataset):
             raise ValueError(f"Expected `data` to be an xarray.Dataset . Got {type(data)}")
 
         data = preprocess_sgrid_model_data(data)
+        if not skip_field_data_validation:
+            data = data.fillna(0)
         grid = XGrid(data, mesh)
 
         self.data = data
@@ -184,7 +189,11 @@ class StructuredModelData(ModelData):
 
     @classmethod
     def from_sgrid_conventions(
-        cls, ds: xr.Dataset, mesh: Mesh | None, vector_fields: ptyping.VectorFields | NotSetType
+        cls,
+        ds: xr.Dataset,
+        mesh: ptyping.TMesh | None,
+        vector_fields: ptyping.VectorFields | NotSetType,
+        skip_field_data_validation: bool = False,
     ) -> Self:
         ds = ds.copy()
         if mesh is None:
@@ -215,7 +224,12 @@ class StructuredModelData(ModelData):
         vector_fields = resolve_vector_fields(ds, vector_fields)
         assert_valid_vector_fields(ds, vector_fields)
 
-        model = cls(ds, mesh=mesh, vector_field_components=vector_fields)
+        model = cls(
+            ds,
+            mesh=mesh,
+            vector_field_components=vector_fields,
+            skip_field_data_validation=skip_field_data_validation,
+        )
         model._fields = model.construct_fields()
         for f in model._fields:
             if isinstance(f, Field):
@@ -331,7 +345,9 @@ class UnstructuredModelData(ModelData):
         return list(self.data.data_vars)
 
     @classmethod
-    def from_ugrid_conventions(cls, ds: ux.UxDataset, mesh: Mesh, vector_fields: ptyping.VectorFields | NotSetType):
+    def from_ugrid_conventions(
+        cls, ds: ux.UxDataset, mesh: ptyping.TMesh, vector_fields: ptyping.VectorFields | NotSetType
+    ):
         ds_dims = list(ds.dims)
         if not all(dim in ds_dims for dim in ["time", "zf", "zc"]):
             raise ValueError(
@@ -355,7 +371,7 @@ class UnstructuredModelData(ModelData):
 
 
 # TODO: Refactor later into something like `parcels._metadata.discover(dataset)` helper that can be used to discover important metadata like this. I think this whole metadata handling should be refactored into its own module.
-def _get_mesh_type_from_sgrid_dataset(ds_sgrid: xr.Dataset) -> Mesh:
+def _get_mesh_type_from_sgrid_dataset(ds_sgrid: xr.Dataset) -> ptyping.TMesh:
     """Small helper to inspect SGRID metadata and dataset metadata to determine mesh type."""
     sgrid_metadata = ds_sgrid.sgrid.metadata
 
