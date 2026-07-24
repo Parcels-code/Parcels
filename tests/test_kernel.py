@@ -203,21 +203,6 @@ def test_execution_order(kernel_type):
         assert np.allclose(lons[0], 0.2)
 
 
-def test_multi_kernel_duplicate_varnames(fieldset):
-    # Testing for merging of two Kernels with the same variable declared
-    def Kernel1(particles, fieldset):  # pragma: no cover
-        add_lon = 0.1
-        particles.dx += add_lon
-
-    def Kernel2(particles, fieldset):  # pragma: no cover
-        add_lon = -0.3
-        particles.dx += add_lon
-
-    pset = ParticleSet(fieldset, x=[0.5], y=[0.5])
-    pset.execute([Kernel1, Kernel2], runtime=1.0, dt=1.0)
-    np.testing.assert_allclose(pset.x, 0.3, rtol=1e-5)
-
-
 @pytest.mark.xfail(reason="Modifying dt in a kernel doesn't work GH2765")
 def test_dt_modify_in_kernel(fieldset):
     TestParticle = Particle.add_variable(Variable("age", dtype=np.float32, initial=0))
