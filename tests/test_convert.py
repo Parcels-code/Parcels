@@ -174,6 +174,13 @@ def test_convert_copernicusmarine_no_logs(ds, caplog):
     assert caplog.text == ""
 
 
+def test_convert_swash():
+    data_file, coord_file = parcels.tutorial.get_dataset_files("SWASH_data/data")
+
+    ds_fset = convert.swash_to_sgrid(data_file=data_file, coord_file=coord_file)
+    FieldSet.from_sgrid_conventions(ds_fset)
+
+
 def test_convert_fesom_to_ugrid():
     grid_file = open_remote_dataset("Benchmarks_FESOM2-baroclinic-gyre/grid")
     data_files = open_remote_dataset("Benchmarks_FESOM2-baroclinic-gyre/data")

@@ -13,11 +13,13 @@ be determined before they pass it to the FieldSet constructor.
 from __future__ import annotations
 
 import enum
+import re
 import typing
 import warnings
 from typing import cast
 
 import numpy as np
+import scipy.io as sio
 import xarray as xr
 
 import parcels._sgrid as sgrid
@@ -561,6 +563,112 @@ def copernicusmarine_to_sgrid(
                 sgrid.FaceNodePadding("y_center", "lat", sgrid.Padding.LOW),
             ),
             vertical_dimensions=(sgrid.FaceNodePadding("depth_center", "depth", sgrid.Padding.LOW),),
+        ).to_attrs(),
+    )
+
+    return ds
+
+
+def swash_to_sgrid(data_file: str, coord_file: str) -> xr.Dataset:
+    """Create an sgrid-compliant xarray.Dataset from a dataset of SWASH netcdf files.
+
+    Parameters
+    ----------
+    data_file : str
+        Path to the SWASH data file (MATLAB binary format).
+    coord_file : str
+        Path to the SWASH coordinate file (MATLAB binary format).
+
+    Returns
+    -------
+    xarray.Dataset
+        Dataset object following SGRID conventions to be (optionally) modified and passed to a FieldSet constructor.
+    """
+    warnings.warn(
+        "The swash_to_sgrid function is experimental and may not work for all SWASH datasets. "
+        "Furthermore, we are not entirely confident that the SGrid layout for SWASH is implemented correctly. "
+        "Please report any issues to the Parcels GitHub repository.",
+        UserWarning,
+        stacklevel=2,
+    )
+    coord = sio.loadmat(coord_file)
+    lon = coord["Xp"]
+    lat = coord["Yp"]
+    XC = np.arange(lon.shape[1])
+    YC = np.arange(lat.shape[0])
+    bot = coord["Botlev"]
+
+    mat = sio.loadmat(data_file)
+    keys = [k for k in mat.keys() if not k.startswith("__")]
+
+    time_keys = sorted(
+        set((int(m.group(1)), int(m.group(2))) for k in keys for m in [re.search(r"_(\d{6})_(\d{3})$", k)] if m)
+    )
+    times = np.array([t[0] * 1000 + t[1] for t in time_keys]).astype("timedelta64[ms]")
+
+    nz = len(set([k.split("_")[1] for k in keys if "Vksi" in k]))
+    depth_centers = np.linspace(1.0 / (2 * nz), 1.0 - 1.0 / (2 * nz), nz)
+    depth_interfaces = np.linspace(0, 1, nz + 1)
+
+    nt, ny, nx = len(times), len(YC), len(XC)
+    watlev = np.full((nt, ny, nx), np.nan, dtype=np.float32)
+    vksi = np.full((nt, nz, ny, nx), np.nan, dtype=np.float32)
+    veta = np.full((nt, nz, ny, nx), np.nan, dtype=np.float32)
+    w = np.full((nt, nz + 1, ny, nx), np.nan, dtype=np.float32)
+
+    for ti, (ts_int, ts_dec) in enumerate(time_keys):
+        ts_str = f"{ts_int:06d}_{ts_dec:03d}"
+        for k in keys:
+            if re.match(rf"Watlev_{ts_str}$", k):
+                watlev[ti, :, :] = mat[k]
+            m = re.match(rf"Vksi_k(\d+)_{ts_str}$", k)
+            if m:
+                vksi[ti, int(m.group(1)) - 1, :, :] = mat[k]
+            m = re.match(rf"Veta_k(\d+)_{ts_str}$", k)
+            if m:
+                veta[ti, int(m.group(1)) - 1, :, :] = mat[k]
+            m = re.match(rf"w(\d+)_{ts_str}$", k)
+            if m and int(m.group(1)) < nz:
+                w[ti, int(m.group(1)), :, :] = mat[k]
+
+    # TODO double-check that the C-grid definition for SWASH here is correct
+    ds = xr.Dataset(
+        {
+            "watlev": (["time", "YG", "XG"], watlev),
+            "U": (["time", "depth", "YC", "XG"], vksi),
+            "V": (["time", "depth", "YG", "XC"], veta),
+            "W": (["time", "depth_f", "YC", "XC"], w),
+            "botlev": (["YG", "XG"], bot),
+        },
+        coords={
+            "time": (["time"], times, {"axis": "T", "units": "ms"}),
+            "depth": (["depth"], depth_centers, {"axis": "Z", "units": "normalised", "positive": "down"}),
+            "depth_f": (["depth_f"], depth_interfaces, {"axis": "Z", "units": "normalised", "positive": "down"}),
+            "YG": (["YG"], YC + 0.5, {"axis": "Y", "c_grid_axis_shift": +0.5}),
+            "YC": (["YC"], YC, {"axis": "Y"}),
+            "XG": (["XG"], XC + 0.5, {"axis": "X", "c_grid_axis_shift": +0.5}),
+            "XC": (["XC"], XC, {"axis": "X"}),
+            "lat": (["YG", "XG"], lat, {"axis": "Y", "units": "m", "c_grid_axis_shift": +0.5}),
+            "lon": (["YG", "XG"], lon, {"axis": "X", "units": "m", "c_grid_axis_shift": +0.5}),
+        },
+    )
+    header = mat["__header__"]
+    if isinstance(header, bytes):
+        header = header.decode("utf-8")
+    ds.attrs.update(header=header, version=mat["__version__"], globals=mat["__globals__"])
+
+    ds["grid"] = xr.DataArray(
+        0,
+        attrs=sgrid.SGrid2DMetadata(
+            cf_role="grid_topology",
+            topology_dimension=2,
+            node_dimensions=("XC", "YC"),
+            node_coordinates=("lon", "lat"),
+            face_dimensions=(
+                sgrid.FaceNodePadding("XC", "XG", sgrid.Padding.HIGH),
+                sgrid.FaceNodePadding("YC", "YG", sgrid.Padding.HIGH),
+            ),
+            vertical_dimensions=(sgrid.FaceNodePadding("depth", "depth_f", sgrid.Padding.LOW),),
         ).to_attrs(),
     )
 

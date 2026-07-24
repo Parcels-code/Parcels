@@ -1,5 +1,7 @@
 import abc
 import enum
+import fnmatch
+import glob
 import os
 from collections.abc import Callable
 from pathlib import Path
@@ -107,6 +109,10 @@ _ODIE_REGISTRY_FILES: list[str] = (
         "data/SWASH_data/field_0065552.nc",
         "data/SWASH_data/field_0065557.nc",
     ]
+    + [
+        "data-matlab/F1ALL.mat",
+        "data-matlab/F1GRD.mat",
+    ]
     # + [f"data/WOA_data/woa18_decav_t{m:02d}_04.nc" for m in range(1, 13)]
     + ["data/CROCOidealized_data/CROCO_idealized.nc"]
     # These datasets are from v4 of Parcels where we're opting for Zipped zarr datasets
@@ -131,6 +137,9 @@ _ODIE = pooch.create(
 
 class _ParcelsDataset(abc.ABC):
     @abc.abstractmethod
+    def get_dataset_files(self) -> list[str]: ...
+
+    @abc.abstractmethod
     def open_dataset(self) -> xr.Dataset: ...
 
 
@@ -144,6 +153,11 @@ class _V3Dataset(_ParcelsDataset):
 
         first, second, *_ = path_relative_to_pup.split("/")
         self.v3_dataset_name = f"{first}/{second}"  # e.g., data/my_dataset
+
+    def get_dataset_files(self) -> list[str]:
+        self.download_relevant_files()
+        matches = sorted(glob.glob(f"{self.pup.path}/{self.path_relative_to_root}"))
+        return matches
 
     def open_dataset(self) -> xr.Dataset:
         self.download_relevant_files()
@@ -165,7 +179,7 @@ class _V3Dataset(_ParcelsDataset):
 
     def download_relevant_files(self) -> None:
         for file in self.pup.registry:
-            if self.v3_dataset_name in file:
+            if fnmatch.fnmatch(file, self.path_relative_to_root):
                 self.pup.fetch(file)
         return
 
@@ -175,6 +189,11 @@ class _ZarrZipDataset(_ParcelsDataset):
         self.pup = pup
         self.path_relative_to_root = path_relative_to_pup
         self.zarr_format = zarr_format
+
+    def get_dataset_files(self) -> list[str]:
+        raise NotImplementedError(
+            "get_dataset_files is not supported for zipped zarr datasets. Use open_dataset instead."
+        )
 
     def open_dataset(self) -> xr.Dataset:
         self.pup.fetch(self.path_relative_to_root)
@@ -240,6 +259,7 @@ _DATASET_KEYS_AND_CONFIGS: dict[str, tuple[_ParcelsDataset, _Purpose]] = dict([
     # ("SWASH_data/data", (_V3Dataset(_ODIE,"data/SWASH_data/field_00655*.nc"), _Purpose.TUTORIAL)),
     # ("WOA_data/data", (_V3Dataset(_ODIE,"data/WOA_data/woa18_decav_t*_04.nc", _preprocess_set_cf_calendar_360_day), _Purpose.TUTORIAL)),
     ("CROCOidealized_data/data", (_V3Dataset(_ODIE,"data/CROCOidealized_data/CROCO_idealized.nc"), _Purpose.TUTORIAL)),
+    ("SWASH_data/data", (_V3Dataset(_ODIE,"data-matlab/F1*.mat"), _Purpose.TUTORIAL)),
 ] + [
     ("Benchmarks_FESOM2-baroclinic-gyre/data", (_ZarrZipDataset(_ODIE, 'data-zarr/Benchmarks_FESOM2-baroclinic-gyre/data.zip', zarr_format=2), _Purpose.TESTING)),
     ("Benchmarks_FESOM2-baroclinic-gyre/grid", (_ZarrZipDataset(_ODIE, 'data-zarr/Benchmarks_FESOM2-baroclinic-gyre/grid.zip', zarr_format=2),_Purpose.TESTING)),
@@ -301,3 +321,31 @@ def open_remote_dataset(name: str, purpose: _TPurpose | Literal["any"] = "any"):
 
     dataset_config = _DATASET_KEYS_AND_CONFIGS[name][0]
     return dataset_config.open_dataset()
+
+
+def get_remote_dataset(name: str, purpose: _TPurpose | Literal["any"] = "any") -> list[str]:
+    """Download the files of a remote dataset.
+
+    Use :func:`list_datasets` to see the available dataset names.
+
+    Parameters
+    ----------
+    name : str
+        Name of the dataset to open. Must be one of the keys returned by
+        :func:`list_datasets`.
+    purpose : {'any', 'testing', 'tutorial'}, optional
+        Purpose filter used to populate the error message when ``name`` is not
+        found. Defaults to ``'any'``.
+
+    Returns
+    -------
+    list of str
+        The list of dataset files.
+    """
+    if name not in list_remote_datasets(purpose=purpose):
+        raise ValueError(
+            f"Dataset {name!r} not found. Available datasets are: " + ", ".join(list_remote_datasets(purpose=purpose))
+        )
+
+    dataset_config = _DATASET_KEYS_AND_CONFIGS[name][0]
+    return dataset_config.get_dataset_files()
