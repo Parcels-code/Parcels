@@ -281,6 +281,13 @@ def _discover_U_and_V(ds: xr.Dataset, cf_standard_names_fallbacks) -> xr.Dataset
     return ds
 
 
+def _check_grid_on_ds(ds: xr.Dataset) -> None:
+    if "grid" in ds.cf.cf_roles:
+        raise ValueError(
+            "Dataset already has a 'grid' variable (according to cf_roles). Didn't expect there to be grid metadata on this dataset - please open an issue with more information about your dataset."
+        )
+
+
 def nemo_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.Dataset):
     # TODO: Update docstring
     """Create a FieldSet from a xarray.Dataset from NEMO netcdf files.
@@ -358,11 +365,8 @@ def nemo_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.Da
     if "W" in ds.data_vars:
         # Negate W to convert from up positive to down positive (as that's the direction of positive z)
         ds["W"].data *= -1
-    if "grid" in ds.cf.cf_roles:
-        raise ValueError(
-            "Dataset already has a 'grid' variable (according to cf_roles). Didn't expect there to be grid metadata on copernicusmarine datasets - please open an issue with more information about your dataset."
-        )
 
+    _check_grid_on_ds(ds)
     ds["grid"] = xr.DataArray(
         0,
         attrs=sgrid.SGrid2DMetadata(
@@ -426,11 +430,7 @@ def mitgcm_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.
     ds = _set_axis_attrs(ds, _MITGCM_AXIS_VARNAMES)
     ds = _maybe_swap_depth_direction(ds)
 
-    if "grid" in ds.cf.cf_roles:
-        raise ValueError(
-            "Dataset already has a 'grid' variable (according to cf_roles). Didn't expect there to be grid metadata on copernicusmarine datasets - please open an issue with more information about your dataset."
-        )
-
+    _check_grid_on_ds(ds)
     ds["grid"] = xr.DataArray(
         0,
         attrs=sgrid.SGrid2DMetadata(
@@ -487,11 +487,7 @@ def croco_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.D
     ds = _maybe_rename_variables(ds, _CROCO_VARNAMES_MAPPING)
     ds = _maybe_convert_time_from_float_to_timedelta(ds)
 
-    if "grid" in ds.cf.cf_roles:
-        raise ValueError(
-            "Dataset already has a 'grid' variable (according to cf_roles). Didn't expect there to be grid metadata on copernicusmarine datasets - please open an issue with more information about your dataset."
-        )
-
+    _check_grid_on_ds(ds)
     ds["grid"] = xr.DataArray(
         0,
         attrs=sgrid.SGrid2DMetadata(
@@ -554,10 +550,7 @@ def copernicusmarine_to_sgrid(
         # Negate W to convert from up positive to down positive (as that's the direction of positive z)
         ds["W"].data *= -1
 
-    if "grid" in ds.cf.cf_roles:
-        raise ValueError(
-            "Dataset already has a 'grid' variable (according to cf_roles). Didn't expect there to be grid metadata on copernicusmarine datasets - please open an issue with more information about your dataset."
-        )
+    _check_grid_on_ds(ds)
     ds["grid"] = xr.DataArray(
         0,
         attrs=sgrid.SGrid2DMetadata(  # use dummy *_center dimensions - this is A grid data (all defined on nodes)
