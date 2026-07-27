@@ -18,6 +18,7 @@ class BaseMesh(ABC):
     def __hash__(self):
         return hash((self.is_spherical(), self.radius))
 
+
 class SphericalMesh(BaseMesh):
     """Spherical mesh object with configurable planetary radius.
 
