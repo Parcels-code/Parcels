@@ -628,7 +628,7 @@ def delft3d_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr
             field_da = field_da.rename(name)
         fields[name] = field_da
 
-    ds = xr.merge(list(fields.values()) + [coords])
+    ds = xr.merge(list(fields.values()) + [coords], compat="override")
 
     ds = _maybe_rename_variables(ds, _DELFT3D_X_VARNAMES_MAPPING)
     ds = _set_coords(ds, _DELFT3D_X_AXIS_VARNAMES.keys())
