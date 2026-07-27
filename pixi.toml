@@ -4,14 +4,14 @@ exclude-newer = "5d" # security pre-caution against compromised packages
 preview = ["pixi-build"]
 channels = ["conda-forge"]
 platforms = ["win-64", "linux-64", "osx-64", "osx-arm64"]
-requires-pixi = ">=0.67.0,!=0.68.0,<0.71.0"
+requires-pixi = ">=0.72.0"
 
 [package]
 name = "parcels"
 version = "dynamic" # dynamic versioning needs better support in pixi https://github.com/prefix-dev/pixi/issues/2923#issuecomment-2598460666 . Putting `version = "dynamic"` here for now until pixi recommends something else.
 
 [package.build]
-backend = { name = "pixi-build-python", version = "0.4.*" }
+backend = { name = "pixi-build-python", version = "0.7.*" }
 
 [package.host-dependencies]
 setuptools = "*"
@@ -30,7 +30,7 @@ holoviews = ">=1.22.0" # https://github.com/prefix-dev/rattler-build/issues/2326
 uxarray = ">=2026.04.1"
 dask = ">=2024.5.1"
 zarr = ">=3"
-xgcm = { git = "https://github.com/xgcm/xgcm", rev = "532a3c567c475cbe192f49b9961f8117806bbfb7" } # TODO: Switch to release version after release is cut
+xgcm = { git = "https://github.com/xgcm/xgcm", rev = "master" } # TODO: Switch to release version after release is cut
 cf_xarray = ">=0.8.6"
 cftime = ">=1.6.3"
 pooch = ">=1.8.0"
@@ -61,7 +61,7 @@ pyarrow = "20.0.*"
 uxarray = "==2026.04.1"
 dask = "2024.6.*"
 zarr = "3.0.*"
-xgcm = { version = "0.9.*", channel = "conda-forge" }
+xgcm = { git = "https://github.com/xgcm/xgcm", rev = "master" } # TODO: Switch to release version after release is cut
 cf_xarray = "0.10.*"
 cftime = "1.6.*"
 pooch = "1.8.*"

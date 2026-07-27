@@ -108,4 +108,6 @@ def maybe_windowed(data: xr.DataArray, max_levels: int | None = None):
         return data
     if data.dims and data.dims[0] == "time" and is_dask_collection(data.data):
         return WindowedArray(data, max_levels=max_levels)
+    elif data.dims and data.dims[0] == "mockT" and is_dask_collection(data.data):
+        return data.compute()
     return data

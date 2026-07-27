@@ -14,6 +14,7 @@ import pyarrow.parquet as pq
 import xarray as xr
 
 import parcels
+from parcels._core.mesh import BaseMesh
 from parcels._core.particle import ParticleClass
 from parcels._core.particlesetview import ParticleSetView
 from parcels._core.utils.time import timedelta_to_float
@@ -119,14 +120,14 @@ class ParticleFile:
     def __repr__(self) -> str:
         return particlefile_repr(self)
 
-    def set_metadata(self, parcels_grid_mesh: Literal["spherical", "flat"]):
+    def set_metadata(self, parcels_grid_mesh: BaseMesh):
         self.metadata.update(
             {
                 "feature_type": "trajectory",
                 "Conventions": "CF-1.6/CF-1.7",
                 "ncei_template_version": "NCEI_NetCDF_Trajectory_Template_v2.0",
                 "parcels_version": parcels.__version__,
-                "parcels_grid_mesh": parcels_grid_mesh,
+                "parcels_grid_mesh": repr(parcels_grid_mesh),
             }
         )
 
