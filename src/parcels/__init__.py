@@ -22,6 +22,7 @@ from parcels._core.field import Field, VectorField
 from parcels._core.basegrid import BaseGrid
 from parcels._core.uxgrid import UxGrid
 from parcels._core.xgrid import XGrid
+from parcels._core.mesh import SphericalMesh
 
 from parcels._core.statuscodes import (
     AllParcelsErrorCodes,
@@ -54,6 +55,7 @@ __all__ = [  # noqa: RUF022
     "BaseGrid",
     "UxGrid",
     "XGrid",
+    "SphericalMesh",
     # Status codes and errors
     "AllParcelsErrorCodes",
     "FieldInterpolationError",
