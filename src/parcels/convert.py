@@ -641,9 +641,9 @@ def delft3d_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr
             topology_dimension=2,
             node_dimensions=("M", "N"),
             node_coordinates=("lon", "lat"),
-            face_dimensions=(  # TODO check these paddings
-                sgrid.FaceNodePadding("X", "M", sgrid.Padding.HIGH),
-                sgrid.FaceNodePadding("Y", "N", sgrid.Padding.HIGH),
+            face_dimensions=(
+                sgrid.FaceNodePadding("X", "M", sgrid.Padding.LOW),
+                sgrid.FaceNodePadding("Y", "N", sgrid.Padding.LOW),
             ),
             vertical_dimensions=(sgrid.FaceNodePadding("Z", "LAYER", sgrid.Padding.HIGH),),
         ).to_attrs(),
