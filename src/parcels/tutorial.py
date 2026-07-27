@@ -1,3 +1,4 @@
+from parcels._datasets.remote import get_remote_dataset as _get_remote_dataset
 from parcels._datasets.remote import list_remote_datasets as _list_remote_datasets
 from parcels._datasets.remote import open_remote_dataset as _open_remote_dataset
 
@@ -34,3 +35,22 @@ def open_dataset(name: str):
         The requested dataset.
     """
     return _open_remote_dataset(name, purpose="tutorial")
+
+
+def get_dataset_files(name: str):
+    """Download the files of a tutorial dataset.
+
+    Use :func:`list_datasets` to see the available dataset names.
+
+    Parameters
+    ----------
+    name : str
+        Name of the dataset to open. Must be one of the keys returned by
+        :func:`list_datasets`.
+
+    Returns
+    -------
+    list of str
+        The list of dataset files.
+    """
+    return _get_remote_dataset(name, purpose="tutorial")
