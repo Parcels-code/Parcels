@@ -102,16 +102,16 @@ _COPERNICUS_MARINE_AXIS_VARNAMES: dict[XgcmAxisDirection, str] = {
     "T": "time",
 }
 
-_DELFT3D_EXPECTED_COORDS: list[tuple[str, _Status]] = [(name, _Status.REQUIRED) for name in ["XZETA", "YZETA"]]
+_DELFT3D_X_EXPECTED_COORDS: list[tuple[str, _Status]] = [(name, _Status.REQUIRED) for name in ["XZETA", "YZETA"]]
 
-_DELFT3D_VARNAMES_MAPPING: dict[str, str] = {
+_DELFT3D_X_VARNAMES_MAPPING: dict[str, str] = {
     "XZETA": "lon",
     "YZETA": "lat",
     "SIGMA_C": "depth",
     "TIME": "time",
 }
 
-_DELFT3D_AXIS_VARNAMES: dict[str, XgcmAxisDirection] = {
+_DELFT3D_X_AXIS_VARNAMES: dict[str, XgcmAxisDirection] = {
     "M": "X",
     "N": "Y",
     "LAYER": "Z",
@@ -594,21 +594,19 @@ def copernicusmarine_to_sgrid(
 
 
 def delft3d_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.Dataset) -> xr.Dataset:
-    """Create an sgrid-compliant xarray.Dataset from a dataset of Delft3D netcdf files.
+    """Create an sgrid-compliant xarray.Dataset from a dataset of structured-grid Delft3D netcdf files.
 
     Parameters
     ----------
     fields : dict[str, xr.Dataset | xr.DataArray]
-        Dictionary of xarray.DataArray objects as obtained from a set of Delft3D netcdf files.
-    coords : xarray.Dataset, optional
+        Dictionary of xarray.DataArray objects as obtained from a set of structured-grid Delft3D netcdf files.
+    coords : xarray.Dataset
         xarray.Dataset containing coordinate variables.
 
     Returns
     -------
     xarray.Dataset
         Dataset object following SGRID conventions to be (optionally) modified and passed to a FieldSet constructor.
-
-    See the Delft3D documentation for more information on how to use Delft3D model outputs in Parcels
 
     """
     warnings.warn(
@@ -620,7 +618,7 @@ def delft3d_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr
     )
 
     fields = fields.copy()
-    coords = _pick_expected_coords(coords, _DELFT3D_EXPECTED_COORDS)
+    coords = _pick_expected_coords(coords, _DELFT3D_X_EXPECTED_COORDS)
 
     for name, field_da in fields.items():
         if isinstance(field_da, xr.Dataset):
@@ -632,9 +630,9 @@ def delft3d_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr
 
     ds = xr.merge(list(fields.values()) + [coords])
 
-    ds = _maybe_rename_variables(ds, _DELFT3D_VARNAMES_MAPPING)
-    ds = _set_coords(ds, _DELFT3D_AXIS_VARNAMES.keys())
-    ds = _set_axis_attrs(ds, _DELFT3D_AXIS_VARNAMES)
+    ds = _maybe_rename_variables(ds, _DELFT3D_X_VARNAMES_MAPPING)
+    ds = _set_coords(ds, _DELFT3D_X_AXIS_VARNAMES.keys())
+    ds = _set_axis_attrs(ds, _DELFT3D_X_AXIS_VARNAMES)
 
     ds["grid"] = xr.DataArray(
         0,

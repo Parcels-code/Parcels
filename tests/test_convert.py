@@ -159,12 +159,11 @@ def test_convert_copernicusmarine_no_currents(caplog):
     assert caplog.text == ""
 
 
-def test_convert_delft3d():
+def test_convert_structured_delft3d():
     ds = open_remote_dataset("Delft3D_data/Rotterdam_tiny")
     coords = ds[["XZETA", "YZETA", "SIGMA_C"]]
     ds_fset = convert.delft3d_to_sgrid(fields={"U": ds["VELU"], "V": ds["VELV"]}, coords=coords)
     fieldset = FieldSet.from_sgrid_conventions(ds_fset)
-    fieldset.describe()
     assert "U" in fieldset.fields
     assert "V" in fieldset.fields
     assert "UV" in fieldset.fields
