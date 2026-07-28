@@ -15,8 +15,6 @@ from ._xinterpolators import (
     XLinearInvdistLandTracer,
     XNearest,
     XPartialslip,
-    ZeroInterpolator,
-    ZeroInterpolator_Vector,
 )
 
 __all__ = [  # noqa: RUF022
@@ -30,8 +28,6 @@ __all__ = [  # noqa: RUF022
     "XLinear_Velocity",
     "XNearest",
     "XPartialslip",
-    "ZeroInterpolator",
-    "ZeroInterpolator_Vector",
     # uxinterpolators
     "Ux_Velocity",
     "UxConstantFaceConstantZC",

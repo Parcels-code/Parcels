@@ -8,12 +8,15 @@ from typing import TYPE_CHECKING, Any, Literal
 
 import numpy as np
 import pandas as pd
+import polars as pl
 import pyarrow as pa
 import pyarrow.parquet as pq
 import xarray as xr
 
 import parcels
+from parcels._core.mesh import BaseMesh
 from parcels._core.particle import ParticleClass
+from parcels._core.particlesetview import ParticleSetView
 from parcels._core.utils.time import timedelta_to_float
 from parcels._reprs import particlefile_repr
 from parcels._typing import PathLike
@@ -33,7 +36,7 @@ def _get_schema(
     fields = []
     for v in _get_vars_to_write(particle):
         attrs = v.attrs.copy()
-        if v.name == "time":
+        if v.name == "t":
             if fset_time_interval is not None:
                 attrs.update(fset_time_interval.get_cf_attrs())
         fields.append(
@@ -57,6 +60,12 @@ class ParticleFile:
         Interval which dictates the update frequency of file output
         while ParticleFile is given as an argument of ParticleSet.execute()
         It is either a numpy.timedelta64, a datimetime.timedelta object or a positive float (in seconds).
+    compression : {"zstd", "gzip", "snappy", "brotli", None}, optional
+        Compression algorithm to use for the Parquet file. Default is "zstd".
+    mode : {None, "w"}, optional
+        Writing behaviour.
+        - None (default): Write dataset, and raise an error if it already exists.
+        - "w": Write dataset, overwriting it.
 
     Returns
     -------
@@ -64,11 +73,18 @@ class ParticleFile:
         ParticleFile object that can be used to write particle data to file
     """
 
-    def __init__(self, path: PathLike, outputdt):
+    def __init__(
+        self,
+        path: PathLike,
+        outputdt,
+        compression: Literal["zstd", "gzip", "snappy", "brotli", None] = "zstd",
+        mode: Literal[None, "w"] = None,
+    ):
         if not isinstance(outputdt, (np.timedelta64, timedelta, float)):
             raise ValueError(
                 f"Expected outputdt to be a np.timedelta64, datetime.timedelta or float (in seconds), got {type(outputdt)}"
             )
+        self._compression = compression
 
         outputdt = timedelta_to_float(outputdt)
         path = Path(path)
@@ -85,25 +101,33 @@ class ParticleFile:
 
         self._path = path  # TODO v4: Consider https://arrow.apache.org/docs/python/getstarted.html#working-with-large-data - though a significant question becomes how to partition, perhaps using a particle variable "partition"?
         self._writer: pq.ParquetWriter | None = None
+
+        if mode not in {None, "w"}:
+            raise ValueError(f"Invalid mode value {mode!r}. Expected one of None or 'w'.")
+
         if path.exists():
-            # TODO: Add logic for recovering/appending to existing parquet file
-            raise ValueError(f"{path=!r} already exists. Either delete this file or use a path that doesn't exist.")
+            if mode is None:
+                msg = f"Path '{path}' already exists. Use mode='w' or use a new path."
+                raise ValueError(msg)
+            if mode == "w":
+                path.unlink()
         if not path.parent.exists():
-            raise ValueError(f"Folder location for {path=!r} does not exist. Create the folder location first.")
+            msg = f"Folder location for '{path} does not exist. Create the folder location first."
+            raise ValueError(msg)
 
         self.metadata = {}
 
     def __repr__(self) -> str:
         return particlefile_repr(self)
 
-    def set_metadata(self, parcels_grid_mesh: Literal["spherical", "flat"]):
+    def set_metadata(self, parcels_grid_mesh: BaseMesh):
         self.metadata.update(
             {
                 "feature_type": "trajectory",
                 "Conventions": "CF-1.6/CF-1.7",
                 "ncei_template_version": "NCEI_NetCDF_Trajectory_Template_v2.0",
                 "parcels_version": parcels.__version__,
-                "parcels_grid_mesh": parcels_grid_mesh,
+                "parcels_grid_mesh": repr(parcels_grid_mesh),
             }
         )
 
@@ -115,7 +139,7 @@ class ParticleFile:
     def path(self):
         return self._path
 
-    def write(self, pset: ParticleSet, time, indices=None):
+    def write(self, pset: ParticleSet | ParticleSetView, t, fieldset=None, indices=None):
         """Write all data from one time step to the zarr file,
         before the particle locations are updated.
 
@@ -123,22 +147,31 @@ class ParticleFile:
         ----------
         pset :
             ParticleSet object to write
-        time :
+        t :
             Time at which to write ParticleSet (same time object as fieldset)
+        fieldset :
+            FieldSet object associated with the ParticleSet (optional). By default, the fieldset associated with the ParticleSet will be used, but this can be overridden by providing a fieldset here. This is used in cases when the particleset is a ParticleSetView.
         """
-        pclass = pset._ptype
-        time_interval = pset.fieldset.time_interval
+        pclass = pset._pclass
+        if isinstance(pset, ParticleSetView) and fieldset is None:
+            raise ValueError("When writing a ParticleSetView, a fieldset must be provided to the write() method.")
+        if fieldset is None:
+            fieldset = pset.fieldset
         particle_data = pset._data
 
         if self._writer is None:
             assert not self.path.exists(), "If the file exists, the writer should already be set"
-            self._writer = pq.ParquetWriter(self.path, _get_schema(pclass, self.metadata, pset.fieldset.time_interval))
+            self._writer = pq.ParquetWriter(
+                self.path,
+                _get_schema(pclass, self.metadata, fieldset.time_interval),
+                compression=self._compression,
+            )
 
-        if isinstance(time, (np.timedelta64, np.datetime64)):
-            time = timedelta_to_float(time - time_interval.left)
+        if isinstance(t, (np.timedelta64, np.datetime64)):
+            t = timedelta_to_float(t - fieldset.time_interval.left)
         vars_to_write = _get_vars_to_write(pclass)
         if indices is None:
-            indices_to_write = _to_write_particles(particle_data, time)
+            indices_to_write = _to_write_particles(particle_data, t)
         else:
             indices_to_write = indices
 
@@ -151,34 +184,40 @@ class ParticleFile:
             self._writer.close()
             self._writer = None
 
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *args):
+        self.close()
+
 
 def _get_vars_to_write(particle: ParticleClass) -> list[Variable]:
     return [v for v in particle.variables if v.to_write is not False]
 
 
-def _to_write_particles(particle_data, time):
-    """Return the Particles that need to be written at time: if particle.time is between time-dt/2 and time+dt (/2)"""
+def _to_write_particles(particle_data, t):
+    """Return the Particles that need to be written at time: if particle.t is between time-dt/2 and time+dt (/2)"""
     return np.where(
         (
             np.less_equal(
-                time - np.abs(particle_data["dt"] / 2),
-                particle_data["time"],
-                where=np.isfinite(particle_data["time"]),
+                t - np.abs(particle_data["dt"] / 2),
+                particle_data["t"],
+                where=np.isfinite(particle_data["t"]),
                 out=None,
             )
             & np.greater_equal(
-                time + np.abs(particle_data["dt"] / 2),
-                particle_data["time"],
-                where=np.isfinite(particle_data["time"]),
+                t + np.abs(particle_data["dt"] / 2),
+                particle_data["t"],
+                where=np.isfinite(particle_data["t"]),
                 out=None,
-            )  # check time - dt/2 <= particle_data["time"] <= time + dt/2
+            )  # check t - dt/2 <= particle_data["t"] <= t + dt/2
             | (
                 (np.isnan(particle_data["dt"]))
-                & np.equal(time, particle_data["time"], where=np.isfinite(particle_data["time"]), out=None)
-            )  # or dt is NaN and time matches particle_data["time"]
+                & np.equal(t, particle_data["t"], where=np.isfinite(particle_data["t"]), out=None)
+            )  # or dt is NaN and t matches particle_data["t"]
         )
         & (np.isfinite(particle_data["particle_id"]))
-        & (np.isfinite(particle_data["time"]))
+        & (np.isfinite(particle_data["t"]))
     )[0]
 
 
@@ -190,7 +229,7 @@ def read_particlefile(path: PathLike, decode_times: bool = True) -> pd.DataFrame
     path : PathLike
         Path to the ``.parquet`` particlefile.
     decode_times : bool, optional
-        If ``True`` (default), use Xarray to decode the numeric ``time`` column from CF
+        If ``True`` (default), use Xarray to decode the numeric ``t`` column from CF
         conventions into ``datetime`` or ``cftime.datetime`` values using the units stored in
         the column metadata.  If ``False``, the raw numeric values are
         returned unchanged.
@@ -199,7 +238,7 @@ def read_particlefile(path: PathLike, decode_times: bool = True) -> pd.DataFrame
     -------
     pd.DataFrame
         DataFrame containing the particle data.  When *decode_times* is
-        ``True``, the ``time`` column contains datetime-like values;
+        ``True``, the ``t`` column contains datetime-like values;
         otherwise it contains the original numeric representation.
 
     Notes
@@ -215,31 +254,33 @@ def read_particlefile(path: PathLike, decode_times: bool = True) -> pd.DataFrame
     table = pq.read_table(path)
 
     try:
-        time_field = table.field("time")
+        time_field = table.field("t")
     except KeyError as e:
-        raise ValueError(
-            f"Could not find 'time' column in parquet file. Are you sure {path=!r} is a particlefile?"
-        ) from e
+        raise ValueError(f"Could not find 't' column in parquet file. Are you sure {path=!r} is a particlefile?") from e
 
     assert pa.types.is_floating(time_field.type) or pa.types.is_integer(time_field.type), (
-        f"'time' column must be numeric, got {time_field.type}"
+        f"'t' column must be numeric, got {time_field.type}"
     )
 
     try:
         assert b"units" in time_field.metadata
     except AssertionError as e:
-        raise ValueError(f"Could not find 'units' in the 'time' column metadata for parquet {path=!r}.") from e
+        raise ValueError(f"Could not find 'units' in the 't' column metadata for parquet {path=!r}.") from e
 
     attrs = {k.decode(): v.decode() for k, v in time_field.metadata.items()}
 
-    df = pd.read_parquet(path)
+    df = pl.read_parquet(path)
     if not decode_times:
         return df
 
-    values = table.column("time").to_numpy()
-    var = xr.Variable(("time",), values, attrs)
+    values = table.column("t").to_numpy()
+    var = xr.Variable(("t",), values, attrs)
     values = xr.coders.CFDatetimeCoder(time_unit="s").decode(var).values
-
-    df["time"] = values
+    if "since" in attrs["units"]:
+        values = values.astype("datetime64[ns]")
+        df = df.with_columns(pl.Series("t", values, dtype=pl.Datetime("ns")))
+    else:
+        values = values.astype("timedelta64[ns]") * 1e9
+        df = df.with_columns(pl.Series("t", values, dtype=pl.Duration("ns")))
 
     return df

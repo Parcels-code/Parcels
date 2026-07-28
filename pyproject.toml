@@ -33,6 +33,7 @@ dependencies = [
   "pooch >=1.8.0",
   "xgcm >=0.9.0",
   "cf_xarray >=0.8.6",
+  "polars >=1.31.0",
 ]
 
 [project.urls]
@@ -57,8 +58,9 @@ testpaths = ["tests"]
 python_files = ["test_*.py", "example_*.py", "*tutorial*"]
 minversion = "7"
 markers = [ # can be skipped by doing `pytest -m "not slow"` etc.
-  "flaky: flaky tests",
   "slow: slow tests",
+  "validation: validation tests (skipped by default, run with `-m validation`)",
+  "flaky: flaky tests (skipped by default, run with `-m flaky`)",
   "v4alpha: failing tests that should work for v4alpha",
   "v4future: failing tests that should work for a future release of v4",
   "v4remove: failing tests that should probably be removed later",
@@ -173,27 +175,19 @@ exclude = [
   "src/parcels/_core/utils/interpolation.py",
   "src/parcels/_core/utils/unstructured.py",
   "src/parcels/_core/particle.py",
-  "src/parcels/_core/field.py",
   "src/parcels/_core/kernel.py",
   "src/parcels/_core/particleset.py",
   "src/parcels/_core/xgrid.py",
-  "src/parcels/_core/warnings.py",
-  "src/parcels/_core/constants.py",
-  "src/parcels/_core/utils/sgrid.py",
-  "src/parcels/_core/utils/string.py",
   "src/parcels/_core/particlefile.py",
   "src/parcels/_core/uxgrid.py",
   "src/parcels/_core/spatialhash.py",
-  "src/parcels/_core/statuscodes.py",
   "src/parcels/_core/particlesetview.py",
   "src/parcels/_core/fieldset.py",
   "src/parcels/_core/index_search.py",
   "src/parcels/interpolators/_xinterpolators.py",
-  "src/parcels/interpolators/__init__.py",
   "src/parcels/interpolators/_uxinterpolators.py",
   "src/parcels/kernels/_sigmagrids.py",
   "src/parcels/kernels/_advectiondiffusion.py",
-  "src/parcels/kernels/__init__.py",
   "src/parcels/kernels/_advection.py",
 ]
 

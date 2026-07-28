@@ -166,7 +166,7 @@ def test_pset_access(fieldset):
     assert np.allclose([pset[i].lat for i in range(pset.size)], lat, rtol=1e-12)
 
 
-def test_pset_custom_ptype(fieldset):
+def test_pset_custom_pclass(fieldset):
     npart = 100
     TestParticle = Particle.add_variable([Variable("p", np.float32, initial=0.33), Variable("n", np.int32, initial=2)])
 

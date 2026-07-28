@@ -6,17 +6,23 @@ import parcels
 import parcels.convert as convert
 import parcels.tutorial
 from parcels import FieldSet
-from parcels._core.utils import sgrid
 from parcels._datasets.remote import open_remote_dataset
 from parcels._datasets.structured.circulation_models import datasets as datasets_circulation_models
 from parcels.interpolators._xinterpolators import _get_offsets_dictionary
 
 
-def test_nemo_to_sgrid():
-    U = parcels.tutorial.open_dataset("NemoCurvilinear_data_zonal/U")
-    V = parcels.tutorial.open_dataset("NemoCurvilinear_data_zonal/V")
-    coords = parcels.tutorial.open_dataset("NemoCurvilinear_data_zonal/mesh_mask")
-
+@pytest.mark.parametrize(
+    "U, V, coords",
+    [
+        pytest.param(
+            parcels.tutorial.open_dataset("NemoCurvilinear_data_zonal/U"),
+            parcels.tutorial.open_dataset("NemoCurvilinear_data_zonal/V"),
+            parcels.tutorial.open_dataset("NemoCurvilinear_data_zonal/mesh_mask"),
+            id="NemoCurvilinear_data_zonal",
+        ),
+    ],
+)
+def test_nemo_to_sgrid_2d(U, V, coords):  # noqa: N803
     ds = convert.nemo_to_sgrid(fields=dict(U=U, V=V), coords=coords)
 
     assert ds["grid"].attrs == {
@@ -28,7 +34,7 @@ def test_nemo_to_sgrid():
         "vertical_dimensions": "depth_center:depth (padding:high)",
     }
 
-    meta = sgrid.parse_grid_attrs(ds["grid"].attrs)
+    meta = ds.sgrid.metadata
 
     # Assuming that node_dimension1 and node_dimension2 correspond to X and Y respectively
     # check that U and V are properly defined on the staggered grid
@@ -40,6 +46,48 @@ def test_nemo_to_sgrid():
         meta.get_value_by_id("face_dimension1"),  # X center
         meta.get_value_by_id("node_dimension2"),  # Y edge
     }.issubset(set(ds["V"].dims))
+
+    parcels.FieldSet.from_sgrid_conventions(ds)
+
+
+@pytest.mark.parametrize(
+    "U, V, depth, coords",
+    [
+        (
+            open_remote_dataset("Benchmarks_MOi_data_metadata-only/U")[["vozocrtx"]].rename_vars({"vozocrtx": "U"}),
+            open_remote_dataset("Benchmarks_MOi_data_metadata-only/V")[["vomecrty"]].rename_vars({"vomecrty": "V"}),
+            open_remote_dataset("Benchmarks_MOi_data_metadata-only/W")["depthw"],
+            open_remote_dataset("Benchmarks_MOi_data_metadata-only/mesh")[["glamf", "gphif"]].isel(t=0),
+        ),
+    ],
+)
+def test_nemo_to_sgrid_with_depth(U, V, depth, coords):  # noqa: N803
+    coords["depthw"] = depth
+    ds = parcels.convert.nemo_to_sgrid(fields=dict(U=U, V=V), coords=coords)
+
+    assert ds["grid"].attrs == {
+        "cf_role": "grid_topology",
+        "topology_dimension": 2,
+        "node_dimensions": "x y",
+        "face_dimensions": "x_center:x (padding:low) y_center:y (padding:low)",
+        "node_coordinates": "lon lat",
+        "vertical_dimensions": "depth_center:depth (padding:high)",
+    }
+
+    meta = ds.sgrid.metadata
+
+    # Assuming that node_dimension1 and node_dimension2 correspond to X and Y respectively
+    # check that U and V are properly defined on the staggered grid
+    assert {
+        meta.get_value_by_id("node_dimension1"),  # X edge
+        meta.get_value_by_id("face_dimension2"),  # Y center
+    }.issubset(set(ds["U"].dims))
+    assert {
+        meta.get_value_by_id("face_dimension1"),  # X center
+        meta.get_value_by_id("node_dimension2"),  # Y edge
+    }.issubset(set(ds["V"].dims))
+
+    parcels.FieldSet.from_sgrid_conventions(ds)
 
 
 def test_convert_nemo_offsets():
@@ -124,6 +172,14 @@ def test_convert_copernicusmarine_no_logs(ds, caplog):
     assert "V" in fieldset.fields
     assert "UV" in fieldset.fields
     assert caplog.text == ""
+
+
+def test_convert_copernicusmarine_nodepth(caplog):
+    ds = datasets_circulation_models["ds_copernicusmarine"]
+    ds = ds.isel(depth=0).drop_vars("depth")
+    ds_fset = convert.copernicusmarine_to_sgrid(fields={"uo": ds["uo"]})
+    FieldSet.from_sgrid_conventions(ds_fset)
+    assert "No depth dimension found in dataset. Added a singleton depth dimension." in caplog.text
 
 
 def test_convert_fesom_to_ugrid():

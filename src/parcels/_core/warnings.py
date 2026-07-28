@@ -28,6 +28,16 @@ class FileWarning(UserWarning):
     pass
 
 
+class FieldEvalWarning(UserWarning):
+    """Warning that is raised when there are issues during the evaluation of a Field.
+
+    These warnings can be related to out-of-bounds indices during interpolation,
+    or other issues that arise during the evaluation of a Field at particle positions.
+    """
+
+    pass
+
+
 class KernelWarning(RuntimeWarning):
     """Warning that is raised when there are issues with the Kernel.
 

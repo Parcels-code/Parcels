@@ -3,12 +3,7 @@ import math
 import numpy as np
 import xarray as xr
 
-from parcels._core.utils.sgrid import (
-    FaceNodePadding,
-    Grid2DMetadata,
-    Padding,
-    _attach_sgrid_metadata,
-)
+import parcels._sgrid as sgrid
 from parcels._core.utils.time import timedelta_to_float
 
 
@@ -29,16 +24,17 @@ def simple_UV_dataset(dims=(360, 2, 30, 4), maxdepth=1, mesh="spherical"):
             "lon": (["XG"], np.linspace(-max_lon, max_lon, dims[3]), {"axis": "X", "c_grid_axis_shift": -0.5}),
         },
     ).pipe(
-        _attach_sgrid_metadata,
-        Grid2DMetadata(
+        sgrid._attach_sgrid_metadata,
+        sgrid.SGrid2DMetadata(
             cf_role="grid_topology",
             topology_dimension=2,
             node_dimensions=("XG", "YG"),
+            node_coordinates=("lon", "lat"),
             face_dimensions=(
-                FaceNodePadding("XC", "XG", Padding.LOW),
-                FaceNodePadding("YC", "YG", Padding.LOW),
+                sgrid.FaceNodePadding("XC", "XG", sgrid.Padding.LOW),
+                sgrid.FaceNodePadding("YC", "YG", sgrid.Padding.LOW),
             ),
-            vertical_dimensions=(FaceNodePadding("ZC", "depth", Padding.BOTH),),
+            vertical_dimensions=(sgrid.FaceNodePadding("ZC", "depth", sgrid.Padding.BOTH),),
         ),
     )
 
@@ -79,6 +75,19 @@ def radial_rotation_dataset(xdim=200, ydim=200):  # Define 2D flat, square field
             "lat": (["YG"], lat, {"axis": "Y", "c_grid_axis_shift": 0.5}),
             "lon": (["XG"], lon, {"axis": "X", "c_grid_axis_shift": -0.5}),
         },
+    ).pipe(
+        sgrid._attach_sgrid_metadata,
+        sgrid.SGrid2DMetadata(
+            cf_role="grid_topology",
+            topology_dimension=2,
+            node_dimensions=("XG", "YG"),
+            node_coordinates=("lon", "lat"),
+            face_dimensions=(
+                sgrid.FaceNodePadding("XC", "XG", sgrid.Padding.LOW),
+                sgrid.FaceNodePadding("YC", "YG", sgrid.Padding.HIGH),
+            ),
+            vertical_dimensions=(sgrid.FaceNodePadding("ZC", "depth", sgrid.Padding.BOTH),),
+        ),
     )
 
 
@@ -115,6 +124,19 @@ def moving_eddy_dataset(xdim=2, ydim=2):  # TODO check if this also works with x
             "u_g": u_g,
             "f": f,
         },
+    ).pipe(
+        sgrid._attach_sgrid_metadata,
+        sgrid.SGrid2DMetadata(
+            cf_role="grid_topology",
+            topology_dimension=2,
+            node_dimensions=("XG", "YG"),
+            node_coordinates=("lon", "lat"),
+            face_dimensions=(
+                sgrid.FaceNodePadding("XC", "XG", sgrid.Padding.LOW),
+                sgrid.FaceNodePadding("YC", "YG", sgrid.Padding.HIGH),
+            ),
+            vertical_dimensions=(sgrid.FaceNodePadding("ZC", "depth", sgrid.Padding.BOTH),),
+        ),
     )
 
 
@@ -165,6 +187,19 @@ def decaying_moving_eddy_dataset(xdim=2, ydim=2):
             "gamma": gamma,
             "gamma_g": gamma_g,
         },
+    ).pipe(
+        sgrid._attach_sgrid_metadata,
+        sgrid.SGrid2DMetadata(
+            cf_role="grid_topology",
+            topology_dimension=2,
+            node_dimensions=("XG", "YG"),
+            node_coordinates=("lon", "lat"),
+            face_dimensions=(
+                sgrid.FaceNodePadding("XC", "XG", sgrid.Padding.LOW),
+                sgrid.FaceNodePadding("YC", "YG", sgrid.Padding.HIGH),
+            ),
+            vertical_dimensions=(sgrid.FaceNodePadding("ZC", "depth", sgrid.Padding.BOTH),),
+        ),
     )
 
 
@@ -195,8 +230,8 @@ def peninsula_dataset(xdim=100, ydim=50, mesh="flat", grid_type="A"):
         http://archimer.ifremer.fr/doc/00157/26792/24888.pdf
     """
     domainsizeX, domainsizeY = (1.0e5, 5.0e4)
-    La = np.linspace(1e3, domainsizeX, xdim, dtype=np.float32)
-    Wa = np.linspace(1e3, domainsizeY, ydim, dtype=np.float32)
+    La = np.linspace(0, domainsizeX, xdim, dtype=np.float32)
+    Wa = np.linspace(0, domainsizeY, ydim, dtype=np.float32)
 
     u0 = 1
     x0 = domainsizeX / 2
@@ -218,17 +253,17 @@ def peninsula_dataset(xdim=100, ydim=50, mesh="flat", grid_type="A"):
         V[:, :] = -2 * u0 * R**2 * ((x - x0) * y) / (((x - x0) ** 2 + y**2) ** 2)
         U[landpoints] = 0.0
         V[landpoints] = 0.0
-        Udims = ["YC", "XG"]
-        Vdims = ["YG", "XC"]
+        Udims = ["YC", "XC"]
+        Vdims = ["YC", "XC"]
     elif grid_type == "C":
         U = np.zeros(P.shape)
         V = np.zeros(P.shape)
-        V[:, 1:] = (P[:, 1:] - P[:, :-1]) / (La[1] - La[0])
         U[1:, :] = -(P[1:, :] - P[:-1, :]) / (Wa[1] - Wa[0])
-        Udims = ["YG", "XG"]
-        Vdims = ["YG", "XG"]
+        V[:, 1:] = (P[:, 1:] - P[:, :-1]) / (La[1] - La[0])
+        Udims = ["YG", "XC"]
+        Vdims = ["YC", "XG"]
     else:
-        raise RuntimeError(f"Grid_type {grid_type} is not a valid option")
+        raise ValueError(f"Grid_type {grid_type} is not a valid option")
 
     # Convert from m to lat/lon for spherical meshes
     lon = La / 1852.0 / 60.0 if mesh == "spherical" else La
@@ -238,16 +273,28 @@ def peninsula_dataset(xdim=100, ydim=50, mesh="flat", grid_type="A"):
         {
             "U": (Udims, U),
             "V": (Vdims, V),
-            "P": (["YG", "XG"], P),
+            "P": (["YC", "XC"], P),
         },
         coords={
-            "YC": (["YC"], np.arange(ydim) + 0.5, {"axis": "Y"}),
-            "YG": (["YG"], np.arange(ydim), {"axis": "Y", "c_grid_axis_shift": -0.5}),
-            "XC": (["XC"], np.arange(xdim) + 0.5, {"axis": "X"}),
-            "XG": (["XG"], np.arange(xdim), {"axis": "X", "c_grid_axis_shift": -0.5}),
-            "lat": (["YG"], lat, {"axis": "Y", "c_grid_axis_shift": 0.5}),
-            "lon": (["XG"], lon, {"axis": "X", "c_grid_axis_shift": -0.5}),
+            "YC": (["YC"], np.arange(ydim) - 0.5, {"axis": "Y", "c_grid_axis_shift": +0.5}),
+            "YG": (["YG"], np.arange(ydim), {"axis": "Y"}),
+            "XC": (["XC"], np.arange(xdim) - 0.5, {"axis": "X", "c_grid_axis_shift": +0.5}),
+            "XG": (["XG"], np.arange(xdim), {"axis": "X"}),
+            "lat": (["YG"], lat, {"axis": "Y"}),
+            "lon": (["XG"], lon, {"axis": "X"}),
         },
+    ).pipe(
+        sgrid._attach_sgrid_metadata,
+        sgrid.SGrid2DMetadata(
+            cf_role="grid_topology",
+            topology_dimension=2,
+            node_dimensions=("XG", "YG"),
+            node_coordinates=("lon", "lat"),
+            face_dimensions=(
+                sgrid.FaceNodePadding("XC", "XG", sgrid.Padding.LOW),
+                sgrid.FaceNodePadding("YC", "YG", sgrid.Padding.LOW),
+            ),
+        ),
     )
 
 
@@ -286,22 +333,34 @@ def stommel_gyre_dataset(xdim=200, ydim=200, grid_type="A"):
                 U[j, i] = -(1 - math.exp(-xi / es) - xi) * math.pi**2 * np.cos(math.pi * yi) * scalefac
                 V[j, i] = (math.exp(-xi / es) / es - 1) * math.pi * np.sin(math.pi * yi) * scalefac
     if grid_type == "C":
-        V[:, 1:] = (P[:, 1:] - P[:, 0:-1]) / dx * a
         U[1:, :] = -(P[1:, :] - P[0:-1, :]) / dy * b
-        Udims = ["YC", "XG"]
-        Vdims = ["YG", "XC"]
+        V[:, 1:] = (P[:, 1:] - P[:, 0:-1]) / dx * a
+        Udims = ["YG", "XC"]
+        Vdims = ["YC", "XG"]
     else:
-        Udims = ["YG", "XG"]
-        Vdims = ["YG", "XG"]
+        Udims = ["YC", "XC"]
+        Vdims = ["YC", "XC"]
 
     return xr.Dataset(
         {"U": (Udims, U), "V": (Vdims, V), "P": (["YG", "XG"], P)},
         coords={
-            "YC": (["YC"], np.arange(ydim) + 0.5, {"axis": "Y"}),
-            "YG": (["YG"], np.arange(ydim), {"axis": "Y", "c_grid_axis_shift": -0.5}),
-            "XC": (["XC"], np.arange(xdim) + 0.5, {"axis": "X"}),
-            "XG": (["XG"], np.arange(xdim), {"axis": "X", "c_grid_axis_shift": -0.5}),
-            "lat": (["YG"], lat, {"axis": "Y", "c_grid_axis_shift": 0.5}),
-            "lon": (["XG"], lon, {"axis": "X", "c_grid_axis_shift": -0.5}),
+            "YC": (["YC"], np.arange(ydim) - 0.5, {"axis": "Y", "c_grid_axis_shift": +0.5}),
+            "YG": (["YG"], np.arange(ydim), {"axis": "Y"}),
+            "XC": (["XC"], np.arange(xdim) - 0.5, {"axis": "X", "c_grid_axis_shift": +0.5}),
+            "XG": (["XG"], np.arange(xdim), {"axis": "X"}),
+            "lat": (["YG"], lat, {"axis": "Y"}),
+            "lon": (["XG"], lon, {"axis": "X"}),
         },
+    ).pipe(
+        sgrid._attach_sgrid_metadata,
+        sgrid.SGrid2DMetadata(
+            cf_role="grid_topology",
+            topology_dimension=2,
+            node_dimensions=("XG", "YG"),
+            node_coordinates=("lon", "lat"),
+            face_dimensions=(
+                sgrid.FaceNodePadding("XC", "XG", sgrid.Padding.LOW),
+                sgrid.FaceNodePadding("YC", "YG", sgrid.Padding.LOW),
+            ),
+        ),
     )

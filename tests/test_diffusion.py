@@ -33,17 +33,17 @@ def test_fieldKh_Brownian(mesh):
     runtime = np.timedelta64(2, "h")
 
     np.random.seed(1234)
-    pset = ParticleSet(fieldset=fieldset, lon=np.zeros(npart), lat=np.zeros(npart))
+    pset = ParticleSet(fieldset=fieldset, x=np.zeros(npart), y=np.zeros(npart))
     pset.execute(DiffusionUniformKh, runtime=runtime, dt=np.timedelta64(1, "h"))
 
     expected_std_lon = np.sqrt(2 * kh_zonal * mesh_conversion**2 * timedelta_to_float(runtime))
     expected_std_lat = np.sqrt(2 * kh_meridional * mesh_conversion**2 * timedelta_to_float(runtime))
 
     tol = 500 * mesh_conversion  # effectively 500 m errors
-    np.testing.assert_allclose(np.std(pset.lat), expected_std_lat, atol=tol)
-    np.testing.assert_allclose(np.std(pset.lon), expected_std_lon, atol=tol)
-    np.testing.assert_allclose(np.mean(pset.lon), 0, atol=tol)
-    np.testing.assert_allclose(np.mean(pset.lat), 0, atol=tol)
+    np.testing.assert_allclose(np.std(pset.y), expected_std_lat, atol=tol)
+    np.testing.assert_allclose(np.std(pset.x), expected_std_lon, atol=tol)
+    np.testing.assert_allclose(np.mean(pset.x), 0, atol=tol)
+    np.testing.assert_allclose(np.mean(pset.y), 0, atol=tol)
 
 
 @pytest.mark.parametrize("mesh", ["spherical", "flat"])
@@ -64,18 +64,18 @@ def test_fieldKh_SpatiallyVaryingDiffusion(mesh, kernel):
     ds["Kh_zonal"] = (["time", "depth", "YG", "XG"], np.full((2, 1, ydim, xdim), Kh))
     ds["Kh_meridional"] = (["time", "depth", "YG", "XG"], np.full((2, 1, ydim, xdim), Kh))
     fieldset = FieldSet.from_sgrid_conventions(ds, mesh=mesh)
-    fieldset.add_constant("dres", float(ds["lon"][1] - ds["lon"][0]))
+    fieldset.add_context("dres", float(ds["lon"][1] - ds["lon"][0]))
 
     npart = 10000
 
     np.random.seed(1636)
-    pset = ParticleSet(fieldset=fieldset, lon=np.zeros(npart), lat=np.zeros(npart))
+    pset = ParticleSet(fieldset=fieldset, x=np.zeros(npart), y=np.zeros(npart))
     pset.execute(kernel, runtime=np.timedelta64(3, "h"), dt=np.timedelta64(1, "h"))
 
     tol = 2000 * mesh_conversion  # effectively 2000 m errors (because of low numbers of particles)
-    assert np.allclose(np.mean(pset.lon), 0, atol=tol)
-    assert np.allclose(np.mean(pset.lat), 0, atol=tol)
-    assert abs(stats.skew(pset.lon)) > abs(stats.skew(pset.lat))
+    assert np.allclose(np.mean(pset.x), 0, atol=tol)
+    assert np.allclose(np.mean(pset.y), 0, atol=tol)
+    assert abs(stats.skew(pset.x)) > abs(stats.skew(pset.y))
 
 
 @pytest.mark.parametrize("lambd", [1, 5])
@@ -84,12 +84,12 @@ def test_randomexponential(lambd):
     npart = 1000
 
     # Rate parameter for random.expovariate
-    fieldset.add_constant("lambd", lambd)
+    fieldset.add_context("lambd", lambd)
 
     # Set random seed
     np.random.seed(1234)
 
-    pset = ParticleSet(fieldset=fieldset, lon=np.zeros(npart), lat=np.zeros(npart), z=np.zeros(npart))
+    pset = ParticleSet(fieldset=fieldset, x=np.zeros(npart), y=np.zeros(npart), z=np.zeros(npart))
 
     def vertical_randomexponential(particles, fieldset):  # pragma: no cover
         # Kernel for random exponential variable in z direction
@@ -115,9 +115,7 @@ def test_randomvonmises(mu, kappa):
     np.random.seed(1234)
 
     AngleParticle = Particle.add_variable(Variable("angle"))
-    pset = ParticleSet(
-        fieldset=fieldset, pclass=AngleParticle, lon=np.zeros(npart), lat=np.zeros(npart), z=np.zeros(npart)
-    )
+    pset = ParticleSet(fieldset=fieldset, pclass=AngleParticle, x=np.zeros(npart), y=np.zeros(npart), z=np.zeros(npart))
 
     def vonmises(particles, fieldset):  # pragma: no cover
         particles.angle = np.array([random.vonmisesvariate(fieldset.mu, fieldset.kappa) for _ in range(len(particles))])

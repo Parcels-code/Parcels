@@ -70,9 +70,13 @@ ds = xr.open_dataset("my_dataset.nc")  # or xr.open_zarr(...), etc.
 #   except_for=None   — remove all arrays (useful to know about dtypes, structure, and metadata). This is the default for the function.
 ds_trimmed = replace_arrays_with_zeros(ds, except_for = None)
 
-# Save to a zipped Zarr store - replace `my_dataset` with a more informative name
-with zarr.storage.ZipStore("my_dataset.zip", mode='w') as store:
+# Save to a Zip. Note cannot use `zarr.storage.ZipStore` due to https://github.com/zarr-developers/zarr-python/issues/3516
+with zarr.storage.LocalStore("my_dataset_unzipped") as store:
     ds_trimmed.to_zarr(store)
+
+import shutil
+
+shutil.make_archive("my_dataset", "zip", "my_dataset_unzipped")
 
 size_mb_original = os.path.getsize("my_dataset.nc") / 1e6
 print(f"Original size: {size_mb_original:.1f} MB")
@@ -108,6 +112,7 @@ del ds
 from pathlib import Path
 Path("my_dataset.zip").unlink()
 Path("my_dataset.nc").unlink()
+shutil.rmtree("my_dataset_unzipped")
 
 ```
 

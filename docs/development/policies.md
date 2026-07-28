@@ -22,7 +22,7 @@ Parcels follows [Intended Effort Versioning (EffVer)](https://jacobtomlinson.dev
 
 When making backward incompatible changes, we will make sure these changes and instructions to upgrade are communicated to the user via change logs or migration guides, and (where applicable) informative error messaging.
 
-Note when conducting research we highly recommend documenting which version of Parcels (and other packages) you are using. This can be as easy as doing `conda env export > environment.yml` alongside your project code. The Parcels version used to generate an output file is also stored as metadata entry in the `.zarr` output file.
+Note when conducting research we highly recommend documenting which version of Parcels (and other packages) you are using. This can be as easy as doing `conda env export > environment.yml` alongside your project code. The Parcels version used to generate an output file is also stored as metadata entry in the `.parquet` output file.
 
 ## Changes in policies
 

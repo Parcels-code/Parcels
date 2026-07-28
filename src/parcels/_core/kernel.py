@@ -16,7 +16,7 @@ from parcels._core.statuscodes import (
     _raise_grid_searching_error,
     _raise_outside_time_interval_error,
 )
-from parcels._core.warnings import KernelWarning
+from parcels._core.warnings import FieldEvalWarning, KernelWarning
 from parcels._python import assert_same_function_signature
 from parcels.kernels import (
     AdvectionAnalytical,
@@ -47,8 +47,8 @@ class Kernel:
         list of Kernel functions
     fieldset : parcels.Fieldset
         FieldSet object providing the field information (possibly None)
-    ptype :
-        PType object for the kernel particle
+    pclass :
+        pclass object for the kernel particle
 
     Notes
     -----
@@ -73,7 +73,7 @@ class Kernel:
             raise ValueError("List of `kernels` should have at least one function.")
 
         self._fieldset = pset.fieldset
-        self._ptype = pset._ptype
+        self._pclass = pset._pclass
 
         for f in kernels:
             self.check_fieldsets_in_kernels(f)
@@ -88,8 +88,8 @@ class Kernel:
         return ret
 
     @property
-    def ptype(self):
-        return self._ptype
+    def pclass(self):
+        return self._pclass
 
     @property
     def fieldset(self):
@@ -106,13 +106,13 @@ class Kernel:
             pset.remove_indices(indices)
 
     def _position_update(self, particles, fieldset):
-        particles.lon += particles.dlon
-        particles.lat += particles.dlat
+        particles.x += particles.dx
+        particles.y += particles.dy
         particles.z += particles.dz
-        particles.time += particles.dt
+        particles.t += particles.dt
 
-        particles.dlon = 0
-        particles.dlat = 0
+        particles.dx = 0
+        particles.dy = 0
         particles.dz = 0
 
         if hasattr(self.fieldset, "RK45_tol"):
@@ -132,45 +132,45 @@ class Kernel:
                 if self._fieldset.U.grid._gtype not in [GridType.CurvilinearZGrid, GridType.RectilinearZGrid]:
                     raise NotImplementedError("Analytical Advection only works with Z-grids in the vertical")
             elif kernel is AdvectionRK45:
-                if "next_dt" not in [v.name for v in self.ptype.variables]:
+                if "next_dt" not in [v.name for v in self.pclass.variables]:
                     raise ValueError('ParticleClass requires a "next_dt" for AdvectionRK45 Kernel.')
                 if not hasattr(self.fieldset, "RK45_tol"):
                     warnings.warn(
-                        "Setting RK45 tolerance to 10 m. Use fieldset.add_constant('RK45_tol', [distance]) to change.",
+                        "Setting RK45 tolerance to 10 m. Use fieldset.add_context('RK45_tol', [distance]) to change.",
                         KernelWarning,
                         stacklevel=2,
                     )
-                    self.fieldset.add_constant("RK45_tol", 10)
-                if self.fieldset.U.grid._mesh == "spherical":
+                    self.fieldset.add_context("RK45_tol", 10)
+                if self.fieldset.U.grid._mesh.is_spherical():
                     self.fieldset.RK45_tol /= (
-                        1852 * 60
+                        self.fieldset.U.grid.deg2m
                     )  # TODO does not account for zonal variation in meter -> degree conversion
                 if not hasattr(self.fieldset, "RK45_min_dt"):
                     warnings.warn(
-                        "Setting RK45 minimum timestep to 1 s. Use fieldset.add_constant('RK45_min_dt', [timestep]) to change.",
+                        "Setting RK45 minimum timestep to 1 s. Use fieldset.add_context('RK45_min_dt', [timestep]) to change.",
                         KernelWarning,
                         stacklevel=2,
                     )
-                    self.fieldset.add_constant("RK45_min_dt", 1)
+                    self.fieldset.add_context("RK45_min_dt", 1)
                 if not hasattr(self.fieldset, "RK45_max_dt"):
                     warnings.warn(
-                        "Setting RK45 maximum timestep to 1 day. Use fieldset.add_constant('RK45_max_dt', [timestep]) to change.",
+                        "Setting RK45 maximum timestep to 1 day. Use fieldset.add_context('RK45_max_dt', [timestep]) to change.",
                         KernelWarning,
                         stacklevel=2,
                     )
-                    self.fieldset.add_constant("RK45_max_dt", 60 * 60 * 24)
+                    self.fieldset.add_context("RK45_max_dt", 60 * 60 * 24)
 
     def merge(self, kernel):
         if not isinstance(kernel, type(self)):
             raise TypeError(f"Cannot merge {type(kernel)} with {type(self)}. Both should be of type {type(self)}.")
 
         assert self.fieldset == kernel.fieldset, "Cannot merge kernels with different fieldsets"
-        assert self.ptype == kernel.ptype, "Cannot merge kernels with different particle types"
+        assert self.pclass == kernel.pclass, "Cannot merge kernels with different particle types"
 
         return type(self)(
             self._kernels + kernel._kernels,
             self.fieldset,
-            self.ptype,
+            self.pclass,
         )
 
     def execute(self, pset, endtime, dt):
@@ -190,7 +190,7 @@ class Kernel:
         pset._data["state"][:] = StatusCode.Evaluate
 
         while (len(pset) > 0) and np.any(np.isin(pset.state, [StatusCode.Evaluate, StatusCode.Repeat])):
-            time_to_endtime = compute_time_direction * (endtime - pset.time)
+            time_to_endtime = compute_time_direction * (endtime - pset.t)
 
             evaluate_particles = (np.isin(pset.state, [StatusCode.Success, StatusCode.Evaluate])) & (
                 time_to_endtime >= 0
@@ -206,13 +206,16 @@ class Kernel:
 
             # run kernels for all particles that need to be evaluated
             for f in self._kernels:
-                f(pset[evaluate_particles], self._fieldset)
+                with warnings.catch_warnings():
+                    warnings.simplefilter("ignore", FieldEvalWarning)
 
-                # check for particles that have to be repeated
-                repeat_particles = pset.state == StatusCode.Repeat
-                while np.any(repeat_particles):
-                    f(pset[repeat_particles], self._fieldset)
+                    f(pset[evaluate_particles], self._fieldset)
+
+                    # check for particles that have to be repeated
                     repeat_particles = pset.state == StatusCode.Repeat
+                    while np.any(repeat_particles):
+                        f(pset[repeat_particles], self._fieldset)
+                        repeat_particles = pset.state == StatusCode.Repeat
 
             # apply position/time update only to particles still in a normal state
             # (particles that signalled Stop*/Delete/errors should not have time/position advanced)
@@ -225,7 +228,7 @@ class Kernel:
                 pset._data["dt"][:] = dt
 
             # Set particle state for particles that reached endtime
-            particles_endofloop = (pset.state == StatusCode.Evaluate) & (pset.time == endtime)
+            particles_endofloop = (pset.state == StatusCode.Evaluate) & (pset.t == endtime)
             pset[particles_endofloop].state = StatusCode.EndofLoop
 
             # delete particles that signalled deletion
@@ -239,8 +242,8 @@ class Kernel:
                 if np.any(pset.state == error_code):
                     inds = pset.state == error_code
                     if error_code == StatusCode.ErrorOutsideTimeInterval:
-                        error_func(pset[inds].time)
+                        error_func(pset[inds].t)
                     else:
-                        error_func(pset[inds].z, pset[inds].lat, pset[inds].lon)
+                        error_func(pset[inds].z, pset[inds].y, pset[inds].x)
 
         return pset

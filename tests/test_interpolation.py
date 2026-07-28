@@ -2,8 +2,8 @@ import numpy as np
 import pytest
 import xarray as xr
 
+import parcels._sgrid as sgrid
 from parcels import (
-    Field,
     FieldSet,
     Particle,
     ParticleFile,
@@ -11,9 +11,9 @@ from parcels import (
     StatusCode,
     Variable,
     VectorField,
-    XGrid,
 )
 from parcels._core.index_search import _search_time_index
+from parcels._core.mesh import get_mesh
 from parcels._datasets.structured.generated import simple_UV_dataset
 from parcels.interpolators import (
     XFreeslip,
@@ -21,7 +21,6 @@ from parcels.interpolators import (
     XLinearInvdistLandTracer,
     XNearest,
     XPartialslip,
-    ZeroInterpolator,
 )
 from parcels.kernels import AdvectionRK4_3D
 from tests.utils import TEST_DATA
@@ -51,16 +50,31 @@ def field():
             "x": (["x"], [0.5, 1.5, 2.5, 3.5], {"axis": "X"}),
             "y": (["y"], [0.5, 1.5, 2.5, 3.5], {"axis": "Y"}),
         },
+    ).pipe(
+        sgrid._attach_sgrid_metadata,
+        sgrid.SGrid2DMetadata(
+            cf_role="grid_topology",
+            topology_dimension=2,
+            node_dimensions=("lon", "lat"),
+            face_dimensions=(
+                sgrid.FaceNodePadding("x", "lon", sgrid.Padding.LOW),
+                sgrid.FaceNodePadding("y", "lat", sgrid.Padding.LOW),
+            ),
+            node_coordinates=("lon", "lat"),
+            vertical_dimensions=(sgrid.FaceNodePadding("ZC", "depth", sgrid.Padding.HIGH),),
+        ),
     )
-    return Field("U", ds["U"], XGrid.from_dataset(ds, mesh="flat"), interp_method=XLinear)
+    field = FieldSet.from_sgrid_conventions(ds, mesh="flat").U
+    assert isinstance(field.interp_method, XLinear)
+
+    return field
 
 
 @pytest.mark.parametrize(
-    "func, t, z, y, x, expected",
+    "interpolator, t, z, y, x, expected",
     [
-        pytest.param(ZeroInterpolator, 1, 2.5, 0.49, 0.51, 0, id="Zero"),
         pytest.param(
-            XLinear,
+            XLinear(),
             [0, 1],
             [0, 0],
             [0.49, 0.49],
@@ -68,9 +82,9 @@ def field():
             [1.49, 6.49],
             id="Linear-1",
         ),
-        pytest.param(XLinear, 1, 2.5, 0.49, 0.51, 13.99, id="Linear-2"),
+        pytest.param(XLinear(), 1, 2.5, 0.49, 0.51, 13.99, id="Linear-2"),
         pytest.param(
-            XLinear,
+            XLinear(),
             [0, 1, 1],
             [0, 0, 2.5],
             [0.49, 0.49, 0.49],
@@ -78,9 +92,9 @@ def field():
             [1.49, 6.49, 13.99],
             id="Linear-3",
         ),
-        pytest.param(XLinearInvdistLandTracer, 1, 2.5, 0.49, 0.51, 13.99, id="LinearInvDistLand"),
+        pytest.param(XLinearInvdistLandTracer(), 1, 2.5, 0.49, 0.51, 13.99, id="LinearInvDistLand"),
         pytest.param(
-            XNearest,
+            XNearest(),
             [0, 3],
             [0.2, 0.2],
             [0.2, 0.2],
@@ -90,53 +104,59 @@ def field():
         ),
     ],
 )
-def test_raw_2d_interpolation(field, func, t, z, y, x, expected):
+def test_raw_2d_interpolation(field, interpolator, t, z, y, x, expected):
     """Test the interpolation functions on the Field."""
     particle_positions = {"time": t, "z": z, "lat": y, "lon": x}
     grid_positions = field.grid.search(z, y, x)
     grid_positions.update(_search_time_index(field, t))
 
-    value = func(particle_positions, grid_positions, field)
+    value = interpolator.interp(particle_positions, grid_positions, field)
     np.testing.assert_equal(value, expected)
 
 
+@pytest.mark.parametrize("mesh", ["flat", "spherical"])
 @pytest.mark.parametrize(
     "func, t, z, y, x, expected",
     [
-        (XPartialslip, 1, 0, 0, 0.0, [[1], [1]]),
-        (XFreeslip, 1, 0, 0.5, 1.5, [[1], [0.5]]),
-        (XPartialslip, 1, 0, 2.5, 1.5, [[0.75], [0.5]]),
-        (XFreeslip, 1, 0, 2.5, 1.5, [[1], [0.5]]),
-        (XPartialslip, 1, 0, 1.5, 0.5, [[0.5], [0.75]]),
-        (XFreeslip, 1, 0, 1.5, 0.5, [[0.5], [1]]),
+        (XPartialslip(), 1, 0, 0, 0.0, [[1.0], [1.0]]),
+        (XFreeslip(), 1, 0, 0.5, 1.5, [[1.0], [0.5]]),
+        (XPartialslip(), 1, 0, 2.5, 1.5, [[0.75], [0.5]]),
+        (XFreeslip(), 1, 0, 2.5, 1.5, [[1.0], [0.5]]),
+        (XPartialslip(), 1, 0, 1.5, 0.5, [[0.5], [0.75]]),
+        (XFreeslip(), 1, 0, 1.5, 0.5, [[0.5], [1.0]]),
         (
-            XFreeslip,
+            XFreeslip(),
             [1, 0],
             [0, 2],
             [1.5, 1.5],
             [2.5, 0.5],
-            [[0.5, 0.5], [1, 1]],
+            [[0.5, 0.5], [1.0, 1.0]],
         ),
     ],
 )
-def test_spatial_slip_interpolation(field, func, t, z, y, x, expected):
+def test_spatial_slip_interpolation(field, func, t, z, y, x, expected, mesh):
+    field.grid._mesh = get_mesh(mesh)
     field.data[:] = 1.0
     field.data[:, :, 1:3, 1:3] = 0.0  # Set zero land value to test spatial slip
     U = field
     V = field
-    UV = VectorField("UV", U, V, vector_interp_method=func)
+    UV = VectorField("UV", U, V, interp_method=func)
 
     velocities = UV[t, z, y, x]
+    expected = np.array(expected)
+    if mesh == "spherical":
+        expected[0] = expected[0] / (1852 * 60.0 * np.cos(np.radians(y)))
+        expected[1] = expected[1] / (1852 * 60.0)
     np.testing.assert_array_almost_equal(velocities, expected)
 
 
 @pytest.mark.parametrize(
-    "func, t, z, y, x, expected",
+    "interpolator, t, z, y, x, expected",
     [
-        (XLinearInvdistLandTracer, 1, 0, 0.5, 0.5, 1.0),
-        (XLinearInvdistLandTracer, 1, 0, 1.5, 1.5, 0.0),
+        (XLinearInvdistLandTracer(), 1, 0, 0.5, 0.5, 1.0),
+        (XLinearInvdistLandTracer(), 1, 0, 1.5, 1.5, 0.0),
         (
-            XLinearInvdistLandTracer,
+            XLinearInvdistLandTracer(),
             [0, 1],
             [0, 2],
             [0.5, 0.5],
@@ -144,7 +164,7 @@ def test_spatial_slip_interpolation(field, func, t, z, y, x, expected):
             1.0,
         ),
         (
-            XLinearInvdistLandTracer,
+            XLinearInvdistLandTracer(),
             [0, 1],
             [0, 2],
             [0.5, 1.5],
@@ -153,10 +173,10 @@ def test_spatial_slip_interpolation(field, func, t, z, y, x, expected):
         ),
     ],
 )
-def test_invdistland_interpolation(field, func, t, z, y, x, expected):
+def test_invdistland_interpolation(field, interpolator, t, z, y, x, expected):
     field.data[:] = 1.0
     field.data[:, :, 1:3, 1:3] = 0  # Set NaN land value to test inv_dist
-    field.interp_method = func
+    field.interp_method = interpolator
 
     value = field[t, z, y, x]
     np.testing.assert_array_almost_equal(value, expected)
@@ -218,18 +238,30 @@ def test_interp_regression_v3(interp_name):
             "lat": (["YG"], ds_input["lat"].values, {"axis": "Y", "c_grid_axis_shift": 0.5}),
             "lon": (["XG"], ds_input["lon"].values, {"axis": "X", "c_grid_axis_shift": -0.5}),
         },
+    ).pipe(
+        sgrid._attach_sgrid_metadata,
+        sgrid.SGrid2DMetadata(
+            cf_role="grid_topology",
+            topology_dimension=2,
+            node_dimensions=("XG", "YG"),
+            face_dimensions=(
+                sgrid.FaceNodePadding("XC", "XG", sgrid.Padding.HIGH),
+                sgrid.FaceNodePadding("YC", "YG", sgrid.Padding.HIGH),
+            ),
+            node_coordinates=("lon", "lat"),
+            vertical_dimensions=(sgrid.FaceNodePadding("ZC", "depth", sgrid.Padding.HIGH),),
+        ),
     )
 
-    grid = XGrid.from_dataset(ds, mesh="flat")
-    U = Field("U", ds["U"], grid, interp_method=interp_methods[interp_name])
-    V = Field("V", ds["V"], grid, interp_method=interp_methods[interp_name])
-    W = Field("W", ds["W"], grid, interp_method=interp_methods[interp_name])
-    fieldset = FieldSet([U, V, W, VectorField("UVW", U, V, W)])
+    fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
+    assert fieldset.U.interp_method == interp_methods[interp_name]
+    assert fieldset.V.interp_method == interp_methods[interp_name]
+    assert fieldset.W.interp_method == interp_methods[interp_name]
 
     x, y, z = np.meshgrid(np.linspace(0, 1, 7), np.linspace(0, 1, 13), np.linspace(0, 1, 5))
 
     TestP = Particle.add_variable(Variable("pid", dtype=np.int32, initial=0))
-    pset = ParticleSet(fieldset, pclass=TestP, lon=x, lat=y, z=z, pid=np.arange(x.size))
+    pset = ParticleSet(fieldset, pclass=TestP, x=x, y=y, z=z, pid=np.arange(x.size))
 
     def DeleteParticle(particle, fieldset, time):
         if particle.state >= 50:
