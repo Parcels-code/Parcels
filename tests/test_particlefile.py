@@ -304,7 +304,8 @@ def test_time_is_age(fieldset, tmp_parquet, outputdt):
         assert (df_traj["age"] == traj_time).all()
 
 
-def test_sampling_initial_value(fieldset, tmp_parquet):
+@pytest.mark.parametrize("npart", [1, 10])
+def test_sampling_initial_value(fieldset, npart, tmp_parquet):
     # Test that inital value of a field gets sampled
 
     SampleParticle = get_default_particle(np.float64).add_variable(Variable("sample", initial=np.nan))
@@ -312,7 +313,11 @@ def test_sampling_initial_value(fieldset, tmp_parquet):
     def SampleKernel(particles, fieldset):  # pragma: no cover
         particles.sample = fieldset.U[particles]
 
-    pset = ParticleSet(fieldset, pclass=SampleParticle, x=[0], y=[0], t=[fieldset.time_interval.left])
+    x = np.zeros(npart)
+    y = np.zeros(npart)
+    t = np.zeros(npart, dtype="timedelta64[s]")
+
+    pset = ParticleSet(fieldset, pclass=SampleParticle, x=x, y=y, t=t)
     pset.sample = fieldset.U[pset]  # Sample initial value
 
     ofile = ParticleFile(tmp_parquet, outputdt=np.timedelta64(1, "s"))
