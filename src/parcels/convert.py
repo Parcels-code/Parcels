@@ -421,7 +421,7 @@ def mitgcm_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.
 
     coords = _pick_expected_coords(coords, _MITGCM_EXPECTED_COORDS)
 
-    ds = xr.merge(list(fields.values()) + [coords])
+    ds = xr.merge(list(fields.values()) + [coords], compat="override")
     ds.attrs.clear()  # Clear global attributes from the merging
 
     ds = _maybe_rename_variables(ds, _MITGCM_VARNAMES_MAPPING)
