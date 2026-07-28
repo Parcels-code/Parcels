@@ -215,13 +215,8 @@ def test_write_timebackward(fieldset, tmp_parquet):
     df = pd.read_parquet(tmp_parquet)
 
     assert df["particle_id"].dtype == "int64"
-    assert bool(
-        df.groupby("particle_id")
-        .apply(
-            lambda x: (np.diff(x["t"]) < 0).all()  # for each particle - set True if it has decreasing time
-        )
-        .all()  # ensure for all particles
-    )
+    dt_per_particle = df.groupby("particle_id")["t"].diff().dropna()
+    assert (dt_per_particle < 0).all()
 
 
 @pytest.mark.xfail
