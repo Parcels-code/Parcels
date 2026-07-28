@@ -7,8 +7,8 @@ build:
   jobs:
     create_environment:
       - asdf plugin add pixi
-      - asdf install pixi 0.70.2
-      - asdf global pixi 0.70.2
+      - asdf install pixi latest
+      - asdf global pixi latest
     install:
       - pixi install -e docs
     build:
