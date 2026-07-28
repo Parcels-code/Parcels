@@ -312,14 +312,14 @@ def test_sampling_initial_value(fieldset, tmp_parquet):
     def SampleKernel(particles, fieldset):  # pragma: no cover
         particles.sample = fieldset.U[particles]
 
-    pset = ParticleSet(fieldset, pclass=SampleParticle, lon=[0], lat=[0])
-    ofile = ParticleFile(tmp_parquet, outputdt=np.timedelta64(1, "s"))
+    pset = ParticleSet(fieldset, pclass=SampleParticle, x=[0], y=[0])
+    pset.sample = fieldset.U[0, pset.z, pset.y, pset.x]  # Sample initial value
 
+    ofile = ParticleFile(tmp_parquet, outputdt=np.timedelta64(1, "s"))
     pset.execute(SampleKernel, runtime=np.timedelta64(2, "s"), dt=np.timedelta64(1, "s"), output_file=ofile)
 
     df = parcels.read_particlefile(tmp_parquet)
-    assert np.isfinite(df["sample"][1:]).all()  # should not be nan
-    assert np.isfinite(df["sample"][0])  # should not be nan
+    np.testing.assert_allclose(df["sample"].is_finite().all(), True)
 
 
 def test_reset_dt(fieldset, tmp_parquet):
