@@ -12,6 +12,12 @@ class BaseMesh(ABC):
     @abstractmethod
     def is_spherical(self) -> bool: ...
 
+    def __eq__(self, other):
+        return self.is_spherical() == other.is_spherical() and self.radius == other.radius
+
+    def __hash__(self):
+        return hash((self.is_spherical(), self.radius))
+
 
 class SphericalMesh(BaseMesh):
     """Spherical mesh object with configurable planetary radius.
