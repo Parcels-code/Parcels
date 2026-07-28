@@ -13,6 +13,7 @@ from parcels import (
     VectorField,
 )
 from parcels._core.index_search import _search_time_index
+from parcels._core.mesh import get_mesh
 from parcels._datasets.structured.generated import simple_UV_dataset
 from parcels.interpolators import (
     XFreeslip,
@@ -113,26 +114,28 @@ def test_raw_2d_interpolation(field, interpolator, t, z, y, x, expected):
     np.testing.assert_equal(value, expected)
 
 
+@pytest.mark.parametrize("mesh", ["flat", "spherical"])
 @pytest.mark.parametrize(
     "func, t, z, y, x, expected",
     [
-        (XPartialslip(), 1, 0, 0, 0.0, [[1], [1]]),
-        (XFreeslip(), 1, 0, 0.5, 1.5, [[1], [0.5]]),
+        (XPartialslip(), 1, 0, 0, 0.0, [[1.0], [1.0]]),
+        (XFreeslip(), 1, 0, 0.5, 1.5, [[1.0], [0.5]]),
         (XPartialslip(), 1, 0, 2.5, 1.5, [[0.75], [0.5]]),
-        (XFreeslip(), 1, 0, 2.5, 1.5, [[1], [0.5]]),
+        (XFreeslip(), 1, 0, 2.5, 1.5, [[1.0], [0.5]]),
         (XPartialslip(), 1, 0, 1.5, 0.5, [[0.5], [0.75]]),
-        (XFreeslip(), 1, 0, 1.5, 0.5, [[0.5], [1]]),
+        (XFreeslip(), 1, 0, 1.5, 0.5, [[0.5], [1.0]]),
         (
             XFreeslip(),
             [1, 0],
             [0, 2],
             [1.5, 1.5],
             [2.5, 0.5],
-            [[0.5, 0.5], [1, 1]],
+            [[0.5, 0.5], [1.0, 1.0]],
         ),
     ],
 )
-def test_spatial_slip_interpolation(field, func, t, z, y, x, expected):
+def test_spatial_slip_interpolation(field, func, t, z, y, x, expected, mesh):
+    field.grid._mesh = get_mesh(mesh)
     field.data[:] = 1.0
     field.data[:, :, 1:3, 1:3] = 0.0  # Set zero land value to test spatial slip
     U = field
@@ -140,6 +143,10 @@ def test_spatial_slip_interpolation(field, func, t, z, y, x, expected):
     UV = VectorField("UV", U, V, interp_method=func)
 
     velocities = UV[t, z, y, x]
+    expected = np.array(expected)
+    if mesh == "spherical":
+        expected[0] = expected[0] / (1852 * 60.0 * np.cos(np.radians(y)))
+        expected[1] = expected[1] / (1852 * 60.0)
     np.testing.assert_array_almost_equal(velocities, expected)
 
 
