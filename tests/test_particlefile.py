@@ -312,8 +312,8 @@ def test_sampling_initial_value(fieldset, tmp_parquet):
     def SampleKernel(particles, fieldset):  # pragma: no cover
         particles.sample = fieldset.U[particles]
 
-    pset = ParticleSet(fieldset, pclass=SampleParticle, x=[0], y=[0])
-    pset.sample = fieldset.U[0, pset.z, pset.y, pset.x]  # Sample initial value
+    pset = ParticleSet(fieldset, pclass=SampleParticle, x=[0], y=[0], t=[fieldset.time_interval.left])
+    pset.sample = fieldset.U[pset]  # Sample initial value
 
     ofile = ParticleFile(tmp_parquet, outputdt=np.timedelta64(1, "s"))
     pset.execute(SampleKernel, runtime=np.timedelta64(2, "s"), dt=np.timedelta64(1, "s"), output_file=ofile)
