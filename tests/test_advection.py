@@ -94,7 +94,7 @@ def test_advection_zonal_periodic():
     halo = ds.isel(XG=0)
     halo.lon.values = ds.lon.values[1] + 1
     halo.XG.values = ds.XG.values[1] + 2
-    ds = xr.concat([ds, halo], dim="XG")
+    ds = xr.concat([ds, halo], dim="XG", data_vars="all")
 
     fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
 
