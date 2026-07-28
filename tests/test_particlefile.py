@@ -293,7 +293,13 @@ def test_time_is_age(fieldset, tmp_parquet, outputdt):
     pset = ParticleSet(fieldset, pclass=AgeParticle, x=npart * [0], y=npart * [0], t=time)
     ofile = ParticleFile(tmp_parquet, outputdt=outputdt)
 
-    pset.execute(IncreaseAge, runtime=np.timedelta64(npart * 2, "s"), dt=np.timedelta64(1, "s"), output_file=ofile)
+    if outputdt > np.timedelta64(1, "s"):
+        warning_ctx = pytest.warns(ParticleSetWarning, match="Some of the particles have a start time difference.*")
+    else:
+        warning_ctx = does_not_raise()
+
+    with warning_ctx:
+        pset.execute(IncreaseAge, runtime=np.timedelta64(npart * 2, "s"), dt=np.timedelta64(1, "s"), output_file=ofile)
 
     df = parcels.read_particlefile(tmp_parquet)
 
