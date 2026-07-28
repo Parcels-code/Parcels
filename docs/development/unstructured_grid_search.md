@@ -145,7 +145,7 @@ The budget on the total number of (face, hash-cell) entries is:
 budget = max(_HASH_ENTRIES_PER_FACE * nfaces, _HASH_ENTRY_BUDGET_MIN)
 ```
 
-`SpatialHash._total_hash_entries(bitwidth)` computes what the table size *would* be at a given resolution: it quantizes the low and high corner of every face bounding box and sums `(nx · ny · nz)` over all faces. If the table at `bitwidth = 1023` already fits the budget, that resolution is kept. Otherwise the constructor binary-searches for the largest bitwidth whose table fits the budget and uses that, coarsening the hash grid just enough to stay within memory.
+`SpatialHash._total_hash_entries(bitwidth)` computes what the table size _would_ be at a given resolution: it quantizes the low and high corner of every face bounding box and sums `(nx · ny · nz)` over all faces. If the table at `bitwidth = 1023` already fits the budget, that resolution is kept. Otherwise the constructor binary-searches for the largest bitwidth whose table fits the budget and uses that, coarsening the hash grid just enough to stay within memory.
 
 ---
 
@@ -166,7 +166,7 @@ The hash table is built by iterating over every face in the source grid:
    - `counts` — number of face entries for each unique code
    - `faces` — the flat (raveled) face index for each entry, in sorted order
 
-   Only the flat face id is stored (4 bytes per entry). The `(j, i)` pair is *not* precomputed and stored; instead `query` unravels just the gathered candidate faces on demand (see below). This avoids holding two `int64` index arrays (16 bytes per entry) for the lifetime of the grid.
+   Only the flat face id is stored (4 bytes per entry). The `(j, i)` pair is _not_ precomputed and stored; instead `query` unravels just the gathered candidate faces on demand (see below). This avoids holding two `int64` index arrays (16 bytes per entry) for the lifetime of the grid.
 
 This CSR layout enables O(1) hash table lookup via binary search on `keys`.
 
@@ -254,7 +254,7 @@ This two-stage approach (cheap guess check, then hash lookup) means that once pa
 
 **Degenerate faces (XGrid).** On curvilinear spherical grids, a face whose corner nodes are undefined (e.g. land points with lon/lat masked to `0.0`) can span a huge portion of the domain and, on its own, dominate the table size. During construction the curvilinear spherical path runs `_find_degenerate_xgrid_faces`, which flags any cell whose longest edge — the maximum great-circle chord across its four edges and two diagonals — exceeds `threshold_factor` (default 10) times the 99th-percentile edge length, and emits a `FieldSetWarning` naming the first few offending `(j, i)` locations. This detection currently runs **only for the curvilinear (`XGrid`) spherical path**; there is no equivalent check on the `UxGrid` path.
 
-**Periodic boundaries.** `SpatialHash` does not support queries on periodic elements — there is no longitudinal wrapping or remapping of query points. A particle that crosses a periodic seam is not folded back into the domain by the search. For spherical grids the antimeridian is handled only *implicitly*, by working in Cartesian space (`XGrid`) or projecting onto the face plane (`UxGrid`), not by treating the domain as periodic.
+**Periodic boundaries.** `SpatialHash` does not support queries on periodic elements — there is no longitudinal wrapping or remapping of query points. A particle that crosses a periodic seam is not folded back into the domain by the search. For spherical grids the antimeridian is handled only _implicitly_, by working in Cartesian space (`XGrid`) or projecting onto the face plane (`UxGrid`), not by treating the domain as periodic.
 
 **Spherical geometry degeneracy.** Near the poles, lon/lat cells become highly elongated in lon/lat space. Working in Cartesian space mitigates this: all cells have similar extents in the unit cube, so the hash grid resolution is more uniform.
 
