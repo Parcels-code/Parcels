@@ -94,6 +94,7 @@ pset = parcels.ParticleSet(fieldset=fieldset, pclass=parcels.Particle, t=t, z=z,
 ```{admonition} 🖥️ Learn more about how to create ParticleSets
 :class: seealso
 - [Release particles at different times](../examples/tutorial_delaystart.ipynb)
+- [Sampling initial Field values](../examples/tutorial_sampling.ipynb#sampling-initial-field-values)
 ```
 
 ## 3. Kernels
