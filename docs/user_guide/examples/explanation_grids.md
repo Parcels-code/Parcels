@@ -1,6 +1,6 @@
 # 📖 Grids
 
-In Lagrangian ocean analysis, virtual particle tracking requires the accurate interpolation of physical properties (flow velocities and tracer properties) to particle locations. The underlying data that forces the particle movement will likely be defined on a discretised grid. Parcels can natively handle two styles of grids; structured and (triangular) unstructured, where parcels `Field` objects exist on a (structured) `parcels.XGrid` or (unstructured) `parcels.UxGrid`. Here we describe these grids on a conceptual level.
+In Lagrangian ocean analysis, virtual particle tracking requires the accurate interpolation of physical properties (flow velocities and tracer properties) to particle locations. The underlying data that forces the particle movement will likely be defined on a discretised grid. Parcels can natively handle two styles of horizontal grids; structured and (triangular) unstructured, where parcels `Field` objects exist on a (structured) `parcels.XGrid` or (unstructured) `parcels.UxGrid`. Here we describe these grids on a conceptual level.
 
 Under the hood, every `Field` in a `FieldSet` has a `grid` attribute. This `grid` stores the spatial and temporal information of the Field coordinates. The number of Grids in a FieldSet is thus always smaller or equal to the number of Field objects; and this is what the "grid number" column in `FieldSet.describe()` refers to.
 
