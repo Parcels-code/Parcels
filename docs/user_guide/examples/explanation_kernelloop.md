@@ -59,14 +59,14 @@ import parcels.tutorial
 ds_fields = parcels.tutorial.open_dataset("CopernicusMarine_data_for_Argo_tutorial/data")
 
 # Create an idealised wind field and add it to the dataset
-tdim, ydim, xdim = (len(ds_fields.time),len(ds_fields.latitude), len(ds_fields.longitude))
+ydim, xdim = len(ds_fields.latitude), len(ds_fields.longitude)
 ds_fields["UWind"] = xr.DataArray(
-    data=0.5 * np.ones((tdim, ydim, xdim)) * np.sin(ds_fields.latitude.values - ds_fields.latitude.values.mean())[None, :, None],
-    coords=[ds_fields.time, ds_fields.latitude, ds_fields.longitude])
+    data=0.5 * np.ones((ydim, xdim)) * np.sin(ds_fields.latitude.values - ds_fields.latitude.values.mean())[:, None],
+    coords=[ds_fields.latitude, ds_fields.longitude])
 
 ds_fields["VWind"] = xr.DataArray(
-    data=np.zeros((tdim, ydim, xdim)),
-    coords=[ds_fields.time, ds_fields.latitude, ds_fields.longitude])
+    data=np.zeros((ydim, xdim)),
+    coords=[ds_fields.latitude, ds_fields.longitude])
 
 fields = {
     "U": ds_fields["uo"],
