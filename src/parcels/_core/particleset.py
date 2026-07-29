@@ -78,11 +78,15 @@ class ParticleSet:
             particle_ids = np.arange(x.size)
 
         if z is None:
-            minz = 0
+            minz = None
             for field in self.fieldset.fields.values():
-                if field.grid.depth is not None:
-                    minz = min(minz, field.grid.depth[0])
-            z = np.ones(x.size) * minz
+                for depth in field.grid.depth:
+                    if minz is None or np.abs(depth) < np.abs(minz):
+                        minz = depth
+            if minz is not None:
+                z = np.ones(x.size) * minz
+            else:
+                z = np.zeros(x.size)
         else:
             z = np.array(z).flatten()
         assert x.size == y.size and x.size == z.size, "x, y, z don't all have the same lengths"
