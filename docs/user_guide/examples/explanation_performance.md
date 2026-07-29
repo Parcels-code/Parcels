@@ -73,11 +73,15 @@ fieldset.to_windowed_arrays()
 
 ### Advantages and disadvantages
 
-| Advantages                                                                                   | Disadvantages                                                                                                                                                |
-| -------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| Parcels will only hold two timeslices in memory, which is much less than the entire Dataset. | Parcels will still have to load the entire two timeslices into memory, which can be a lot of data if the Dataset is large.                                   |
-| Hydrodynamic files do not have to be reformatted and stored.                                 | Inefficient when the Particles only sample a small part of the domain, as Parcels will still load the entire two timeslices into memory.                     |
-|                                                                                              | Does not work well for initial Field sampling when the particles start at different times, as Parcels will have to load all required timeslices into memory. |
+| Advantages                                                                                   | Disadvantages                                                                                                                                                                 |
+| -------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Parcels will only hold two timeslices in memory, which is much less than the entire Dataset. | Parcels will still have to load the entire two timeslices into memory, which can be a lot of data if the Dataset is large.                                                    |
+| Hydrodynamic files do not have to be reformatted and stored.                                 | Inefficient when the Particles only sample a small part of the domain, as Parcels will still load the entire two timeslices into memory.                                      |
+|                                                                                              | Does not work well for initial Field sampling when the particles start at different times, as Parcels will have to load all required timeslices into memory (see note below). |
+
+```{note}
+ If your particles start at multiple times (e.g. [Delayed starts](./tutorial_delaystart.ipynb)), it's best to do the initial sampling with the FieldSet in Dask mode and only convert to WindowedArrays _after_ the initial sampling.
+```
 
 ## Option 4: use Dask
 
