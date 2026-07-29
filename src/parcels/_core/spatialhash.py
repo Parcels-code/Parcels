@@ -62,12 +62,12 @@ class SpatialHash:
                 # Boundaries of the hash grid are the Cartesian bounding box of the
                 # transformed grid, so that regional domains retain full quantization
                 # resolution instead of spreading it over the whole unit cube
-                self._xmin = x.min()
-                self._xmax = x.max()
-                self._ymin = y.min()
-                self._ymax = y.max()
-                self._zmin = z.min()
-                self._zmax = z.max()
+                self._xmin = np.nanmin(x)
+                self._xmax = np.nanmax(x)
+                self._ymin = np.nanmin(y)
+                self._ymax = np.nanmax(y)
+                self._zmin = np.nanmin(z)
+                self._zmax = np.nanmax(z)
                 _xbound = np.stack(
                     (
                         x[:-1, :-1],
@@ -122,10 +122,10 @@ class SpatialHash:
 
             else:
                 # Boundaries of the hash grid are the bounding box of the source grid
-                self._xmin = self._source_grid.lon.min()
-                self._xmax = self._source_grid.lon.max()
-                self._ymin = self._source_grid.lat.min()
-                self._ymax = self._source_grid.lat.max()
+                self._xmin = np.nanmin(self._source_grid.lon)
+                self._xmax = np.nanmax(self._source_grid.lon)
+                self._ymin = np.nanmin(self._source_grid.lat)
+                self._ymax = np.nanmax(self._source_grid.lat)
                 # setting min and max below is needed for mesh="flat"
                 self._zmin = 0.0
                 self._zmax = 0.0
