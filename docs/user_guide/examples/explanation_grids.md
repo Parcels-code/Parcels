@@ -3,21 +3,23 @@
 In Lagrangian ocean analysis, virtual particle tracking requires the accurate interpolation of physical properties (flow velocities and tracer properties) to particle locations. The underlying data that forces the particle movement will likely be defined on a discretised grid. Parcels can natively handle two styles of grids; structured and unstructured, where parcels `Field` objects exist on a (structured) `parcels.XGrid` or (unstructured) `parcels.Uxgrid`. Here we describe these grids on a conceptual level.
 
 ## Structured grids
+
 A structured grid is composed of quadrilateral elements, that are indexed using logical 2D or 3D indices, like $(i,j,k)$. In `xarray` terminology, these indices correspond to `dimensions`, for example [...]. In structured grids, grid cell neighbours are easily found by decrementing or incrementing these dimensions.
 
 There are two styles of structured grids, rectilinear and curvilinear, as shown in Figure 1. Rectilinear grids are nearly always aligned with the coordinate axes (that is, there is a one-to-one mapping between the dimensions and the physical coordinate space), making them simple and computationally efficient to query. However, they're limited by the fact that it is difficult to resolve complex coastlines without high resolution, and they suffer from singularities in the flow fields at the poles where the grid lines converge. Curvilinear grids allow for curved grid lines, which allow for better representation of coastlines. They often move the poles onto land to avoid singularities occuring in the ocean. However, they become trickier to work with, as the spatial positions of their vertices are stored in separate 2D arrays, and moving to an eastward neighbour is not as simple as incrementing the $i$-th coordinate by 1.
 
 ![Figure 1 from parcels v2 paper](image.png)
 
-
 ## Unstructured grids
+
 TODO: For Joe.
 
-
 ## How your data may be defined
+
 Regardless of your grid type, how your data is defined on your grid is equally important. Here, we will describe how you can interpret your data at a very general level, and the concept applies for any $n$-gon ($n$-sided polygon with $n \ge 3$).
 
 ### Nodes, edges, and faces
+
 Let's assume we have a simple 2D rectlinear grid. The grid is composed of a number of nodes (or vertices), connected by edges, which together construct grid cells and grid cell faces. In Figure 2, we draw a simple grid cell. Here, your data may be defined on the corners of the grid cell (the nodes/vertices), at the centre of the cell face, or across a cell edge.
 
 ![Figure 2 - A simple grid cell. Blue circles denote nodes (or vertices) of the grid cell. The red circle denotes the centre of the cell face.](image-1.png)
