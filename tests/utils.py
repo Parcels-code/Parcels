@@ -87,8 +87,8 @@ def create_simple_pset(n=1):
     return parcels.ParticleSet(
         fieldset=create_fieldset_unit_mesh(),
         pclass=parcels.Particle,
-        lon=zeros,
-        lat=zeros,
+        x=zeros,
+        y=zeros,
         depth=zeros,
         time=zeros,
     )
@@ -162,7 +162,7 @@ def assert_cftime_like_particlefile(parquet_path: Path) -> None:
 
     # check first value (and hence rest of array) is what we expect
     # TODO explore use of cftime in polars
-    assert isinstance(df["time"][0], (cftime.datetime, datetime)), (
+    assert isinstance(df["t"][0], (cftime.datetime, datetime)), (
         "CF-time values in Parquet did not get properly decoded. Are the attributes correct?"
     )
     return

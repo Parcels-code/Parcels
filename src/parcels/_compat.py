@@ -1,7 +1,7 @@
 """Import helpers for compatability between installations."""
 
 
-# for compat with v3 of parcels when users provide `initial=attrgetter("lon")` to a Variable
+# for compat with v3 of parcels when users provide `initial=attrgetter("...")` to a Variable
 # so that particle initial state matches another variable
 class _AttrgetterHelper:
     """

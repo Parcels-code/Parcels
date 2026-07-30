@@ -14,13 +14,19 @@ The steps below are the installation instructions for Linux, macOS and Windows.
 
 **Step 2:** Start a terminal (Linux / macOS) or the Anaconda prompt (Windows). Activate the `base` environment of your Miniconda and create an environment containing Parcels, all its essential dependencies, `trajan` (a trajectory plotting dependency used in the notebooks) and the nice-to-have cartopy and jupyter packages: -->
 
-Parcels v4 is in active development and hasn't been released.
+Parcels v4 is in active development.
 
-A pre-release version of Parcels (i.e., the latest version on `main`) can be installed via conda using the following instructions (which creates an environment `parcels-env`, activates it, installs Parcels from a custom pre-release channel that we're using, and installs some additional helper packages).
+A pre-release version of Parcels (i.e., the latest version on `main`) can be installed via conda using the following instructions (which creates an environment `parcelsv4-env`, activates it, installs Parcels from a custom pre-release channel that we're using, and installs some additional helper packages).
+
+```{warning}
+Before installing the latest version of Parcels, we *highly* recommend creating a new environment so that it doesn't affect your current environment (which you may be using for your research).
+
+You can find your current environment with `conda env list` and identifying the environment with a `*` next to it. At any point, you can use `conda activate ...` (replacing `...` with the name that had the `*` next to it) to return to your environment with version 3 of Parcels.
+```
 
 ```bash
-conda create -n parcels-env python
-conda activate parcels-env
+conda create -n parcelsv4-env python
+conda activate parcelsv4-env
 conda config --add channels conda-forge
 conda install -c https://prefix.dev/parcels parcels
 conda install trajan cartopy jupyter
@@ -45,4 +51,4 @@ The next time you start a terminal and want to work with Parcels, activate the e
 
 ## Installation for developers
 
-See the [development section in our contributing guide](../development/index.md#development) for development instructions.
+See the [development section in our contributing guide](../../development/index.md#development) for development instructions.

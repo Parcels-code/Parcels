@@ -3,7 +3,7 @@ import numpy as np
 import parcels
 import parcels.tutorial
 from parcels import Particle, ParticleSet, Variable
-from parcels.kernels import AdvectionRK4_3D_CROCO, SampleOmegaCroco, convert_z_to_sigma_croco
+from parcels.kernels import AdvectionRK2_3D_CROCO, SampleOmegaCroco, convert_z_to_sigma_croco
 
 
 def test_conversion_3DCROCO():
@@ -30,7 +30,7 @@ def test_conversion_3DCROCO():
     ds_fset = parcels.convert.croco_to_sgrid(fields=fields, coords=ds_fields)
 
     fieldset = parcels.FieldSet.from_sgrid_conventions(ds_fset)
-    fieldset.add_constant("hc", ds_fields.hc.item())
+    fieldset.add_context("hc", ds_fields.hc.item())
 
     s_xroms = np.array([-1.0, -0.9, -0.8, -0.7, -0.6, -0.5, -0.4, -0.3, -0.2, -0.1, 0.0], dtype=np.float32)
     z_xroms = np.array([-1.26000000e02, -1.10585846e02, -9.60985413e01, -8.24131317e01, -6.94126511e01, -5.69870148e01, -4.50318756e01, -3.34476166e01, -2.21383114e01, -1.10107975e01, 2.62768921e-02,], dtype=np.float32,)  # fmt: skip
@@ -46,7 +46,6 @@ def test_conversion_3DCROCO():
 
 def test_advection_3DCROCO():
     ds_fields = parcels.tutorial.open_dataset("CROCOidealized_data/data")
-    ds_fields.load()
 
     fields = {
         "U": ds_fields["u"],
@@ -61,17 +60,18 @@ def test_advection_3DCROCO():
     ds_fset = parcels.convert.croco_to_sgrid(fields=fields, coords=ds_fields)
 
     fieldset = parcels.FieldSet.from_sgrid_conventions(ds_fset)
-    fieldset.add_constant("hc", ds_fields.hc.item())
+    fieldset = fieldset.to_windowed_arrays()
+    fieldset.add_context("hc", ds_fields.hc.item())
 
     runtime = 10_000
     X, Z = np.meshgrid([40e3, 80e3, 120e3], [-10, -130])
     Y = np.ones(X.size) * 100e3
 
     pclass = Particle.add_variable(Variable("omega"))
-    pset = ParticleSet(fieldset=fieldset, pclass=pclass, lon=X, lat=Y, z=Z)
+    pset = ParticleSet(fieldset=fieldset, pclass=pclass, x=X, y=Y, z=Z)
 
     pset.execute(
-        [AdvectionRK4_3D_CROCO, SampleOmegaCroco], runtime=np.timedelta64(runtime, "s"), dt=np.timedelta64(100, "s")
+        [AdvectionRK2_3D_CROCO, SampleOmegaCroco], runtime=np.timedelta64(runtime, "s"), dt=np.timedelta64(100, "s")
     )
     np.testing.assert_allclose(pset.z, Z.flatten(), atol=5)  # TODO lower this atol
-    np.testing.assert_allclose(pset.lon, [x + runtime for x in X.flatten()], atol=1e-3)
+    np.testing.assert_allclose(pset.x, [x + runtime for x in X.flatten()], atol=1e-3)

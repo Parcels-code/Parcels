@@ -22,7 +22,8 @@ def test_uxgrid_axes(uxds):
 @pytest.mark.parametrize("mesh", ["flat", "spherical"])
 def test_uxgrid_mesh(uxds, mesh):
     grid = UxGrid(uxds.uxgrid, z=uxds.coords["zf"], mesh=mesh)
-    assert grid._mesh == mesh
+
+    assert mesh in grid._mesh.__class__.__name__.lower()
 
 
 @pytest.mark.parametrize("uxds", [uxdatasets["stommel_gyre_delaunay"]])

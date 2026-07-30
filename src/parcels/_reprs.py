@@ -3,14 +3,22 @@
 from __future__ import annotations
 
 import textwrap
-from typing import TYPE_CHECKING, Any, cast
+from dataclasses import dataclass
+from typing import TYPE_CHECKING, Any, Literal, cast
 
 import numpy as np
 import xarray as xr
+import zarr
+from dask.base import is_dask_collection
+
+from parcels._core._windowed_array import WindowedArray
+from parcels._python import isinstance_noimport
 
 if TYPE_CHECKING:
     from parcels import Field, FieldSet, ParticleSet
     from parcels._core.field import VectorField
+    from parcels._core.model import ModelData
+    from parcels._core.utils.time import TimeInterval
 
 
 def fieldset_repr(fieldset: FieldSet) -> str:
@@ -89,7 +97,7 @@ def particleset_repr(pset: ParticleSet) -> str:
     Particles:
 {_format_list_items_multiline(particles, level=2, with_brackets=False)}
     Pclass:
-{textwrap.indent(repr(pset._ptype), 8 * " ")}
+{textwrap.indent(repr(pset._pclass), 8 * " ")}
 """
     return textwrap.dedent(out).strip()
 
@@ -97,8 +105,8 @@ def particleset_repr(pset: ParticleSet) -> str:
 def particlesetview_repr(pview: Any) -> str:
     """Return a pretty repr for ParticleSetView"""
     time_string = "not_yet_set" if pview.time is None or np.isnan(pview.time) else f"{pview.time:f}"
-    out = f"P[{pview.particle_id}]: time={time_string}, z={pview.z:f}, lat={pview.lat:f}, lon={pview.lon:f}"
-    vars = [v.name for v in pview._ptype.variables if v.to_write is True and v.name not in ["lon", "lat", "z", "time"]]
+    out = f"P[{pview.particle_id}]: time={time_string}, z={pview.z:f}, y={pview.y:f}, x={pview.x:f}"
+    vars = [v.name for v in pview._pclass.variables if v.to_write is True and v.name not in ["z", "y", "x", "time"]]
     for var in vars:
         out += f", {var}={getattr(pview, var):f}"
 
@@ -177,3 +185,102 @@ def _format_list_items_multiline(items: list[str] | dict, level: int = 1, with_b
 
 def is_builtin_object(obj):
     return obj.__class__.__module__ == "builtins"
+
+
+@dataclass
+class _FieldSetDescriptionRow:
+    type_: Literal["Field", "VectorField", "Context"]
+    model_id: int | None
+    name: str
+    interp_method_or_value: str
+    backend: str | None = None
+
+    def to_dict(self) -> dict[str, str]:
+        return {
+            "Name": self.name,
+            "Type": self.type_,
+            "Grid number": str(self.model_id) if self.model_id is not None else "-",
+            "Interp method / value": self.interp_method_or_value,
+            "Parcels backend": self.backend if self.backend is not None else "-",
+        }
+
+
+def _print_table(rows: list[_FieldSetDescriptionRow]) -> str:
+    import pandas as pd
+
+    dicts = [r.to_dict() for r in rows]
+    return pd.DataFrame(dicts).sort_values(["Grid number", "Type", "Name"]).to_markdown(index=False)
+
+
+def _print_time_interval(time_interval: TimeInterval | None) -> str:
+    if time_interval is None:
+        return repr(time_interval)
+    return repr((time_interval.left, time_interval.right))
+
+
+def _field_backend(field: Field | VectorField) -> str | None:
+    if hasattr(field, "data"):
+        if isinstance(field.data, WindowedArray):
+            return "WindowedArray"
+        elif is_dask_collection(field.data.data):
+            return "Dask"
+        elif isinstance(field.data.variable._data, zarr.Array):
+            return "Zarr"
+        elif isinstance(field.data.data, np.ndarray):
+            return "NumPy"
+        else:
+            return type(field.data).__name__
+    else:
+        return None
+
+
+def fieldset_describe(fieldset: FieldSet) -> str:
+    rows: list[_FieldSetDescriptionRow] = []
+    models: dict[int, int] = {}  # mapping of memory ID to a human readable ID
+
+    assert fieldset._fields is not None
+
+    for field in fieldset._fields.values():
+        model_id: int
+
+        # Set human readable model ID
+        parent_id = id(_get_parent_model(field))
+        models[parent_id] = models.get(parent_id, len(models))
+        model_id = models[parent_id]
+
+        type_ = cast(Literal["Field", "VectorField", "Context"], field.__class__.__name__)
+
+        rows.append(
+            _FieldSetDescriptionRow(
+                type_=type_,
+                model_id=model_id,
+                name=field.name,
+                interp_method_or_value=repr(field.interp_method),
+                backend=_field_backend(field),
+            )
+        )
+    for k, v in fieldset.context.items():
+        rows.append(
+            _FieldSetDescriptionRow(
+                type_="Context",
+                model_id=None,
+                name=k,
+                interp_method_or_value=repr(v),
+                backend=None,
+            )
+        )
+    return (
+        _print_table(rows)
+        + f"""\
+
+
+mesh: {fieldset.models[0].grid._mesh}
+time interval: {_print_time_interval(fieldset.time_interval)}
+"""
+    )
+
+
+def _get_parent_model(field: Field | VectorField) -> ModelData:
+    if isinstance_noimport(field, "Field"):
+        return field.model  # type:ignore[union-attr]
+    return field.U.model  # type:ignore[union-attr]

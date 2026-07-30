@@ -151,10 +151,10 @@ def test_isel(ds, indexer, node_dim, face_dim):
     assert_metadata_ds_consistency(ds_trimmed, metadata)
 
     # Assert that other dims haven't been affected
-    for dim, size_before in ds.dims.items():
+    for dim, size_before in ds.sizes.items():
         if dim in (node_dim, face_dim):
             continue
-        size_after = ds_trimmed.dims[dim]
+        size_after = ds_trimmed.sizes[dim]
         assert size_before == size_after
 
 
@@ -167,8 +167,8 @@ def test_isel_drop_dim(ds):
     assert "node_dimension1" not in ds_trimmed.dims
     assert "face_dimension1" not in ds_trimmed.dims
 
-    for dim, size_after in ds_trimmed.dims.items():
-        size_before = ds.dims[dim]
+    for dim, size_after in ds_trimmed.sizes.items():
+        size_before = ds.sizes[dim]
         assert size_before == size_after
 
 
@@ -201,7 +201,7 @@ def test_isel_p1_consistency_invariant(ds, s):
     fnp = metadata.face_dimensions[0]
     node_dim = fnp.node
     assume(node_dim in ds.dims)
-    n_nodes = ds.dims[node_dim]
+    n_nodes = ds.sizes[node_dim]
     assume(len(range(*s.indices(n_nodes))) > 0)  # exclude empty selections
 
     result = ds.sgrid.isel({node_dim: s})
@@ -219,7 +219,7 @@ def test_isel_p2_data_correctness(ds, s):
     fnp = metadata.face_dimensions[0]
     node_dim, face_dim = fnp.node, fnp.face
     assume(node_dim in ds.dims)
-    n_nodes = ds.dims[node_dim]
+    n_nodes = ds.sizes[node_dim]
     assume(len(range(*s.indices(n_nodes))) > 0)
 
     result = ds.sgrid.isel({node_dim: s})
@@ -249,14 +249,14 @@ def test_isel_p3_specification_symmetry(ds, s):
     fnp = metadata.face_dimensions[0]
     node_dim, face_dim = fnp.node, fnp.face
     assume(node_dim in ds.dims and face_dim in ds.dims)
-    n_nodes = ds.dims[node_dim]
+    n_nodes = ds.sizes[node_dim]
     assume(len(range(*s.indices(n_nodes))) > 0)
 
     from parcels._sgrid.accessor import _derive_paired_indexer
 
     _, face_indexer = _derive_paired_indexer(s, indexer_is_node=True, padding=fnp.padding, dim_size=n_nodes)
 
-    n_faces = ds.dims.get(face_dim)
+    n_faces = ds.sizes.get(face_dim)
     if n_faces is not None:
         assume(len(range(*face_indexer.indices(n_faces))) > 0)
 

@@ -46,6 +46,7 @@ requirements:
     - holoviews >= 1.22.0 # https://github.com/prefix-dev/rattler-build/issues/2326
     - pooch >=1.8.0
     - polars >=1.31.0
+    - tabulate >=0.10.0
 
 tests:
   - python:
