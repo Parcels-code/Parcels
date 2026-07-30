@@ -519,20 +519,20 @@ def test_uniform_analytical(u, v, w, direction, tmp_parquet):
     print(fieldset.U.data)
 
     x0, y0, z0 = 6.1, 6.2, 0.5
-    pset = ParticleSet(fieldset, pclass=Particle, lon=x0, lat=y0, z=z0)
+    pset = ParticleSet(fieldset, pclass=Particle, x=x0, y=y0, z=z0)
 
     outfile = ParticleFile(tmp_parquet, outputdt=np.timedelta64(1, "s"))
     pset.execute(
         AdvectionAnalytical, runtime=np.timedelta64(4, "s"), dt=np.timedelta64(direction, "s"), output_file=outfile
     )
-    assert np.abs(pset.lon - x0 - pset.time * u) < 1e-6
-    assert np.abs(pset.lat - y0 - pset.time * v) < 1e-6
+    assert np.abs(pset.x - x0 - pset.t * u) < 1e-6
+    assert np.abs(pset.y - y0 - pset.t * v) < 1e-6
     if w is not None:
-        assert np.abs(pset.depth - z0 - pset.time * w) < 1e-4
+        assert np.abs(pset.depth - z0 - pset.t * w) < 1e-4
 
     df = pd.read_parquet(tmp_parquet)
-    times = (direction * df["time"]).values.astype("timedelta64[s]")
+    times = (direction * df["t"]).values.astype("timedelta64[s]")
     timeref = np.arange(0, 5).astype("timedelta64[s]")
     assert np.allclose(times, timeref, atol=np.timedelta64(1, "ms"))
-    lons = df["lon"].values
+    lons = df["x"].values
     assert np.allclose(lons, x0 + direction * u * np.arange(0, 5))

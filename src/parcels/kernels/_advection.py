@@ -173,7 +173,7 @@ def AdvectionAnalytical(particles, fieldset):  # pragma: no cover
     igrid = fieldset.U.igrid
 
     _, grid_positions = _get_positions(
-        fieldset.U, particles.time, particles.z, particles.lat, particles.lon, particles, particles.ei[:, igrid]
+        fieldset.U, particles.t, particles.z, particles.y, particles.x, particles, particles.ei[:, igrid]
     )
     xi, xsi = grid_positions["X"]["index"], grid_positions["X"]["bcoord"]
     yi, eta = grid_positions["Y"]["index"], grid_positions["Y"]["bcoord"]
@@ -218,7 +218,7 @@ def AdvectionAnalytical(particles, fieldset):  # pragma: no cover
         px = np.array([grid.lon[yi, xi], grid.lon[yi, xi + 1], grid.lon[yi + 1, xi + 1], grid.lon[yi + 1, xi]])
         py = np.array([grid.lat[yi, xi], grid.lat[yi, xi + 1], grid.lat[yi + 1, xi + 1], grid.lat[yi + 1, xi]])
 
-    if grid._mesh == "spherical":
+    if grid._mesh.is_spherical():
         px = ((px + 180.0) % 360.0) - 180.0
         px[1:] = np.where(px[1:] - px[0] > 180, px[1:] - 360, px[1:])
         px[1:] = np.where(-px[1:] + px[0] > 180, px[1:] + 360, px[1:])
@@ -242,7 +242,7 @@ def AdvectionAnalytical(particles, fieldset):  # pragma: no cover
 
     rad = np.pi / 180.0
     deg2m = 1852 * 60.0
-    meshJac = (deg2m * deg2m * np.cos(rad * particles.lat)) if grid._mesh == "spherical" else 1
+    meshJac = (deg2m * deg2m * np.cos(rad * particles.y)) if grid._mesh.is_spherical() else 1
     dxdy = i_u._compute_jacobian_determinant(py, px, eta, xsi) * meshJac
 
     if withW:
