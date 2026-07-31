@@ -1,12 +1,11 @@
 # 📖 Grids
 
-In Lagrangian ocean analysis, virtual particle tracking requires the accurate interpolation of physical properties (flow velocities and tracer properties) to particle locations. The underlying data that forces the particle movement will likely be defined on a discretised grid. Parcels can natively handle two styles of horizontal grids; structured and (triangular) unstructured, where parcels `Field` objects exist on a (structured) `parcels.XGrid` or (unstructured) `parcels.UxGrid`. Here we describe these grids on a conceptual level.
+In Lagrangian ocean analysis, virtual particle tracking requires the accurate interpolation of physical properties (flow velocities and tracer properties) to particle locations. The underlying data that forces the particle movement will likely be defined on a discretised grid. Parcels can natively handle two styles of grids; structured and unstructured, where parcels `Field` objects exist on a (structured) `parcels.XGrid` and conform to [SGRID](https://sgrid.github.io/sgrid/) conventions, or on a (unstructured) `parcels.Uxgrid` and conform to [UGRID](https://ugrid-conventions.github.io/ugrid-conventions/) conventions. Here we describe these grids on a conceptual level.
 
 Under the hood, every `Field` in a `FieldSet` has a `grid` attribute. This `grid` stores the spatial and temporal information of the Field coordinates. The number of Grids in a FieldSet is thus always smaller or equal to the number of Field objects; and this is what the "grid number" column in `FieldSet.describe()` refers to.
 
 ## Structured grids
-
-A structured grid is composed of quadrilateral elements, that are indexed using logical 2D or 3D indices, like $(i,j,k)$. In `xarray` terminology, these indices correspond to `dimensions`, for example [...]. In structured grids, grid cell neighbours are easily found by decrementing or incrementing these dimensions.
+A structured grid is composed of quadrilateral elements, that are indexed using logical 2D or 3D indices, like $(i,j,k)$. In `xarray` terminology, these indices correspond to `dimensions`, for example [...]. A major benefit of structured grids is that grid cell neighbours are easily found by decrementing or incrementing these dimensions. However, in parcels we either perform a binary search in the case of 1-dimensional coordinates, or use a hash table in the case of 2/3-dimensional coordinates.
 
 There are two styles of structured grids, rectilinear and curvilinear, as shown in Figure 1.
 
@@ -16,17 +15,16 @@ There are two styles of structured grids, rectilinear and curvilinear, as shown 
 
 ![Figure 1 - Grid discretizations in the horizontal plane; (a) rectilinear, (b) curvilinear. Adapted from [Parcels v2.0 paper](https://doi.org/10.5194/gmd-12-3571-2019)](image.png)
 
-## Unstructured grids
 
+## Unstructured grids
 TODO: For Joe.
 
-## How your data may be defined
 
+## How your data may be defined
 Regardless of your grid type, how your data is defined on your grid is equally important. Here, we will describe how you can interpret your data at a very general level, and the concept applies for any $n$-gon ($n$-sided polygon with $n \ge 3$).
 
 ### Nodes, edges, and faces
-
-Let's assume we have a simple 2D rectlinear grid. The grid is composed of a number of nodes (or vertices), connected by edges, which together construct grid cells and grid cell faces. In Figure 2, we draw a simple grid cell. Here, your data may be defined on the corners of the grid cell (the nodes/vertices), at the centre of the cell face, or across a cell edge.
+Let's assume we have a simple 2D rectilinear grid. The grid is composed of a number of nodes (or vertices), connected by edges, which together construct grid cells and grid cell faces. In Figure 2, we draw a simple grid cell. Here, your data may be defined on the corners of the grid cell (the nodes/vertices), at the centre of the cell face, or across a cell edge.
 
 ![Figure 2 - A simple grid cell. Blue circles denote nodes (or vertices) of the grid cell. The red circle denotes the centre of the cell face.](image-1.png)
 
