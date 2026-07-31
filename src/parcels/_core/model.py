@@ -133,7 +133,7 @@ def preprocess_sgrid_model_data(ds: xr.Dataset) -> xr.Dataset:
     return ds
 
 
-def validate_field_data(ds: xr.DataArray) -> xr.DataArray:
+def validate_field_data(ds: xr.Dataset) -> xr.Dataset:
     if any(isinstance(da.variable._data, zarr.Array) for da in ds.data_vars.values()):
         warnings.warn(
             "Changing a Zarr-backed dataset. This may convert the Parcels backend to NumPy. "
