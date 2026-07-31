@@ -36,7 +36,7 @@ getting_started/explanation_concepts.md
 :caption: Set up FieldSets
 :name: setup-fieldsets
 :titlesonly:
-examples/explanation_grids.md
+examples/explanation_grids.ipynb
 examples/tutorial_nemo.ipynb
 examples/tutorial_croco_3D.ipynb
 examples/tutorial_mitgcm.ipynb
