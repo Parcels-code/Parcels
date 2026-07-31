@@ -67,7 +67,8 @@ plt.ylabel('Y [km]')
 
 plt.xlim([-0.2,1.2])
 plt.ylim([-0.2,1.2])
-```
+
+````
 
 </details>
 
@@ -107,7 +108,7 @@ plt.axvline(2, linewidth=0.5, color='k', zorder=30)
 plt.xlim([-1,2])
 plt.ylim([-1,2])
 plt.show()
-```
+````
 
 </details>
 
@@ -169,6 +170,7 @@ plt.ylim([-0.2,1.2])
 plt.xlabel('X [km]')
 plt.ylabel('Y [km]')
 plt.show()
+
 ```
 </details>
 
@@ -184,3 +186,4 @@ Lastly, a short note on vertical coordinates. Parcels can handle two styles of v
 - support for many common ocean model outputs -> converts xarray datasets into SGRID/UGRID compliant datasets.
 - if your model is not currently supported, you can write your own, or reach out by raising a discussion thread.
 - your grid determines the type of interpolater you will use.
+```
