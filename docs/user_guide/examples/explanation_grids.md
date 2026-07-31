@@ -30,7 +30,7 @@ Let's assume we have a simple 2D rectilinear grid. The grid is composed of a num
 
 ![Figure 2 - A simple grid cell. Blue circles denote nodes (or vertices) of the grid cell. The red circle denotes the centre of the cell face.](image-1.png)
 
-You will need to make several assumptions about your data. Your data may represent a point-wise "sample" of some field. For example, velocity data may be defined at the nodes of your grid, and a typical assumption to make is that you can bi-linearly interpolate these data points to your particle positions. In such an example, your velocity field may look like Figure 3. Bi-linear interpolation ensures continuity of the velocity at the cell boundaries, however, it does not ensure a smooth transition. 
+You will need to make several assumptions about your data. Your data may represent a point-wise "sample" of some field. For example, velocity data may be defined at the nodes of your grid, and a typical assumption to make is that you can bi-linearly interpolate these data points to your particle positions. In such an example, your velocity field may look like Figure 3. Bi-linear interpolation ensures continuity of the velocity at the cell boundaries, however, it does not ensure a smooth transition.
 
 <details>
 <summary>Code to generate Figure 3</summary>
