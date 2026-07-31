@@ -6,7 +6,7 @@ Under the hood, every `Field` in a `FieldSet` has a `grid` attribute. This `grid
 
 ## Structured grids
 
-A structured grid is composed of quadrilateral elements, that are indexed using logical 2D or 3D indices, like $(i,j,k)$. In `xarray` terminology, these indices correspond to `dimensions`, for example [...]. A major benefit of structured grids is that grid cell neighbours are easily found by decrementing or incrementing these dimensions. However, in parcels we either perform a binary search in the case of 1-dimensional coordinates, or use a hash table in the case of 2/3-dimensional coordinates.
+A structured grid is composed of quadrilateral elements, that are indexed using logical 2D or 3D indices, like $(i,j,k)$. In `xarray` terminology, these indices correspond to `dimensions`. For example, in NEMO datasets, $(x,y)$ typically define these dimensions horizontally, where the physical coordinates are $(glamf, gphif)$. A major benefit of structured grids is that grid cell neighbours are easily found by decrementing or incrementing these dimensions. However, in parcels we either perform a binary search in the case of 1-dimensional coordinates, or use a hash table in the case of 2/3-dimensional coordinates.
 
 There are two styles of structured grids, rectilinear and curvilinear, as shown in Figure 1.
 
