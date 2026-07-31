@@ -18,6 +18,7 @@ if TYPE_CHECKING:
     from parcels import Field, FieldSet, ParticleSet
     from parcels._core.field import VectorField
     from parcels._core.model import ModelData
+    from parcels._core.spatialhash import SpatialHash
     from parcels._core.utils.time import TimeInterval
 
 
@@ -279,6 +280,38 @@ time interval: {_print_time_interval(fieldset.time_interval)}
 """
     )
 
+
+def spatialhash_describe(spatialhash: SpatialHash) -> str:
+    grid = spatialhash._source_grid
+    hash_table = spatialhash._hash_table
+    counts = hash_table["counts"]
+
+    n_faces = int(np.size(spatialhash._xlow))
+    n_entries = int(hash_table["faces"].size)
+    n_occupied_cells = int(hash_table["keys"].size)
+    n_total_cells = (spatialhash._bitwidth + 1) ** 3
+
+    rows = {
+        "Grid type": type(grid).__name__,
+        "Mesh": "spherical" if grid._mesh.is_spherical() else "flat",
+        "Total Mesh Faces": str(n_faces),
+        "Bitwidth (current / max)": f"{spatialhash._bitwidth} / 1023  (higher = finer resolution hash grid)",
+        "Total hash cells": str(n_total_cells),
+        "Occupied hash cells": str(n_occupied_cells),
+        "Total (cell --> face) entries": str(n_entries),
+        "Entries per occupied cell (avg)": f"{n_entries / n_occupied_cells:.2f}" if n_occupied_cells else "-",
+        "Entries per face (avg)": f"{n_entries / n_faces:.2f}" if n_faces else "-",
+        "Faces per occupied cell (min / mean / max)": (
+            f"{counts.min()} / {counts.mean():.2f} / {counts.max()}" if n_occupied_cells else "-"
+        ),
+    }
+    key_width = max(len(k) for k in rows)
+    table = "\n".join(f"{k.ljust(key_width)} : {v}" for k, v in rows.items())
+
+    return (
+        "Spatial Hash Grid Statistics" + "\n"
+        + table + "\n"
+        )
 
 def _get_parent_model(field: Field | VectorField) -> ModelData:
     if isinstance_noimport(field, "Field"):
