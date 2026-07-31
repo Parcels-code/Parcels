@@ -14,7 +14,7 @@ There are two styles of structured grids, rectilinear and curvilinear, as shown 
 
 2. Curvilinear grids allow for curved grid lines, which allow for better representation of coastlines. They often move the poles onto land to avoid singularities occuring in the ocean. However, they become trickier to work with, as the spatial positions of their vertices (their ["coordinates" in xarray-parlance](https://docs.xarray.dev/en/latest/user-guide/terminology.html#term-Coordinate)) are stored in separate 2D arrays, and moving to an eastward neighbour is not as simple as incrementing the $i$-th dimension by 1.
 
-![Figure 1 - Grid discretizations in the horizontal plane; (a) rectilinear, (b) curvilinear. Adapted from [Parcels v2.0 paper](https://doi.org/10.5194/gmd-12-3571-2019)](image.png)
+![Figure 1 - Grid discretizations handled by Parcels. In the horizontal plane; (a) rectilinear, (b) curvilinear. In the vertical plane; (c) z-levels, (d) sigma-levels. Adapted from [Parcels v2.0 paper](https://doi.org/10.5194/gmd-12-3571-2019)](image.png)
 
 ## Unstructured grids
 
