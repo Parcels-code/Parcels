@@ -30,7 +30,7 @@ Let's assume we have a simple 2D rectilinear grid. The grid is composed of a num
 
 ![Figure 2 - A simple grid cell. Blue circles denote nodes (or vertices) of the grid cell. The red circle denotes the centre of the cell face.](image-1.png)
 
-You will need to make several assumptions about your data. Your data may represent a point-wise "sample" of some field. For example, velocity data may be defined at the nodes of your grid, and a typical assumption to make is that you can bi-linearly interpolate these data points to your particle positions. In such an example, your velocity field may look like Figure 3.
+You will need to make several assumptions about your data. Your data may represent a point-wise "sample" of some field. For example, velocity data may be defined at the nodes of your grid, and a typical assumption to make is that you can bi-linearly interpolate these data points to your particle positions. In such an example, your velocity field may look like Figure 3. Bi-linear interpolation ensures continuity of the velocity at the cell boundaries, however, it does not ensure a smooth transition. 
 
 <details>
 <summary>Code to generate Figure 3</summary>
@@ -74,7 +74,7 @@ plt.ylim([-0.2,1.2])
 
 ![Figure 3 - Bi-linear interpolation of point-wise data at nodes](image-2.png)
 
-Alternatively, your data may represent an "average value" across a cell face. For example, your temperature and salinity data may be defined at the cell centre, and represent an average value for the entire grid cell. A typical assumption to make is that you can nearest-neighbour interpolate these data points to your particle positions. In such a case, your temperature field may look like figure 4.
+Alternatively, your data may represent an "average value" across a cell face. For example, your temperature and salinity data may be defined at the cell centre, and represent an average value for the entire grid cell. A typical assumption to make is that you can nearest-neighbour interpolate these data points to your particle positions. In such a case, your temperature field may look like figure 4. A nearest-neighbour interpolation scheme ensures you have a piece-wise constant field, typically with sharp transitions at grid cell boundaries.
 
 <details>
 <summary>Code to generate Figure 4</summary>
@@ -115,6 +115,7 @@ plt.show()
 ![Figure 4 - Nearest-neighbour interpolation of "grid cell averaged" data at cell centres](image-4.png)
 
 Your data may represent a value across a cell edge. For example, in (2D) Arakawa C-grid datasets, velocities are defined across an edge as they represent a "flux" across that cell edge. Additionally, these cell edges may not be aligned with the coordinate axes, and rather represent a velocity in the $i$ or $j$ direction. For structured grids, [Blanke and Raynaud](<https://doi.org/10.1175/1520-0485(1997)027%3C1038:KOTPEU%3E2.0.CO;2>) proposed in 1997 to perform a 1D linear interpolation of the $i$ velocity in the $i$ direction, and similarly a 1D linear interpolation of the $j$ velocity in the $j$ direction. These velocities must then be rotated into meridional and zonal velocities, which parcels handles under the hood. In such a case, your velocity field may look like figure 5.
+
 This (uni)linear velocity interpolation is now often referred to as the Analytical interpolation scheme, and is what the [Ariane](https://ariane-code.cnrs.fr) and [TRACMASS](https://www.tracmass.org/index.html) Lagrangian codes also use. In Parcels, the time-stepping version of this interpolation is provided in the `CGrid_Velocity` Interpolator function.
 
 <details>
