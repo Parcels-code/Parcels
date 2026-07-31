@@ -5,6 +5,7 @@ In Lagrangian ocean analysis, virtual particle tracking requires the accurate in
 Under the hood, every `Field` in a `FieldSet` has a `grid` attribute. This `grid` stores the spatial and temporal information of the Field coordinates. The number of Grids in a FieldSet is thus always smaller or equal to the number of Field objects; and this is what the "grid number" column in `FieldSet.describe()` refers to.
 
 ## Structured grids
+
 A structured grid is composed of quadrilateral elements, that are indexed using logical 2D or 3D indices, like $(i,j,k)$. In `xarray` terminology, these indices correspond to `dimensions`, for example [...]. A major benefit of structured grids is that grid cell neighbours are easily found by decrementing or incrementing these dimensions. However, in parcels we either perform a binary search in the case of 1-dimensional coordinates, or use a hash table in the case of 2/3-dimensional coordinates.
 
 There are two styles of structured grids, rectilinear and curvilinear, as shown in Figure 1.
@@ -15,15 +16,16 @@ There are two styles of structured grids, rectilinear and curvilinear, as shown 
 
 ![Figure 1 - Grid discretizations in the horizontal plane; (a) rectilinear, (b) curvilinear. Adapted from [Parcels v2.0 paper](https://doi.org/10.5194/gmd-12-3571-2019)](image.png)
 
-
 ## Unstructured grids
+
 TODO: For Joe.
 
-
 ## How your data may be defined
+
 Regardless of your grid type, how your data is defined on your grid is equally important. Here, we will describe how you can interpret your data at a very general level, and the concept applies for any $n$-gon ($n$-sided polygon with $n \ge 3$).
 
 ### Nodes, edges, and faces
+
 Let's assume we have a simple 2D rectilinear grid. The grid is composed of a number of nodes (or vertices), connected by edges, which together construct grid cells and grid cell faces. In Figure 2, we draw a simple grid cell. Here, your data may be defined on the corners of the grid cell (the nodes/vertices), at the centre of the cell face, or across a cell edge.
 
 ![Figure 2 - A simple grid cell. Blue circles denote nodes (or vertices) of the grid cell. The red circle denotes the centre of the cell face.](image-1.png)
@@ -51,9 +53,9 @@ interp_v_data = interp_v(np.linspace(0,1,51), np.linspace(0,1,51))
 interp_speed_data = np.sqrt(interp_u_data**2 + interp_v_data**2)
 
 mm=5
-plt.axhline(0, linewidth=0.5, color='k') 
+plt.axhline(0, linewidth=0.5, color='k')
 plt.axvline(0, linewidth=0.5, color='k')
-plt.axhline(1, linewidth=0.5, color='k') 
+plt.axhline(1, linewidth=0.5, color='k')
 plt.axvline(1, linewidth=0.5, color='k')
 cb = plt.pcolormesh(interp_xx, interp_yy, interp_speed_data, shading='gouraud', cmap=plt.cm.viridis)
 plt.quiver(interp_xx[::mm], interp_yy[::mm], interp_u_data[::mm,::mm], interp_v_data[::mm,::mm])
@@ -65,7 +67,8 @@ plt.ylabel('Y [km]')
 
 plt.xlim([-0.2,1.2])
 plt.ylim([-0.2,1.2])
-```
+
+````
 </details>
 
 ![Figure 3 - Bi-linear interpolation of point-wise data at nodes](image-2.png)
@@ -93,10 +96,10 @@ plt.colorbar(cb, ax=plt.gca(), label='Temperature [deg C]')
 plt.xlabel('X [km]')
 plt.ylabel('Y [km]')
 plt.axhline(-1, linewidth=0.5, color='k', zorder=30)
-plt.axhline(0, linewidth=0.5, color='k', zorder=30) 
+plt.axhline(0, linewidth=0.5, color='k', zorder=30)
 plt.axhline(1, linewidth=0.5, color='k', zorder=30)
 plt.axhline(2, linewidth=0.5, color='k', zorder=30)
-plt.axvline(-1, linewidth=0.5, color='k', zorder=30) 
+plt.axvline(-1, linewidth=0.5, color='k', zorder=30)
 plt.axvline(0, linewidth=0.5, color='k', zorder=30)
 plt.axvline(1, linewidth=0.5, color='k', zorder=30)
 plt.axvline(2, linewidth=0.5, color='k', zorder=30)
@@ -104,12 +107,13 @@ plt.axvline(2, linewidth=0.5, color='k', zorder=30)
 plt.xlim([-1,2])
 plt.ylim([-1,2])
 plt.show()
-```
+````
+
 </details>
 
 ![Figure 4 - Nearest-neighbour interpolation of "grid cell averaged" data at cell centres](image-4.png)
 
-Your data may represent a value across a cell edge. For example, in (2D) Arakawa C-grid datasets, velocities are defined across an edge as they represent a "flux" across that cell edge. Additionally, these cell edges may not be aligned with the coordinate axes, and rather represent a velocity in the $i$ or $j$ direction. For structured grids, [Blanke and Raynaud](https://doi.org/10.1175/1520-0485(1997)027%3C1038:KOTPEU%3E2.0.CO;2) proposed in 1997 to perform a 1D linear interpolation of the $i$ velocity in the $i$ direction, and similarly a 1D linear interpolation of the $j$ velocity in the $j$ direction. These velocities must then be rotated into meridional and zonal velocities, which parcels handles under the hood. In such a case, your velocity field may look like figure 5.
+Your data may represent a value across a cell edge. For example, in (2D) Arakawa C-grid datasets, velocities are defined across an edge as they represent a "flux" across that cell edge. Additionally, these cell edges may not be aligned with the coordinate axes, and rather represent a velocity in the $i$ or $j$ direction. For structured grids, [Blanke and Raynaud](<https://doi.org/10.1175/1520-0485(1997)027%3C1038:KOTPEU%3E2.0.CO;2>) proposed in 1997 to perform a 1D linear interpolation of the $i$ velocity in the $i$ direction, and similarly a 1D linear interpolation of the $j$ velocity in the $j$ direction. These velocities must then be rotated into meridional and zonal velocities, which parcels handles under the hood. In such a case, your velocity field may look like figure 5.
 This (uni)linear velocity interpolation is now often referred to as the Analytical interpolation scheme, and is what the [Ariane](https://ariane-code.cnrs.fr) and [TRACMASS](https://www.tracmass.org/index.html) Lagrangian codes also use. In Parcels, the time-stepping version of this interpolation is provided in the `CGrid_Velocity` Interpolator function.
 
 <details>
@@ -119,7 +123,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 from scipy.interpolate import interp1d
 
-interp_xx, interp_yy  = np.linspace(0,1,51), np.linspace(0,1,51)
+interp_xx, interp_yy = np.linspace(0,1,51), np.linspace(0,1,51)
 XX,YY = np.meshgrid(interp_xx, interp_yy, indexing='xy')
 u_data = np.array([[2, 1]])
 v_data = np.array([[0, 1]])
@@ -132,32 +136,32 @@ interp_v_data = interp_v(YY)
 interp_speed_data = np.sqrt(interp_u_data**2 + interp_v_data**2)
 
 mm=5
-plt.axhline(0, linewidth=0.5, color='k') 
+plt.axhline(0, linewidth=0.5, color='k')
 plt.axvline(0, linewidth=0.5, color='k')
-plt.axhline(1, linewidth=0.5, color='k') 
+plt.axhline(1, linewidth=0.5, color='k')
 plt.axvline(1, linewidth=0.5, color='k')
 cb = plt.pcolormesh(interp_xx, interp_yy, interp_speed_data, vmin=0.75, vmax=2)
 plt.quiver(interp_xx[::mm], interp_yy[::mm], interp_u_data[::mm,::mm], interp_v_data[::mm,::mm])
 plt.title(f"C-grid interpolation of velocity data\nacross cell edges")
 plt.quiver(interp_xx[0], interp_yy[len(interp_yy)//2],
-           interp_u_data[len(interp_u_data)//2, 0],
-           0,
-           color='r',
-           scale=30)
+interp_u_data[len(interp_u_data)//2, 0],
+0,
+color='r',
+scale=30)
 plt.quiver(interp_xx[-1], interp_yy[len(interp_yy)//2],
-           interp_u_data[len(interp_u_data)//2, -1],
-           0,
-           color='r',
-           scale=30)
+interp_u_data[len(interp_u_data)//2, -1],
+0,
+color='r',
+scale=30)
 
 plt.quiver(interp_xx[len(interp_yy)//2], interp_yy[0],
-           0,
-           interp_v_data[0, len(interp_v_data)//2],
-           color='b')
+0,
+interp_v_data[0, len(interp_v_data)//2],
+color='b')
 plt.quiver(interp_xx[len(interp_yy)//2], interp_yy[-1],
-           0,
-           interp_v_data[-1, len(interp_v_data)//2],
-           color='b')
+0,
+interp_v_data[-1, len(interp_v_data)//2],
+color='b')
 
 plt.colorbar(cb, ax=plt.gca(), label='Speed [m/s]')
 plt.xlim([-0.2,1.2])
@@ -165,6 +169,7 @@ plt.ylim([-0.2,1.2])
 plt.xlabel('X [km]')
 plt.ylabel('Y [km]')
 plt.show()
+
 ```
 </details>
 
@@ -180,3 +185,4 @@ Lastly, a short note on vertical coordinates. Parcels can handle two styles of v
 - support for many common ocean model outputs -> converts xarray datasets into SGRID/UGRID compliant datasets.
 - if your model is not currently supported, you can write your own, or reach out by raising a discussion thread.
 - your grid determines the type of interpolater you will use.
+```
