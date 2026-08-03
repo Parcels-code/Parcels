@@ -305,6 +305,29 @@ def test_time_is_age(fieldset, tmp_parquet, outputdt):
         assert (df_traj["age"] == traj_time).all()
 
 
+@pytest.mark.parametrize("npart", [1, 10])
+def test_sampling_initial_value(fieldset, npart, tmp_parquet):
+    # Test that inital value of a field gets sampled
+
+    SampleParticle = get_default_particle(np.float64).add_variable(Variable("sample", initial=np.nan))
+
+    def SampleKernel(particles, fieldset):  # pragma: no cover
+        particles.sample = fieldset.U[particles]
+
+    x = np.zeros(npart)
+    y = np.zeros(npart)
+    t = np.zeros(npart, dtype="timedelta64[s]")
+
+    pset = ParticleSet(fieldset, pclass=SampleParticle, x=x, y=y, t=t)
+    pset.sample = fieldset.U[pset]  # Sample initial value
+
+    ofile = ParticleFile(tmp_parquet, outputdt=np.timedelta64(1, "s"))
+    pset.execute(SampleKernel, runtime=np.timedelta64(2, "s"), dt=np.timedelta64(1, "s"), output_file=ofile)
+
+    df = parcels.read_particlefile(tmp_parquet)
+    np.testing.assert_allclose(df["sample"].is_finite().all(), True)
+
+
 def test_reset_dt(fieldset, tmp_parquet):
     # Assert that p.dt gets reset when a write_time is not a multiple of dt
     # for p.dt=0.02 to reach outputdt=0.05 and endtime=0.1, the steps should be [0.2, 0.2, 0.1, 0.2, 0.2, 0.1], resulting in 6 kernel executions

@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Hashable, Sequence
 from typing import Any, Self
@@ -7,6 +8,7 @@ from typing import Any, Self
 import cf_xarray  # noqa: F401
 import uxarray as ux
 import xarray as xr
+import zarr
 from dask import is_dask_collection
 
 import parcels._sgrid as sgrid
@@ -130,6 +132,17 @@ def preprocess_sgrid_model_data(ds: xr.Dataset) -> xr.Dataset:
     return ds
 
 
+def validate_field_data(ds: xr.Dataset) -> xr.Dataset:
+    if any(isinstance(da.variable._data, zarr.Array) for da in ds.data_vars.values()):
+        warnings.warn(
+            "Changing a Zarr-backed dataset. This may convert the Parcels backend to NumPy. "
+            "If you want to keep the Zarr backend, please use `skip_field_data_validation=True` when creating the FieldSet.",
+            UserWarning,
+            stacklevel=2,
+        )
+    return ds.fillna(0)
+
+
 class StructuredModelData(ModelData):
     def __init__(
         self,
@@ -143,7 +156,7 @@ class StructuredModelData(ModelData):
 
         data = preprocess_sgrid_model_data(data)
         if not skip_field_data_validation:
-            data = data.fillna(0)
+            data = validate_field_data(data)
         grid = XGrid(data, mesh)
 
         self.data = data
