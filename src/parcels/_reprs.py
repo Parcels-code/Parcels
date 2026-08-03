@@ -308,10 +308,8 @@ def spatialhash_describe(spatialhash: SpatialHash) -> str:
     key_width = max(len(k) for k in rows)
     table = "\n".join(f"{k.ljust(key_width)} : {v}" for k, v in rows.items())
 
-    return (
-        "Spatial Hash Grid Statistics" + "\n"
-        + table + "\n"
-        )
+    return "Spatial Hash Grid Statistics" + "\n" + table + "\n"
+
 
 def _get_parent_model(field: Field | VectorField) -> ModelData:
     if isinstance_noimport(field, "Field"):

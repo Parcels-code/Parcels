@@ -1,6 +1,5 @@
-import warnings
-
 import sys
+import warnings
 from typing import IO
 
 import numpy as np
@@ -543,7 +542,6 @@ class SpatialHash:
         assert buf is not None
 
         buf.write(spatialhash_describe(self))
-
 
 
 def _dilate_bits(n):
