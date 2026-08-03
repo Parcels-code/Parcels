@@ -14,7 +14,6 @@ from __future__ import annotations
 
 import enum
 import typing
-import warnings
 from typing import cast
 
 import numpy as np
@@ -153,7 +152,7 @@ def _maybe_bring_other_depths_to_depth(ds: xr.Dataset):
                 ds[var] = ds[var].rename({old_depth: target})
 
     if "depth" not in ds.dims:
-        warnings.warn("No depth dimension found in your dataset. Assuming no depth (i.e., surface data).", stacklevel=1)
+        logger.info("No depth dimension found in your dataset. Assuming no depth (i.e., surface data).", stacklevel=1)
         ds = ds.expand_dims({"depth": [0]})
         ds["depth"] = xr.DataArray([0], dims=["depth"])
     return ds
@@ -298,6 +297,13 @@ def _discover_U_and_V(ds: xr.Dataset, cf_standard_names_fallbacks) -> xr.Dataset
     return ds
 
 
+def _assert_no_grid_metadata(ds: xr.Dataset) -> None:
+    if "grid" in ds.cf.cf_roles:
+        raise ValueError(
+            "Dataset already has a 'grid' variable (according to cf_roles). Didn't expect there to be grid metadata on this dataset - please open an issue with more information about your dataset."
+        )
+
+
 def nemo_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.Dataset):
     # TODO: Update docstring
     """Create a FieldSet from a xarray.Dataset from NEMO netcdf files.
@@ -375,11 +381,8 @@ def nemo_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.Da
     if "W" in ds.data_vars:
         # Negate W to convert from up positive to down positive (as that's the direction of positive z)
         ds["W"].data *= -1
-    if "grid" in ds.cf.cf_roles:
-        raise ValueError(
-            "Dataset already has a 'grid' variable (according to cf_roles). Didn't expect there to be grid metadata on copernicusmarine datasets - please open an issue with more information about your dataset."
-        )
 
+    _assert_no_grid_metadata(ds)
     ds["grid"] = xr.DataArray(
         0,
         attrs=sgrid.SGrid2DMetadata(
@@ -436,18 +439,14 @@ def mitgcm_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.
 
     coords = _pick_expected_coords(coords, _MITGCM_EXPECTED_COORDS)
 
-    ds = xr.merge(list(fields.values()) + [coords])
+    ds = xr.merge(list(fields.values()) + [coords], compat="override")
     ds.attrs.clear()  # Clear global attributes from the merging
 
     ds = _maybe_rename_variables(ds, _MITGCM_VARNAMES_MAPPING)
     ds = _set_axis_attrs(ds, _MITGCM_AXIS_VARNAMES)
     ds = _maybe_swap_depth_direction(ds)
 
-    if "grid" in ds.cf.cf_roles:
-        raise ValueError(
-            "Dataset already has a 'grid' variable (according to cf_roles). Didn't expect there to be grid metadata on copernicusmarine datasets - please open an issue with more information about your dataset."
-        )
-
+    _assert_no_grid_metadata(ds)
     ds["grid"] = xr.DataArray(
         0,
         attrs=sgrid.SGrid2DMetadata(
@@ -504,11 +503,7 @@ def croco_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.D
     ds = _maybe_rename_variables(ds, _CROCO_VARNAMES_MAPPING)
     ds = _maybe_convert_time_from_float_to_timedelta(ds)
 
-    if "grid" in ds.cf.cf_roles:
-        raise ValueError(
-            "Dataset already has a 'grid' variable (according to cf_roles). Didn't expect there to be grid metadata on copernicusmarine datasets - please open an issue with more information about your dataset."
-        )
-
+    _assert_no_grid_metadata(ds)
     ds["grid"] = xr.DataArray(
         0,
         attrs=sgrid.SGrid2DMetadata(
@@ -571,10 +566,7 @@ def copernicusmarine_to_sgrid(
         # Negate W to convert from up positive to down positive (as that's the direction of positive z)
         ds["W"].data *= -1
 
-    if "grid" in ds.cf.cf_roles:
-        raise ValueError(
-            "Dataset already has a 'grid' variable (according to cf_roles). Didn't expect there to be grid metadata on copernicusmarine datasets - please open an issue with more information about your dataset."
-        )
+    _assert_no_grid_metadata(ds)
     ds["grid"] = xr.DataArray(
         0,
         attrs=sgrid.SGrid2DMetadata(  # use dummy *_center dimensions - this is A grid data (all defined on nodes)
