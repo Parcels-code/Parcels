@@ -11,6 +11,7 @@ import warnings as _stdlib_warnings
 
 from parcels._core.fieldset import FieldSet
 from parcels._xarray import open_raw_zarr
+import parcels.convert  # noqa: F401
 from parcels._core.particleset import ParticleSet
 from parcels._core.particlefile import ParticleFile, read_particlefile
 from parcels._core.particle import (
@@ -71,6 +72,7 @@ __all__ = [  # noqa: RUF022
     "KernelWarning",
     "ParticleSetWarning",
     # Utilities
+    "convert",
     "logger",
     "read_particlefile",
 ]
