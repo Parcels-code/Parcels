@@ -23,7 +23,6 @@ from parcels._core.xgrid import (
 )
 from parcels._logger import logger
 from parcels._python import NOTSET, NotSetType
-from parcels.convert import _ds_rename_using_standard_names
 from parcels.interpolators import (
     CGrid_Velocity,
     Ux_Velocity,
@@ -418,7 +417,7 @@ def _discover_ux_U_and_V(ds: ux.UxDataset) -> ux.UxDataset:
     if "W" not in ds:
         for common_W in common_ux_W:
             if common_W in ds:
-                ds = _ds_rename_using_standard_names(ds, {common_W: "W"})
+                ds = ds.rename({common_W: "W"})
                 break
 
     if "U" in ds and "V" in ds:
@@ -437,7 +436,7 @@ def _discover_ux_U_and_V(ds: ux.UxDataset) -> ux.UxDataset:
                     "Please rename the appropriate variables in your dataset to have both 'U' and 'V' for Parcels simulation."
                 )
             else:
-                ds = _ds_rename_using_standard_names(ds, {common_U: "U", common_V: "V"})
+                ds = ds.rename({common_U: "U", common_V: "V"})
                 break
 
         else:

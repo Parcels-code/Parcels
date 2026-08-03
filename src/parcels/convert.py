@@ -199,14 +199,11 @@ def _set_axis_attrs(ds: xr.Dataset, dim_axis: dict[str, XgcmAxisDirection]):
 
 def _ds_rename_using_standard_names(ds: xr.Dataset | ux.UxDataset, name_dict: dict[str, str]) -> xr.Dataset:
     for standard_name, rename_to in name_dict.items():
-        if standard_name in ds:
-            ds = ds.rename({standard_name: rename_to})
-        else:
-            name = ds.cf[standard_name].name
-            ds = ds.rename({name: rename_to})
-            logger.info(
-                f"cf_xarray found variable {name!r} with CF standard name {standard_name!r} in dataset, renamed it to {rename_to!r} for Parcels simulation."
-            )
+        name = ds.cf[standard_name].name
+        ds = ds.rename({name: rename_to})
+        logger.info(
+            f"cf_xarray found variable {name!r} with CF standard name {standard_name!r} in dataset, renamed it to {rename_to!r} for Parcels simulation."
+        )
     return ds
 
 
