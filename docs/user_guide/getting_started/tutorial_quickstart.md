@@ -112,6 +112,14 @@ ax = temperature.axes
 ax.scatter(lon, lat, s=40, c='w', edgecolors='r');
 ```
 
+If you also want to sample the initial value of a field, you can do so by calling the field with the `ParticleSet` as an argument. For example, in the code above you would add one line (assuming that the ParticleSet has a variable `temperature`) to sample the initial temperature values, before calling `pset.execute(...)`.
+
+```python
+pset.temperature = fieldset.thetao[pset]
+```
+
+See the [sampling tutorial](../examples/tutorial_sampling.ipynb#sampling-initial-field-values) for more information on initial sampling of fields.
+
 ## Compute: `Kernel`
 
 After setting up the input data and particle start locations and times, we need to specify what calculations to do with

@@ -41,7 +41,7 @@ def field():
     temporal_data = np.array([spatial_data, spatial_data + 10, spatial_data + 20])  # each t is +10 from the previous
 
     ds = xr.Dataset(
-        {"U": (["time", "depth", "lat", "lon"], temporal_data)},
+        {"P": (["time", "depth", "lat", "lon"], temporal_data)},
         coords={
             "time": (["time"], [np.timedelta64(t, "s") for t in [0, 2, 4]], {"axis": "T"}),
             "depth": (["depth"], [0, 1, 2, 3], {"axis": "Z"}),
@@ -64,7 +64,7 @@ def field():
             vertical_dimensions=(sgrid.FaceNodePadding("ZC", "depth", sgrid.Padding.HIGH),),
         ),
     )
-    field = FieldSet.from_sgrid_conventions(ds, mesh="flat").U
+    field = FieldSet.from_sgrid_conventions(ds, mesh="flat").P
     assert isinstance(field.interp_method, XLinear)
 
     return field
@@ -192,8 +192,9 @@ def test_interpolation_mesh_type(mesh, npart=10):
     time = 0.0
     u_expected = 1.0 if mesh == "flat" else 1.0 / (1852 * 60 * np.cos(np.radians(lat)))
 
-    assert fieldset.U.eval(time, 0, lat, 0) == 1.0
-    assert fieldset.V[time, 0, lat, 0] == 0.0
+    with pytest.warns(RuntimeWarning, match="Sampling of velocities should normally be done"):
+        assert fieldset.U.eval(time, 0, lat, 0) == 1.0
+        assert fieldset.V[time, 0, lat, 0] == 0.0
 
     u, v = fieldset.UV[time, 0, lat, 0]
     assert np.isclose(u, u_expected, atol=1e-7)
