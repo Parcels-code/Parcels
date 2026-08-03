@@ -312,14 +312,14 @@ def test_sampling_initial_value(fieldset, npart, tmp_parquet):
     SampleParticle = get_default_particle(np.float64).add_variable(Variable("sample", initial=np.nan))
 
     def SampleKernel(particles, fieldset):  # pragma: no cover
-        particles.sample = fieldset.U[particles]
+        particles.sample, _ = fieldset.UV[particles]
 
     x = np.zeros(npart)
     y = np.zeros(npart)
     t = np.zeros(npart, dtype="timedelta64[s]")
 
     pset = ParticleSet(fieldset, pclass=SampleParticle, x=x, y=y, t=t)
-    pset.sample = fieldset.U[pset]  # Sample initial value
+    pset.sample, _ = fieldset.UV[pset]  # Sample initial value
 
     ofile = ParticleFile(tmp_parquet, outputdt=np.timedelta64(1, "s"))
     pset.execute(SampleKernel, runtime=np.timedelta64(2, "s"), dt=np.timedelta64(1, "s"), output_file=ofile)
