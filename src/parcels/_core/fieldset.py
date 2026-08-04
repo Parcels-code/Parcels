@@ -121,7 +121,7 @@ class FieldSet:
     @property
     def time_interval(self):
         """Returns the valid executable time interval of the FieldSet,
-        which is the intersection of the time intervals of all fields
+        which is the overlap of the time intervals of all fields
         in the FieldSet.
         """
         time_intervals = (m.time_interval for m in self.models)
@@ -131,13 +131,13 @@ class FieldSet:
         if len(time_intervals) == 0:  # All fields are constant fields
             return None
 
-        intersection = time_intervals[0]
+        overlap = time_intervals[0]
         for time_interval in time_intervals[1:]:
-            if intersection is None:
+            if overlap is None:
                 return None
-            intersection = intersection.intersection(time_interval)
+            overlap = overlap.intersection(time_interval)
 
-        return intersection
+        return overlap
 
     def add_field(self, field: Field, name: str | None = None):
         """Add a :class:`parcels.field.Field` object to the FieldSet.
