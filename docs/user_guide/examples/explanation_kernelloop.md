@@ -103,7 +103,7 @@ First run a simulation where we apply Kernels as `[AdvectionRK2, wind_kernel]`
 ```{code-cell}
 :tags: [hide-output]
 npart = 10
-z = np.repeat(ds_fields.depth[0].values, npart)
+z = np.repeat(0.5, npart)
 lons = np.repeat(32.2, npart)
 lats = np.linspace(-32.5, -30.5, npart)
 
