@@ -301,7 +301,7 @@ def spatialhash_describe(spatialhash: SpatialHash) -> str:
         "Total (cell --> face) entries": f"{n_entries:,d}",
         "Entries per occupied cell (avg)": f"{n_entries / n_occupied_cells:.2f}" if n_occupied_cells else "-",
         "Entries per face (avg)": f"{n_entries / n_faces:.2f}" if n_faces else "-",
-        "Faces per occupied cell (min / mean / max)": (
+        "Faces per occupied hash cell (min / mean / max)": (
             f"{counts.min():,d} / {counts.mean():.2f} / {counts.max():,d}" if n_occupied_cells else "-"
         ),
     }
