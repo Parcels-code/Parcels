@@ -258,7 +258,17 @@ class SpatialHash:
         nx = xqhigh.astype(np.int64) - xqlow + 1
         ny = yqhigh.astype(np.int64) - yqlow + 1
         nz = zqhigh.astype(np.int64) - zqlow + 1
-        return int((nx * ny * nz).sum())
+        # NaN values are not allowed in the SpatialHash table, so faces with a NaN
+        # bounding box do not contribute to the entry count
+        invalid_face = (
+            np.isnan(self._xlow)
+            | np.isnan(self._xhigh)
+            | np.isnan(self._ylow)
+            | np.isnan(self._yhigh)
+            | np.isnan(self._zlow)
+            | np.isnan(self._zhigh)
+        )
+        return int(np.where(invalid_face, 0, nx * ny * nz).sum())
 
     def _initialize_hash_table(self):
         """Create a mapping that relates unstructured grid faces to hash indices by determining
@@ -299,7 +309,18 @@ class SpatialHash:
         nx = (xqhigh - xqlow + 1).astype(np.int32, copy=False)
         ny = (yqhigh - yqlow + 1).astype(np.int32, copy=False)
         nz = (zqhigh - zqlow + 1).astype(np.int32, copy=False)
-        num_hash_per_face = (nx * ny * nz).astype(
+
+        # prevent NaN values from entering the SpatialHash table by setting their
+        # num_hash_per_face equal to 0
+        invalid_face = (
+            np.isnan(self._xlow)
+            | np.isnan(self._xhigh)
+            | np.isnan(self._ylow)
+            | np.isnan(self._yhigh)
+            | np.isnan(self._zlow)
+            | np.isnan(self._zhigh)
+        ).ravel()
+        num_hash_per_face = np.where(invalid_face, 0, nx * ny * nz).astype(
             np.int32, copy=False
         )  # Since nx, ny, nz are in the 10-bit range, their product fits in int32
         # Sums over faces can exceed int32, so accumulate in int64
