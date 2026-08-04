@@ -48,6 +48,53 @@ def zonal_flow_fieldset() -> FieldSet:
     return FieldSet.from_sgrid_conventions(ds, mesh="flat")
 
 
+@pytest.fixture
+def time_varying_zonal_flow_fieldset() -> FieldSet:
+    """Flat A-grid whose U varies in time only (V = 0), sampled 3-hourly.
+
+    Because U is spatially uniform, a particle's displacement depends on its own
+    clock and nothing else.
+    """
+    nt = 25
+    ds = simple_UV_dataset(dims=(nt, 2, 6, 6), mesh="flat")
+    times = np.array([np.timedelta64(3 * i, "h") for i in range(nt)])
+    ds["time"] = ("time", times, {"axis": "T"})
+    u = np.cos(2 * np.pi * (times / np.timedelta64(1, "s")) / 86400.0)  # 1 m/s, 1-day period
+    ds["U"].data[:] = u[:, None, None, None]
+    return FieldSet.from_sgrid_conventions(ds, mesh="flat")
+
+
+def test_execute_trajectory_independent_of_other_particles_release_times(time_varying_zonal_flow_fieldset):
+    """A particle's trajectory must not depend on when its batch-mates were released.
+
+    ``ParticleSet`` accepts a per-particle ``t``, so a set can hold particles on
+    different time indices. Interpolation is per-particle, hence batching a
+    particle with later-released mates must not change its own result.
+    """
+    fieldset = time_varying_zonal_flow_fieldset
+    t0 = np.timedelta64(0, "s")
+
+    def run(release_times):
+        npart = len(release_times)
+        pset = ParticleSet(
+            fieldset,
+            pclass=Particle,
+            t=np.array(release_times),
+            z=np.zeros(npart),
+            y=np.zeros(npart),
+            x=np.zeros(npart),
+        )
+        pset.execute(AdvectionRK4, dt=np.timedelta64(1, "h"), endtime=np.timedelta64(48, "h"))
+        return pset.x[0], pset.y[0]
+
+    alone = run([t0])
+    uniform = run([t0] * 4)
+    staggered = run([t0] + [t0 + np.timedelta64(3, "h")] * 3)
+
+    assert uniform == pytest.approx(alone)
+    assert staggered == pytest.approx(alone)
+
+
 def test_pset_execute_invalid_arguments(fieldset, fieldset_no_time_interval):
     with pytest.raises(RuntimeWarning, match="invalid value encountered in cast.*"):
         ParticleSet(fieldset, x=[0.2], y=[5.0], pclass=Particle).execute(AdvectionRK4, dt=np.timedelta64(None))
