@@ -9,13 +9,12 @@ import pytest
 import xarray as xr
 
 import parcels.tutorial
-from parcels import Field, ParticleFile, ParticleSet, XGrid, convert, open_raw_zarr
+from parcels import ParticleFile, ParticleSet, convert, open_raw_zarr
 from parcels._core.fieldset import FieldSet, _datetime_to_msg
 from parcels._core.model import _default_vector_field_components
 from parcels._datasets.structured.generic import datasets as datasets_structured
 from parcels._datasets.structured.generic import datasets_sgrid
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
-from parcels.interpolators import XLinear
 from tests import utils
 
 ds = datasets_structured["ds_2d_left"]
@@ -221,22 +220,41 @@ def test_default_vector_field_components(data_vars, expected):
     assert got == expected
 
 
-# TODO restructure: use adding of fieldset notation to test this
-@pytest.mark.skip("Needs updating after refactoring from https://github.com/Parcels-code/Parcels/pull/2646")
-def test_fieldset_time_interval():
-    grid1 = XGrid.from_dataset(ds, mesh="flat")
-    field1 = Field("field1", ds["U_A_grid"], grid1, interp_method=XLinear)
+def test_multi_model_time_interval():
+    ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]]
+    fieldset = FieldSet.from_sgrid_conventions(ds1, mesh="flat")
 
-    ds2 = ds.copy()
+    ds2 = ds1.copy().rename({"U_A_grid": "U2", "V_A_grid": "V2"})
     ds2["time"] = (ds2["time"].dims, ds2["time"].data + np.timedelta64(timedelta(days=1)), ds2["time"].attrs)
-    grid2 = XGrid.from_dataset(ds2, mesh="flat")
-    field2 = Field("field2", ds2["U_A_grid"], grid2, interp_method=XLinear)
+    fieldset += FieldSet.from_sgrid_conventions(ds2, mesh="flat")
 
-    fieldset = FieldSet([field1, field2])
+    ds3 = ds1.copy().rename({"U_A_grid": "U3", "V_A_grid": "V3"})
+    ds3["time"] = (ds3["time"].dims, ds3["time"].data + np.timedelta64(timedelta(days=2)), ds3["time"].attrs)
+    fieldset += FieldSet.from_sgrid_conventions(ds3, mesh="flat")
+
     fieldset.add_constant_field("constant_field", 1.0, mesh="flat")
 
-    assert fieldset.time_interval.left == np.datetime64("2000-01-02")
+    assert len(fieldset.models) == 4
+    assert fieldset.time_interval.left == np.datetime64("2000-01-03")
     assert fieldset.time_interval.right == np.datetime64("2001-01-01")
+
+
+def test_multi_model_nonoverlapping_time_interval():
+    ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]]
+    fieldset = FieldSet.from_sgrid_conventions(ds1, mesh="flat")
+
+    ds2 = ds1.copy().rename({"U_A_grid": "U2", "V_A_grid": "V2"})
+    ds2["time"] = (ds2["time"].dims, ds2["time"].data + np.timedelta64(timedelta(days=1000)), ds2["time"].attrs)
+    fieldset += FieldSet.from_sgrid_conventions(ds2, mesh="flat")
+
+    ds3 = ds1.copy().rename({"U_A_grid": "U3", "V_A_grid": "V3"})
+    ds3["time"] = (ds3["time"].dims, ds3["time"].data + np.timedelta64(timedelta(days=2000)), ds3["time"].attrs)
+    fieldset += FieldSet.from_sgrid_conventions(ds3, mesh="flat")
+
+    fieldset.add_constant_field("constant_field", 1.0, mesh="flat")
+
+    assert len(fieldset.models) == 4
+    assert fieldset.time_interval is None
 
 
 def test_fieldset_time_interval_constant_fields():
