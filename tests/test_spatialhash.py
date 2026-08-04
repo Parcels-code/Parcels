@@ -93,3 +93,51 @@ def test_mixed_positions():
     assert i[0] == 14  # Actual value for 2d_left_rotated center
     assert j[1] == -3
     assert i[1] == -3
+
+
+def test_nan_node_invalidates_touching_faces():
+    """
+    Any mesh face that touches a NaN node should not be added to the HashTable.
+    """
+    ds = datasets["2d_left_rotated"]
+    grid = FieldSet.from_sgrid_conventions(ds, mesh="flat").data_g.grid
+    clat, clon, jj, ii = _cell_centers(grid)
+
+    # Set one interior node to NaN, and calculate the indexes of faces that touch it.
+    nj, ni = 10, 10
+    touching = [
+        (nj - 1, ni - 1),
+        (nj - 1, ni),
+        (nj, ni - 1),
+        (nj, ni),
+    ]
+    grid._ds["lon"].values[nj, ni] = np.nan
+    grid._ds["lat"].values[nj, ni] = np.nan
+    spatialhash = grid.get_spatial_hash(reconstruct=True)
+
+    # From the indexes of the faces that touch the NaN node, calculate their
+    # face_ids.
+    n_faces_x = clon.shape[1]
+    invalid_ids = set()
+    for j, i in touching:
+        invalid_ids.add(j * n_faces_x + i)
+
+    # Get a set of all of the face_ids that are in the table, and assert that the
+    # ones touching the NaN node are not among them.
+    faces_in_table = set(np.unique(spatialhash._hash_table["faces"]).tolist())
+    assert invalid_ids.isdisjoint(faces_in_table)
+
+    # Queries landing on those 4 faces should return GridSearchErrors (-3).
+    touching_lat = np.array([clat[j, i] for j, i in touching])
+    touching_lon = np.array([clon[j, i] for j, i in touching])
+    j_touch, i_touch, _ = spatialhash.query(touching_lat, touching_lon)
+    assert np.all(j_touch == -3)
+    assert np.all(i_touch == -3)
+
+    # All mesh cells not contacting the NaN node should resolve queries.
+    mask = np.ones(clat.shape, dtype=bool)
+    for j, i in touching:
+        mask[j, i] = False
+    j_rest, i_rest, _ = spatialhash.query(clat[mask], clon[mask])
+    assert np.array_equal(j_rest, jj[mask])
+    assert np.array_equal(i_rest, ii[mask])
