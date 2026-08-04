@@ -223,8 +223,7 @@ def test_corner_gather_batch_matches_single_particle(corner_gather_data, lenT, l
 
     Interpolation is per-particle, so batching cannot change a result. The index
     arrays and the final reshape must therefore agree on where each particle sits
-    in the flat gather -- they did not, and particles whose time or depth index
-    differed from their batch-mates were gathered from the wrong level.
+    in the flat gather.
     """
     rng = np.random.default_rng(1)
     npart = 5
