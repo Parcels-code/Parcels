@@ -28,31 +28,32 @@ def _gather_corners(
 ) -> np.ndarray:
     """Gather field data at the corners bracketing each particle.
 
-    The gather is the outer product over ``_CORNER_AXES``, each axis contributing
-    one or two levels, with **the particle index innermost**. That layout is
-    stated once here -- as ``shape`` -- and drives both the index arrays and the
-    shape of the result, so the two cannot drift apart.
+    The gather is the outer product over ``_CORNER_AXES``, with each axis
+    contributing one or two levels and the particle index innermost. The local
+    variable ``shape`` states that layout, and is used both to build the index
+    arrays and to reshape the result.
 
     Parameters
     ----------
-    data :
+    data : np.ndarray or xr.DataArray
         Field data, with dimensions ordered ``(time, Z, Y, X)``.
-    axis_dim :
-        Maps ``"X"``/``"Y"``/``"Z"`` to dimension names; ``"T"`` is ``"time"``.
-    levels :
+    axis_dim : dict
+        Maps ``"X"``, ``"Y"`` and ``"Z"`` to dimension names. The ``"T"``
+        dimension is always named ``"time"``.
+    levels : dict
         Maps an axis to the per-particle index arrays of its corner levels, e.g.
         ``{"T": (ti, ti + 1), "Y": (yi, yi + 1)}``. An axis absent from
         ``levels`` contributes a single level. An axis the field has no
-        dimension for still shapes the result, but is not indexed -- its corners
-        simply repeat.
-    npart :
+        dimension for still shapes the result, but is not indexed, so its
+        corners repeat.
+    npart : int
         Number of particles.
 
     Returns
     -------
     np.ndarray
-        Of shape ``(*counts, npart)``, where ``counts[i]`` is the number of
-        levels gathered on ``_CORNER_AXES[i]``.
+        Array of shape ``(*counts, npart)``, where ``counts[i]`` is the number
+        of levels gathered on ``_CORNER_AXES[i]``.
     """
     dims = {axis: ("time" if axis == "T" else axis_dim.get(axis)) for axis in _CORNER_AXES}
     counts = tuple(len(levels[axis]) if axis in levels else 1 for axis in _CORNER_AXES)
@@ -63,7 +64,7 @@ def _gather_corners(
         if axis in levels and dims[axis] is not None and dims[axis] in data.dims:
             stacked = np.stack(np.broadcast_arrays(*levels[axis]))  # (n_levels, npart)
             # Put the level axis in slot i of the corner grid, spread it over the
-            # other slots, and flatten -- the inverse of the reshape below.
+            # other slots, and flatten. This is the inverse of the reshape below.
             other_slots = tuple(j for j in range(len(_CORNER_AXES)) if j != i)
             in_slot_i = np.expand_dims(stacked, other_slots)
             selection_dict[dims[axis]] = xr.DataArray(np.broadcast_to(in_slot_i, shape).reshape(-1), dims="points")
@@ -246,8 +247,8 @@ class CGrid_Velocity(VectorInterpolator):  # noqa:  N801
         def _compute_corner_data(data, y_levels, x_levels, z_levels=None) -> np.ndarray:
             """Gather the two bracketing face values and reduce over time if needed.
 
-            Exactly one of the Z/Y/X axes contributes the two corners; the others
-            contribute a single level.
+            Exactly one of the Z, Y and X axes contributes the two corners. The
+            other two contribute a single level each.
             """
             levels = {
                 "T": t_levels,
