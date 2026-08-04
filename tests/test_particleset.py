@@ -13,9 +13,10 @@ from parcels import (
     ParticleSetWarning,
     Variable,
 )
+from parcels._datasets.structured.generated import simple_UV_dataset
 from tests.common_kernels import DoNothing
 from tests.utils import round_and_hash_float_array
-from parcels._datasets.structured.generated import simple_UV_dataset
+
 
 def test_pset_create_lon_lat(fieldset):
     npart = 100
@@ -176,6 +177,7 @@ def test_pset_iterator(fieldset):
         assert particle.particle_id == i
     assert i == npart - 1
 
+
 @pytest.mark.parametrize(
     "depths",
     [
@@ -196,15 +198,9 @@ def test_pset_default_z_is_in_domain(depths):
 @pytest.mark.parametrize(
     "depths",
     [
-        pytest.param(
-            np.concatenate([np.linspace(-15, -1, 5), np.linspace(0, 2, 5)]), id="depths_include_zero"
-        ),
-        pytest.param(
-            np.concatenate([np.linspace(-9, -3, 3), np.linspace(2, 8, 3)]), id="closest_depth_is_positive"
-        ),
-        pytest.param(
-            np.concatenate([np.linspace(-8, -2, 3), np.linspace(3, 9, 3)]), id="closest_depth_is_negative"
-        ),
+        pytest.param(np.concatenate([np.linspace(-15, -1, 5), np.linspace(0, 2, 5)]), id="depths_include_zero"),
+        pytest.param(np.concatenate([np.linspace(-9, -3, 3), np.linspace(2, 8, 3)]), id="closest_depth_is_positive"),
+        pytest.param(np.concatenate([np.linspace(-8, -2, 3), np.linspace(3, 9, 3)]), id="closest_depth_is_negative"),
     ],
 )
 def test_pset_default_z_closest_to_zero(depths):
