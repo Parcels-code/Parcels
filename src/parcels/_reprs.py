@@ -293,16 +293,16 @@ def spatialhash_describe(spatialhash: SpatialHash) -> str:
 
     rows = {
         "Grid type": type(grid).__name__,
-        "Mesh": "spherical" if grid._mesh.is_spherical() else "flat",
-        "Total Mesh Faces": str(n_faces),
+        "Mesh": grid._mesh,
+        "Total Mesh Faces": f"{n_faces:,d}",
         "Bitwidth (current / max)": f"{spatialhash._bitwidth} / 1023  (higher = finer resolution hash grid)",
-        "Total hash cells": str(n_total_cells),
-        "Occupied hash cells": str(n_occupied_cells),
-        "Total (cell --> face) entries": str(n_entries),
+        "Total hash cells": f"{n_total_cells:,d}",
+        "Occupied hash cells": f"{n_occupied_cells:,d}",
+        "Total (cell --> face) entries": f"{n_entries:,d}",
         "Entries per occupied cell (avg)": f"{n_entries / n_occupied_cells:.2f}" if n_occupied_cells else "-",
         "Entries per face (avg)": f"{n_entries / n_faces:.2f}" if n_faces else "-",
         "Faces per occupied cell (min / mean / max)": (
-            f"{counts.min()} / {counts.mean():.2f} / {counts.max()}" if n_occupied_cells else "-"
+            f"{counts.min():,d} / {counts.mean():.2f} / {counts.max():,d}" if n_occupied_cells else "-"
         ),
     }
     key_width = max(len(k) for k in rows)
