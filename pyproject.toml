@@ -68,6 +68,7 @@ markers = [ # can be skipped by doing `pytest -m "not slow"` etc.
 
 filterwarnings = [
   "error:.*removed in a future release of Parcels.*:DeprecationWarning", # Have Parcels DeprecationWarnings fail CI (prevents deprecated items being used in internal code)
+  "error:::parcels.*",
 ]
 
 [tool.ruff]

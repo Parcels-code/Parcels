@@ -415,6 +415,21 @@ def test_fieldset_add_error_on_duplicate_context_values():
         fset1 + fset2
 
 
+@pytest.mark.parametrize("skip", [True, False])
+def test_zarr_warning_on_fieldset_creation(skip, tmp_path):
+    """Test that creating a FieldSet from a Zarr-backed dataset raises a warning about potential backend changes."""
+    ds = parcels.tutorial.open_dataset("CopernicusMarine_data_for_Argo_tutorial/data")
+    ds = convert.copernicusmarine_to_sgrid(fields={"U": ds["uo"], "V": ds["vo"]})
+    path = tmp_path / "ds.zarr"
+    ds.to_zarr(path)
+    ds_zarr = open_raw_zarr(path)
+    if not skip:
+        with pytest.warns(UserWarning, match="Changing a Zarr-backed dataset"):
+            FieldSet.from_sgrid_conventions(ds_zarr, skip_field_data_validation=skip)
+    else:
+        FieldSet.from_sgrid_conventions(ds_zarr, skip_field_data_validation=skip)
+
+
 def test_fieldset_add_context_values():
     """Test that context values from both FieldSets are present in the combined FieldSet."""
     ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "grid"]].rename({"U_A_grid": "U1"})
@@ -512,15 +527,15 @@ time interval: (np.datetime64('2000-01-02T12:00:00.000000000'), np.datetime64('2
     path = tmp_path / "ds.zarr"
     ds_fset.to_zarr(path)
     ds_zarr = open_raw_zarr(path)
-    fieldset = FieldSet.from_sgrid_conventions(ds_zarr)
+    fieldset = FieldSet.from_sgrid_conventions(ds_zarr, skip_field_data_validation=True)
 
     io = StringIO()
     expected = """\
 | Name   | Type        |   Grid number | Interp method / value   | Parcels backend   |
 |:-------|:------------|--------------:|:------------------------|:------------------|
-| U      | Field       |             0 | XLinear(...)            | NumPy             |
-| V      | Field       |             0 | XLinear(...)            | NumPy             |
-| W      | Field       |             0 | XLinear(...)            | NumPy             |
+| U      | Field       |             0 | XLinear(...)            | Zarr              |
+| V      | Field       |             0 | XLinear(...)            | Zarr              |
+| W      | Field       |             0 | XLinear(...)            | Zarr              |
 | UV     | VectorField |             0 | CGrid_Velocity(...)     | -                 |
 | UVW    | VectorField |             0 | CGrid_Velocity(...)     | -                 |
 
