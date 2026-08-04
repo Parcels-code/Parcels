@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import functools
 import sys
 import warnings
 from collections.abc import Iterable
@@ -131,7 +130,14 @@ class FieldSet:
         time_intervals = [t for t in time_intervals if t is not None]
         if len(time_intervals) == 0:  # All fields are constant fields
             return None
-        return functools.reduce(lambda x, y: x.intersection(y) if x is not None else None, time_intervals)
+
+        intersection = time_intervals[0]
+        for time_interval in time_intervals[1:]:
+            if intersection is None:
+                return None
+            intersection = intersection.intersection(time_interval)
+
+        return intersection
 
     def add_field(self, field: Field, name: str | None = None):
         """Add a :class:`parcels.field.Field` object to the FieldSet.
