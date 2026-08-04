@@ -22,6 +22,7 @@ from parcels.interpolators import (
     XNearest,
     XPartialslip,
 )
+from parcels.interpolators._xinterpolators import _get_corner_data_Agrid
 from parcels.kernels import AdvectionRK4_3D
 from tests.utils import TEST_DATA
 
@@ -199,6 +200,79 @@ def test_interpolation_mesh_type(mesh, npart=10):
     u, v = fieldset.UV[time, 0, lat, 0]
     assert np.isclose(u, u_expected, atol=1e-7)
     assert v == 0.0
+
+
+@pytest.fixture
+def corner_gather_data() -> xr.DataArray:
+    rng = np.random.default_rng(0)
+    return xr.DataArray(rng.random((6, 5, 7, 8)), dims=("time", "depth", "lat", "lon"))
+
+
+CORNER_GATHER_AXIS_DIM = {"X": "lon", "Y": "lat", "Z": "depth"}
+
+
+def _agrid_corners(data, ti, zi, yi, xi, lenT, lenZ, npart):  # noqa: N803
+    return _get_corner_data_Agrid(data, ti, zi, yi, xi, lenT, lenZ, npart, CORNER_GATHER_AXIS_DIM)
+
+
+@pytest.mark.parametrize("lenT", [1, 2])
+@pytest.mark.parametrize("lenZ", [1, 2])
+@pytest.mark.parametrize("uniform_clock", [True, False])
+def test_corner_gather_batch_matches_single_particle(corner_gather_data, lenT, lenZ, uniform_clock):  # noqa: N803
+    """Gathering a batch must give each particle what it would get on its own.
+
+    Interpolation is per-particle, so batching cannot change a result. The index
+    arrays and the final reshape must therefore agree on where each particle sits
+    in the flat gather -- they did not, and particles whose time or depth index
+    differed from their batch-mates were gathered from the wrong level.
+    """
+    rng = np.random.default_rng(1)
+    npart = 5
+    if uniform_clock:
+        ti, zi = np.full(npart, 2), np.full(npart, 1)
+    else:
+        ti, zi = rng.integers(0, 4, npart), rng.integers(0, 3, npart)
+    yi, xi = rng.integers(0, 5, npart), rng.integers(0, 6, npart)
+
+    batch = _agrid_corners(corner_gather_data, ti, zi, yi, xi, lenT, lenZ, npart)
+
+    for p in range(npart):
+        single = _agrid_corners(
+            corner_gather_data, ti[p : p + 1], zi[p : p + 1], yi[p : p + 1], xi[p : p + 1], lenT, lenZ, 1
+        )
+        np.testing.assert_array_equal(batch[..., p], single[..., 0])
+
+
+def test_corner_gather_axes_are_ordered_t_z_y_x(corner_gather_data):
+    """The returned axes must mean (T, Z, Y, X, particle), as the interpolators assume."""
+    rng = np.random.default_rng(2)
+    npart = 4
+    ti, zi = rng.integers(0, 4, npart), rng.integers(0, 3, npart)
+    yi, xi = rng.integers(0, 5, npart), rng.integers(0, 6, npart)
+
+    out = _agrid_corners(corner_gather_data, ti, zi, yi, xi, 2, 2, npart)
+    raw = corner_gather_data.values
+
+    assert out.shape == (2, 2, 2, 2, npart)
+    for p in range(npart):
+        for it, iz, iy, ix in np.ndindex(2, 2, 2, 2):
+            assert out[it, iz, iy, ix, p] == raw[ti[p] + it, zi[p] + iz, yi[p] + iy, xi[p] + ix]
+
+
+def test_corner_gather_keeps_axes_missing_from_the_mapping():
+    """An axis absent from ``axis_dim`` is not indexed, but still shapes the result."""
+    rng = np.random.default_rng(3)
+    data = xr.DataArray(rng.random((6, 1, 7, 8)), dims=("time", "depth", "lat", "lon"))
+    npart = 3
+    ti = np.array([0, 2, 3])
+    zi = np.zeros(npart, dtype=int)
+    yi, xi = rng.integers(0, 5, npart), rng.integers(0, 6, npart)
+
+    out = _get_corner_data_Agrid(data, ti, zi, yi, xi, 2, 1, npart, {"X": "lon", "Y": "lat"})
+
+    assert out.shape == (2, 1, 2, 2, npart)
+    for p in range(npart):
+        assert out[0, 0, 0, 0, p] == data.values[ti[p], 0, yi[p], xi[p]]
 
 
 interp_methods = {

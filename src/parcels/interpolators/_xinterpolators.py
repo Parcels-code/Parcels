@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import math
 from typing import TYPE_CHECKING, Literal
 
 import numpy as np
@@ -17,6 +18,63 @@ if TYPE_CHECKING:
     from parcels._core.xgrid import XGrid
 
 
+_CORNER_AXES: tuple[ptyping.XgridAxis, ...] = ("T", "Z", "Y", "X")
+
+
+def _gather_corners(
+    data: np.ndarray | xr.DataArray,
+    axis_dim: dict[ptyping.ptyping.XgridAxis, str],
+    levels: dict[ptyping.XgridAxis, tuple[np.ndarray, ...]],
+    npart: int,
+) -> np.ndarray:
+    """Gather field data at the corners bracketing each particle.
+
+    The gather is the outer product over ``_CORNER_AXES``, each axis contributing
+    one or two levels, with **the particle index innermost**. That layout is
+    stated once here -- as ``counts`` -- and drives both the index arrays and the
+    shape of the result, so the two cannot drift apart.
+
+    Parameters
+    ----------
+    data :
+        Field data, with dimensions ordered ``(time, Z, Y, X)``.
+    axis_dim :
+        Maps ``"X"``/``"Y"``/``"Z"`` to dimension names; ``"T"`` is ``"time"``.
+    levels :
+        Maps an axis to the per-particle index arrays of its corner levels, e.g.
+        ``{"T": (ti, ti + 1), "Y": (yi, yi + 1)}``. An axis absent from
+        ``levels`` contributes a single level. An axis the field has no
+        dimension for still shapes the result, but is not indexed -- its corners
+        simply repeat.
+    npart :
+        Number of particles.
+
+    Returns
+    -------
+    np.ndarray
+        Of shape ``(*counts, npart)``, where ``counts[i]`` is the number of
+        levels gathered on ``_CORNER_AXES[i]``.
+    """
+    dims = {axis: ("time" if axis == "T" else axis_dim.get(axis)) for axis in _CORNER_AXES}
+    counts = tuple(len(levels[axis]) if axis in levels else 1 for axis in _CORNER_AXES)
+
+    selection_dict = {}
+    before = 1  # number of corner combinations on the axes outside this one
+    for i, (axis, n_levels) in enumerate(zip(_CORNER_AXES, counts, strict=True)):
+        if axis in levels and dims[axis] is not None and dims[axis] in data.dims:
+            after = math.prod(counts[i + 1 :])
+            # level i of particle p belongs at flat position
+            # ((i_before * n_levels + i) * after + i_after) * npart + p
+            stacked = np.stack(np.broadcast_arrays(*levels[axis]))  # (n_levels, npart)
+            selection_dict[dims[axis]] = xr.DataArray(
+                np.broadcast_to(stacked[None, :, None, :], (before, n_levels, after, npart)).reshape(-1),
+                dims=("points"),
+            )
+        before *= n_levels
+
+    return data.isel(selection_dict).data.reshape(*counts, npart)
+
+
 def _get_corner_data_Agrid(
     data: np.ndarray | xr.DataArray,
     ti: int,
@@ -29,40 +87,13 @@ def _get_corner_data_Agrid(
     axis_dim: dict[ptyping.ptyping.XgridAxis, str],
 ) -> np.ndarray:
     """Helper function to get the corner data for a given A-grid field and position."""
-    # Time coordinates: 8 points at ti, then 8 points at ti+1
-    if lenT == 1:
-        ti = np.repeat(ti, lenZ * 4)
-    else:
-        ti_1 = np.clip(ti + 1, 0, data.shape[0] - 1)
-        ti = np.concatenate([np.repeat(ti, lenZ * 4), np.repeat(ti_1, lenZ * 4)])
-
-    # Z coordinates: 4 points at zi, 4 at zi+1, repeated for both time levels
-    if lenZ == 1:
-        zi = np.repeat(zi, lenT * 4)
-    else:
-        zi_1 = np.clip(zi + 1, 0, data.shape[1] - 1)
-        zi = np.tile(np.array([zi, zi, zi, zi, zi_1, zi_1, zi_1, zi_1]).flatten(), lenT)
-
-    # Y coordinates: [yi, yi, yi+1, yi+1] for each spatial point, repeated for time/z
-    yi_1 = np.clip(yi + 1, 0, data.shape[2] - 1)
-    yi = np.tile(np.array([yi, yi, yi_1, yi_1]).flatten(), lenT * lenZ)
-
-    # X coordinates: [xi, xi+1, xi, xi+1] for each spatial point, repeated for time/z
-    xi_1 = np.clip(xi + 1, 0, data.shape[3] - 1)
-    xi = np.tile(np.array([xi, xi_1]).flatten(), lenT * lenZ * 2)
-
-    # Create DataArrays for indexing
-    selection_dict = {}
-    if "X" in axis_dim:
-        selection_dict[axis_dim["X"]] = xr.DataArray(xi, dims=("points"))
-    if "Y" in axis_dim:
-        selection_dict[axis_dim["Y"]] = xr.DataArray(yi, dims=("points"))
-    if "Z" in axis_dim:
-        selection_dict[axis_dim["Z"]] = xr.DataArray(zi, dims=("points"))
-    if "time" in data.dims:
-        selection_dict["time"] = xr.DataArray(ti, dims=("points"))
-
-    return data.isel(selection_dict).data.reshape(lenT, lenZ, 2, 2, npart)
+    levels = {
+        "T": (ti,) if lenT == 1 else (ti, np.clip(ti + 1, 0, data.shape[0] - 1)),
+        "Z": (zi,) if lenZ == 1 else (zi, np.clip(zi + 1, 0, data.shape[1] - 1)),
+        "Y": (yi, np.clip(yi + 1, 0, data.shape[2] - 1)),
+        "X": (xi, np.clip(xi + 1, 0, data.shape[3] - 1)),
+    }
+    return _gather_corners(data, axis_dim, levels, npart)
 
 
 def _get_offsets_dictionary(grid: XGrid) -> dict[ptyping.CfAxisSpatial, Literal[1, 0]]:
@@ -213,39 +244,23 @@ class CGrid_Velocity(VectorInterpolator):  # noqa:  N801
             py[3], py[0], px[3], px[0], grid._mesh, np.einsum("ij,ji->i", i_u.phi2D_lin(eta, 0.0), py), grid.deg2m
         )
 
-        def _create_selection_dict(dims, zdir=False):
-            """Helper function to create DataArrays for indexing."""
-            axis_dim = grid.get_axis_dim_mapping(dims)
-            selection_dict = {
-                axis_dim["X"]: xr.DataArray(xi_full, dims=("points")),
-                axis_dim["Y"]: xr.DataArray(yi_full, dims=("points")),
+        npart = len(xsi)
+        t_levels = (ti,) if lenT == 1 else (ti, np.clip(ti + 1, 0, tdim - 1))
+
+        def _compute_corner_data(data, y_levels, x_levels, z_levels=None) -> np.ndarray:
+            """Gather the two bracketing face values and reduce over time if needed.
+
+            Exactly one of the Z/Y/X axes contributes the two corners; the others
+            contribute a single level.
+            """
+            levels = {
+                "T": t_levels,
+                "Z": z_levels if z_levels is not None else (zi,),
+                "Y": y_levels,
+                "X": x_levels,
             }
-
-            # Time coordinates: 2 points at ti, then 2 points at ti+1
-            if "time" in dims:
-                if lenT == 1:
-                    ti_full = np.repeat(ti, 2)
-                else:
-                    ti_1 = np.clip(ti + 1, 0, tdim - 1)
-                    ti_full = np.concatenate([np.repeat(ti, 2), np.repeat(ti_1, 2)])
-                selection_dict["time"] = xr.DataArray(ti_full, dims=("points"))
-
-            if "Z" in axis_dim:
-                if zdir:
-                    # Z coordinates: 1 point at zi and 1 point at zi+1 repeated for lenT time levels
-                    zi_0 = np.clip(zi + offsets["Z"], 0, zdim - 1)
-                    zi_1 = np.clip(zi + offsets["Z"] + 1, 0, zdim - 1)
-                    zi_full = np.tile(np.array([zi_0, zi_1]).flatten(), lenT)
-                else:
-                    # Z coordinates: 2 points at zi, repeated for lenT time levels
-                    zi_full = np.repeat(zi, lenT * 2)
-                selection_dict[axis_dim["Z"]] = xr.DataArray(zi_full, dims=("points"))
-
-            return selection_dict
-
-        def _compute_corner_data(data, selection_dict) -> np.ndarray:
-            """Helper function to load and reduce corner data over time dimension if needed."""
-            corner_data = data.isel(selection_dict).data.reshape(lenT, 2, len(xsi))
+            axis_dim = grid.get_axis_dim_mapping(data.dims)
+            corner_data = _gather_corners(data, axis_dim, levels, npart).reshape(lenT, 2, npart)
 
             if lenT == 2:
                 tau_full = tau[np.newaxis, :]
@@ -254,29 +269,19 @@ class CGrid_Velocity(VectorInterpolator):  # noqa:  N801
                 corner_data = corner_data[0, :]
             return corner_data
 
-        # Compute U velocity
+        # Compute U velocity: the two corners are the X faces
         yi_o = np.clip(yi + offsets["Y"], 0, ydim - 1)
-        yi_full = np.tile(np.array([yi_o, yi_o]).flatten(), lenT)
-
         xi_1 = np.clip(xi + 1, 0, xdim - 1)
-        xi_full = np.tile(np.array([xi, xi_1]).flatten(), lenT)
-
-        selection_dict = _create_selection_dict(U.dims)
-        corner_data = _compute_corner_data(U, selection_dict)
+        corner_data = _compute_corner_data(U, y_levels=(yi_o,), x_levels=(xi, xi_1))
 
         U0 = corner_data[0, :] * c4
         U1 = corner_data[1, :] * c2
         Uvel = (1 - xsi) * U0 + xsi * U1
 
-        # Compute V velocity
+        # Compute V velocity: the two corners are the Y faces
         yi_1 = np.clip(yi + 1, 0, ydim - 1)
-        yi_full = np.tile(np.array([yi, yi_1]).flatten(), lenT)
-
         xi_o = np.clip(xi + offsets["X"], 0, xdim - 1)
-        xi_full = np.tile(np.array([xi_o, xi_o]).flatten(), lenT)
-
-        selection_dict = _create_selection_dict(V.dims)
-        corner_data = _compute_corner_data(V, selection_dict)
+        corner_data = _compute_corner_data(V, y_levels=(yi, yi_1), x_levels=(xi_o,))
 
         V0 = corner_data[0, :] * c1
         V1 = corner_data[1, :] * c3
@@ -311,16 +316,12 @@ class CGrid_Velocity(VectorInterpolator):  # noqa:  N801
         if vectorfield.W:
             W = vectorfield.W.data
 
-            # Y coordinates: yi+offset for each spatial point, repeated for time
+            # Compute W velocity: the two corners are the Z faces
             yi_o = np.clip(yi + offsets["Y"], 0, ydim - 1)
-            yi_full = np.tile(yi_o, (lenT) * 2)
-
-            # X coordinates: xi+offset for each spatial point, repeated for time
             xi_o = np.clip(xi + offsets["X"], 0, xdim - 1)
-            xi_full = np.tile(xi_o, (lenT) * 2)
-
-            selection_dict = _create_selection_dict(W.dims, zdir=True)
-            corner_data = _compute_corner_data(W, selection_dict)
+            zi_0 = np.clip(zi + offsets["Z"], 0, zdim - 1)
+            zi_1 = np.clip(zi + offsets["Z"] + 1, 0, zdim - 1)
+            corner_data = _compute_corner_data(W, y_levels=(yi_o,), x_levels=(xi_o,), z_levels=(zi_0, zi_1))
 
             w = corner_data[0, :] * (1 - zeta) + corner_data[1, :] * zeta
             if is_dask_collection(w):
@@ -364,28 +365,17 @@ class CGrid_Tracer(ScalarInterpolator):  # noqa:  N801
         xi = np.clip(xi + offsets["X"], 0, data.shape[3] - 1)
 
         lenT = 2 if np.any(tau > 0) else 1
+        npart = len(xi)
 
-        if lenT == 2:
-            ti_1 = np.clip(ti + 1, 0, data.shape[0] - 1)
-            ti = np.concatenate([np.repeat(ti), np.repeat(ti_1)])
-            zi = np.tile(zi, (lenT) * 2)
-            yi = np.tile(yi, (lenT) * 2)
-            xi = np.tile(xi, (lenT) * 2)
-
-        # Create DataArrays for indexing
-        selection_dict = {
-            axis_dim["X"]: xr.DataArray(xi, dims=("points")),
-            axis_dim["Y"]: xr.DataArray(yi, dims=("points")),
+        levels = {
+            "T": (ti,) if lenT == 1 else (ti, np.clip(ti + 1, 0, data.shape[0] - 1)),
+            "Z": (zi,),
+            "Y": (yi,),
+            "X": (xi,),
         }
-        if "Z" in axis_dim:
-            selection_dict[axis_dim["Z"]] = xr.DataArray(zi, dims=("points"))
-        if "time" in field.data.dims:
-            selection_dict["time"] = xr.DataArray(ti, dims=("points"))
-
-        value = data.isel(selection_dict).data.reshape(lenT, len(xi))
+        value = _gather_corners(data, axis_dim, levels, npart).reshape(lenT, npart)
 
         if lenT == 2:
-            tau = tau[:, np.newaxis]
             value = value[0, :] * (1 - tau) + value[1, :] * tau
         else:
             value = value[0, :]
