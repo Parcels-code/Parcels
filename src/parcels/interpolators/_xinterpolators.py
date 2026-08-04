@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import math
 from typing import TYPE_CHECKING, Literal
 
 import numpy as np
@@ -31,7 +30,7 @@ def _gather_corners(
 
     The gather is the outer product over ``_CORNER_AXES``, each axis contributing
     one or two levels, with **the particle index innermost**. That layout is
-    stated once here -- as ``counts`` -- and drives both the index arrays and the
+    stated once here -- as ``shape`` -- and drives both the index arrays and the
     shape of the result, so the two cannot drift apart.
 
     Parameters
@@ -57,22 +56,19 @@ def _gather_corners(
     """
     dims = {axis: ("time" if axis == "T" else axis_dim.get(axis)) for axis in _CORNER_AXES}
     counts = tuple(len(levels[axis]) if axis in levels else 1 for axis in _CORNER_AXES)
+    shape = (*counts, npart)
 
     selection_dict = {}
-    before = 1  # number of corner combinations on the axes outside this one
-    for i, (axis, n_levels) in enumerate(zip(_CORNER_AXES, counts, strict=True)):
+    for i, axis in enumerate(_CORNER_AXES):
         if axis in levels and dims[axis] is not None and dims[axis] in data.dims:
-            after = math.prod(counts[i + 1 :])
-            # level i of particle p belongs at flat position
-            # ((i_before * n_levels + i) * after + i_after) * npart + p
             stacked = np.stack(np.broadcast_arrays(*levels[axis]))  # (n_levels, npart)
-            selection_dict[dims[axis]] = xr.DataArray(
-                np.broadcast_to(stacked[None, :, None, :], (before, n_levels, after, npart)).reshape(-1),
-                dims=("points"),
-            )
-        before *= n_levels
+            # Put the level axis in slot i of the corner grid, spread it over the
+            # other slots, and flatten -- the inverse of the reshape below.
+            other_slots = tuple(j for j in range(len(_CORNER_AXES)) if j != i)
+            in_slot_i = np.expand_dims(stacked, other_slots)
+            selection_dict[dims[axis]] = xr.DataArray(np.broadcast_to(in_slot_i, shape).reshape(-1), dims="points")
 
-    return data.isel(selection_dict).data.reshape(*counts, npart)
+    return data.isel(selection_dict).data.reshape(shape)
 
 
 def _get_corner_data_Agrid(
