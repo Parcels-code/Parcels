@@ -103,6 +103,11 @@ def test_nan_node_invalidates_touching_faces():
     grid = FieldSet.from_sgrid_conventions(ds, mesh="flat").data_g.grid
     clat, clon, jj, ii = _cell_centers(grid)
 
+    # `grid._ds` shares its lon/lat arrays with the module-level `datasets` fixture
+    # (from_sgrid_conventions does not copy them), so deep-copy before mutating,
+    # otherwise the NaN injected below leaks into every other test in the session.
+    grid._ds = grid._ds.copy(deep=True)
+
     # Set one interior node to NaN, and calculate the indexes of faces that touch it.
     nj, ni = 10, 10
     touching = [
