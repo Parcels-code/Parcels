@@ -36,7 +36,7 @@ Total mesh faces                                : 1,711
 Bitwidth (current / max)                        : 1023 / 1023  (higher = finer resolution hash grid)
 Total hash cells                                : 1,073,741,824
 Occupied hash cells                             : 796,054, 0.0741%
-Total (hash cell --> gird face) entries         : 1,080,194
+Total (hash cell --> grid face) entries         : 1,080,194
 Entries per occupied hash cell (avg)            : 1.36
 Entries per face (avg)                          : 631.32
 Faces per occupied hash cell (min / mean / max) : 1 / 1.36 / 4
