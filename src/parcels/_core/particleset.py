@@ -44,7 +44,8 @@ class ParticleSet:
     y :
         List of initial y (latitude) values for particles
     z :
-        Optional list of initial z values for particles. Default is 0m
+        Optional list of initial z values for particles. Default is vertical grid position closest to the surface (z=0)
+        that covers all fields in the fieldset.
     t :
         Optional list of initial t (time) values for particles. Default is fieldset.U.grid.time[0]
     repeatdt : datetime.timedelta or float, optional
