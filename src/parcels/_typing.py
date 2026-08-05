@@ -15,6 +15,7 @@ import numpy as np
 from cftime import datetime as cftime_datetime
 
 from parcels._core.mesh import TMesh  # noqa: F401
+from parcels._sgrid.core import Padding
 
 if TYPE_CHECKING:
     import xgcm
@@ -48,6 +49,7 @@ XgcmAxisDirection = CfAxisSpatial | Literal["T"]
 CfAxis = XgcmAxisDirection
 XgcmAxisPosition = Literal["center", "left", "right", "inner", "outer"]
 XgcmAxes = Mapping[XgcmAxisDirection, "xgcm.Axis"]
+GridPosition = Literal["face"] | Padding
 VectorFields = dict[str, tuple[str, str] | tuple[str, str, str]]
 
 
