@@ -4,13 +4,12 @@ import hypothesis.strategies as st
 import numpy as np
 import pytest
 import xarray as xr
-import xgcm
 from hypothesis import assume, example, given
 
 import parcels._sgrid as sgrid
 import parcels._strategies as pst
 from parcels._sgrid.accessor import get_dim_position
-from parcels._sgrid.core import SGRID_PADDING_TO_XGCM_POSITION, _get_unique_names, parse_grid_attrs
+from parcels._sgrid.core import _get_unique_names, parse_grid_attrs
 
 
 def create_example_grid2dmetadata(with_vertical_dimensions: bool, with_node_coordinates: bool):
@@ -279,46 +278,6 @@ def test_parse_grid_attrs(grid):
     attrs = grid.to_attrs()
     parsed = parse_grid_attrs(attrs)
     assert parsed == grid
-
-
-@example(grid2dmetadata)
-@given(pst.sgrid.grid2Dmetadata())
-def test_parse_sgrid_2d(grid_metadata: sgrid.SGrid2DMetadata):
-    """Test the ingestion of datasets in XGCM to ensure that it matches the SGRID metadata provided"""
-    ds = dummy_sgrid_2d_ds(grid_metadata)
-
-    _, xgcm_kwargs = sgrid.xgcm_parse_sgrid(ds)
-    grid = xgcm.Grid(ds, autoparse_metadata=False, **xgcm_kwargs)
-
-    for obj, axis in zip(grid_metadata.face_dimensions, ["X", "Y"], strict=True):
-        coords = grid.axes[axis].coords
-        assert coords["center"] == obj.face
-        assert coords[SGRID_PADDING_TO_XGCM_POSITION[obj.padding]] == obj.node
-
-    if grid_metadata.vertical_dimensions is None:
-        assert "Z" not in grid.axes
-    else:
-        obj = grid_metadata.vertical_dimensions[0]
-        coords = grid.axes["Z"].coords
-        assert coords["center"] == obj.face
-        assert coords[SGRID_PADDING_TO_XGCM_POSITION[obj.padding]] == obj.node
-
-
-@given(pst.sgrid.grid3Dmetadata())
-@pytest.mark.xfail(
-    reason="Parcels doesn't have native support for SGRID 3D grids. This metadata checking is superfluous until we have such support."
-)
-def test_parse_sgrid_3d(grid_metadata: sgrid.SGrid3DMetadata):
-    """Test the ingestion of datasets in XGCM to ensure that it matches the SGRID metadata provided"""
-    ds = dummy_sgrid_3d_ds(grid_metadata)
-
-    ds, xgcm_kwargs = sgrid.xgcm_parse_sgrid(ds)
-    grid = xgcm.Grid(ds, autoparse_metadata=False, **xgcm_kwargs)
-
-    for obj, axis in zip(grid_metadata.volume_dimensions, ["X", "Y", "Z"], strict=True):
-        coords = grid.axes[axis].coords
-        assert coords["center"] == obj.face
-        assert coords[SGRID_PADDING_TO_XGCM_POSITION[obj.padding]] == obj.node
 
 
 @pytest.mark.parametrize(
