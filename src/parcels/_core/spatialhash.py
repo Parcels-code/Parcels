@@ -261,7 +261,10 @@ class SpatialHash:
         nx = xqhigh.astype(np.int64) - xqlow + 1
         ny = yqhigh.astype(np.int64) - yqlow + 1
         nz = zqhigh.astype(np.int64) - zqlow + 1
-        return int((nx * ny * nz).sum())
+        # NaN values are not allowed in the SpatialHash table, so faces with a NaN
+        # bounding box do not contribute to the entry count
+        valid_face = _generate_valid_mask(self._xlow, self._xhigh, self._ylow, self._yhigh, self._zlow, self._zhigh)
+        return int(np.where(valid_face, nx * ny * nz, 0).sum())
 
     def _initialize_hash_table(self):
         """Create a mapping that relates unstructured grid faces to hash indices by determining
@@ -302,7 +305,11 @@ class SpatialHash:
         nx = (xqhigh - xqlow + 1).astype(np.int32, copy=False)
         ny = (yqhigh - yqlow + 1).astype(np.int32, copy=False)
         nz = (zqhigh - zqlow + 1).astype(np.int32, copy=False)
-        num_hash_per_face = (nx * ny * nz).astype(
+
+        # prevent NaN values from entering the SpatialHash table by setting their
+        # num_hash_per_face equal to 0
+        valid_face = _generate_valid_mask(self._xlow, self._xhigh, self._ylow, self._yhigh, self._zlow, self._zhigh)
+        num_hash_per_face = np.where(valid_face.ravel(), nx * ny * nz, 0).astype(
             np.int32, copy=False
         )  # Since nx, ny, nz are in the 10-bit range, their product fits in int32
         # Sums over faces can exceed int32, so accumulate in int64
@@ -756,3 +763,30 @@ def _encode_morton3d(x, y, z, xmin, xmax, ymin, ymax, zmin, zmax, bitwidth=1023)
 
     # Since our compact type fits in 30 bits, uint32 is enough.
     return code.astype(np.uint32)
+
+
+def _generate_valid_mask(xlow, xhigh, ylow, yhigh, zlow, zhigh):
+    """
+    Flag faces whose bounding box is fully defined, i.e. none of their 6 bounds
+    is NaN (a NaN indicates a corner node with a missing/masked coordinate).
+
+    Parameters
+    ----------
+    xlow, xhigh : array_like
+        Per-face bounding box in x.
+    ylow, yhigh : array_like
+        Per-face bounding box in y.
+    zlow, zhigh : array_like
+        Per-face bounding box in z.
+
+    Returns
+    -------
+    valid_face : ndarray of bool
+        Same shape as the inputs; True where the face's bounding box is finite,
+        False where it contains a NaN.
+    """
+    invalid_face = (
+        np.isnan(xlow) | np.isnan(xhigh) | np.isnan(ylow) | np.isnan(yhigh) | np.isnan(zlow) | np.isnan(zhigh)
+    )
+
+    return ~invalid_face
