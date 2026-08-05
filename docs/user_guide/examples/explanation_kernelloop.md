@@ -103,11 +103,10 @@ First run a simulation where we apply Kernels as `[AdvectionRK2, wind_kernel]`
 ```{code-cell}
 :tags: [hide-output]
 npart = 10
-z = np.repeat(0.5, npart)
 lons = np.repeat(32.2, npart)
 lats = np.linspace(-32.5, -30.5, npart)
 
-pset = parcels.ParticleSet(fieldset, pclass=parcels.Particle, z=z, y=lats, x=lons)
+pset = parcels.ParticleSet(fieldset, pclass=parcels.Particle, y=lats, x=lons)
 output_file = parcels.ParticleFile(
     path="advection_then_wind.parquet", outputdt=np.timedelta64(6,'h')
 )
@@ -124,7 +123,7 @@ Then also run a simulation where we apply the Kernels in the reverse order as `[
 ```{code-cell}
 :tags: [hide-output]
 pset_reverse = parcels.ParticleSet(
-    fieldset, pclass=parcels.Particle, z=z, y=lats, x=lons
+    fieldset, pclass=parcels.Particle, y=lats, x=lons
 )
 output_file_reverse = parcels.ParticleFile(
     path="wind_then_advection.parquet", outputdt=np.timedelta64(6,"h")
