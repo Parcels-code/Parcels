@@ -156,6 +156,11 @@ def test_nan_node_invalidates_touching_faces():
     faces_in_table = set(np.unique(spatialhash._hash_table["faces"]).tolist())
     assert invalid_ids.isdisjoint(faces_in_table)
 
+    # The total number of mesh faces should be greater than the number in the table,
+    # since the NaN faces are filtered from the table.
+    n_total_faces = jj.size
+    assert n_total_faces > len(faces_in_table)
+
     # Queries landing on those 4 faces should return GridSearchErrors (-3).
     touching_lat = np.array([clat[j, i] for j, i in touching])
     touching_lon = np.array([clon[j, i] for j, i in touching])
