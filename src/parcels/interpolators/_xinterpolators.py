@@ -13,17 +13,18 @@ import parcels._typing as ptyping
 from parcels.interpolators._base import ScalarInterpolator, VectorInterpolator
 
 if TYPE_CHECKING:
+    from parcels._core._windowed_array import WindowedArray
     from parcels._core.field import Field, VectorField
     from parcels._core.xgrid import XGrid
 
 
-_CORNER_AXES: tuple[ptyping.XgridAxis, ...] = ("T", "Z", "Y", "X")
+_CORNER_AXES: tuple[ptyping.XgcmAxisDirection, ...] = ("T", "Z", "Y", "X")
 
 
 def _gather_corners(
-    data: np.ndarray | xr.DataArray,
-    axis_dim: dict[ptyping.ptyping.XgridAxis, str],
-    levels: dict[ptyping.XgridAxis, tuple[np.ndarray, ...]],
+    data: xr.DataArray | WindowedArray,
+    axis_dim: dict[ptyping.XgridAxis, str],
+    levels: dict[ptyping.XgcmAxisDirection, tuple[np.ndarray, ...]],
     npart: int,
 ) -> np.ndarray:
     """Gather field data at the corners bracketing each particle.
@@ -35,17 +36,18 @@ def _gather_corners(
 
     Parameters
     ----------
-    data : np.ndarray or xr.DataArray
+    data : xr.DataArray or WindowedArray
         Field data, with dimensions ordered ``(time, Z, Y, X)``.
     axis_dim : dict
         Maps ``"X"``, ``"Y"`` and ``"Z"`` to dimension names. The ``"T"``
         dimension is always named ``"time"``.
     levels : dict
-        Maps an axis to the per-particle index arrays of its corner levels, e.g.
-        ``{"T": (ti, ti + 1), "Y": (yi, yi + 1)}``. An axis absent from
-        ``levels`` contributes a single level. An axis the field has no
-        dimension for still shapes the result, but is not indexed, so its
-        corners repeat.
+        Maps every axis in ``_CORNER_AXES`` to the per-particle index arrays of
+        its corner levels, e.g. ``{"T": (ti,), "Z": (zi,), "Y": (yi, yi + 1),
+        "X": (xi, xi + 1)}``. An axis bracketed by a single level is given a
+        one-tuple. If the field has no dimension for an axis, that axis still
+        contributes to the output shape, but is not indexed, so its corners
+        repeat.
     npart : int
         Number of particles.
 
@@ -56,12 +58,12 @@ def _gather_corners(
         of levels gathered on ``_CORNER_AXES[i]``.
     """
     dims = {axis: ("time" if axis == "T" else axis_dim.get(axis)) for axis in _CORNER_AXES}
-    counts = tuple(len(levels[axis]) if axis in levels else 1 for axis in _CORNER_AXES)
+    counts = tuple(len(levels[axis]) for axis in _CORNER_AXES)
     shape = (*counts, npart)
 
     selection_dict = {}
     for i, axis in enumerate(_CORNER_AXES):
-        if axis in levels and dims[axis] is not None and dims[axis] in data.dims:
+        if dims[axis] is not None and dims[axis] in data.dims:
             stacked = np.stack(np.broadcast_arrays(*levels[axis]))  # (n_levels, npart)
             # Put the level axis in slot i of the corner grid, spread it over the
             # other slots, and flatten. This is the inverse of the reshape below.
@@ -73,18 +75,18 @@ def _gather_corners(
 
 
 def _get_corner_data_Agrid(
-    data: np.ndarray | xr.DataArray,
-    ti: int,
-    zi: int,
-    yi: int,
-    xi: int,
+    data: xr.DataArray | WindowedArray,
+    ti: np.ndarray,
+    zi: np.ndarray,
+    yi: np.ndarray,
+    xi: np.ndarray,
     lenT: int,  # noqa: N803
     lenZ: int,  # noqa: N803
     npart: int,
-    axis_dim: dict[ptyping.ptyping.XgridAxis, str],
+    axis_dim: dict[ptyping.XgridAxis, str],
 ) -> np.ndarray:
     """Helper function to get the corner data for a given A-grid field and position."""
-    levels = {
+    levels: dict[ptyping.XgcmAxisDirection, tuple[np.ndarray, ...]] = {
         "T": (ti,) if lenT == 1 else (ti, np.clip(ti + 1, 0, data.shape[0] - 1)),
         "Z": (zi,) if lenZ == 1 else (zi, np.clip(zi + 1, 0, data.shape[1] - 1)),
         "Y": (yi, np.clip(yi + 1, 0, data.shape[2] - 1)),

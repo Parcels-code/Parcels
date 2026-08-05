@@ -465,11 +465,9 @@ def test_nemo_3D_curvilinear_fieldset(kernel):
     if kernel == AdvectionRK4:
         np.testing.assert_allclose([p.z for p in pset], z_initial)
     elif kernel == AdvectionRK4_3D:
-        # TODO check why decimals needs to be so low in RK4_3D (compare to v3)
         np.testing.assert_allclose(
             [p.z for p in pset],
             [0.66616201, 0.86671311, 0.92108649, 0.95940739, 0.95945358, 1.00413370, 1.02847278, 1.00335419, 1.27260256, 1.38021827],
-            rtol=1e-6,
         )  # fmt:skip
 
 
