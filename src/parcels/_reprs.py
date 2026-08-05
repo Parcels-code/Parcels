@@ -298,7 +298,7 @@ def spatialhash_describe(spatialhash: SpatialHash) -> str:
         "Bitwidth (current / max)": f"{spatialhash._bitwidth} / 1023  (higher = finer resolution hash grid)",
         "Total hash cells": f"{n_total_cells:,d}",
         "Occupied hash cells": f"{n_occupied_cells:,d}, {n_occupied_cells / n_total_cells * 100:.4f}%",
-        "Total (hash cell --> gird face) entries": f"{n_entries:,d}",
+        "Total (hash cell --> grid face) entries": f"{n_entries:,d}",
         "Entries per occupied hash cell (avg)": f"{n_entries / n_occupied_cells:.2f}" if n_occupied_cells else "-",
         "Entries per face (avg)": f"{n_entries / n_faces:.2f}" if n_faces else "-",
         "Faces per occupied hash cell (min / mean / max)": (
