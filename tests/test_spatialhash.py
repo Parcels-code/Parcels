@@ -122,9 +122,7 @@ def test_mixed_positions():
 
 
 def test_nan_node_invalidates_touching_faces():
-    """
-    Any mesh face that touches a NaN node should not be added to the HashTable.
-    """
+    """Any mesh face that touches a NaN node should not be added to the HashTable."""
     ds = datasets["2d_left_rotated"]
     grid = FieldSet.from_sgrid_conventions(ds, mesh="flat").data_g.grid
     clat, clon, jj, ii = _cell_centers(grid)
