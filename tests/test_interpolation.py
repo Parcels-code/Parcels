@@ -243,7 +243,7 @@ def test_corner_gather_batch_matches_single_particle(corner_gather_data, lenT, l
 
 
 def test_corner_gather_axes_are_ordered_t_z_y_x(corner_gather_data):
-    """The returned axes must mean (T, Z, Y, X, particle), as the interpolators assume."""
+    """The returned axes must be (T, Z, Y, X, particle), as the interpolators assume."""
     rng = np.random.default_rng(2)
     npart = 4
     ti, zi = rng.integers(0, 4, npart), rng.integers(0, 3, npart)
