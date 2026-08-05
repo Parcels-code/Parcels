@@ -5,6 +5,8 @@ This page documents the algorithm used in Parcels to locate which grid cell a pa
 - `src/parcels/_core/spatialhash.py` — `SpatialHash` class and Morton encoding utilities
 - `src/parcels/_core/index_search.py` — point-in-cell tests and the high-level search dispatch
 
+For debugging information regarding the spatial hash grid that underlies a curvilinear or unstructured grid, call `SpatialHash.describe()`, which prints a summary of the hash table's statistics. This table includes the total number of occupied hash cells, the percentage of hash cells that are occupied, the minimum, mean, and maximum number of mesh faces in a hash cell, and more.
+
 ---
 
 ## Motivation
