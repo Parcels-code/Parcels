@@ -33,6 +33,7 @@ Spatial Hash Grid Statistics
 Grid type                                       : XGrid
 Mesh                                            : FlatMesh()
 Total mesh faces                                : 1,711
+Valid (non-NaN) mesh faces                      : 1,711
 Bitwidth (current / max)                        : 1023 / 1023  (higher = finer resolution hash grid)
 Total hash cells                                : 1,073,741,824
 Occupied hash cells                             : 796,054, 0.0741%

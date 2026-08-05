@@ -287,6 +287,7 @@ def spatialhash_describe(spatialhash: SpatialHash) -> str:
     counts = hash_table["counts"]
 
     n_faces = int(np.size(spatialhash._xlow))
+    n_valid_faces = int(np.unique(hash_table["faces"]).size)
     n_entries = int(hash_table["faces"].size)
     n_occupied_cells = int(hash_table["keys"].size)
     n_total_cells = (spatialhash._bitwidth + 1) ** 3
@@ -295,6 +296,7 @@ def spatialhash_describe(spatialhash: SpatialHash) -> str:
         "Grid type": type(grid).__name__,
         "Mesh": grid._mesh,
         "Total mesh faces": f"{n_faces:,d}",
+        "Valid (non-NaN) mesh faces": f"{n_valid_faces:,d}",
         "Bitwidth (current / max)": f"{spatialhash._bitwidth} / 1023  (higher = finer resolution hash grid)",
         "Total hash cells": f"{n_total_cells:,d}",
         "Occupied hash cells": f"{n_occupied_cells:,d}, {n_occupied_cells / n_total_cells * 100:.4f}%",
