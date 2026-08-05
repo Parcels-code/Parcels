@@ -788,12 +788,7 @@ def _generate_valid_mask(xlow, xhigh, ylow, yhigh, zlow, zhigh):
         False where it contains a NaN.
     """
     invalid_face = (
-        np.isnan(xlow)
-        | np.isnan(xhigh)
-        | np.isnan(ylow)
-        | np.isnan(yhigh)
-        | np.isnan(zlow)
-        | np.isnan(zhigh)
+        np.isnan(xlow) | np.isnan(xhigh) | np.isnan(ylow) | np.isnan(yhigh) | np.isnan(zlow) | np.isnan(zhigh)
     )
 
     return ~invalid_face
