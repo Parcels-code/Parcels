@@ -1,4 +1,6 @@
+import sys
 import warnings
+from typing import IO
 
 import numpy as np
 
@@ -10,6 +12,7 @@ from parcels._core.index_search import (
 )
 from parcels._core.warnings import FieldSetWarning
 from parcels._python import isinstance_noimport
+from parcels._reprs import spatialhash_describe
 
 # Budget on the total number of (face, hash cell) pairs in the hash table:
 # max(_HASH_ENTRIES_PER_FACE * nfaces, _HASH_ENTRY_BUDGET_MIN).
@@ -532,6 +535,22 @@ class SpatialHash:
             i_best.reshape(query_codes.shape),
             coords_best.reshape((num_queries, coordinates.shape[1])),
         )
+
+    def describe(self, buf: IO | None = None) -> None:
+        """
+        Summary of the SpatialHash's hash-table statistics (resolution, occupancy,
+        entry counts).
+
+        Parameters
+        ----------
+        buf : file-like, default: sys.stdout
+            writable buffer
+        """
+        if buf is None:
+            buf = sys.stdout
+        assert buf is not None
+
+        buf.write(spatialhash_describe(self))
 
 
 def _dilate_bits(n):

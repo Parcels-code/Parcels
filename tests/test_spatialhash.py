@@ -1,3 +1,5 @@
+from io import StringIO
+
 import numpy as np
 
 from parcels._core.fieldset import FieldSet
@@ -18,6 +20,30 @@ def test_spatialhash_init():
     grid = FieldSet.from_sgrid_conventions(ds, mesh="flat").data_g.grid
     spatialhash = grid.get_spatial_hash()
     assert spatialhash is not None
+
+
+def test_spatialhash_describe():
+    ds = datasets["2d_left_rotated"]
+    grid = FieldSet.from_sgrid_conventions(ds, mesh="flat").data_g.grid
+    spatialhash = grid.get_spatial_hash()
+
+    io = StringIO()
+    expected = """\
+Spatial Hash Grid Statistics
+Grid type                                       : XGrid
+Mesh                                            : FlatMesh()
+Total mesh faces                                : 1,711
+Bitwidth (current / max)                        : 1023 / 1023  (higher = finer resolution hash grid)
+Total hash cells                                : 1,073,741,824
+Occupied hash cells                             : 796,054, 0.0741%
+Total (hash cell --> grid face) entries         : 1,080,194
+Entries per occupied hash cell (avg)            : 1.36
+Entries per face (avg)                          : 631.32
+Faces per occupied hash cell (min / mean / max) : 1 / 1.36 / 4
+"""
+    spatialhash.describe(io)
+    actual = io.getvalue()
+    assert actual == expected
 
 
 def test_invalid_positions():
@@ -96,9 +122,7 @@ def test_mixed_positions():
 
 
 def test_nan_node_invalidates_touching_faces():
-    """
-    Any mesh face that touches a NaN node should not be added to the HashTable.
-    """
+    """Any mesh face that touches a NaN node should not be added to the HashTable."""
     ds = datasets["2d_left_rotated"]
     grid = FieldSet.from_sgrid_conventions(ds, mesh="flat").data_g.grid
     clat, clon, jj, ii = _cell_centers(grid)
