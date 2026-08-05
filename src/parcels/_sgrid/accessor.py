@@ -149,11 +149,7 @@ def _get_axis_info(grid: SGrid2DMetadata) -> dict[str, tuple[FaceNodePadding, bo
 
 
 def get_dim_position(grid: SGrid2DMetadata, dim: str) -> "Literal['face'] | Padding":
-    """Returns 'face' if dim is a face dimension, or the Padding value if it is a node dimension.
-
-    Replaces xgcm's position string vocabulary ('center', 'left', 'right', 'inner', 'outer')
-    with SGRID-native types.
-    """
+    """Returns 'face' if dim is a face dimension, or the SGRID Padding value if it is a node dimension."""
     axis_info = _get_axis_info(grid)
     if dim not in axis_info:
         raise ValueError(f"Dimension {dim!r} is not a spatial SGRID dimension in this grid.")

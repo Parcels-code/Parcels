@@ -70,7 +70,7 @@ def assert_all_field_dims_have_axis(da: xr.DataArray, metadata: sgrid.SGrid2DMet
 
 def _transpose_xfield_data_to_tzyx(da: xr.DataArray, sgrid_metadata: sgrid.SGrid2DMetadata) -> xr.DataArray:
     """
-    Transpose a DataArray of any shape into a 4D array of order TZYX. Uses xgcm to determine
+    Transpose a DataArray of any shape into a 4D array of order TZYX. Uses SGRID metadata to determine
     the axes, and inserts mock dimensions of size 1 for any axes not present in the DataArray.
     """
     dim_to_axis = _get_dim_to_axis_mapping(sgrid_metadata) | {"time": "T"}
