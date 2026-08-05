@@ -44,7 +44,8 @@ class ParticleSet:
     y :
         List of initial y (latitude) values for particles
     z :
-        Optional list of initial z values for particles. Default is 0m
+        Optional list of initial z values for particles. Default is vertical grid position closest to the surface (z=0)
+        that covers all fields in the fieldset. If none of the fields in the fieldset have a vertical grid, z=0 is used.
     t :
         Optional list of initial t (time) values for particles. Default is fieldset.U.grid.time[0]
     repeatdt : datetime.timedelta or float, optional
@@ -78,11 +79,15 @@ class ParticleSet:
             particle_ids = np.arange(x.size)
 
         if z is None:
-            minz = 0
+            minz = None
             for field in self.fieldset.fields.values():
-                if field.grid.depth is not None:
-                    minz = min(minz, field.grid.depth[0])
-            z = np.ones(x.size) * minz
+                for depth in field.grid.depth:
+                    if minz is None or np.abs(depth) < np.abs(minz):
+                        minz = depth
+            if minz is not None:
+                z = np.ones(x.size) * minz
+            else:
+                z = np.zeros(x.size)
         else:
             z = np.array(z).flatten()
         assert x.size == y.size and x.size == z.size, "x, y, z don't all have the same lengths"
