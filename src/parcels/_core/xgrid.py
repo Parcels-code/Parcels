@@ -19,7 +19,9 @@ _XGRID_AXES_ORDERING: Sequence[ptyping.XgridAxis] = "ZYX"
 
 
 def get_cell_count_along_dim(ds: xr.Dataset, fnp: sgrid.FaceNodePadding) -> int:
-    return ds[fnp.face].size - 1
+    if fnp.face in ds.dims:
+        return ds.sizes[fnp.face] - 1
+    return sgrid.get_n_faces(ds.sizes[fnp.node], fnp.padding) - 1
 
 
 def get_time(ds: xr.Dataset, time_dim: str) -> npt.NDArray:
