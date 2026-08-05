@@ -308,10 +308,8 @@ class SpatialHash:
 
         # prevent NaN values from entering the SpatialHash table by setting their
         # num_hash_per_face equal to 0
-        valid_face = _generate_valid_mask(
-            self._xlow, self._xhigh, self._ylow, self._yhigh, self._zlow, self._zhigh
-        ).ravel()
-        num_hash_per_face = np.where(valid_face, nx * ny * nz, 0).astype(
+        valid_face = _generate_valid_mask(self._xlow, self._xhigh, self._ylow, self._yhigh, self._zlow, self._zhigh)
+        num_hash_per_face = np.where(valid_face.ravel(), nx * ny * nz, 0).astype(
             np.int32, copy=False
         )  # Since nx, ny, nz are in the 10-bit range, their product fits in int32
         # Sums over faces can exceed int32, so accumulate in int64
