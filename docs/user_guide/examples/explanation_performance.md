@@ -4,7 +4,7 @@ In many Parcels simulations, the bottle-neck in terms of performance is the retr
 
 In this tutorial, we will show how to squeeze performance in Parcels by using a few different Parcels Backends. Which Backend works best for your case depends on the amount of field data you have and how you can store it on disk.
 
-Note that the concept of  Parcels Backends are different to Xarray backends. 
+Note that the concept of Parcels Backends is different from [Xarray backends](https://docs.xarray.dev/en/latest/api/backends.html).
 
 ```{note}
 You can check which Backend Parcels is using by calling `fieldset.describe()`. The last column shows the Backend that is used for each Field.
@@ -102,5 +102,5 @@ If your Dataset is so large that it doesn't fit into memory, and you have very f
 ```{note}
 The long-term plan for Parcels development is to make this Option 4 work well for all cases. However, this will require significant work on Dask indexing.
 If you have ideas for how to make Parcels faster, we'd love to hear from you!
-Feel free to open an issue or reach out to us on Zulip.
+Feel free to [open an issue](https://github.com/Parcels-code/Parcels/issues) or reach out to us on [Zulip](https://clam-community.github.io).
 ```
