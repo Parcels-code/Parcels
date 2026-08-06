@@ -4,6 +4,8 @@ In many Parcels simulations, the bottle-neck in terms of performance is the retr
 
 In this tutorial, we will show how to squeeze performance in Parcels by using a few different Parcels Backends. Which Backend works best for your case depends on the amount of field data you have and how you can store it on disk.
 
+Note that the concept of  Parcels Backends are different to Xarray backends. 
+
 ```{note}
 You can check which Backend Parcels is using by calling `fieldset.describe()`. The last column shows the Backend that is used for each Field.
 ```
