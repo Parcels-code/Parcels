@@ -235,7 +235,7 @@ class XGrid(BaseGrid):
     ) -> dict[str, tuple[int, float]]:
         """
         Uses the grid context (i.e., the staggering of the grid) to convert a position relative
-        to the F-points in the grid to a position relative to the staggered grid the array
+        to the f-points in the grid to a position relative to the staggered grid the array
         of interest is defined on.
 
         Uses dimensions of the DataArray to determine the staggered grid.
@@ -246,7 +246,7 @@ class XGrid(BaseGrid):
         ----------
         position : dict
             A mapping of the axis to a tuple of (index, barycentric coordinate) for the
-            F-points in the grid.
+            f-points in the grid.
         dims : list[str]
             A list of dimension names that the DataArray is defined on. This is used to determine
             the staggering of the grid and which axis each dimension corresponds to.
