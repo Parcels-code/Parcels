@@ -465,10 +465,19 @@ def test_nemo_3D_curvilinear_fieldset(kernel):
     if kernel == AdvectionRK4:
         np.testing.assert_allclose([p.z for p in pset], z_initial)
     elif kernel == AdvectionRK4_3D:
-        np.testing.assert_allclose(
-            [p.z for p in pset],
-            [0.66616201, 0.86671311, 0.92108649, 0.95940739, 0.95945358, 1.00413370, 1.02847278, 1.00335419, 1.27260256, 1.38021827],
-        )  # fmt:skip
+        depths_from_v3 = [
+            0.66616202,
+            0.86671308,
+            0.92108645,
+            0.95940743,
+            0.95945352,
+            1.00413373,
+            1.02847297,
+            1.00335434,
+            1.27260261,
+            1.38021829,
+        ]  # depths from cell 1 of https://docs.parcels-code.org/en/v3.1.4/examples/tutorial_nemo_3D.html
+        np.testing.assert_allclose([p.z for p in pset], depths_from_v3, rtol=2e-7)
 
 
 def test_mitgcm():
