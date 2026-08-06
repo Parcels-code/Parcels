@@ -9,6 +9,7 @@ import xarray as xr
 from dask import is_dask_collection
 
 import parcels._core.utils.interpolation as i_u
+import parcels._sgrid as sgrid
 import parcels._typing as ptyping
 from parcels.interpolators._base import ScalarInterpolator, VectorInterpolator
 
@@ -97,12 +98,12 @@ def _get_corner_data_Agrid(
 
 def _get_offsets_dictionary(grid: XGrid) -> dict[ptyping.CfAxisSpatial, Literal[1, 0]]:
     offsets = {}
-    for axis in ["X", "Y"]:
-        axis_coords = grid.xgcm_grid.axes[axis].coords.keys()
-        offsets[axis] = 1 if "right" in axis_coords else 0
-    if "Z" in grid.xgcm_grid.axes:
-        axis_coords = grid.xgcm_grid.axes["Z"].coords.keys()
-        offsets["Z"] = 1 if "right" in axis_coords else 0
+    metadata = grid.sgrid_metadata
+    for fnp, axis in zip(metadata.face_dimensions, ["X", "Y"], strict=False):
+        offsets[axis] = 1 if fnp.padding == sgrid.Padding.LOW else 0
+    if metadata.vertical_dimensions is not None:
+        fnp_z = metadata.vertical_dimensions[0]
+        offsets["Z"] = 1 if fnp_z.padding == sgrid.Padding.LOW else 0
     else:
         offsets["Z"] = 0
     return offsets
