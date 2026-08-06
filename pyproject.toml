@@ -31,7 +31,6 @@ dependencies = [
   "pyarrow >=20.0.0",
   "uxarray >=2026.04.1",
   "pooch >=1.8.0",
-  "xgcm >=0.9.0",
   "cf_xarray >=0.8.6",
   "polars >=1.31.0",
 ]
@@ -200,7 +199,6 @@ module = [
   "cftime",
   "netCDF4",
   "pooch",
-  "xgcm",
   "uxarray",
 ]
 ignore_missing_imports = true

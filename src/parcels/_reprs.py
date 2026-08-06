@@ -80,8 +80,8 @@ def xgrid_repr(grid: Any) -> str:
     Parcels attributes:
         mesh                  : {grid._mesh}
         spatialhash           : {grid._spatialhash}
-    xgcm Grid:
-{textwrap.indent(repr(grid.xgcm_grid), 8 * " ")}
+    SGRID Metadata:
+{textwrap.indent(repr(grid.sgrid_metadata), 8 * " ")}
 """
     return textwrap.dedent(out).strip()
 

@@ -7,17 +7,15 @@ used for runtime parameter validation (to ensure users are only using the right 
 """
 
 import os
-from collections.abc import Callable, Mapping
+from collections.abc import Callable
 from datetime import datetime
-from typing import TYPE_CHECKING, Literal, get_args
+from typing import Literal, get_args
 
 import numpy as np
 from cftime import datetime as cftime_datetime
 
 from parcels._core.mesh import TMesh  # noqa: F401
-
-if TYPE_CHECKING:
-    import xgcm
+from parcels._sgrid.core import Padding
 
 InterpMethodOption = Literal[
     "linear",
@@ -46,8 +44,7 @@ CfAxisSpatial = Literal["X", "Y", "Z"]
 XgridAxis = CfAxisSpatial
 XgcmAxisDirection = CfAxisSpatial | Literal["T"]
 CfAxis = XgcmAxisDirection
-XgcmAxisPosition = Literal["center", "left", "right", "inner", "outer"]
-XgcmAxes = Mapping[XgcmAxisDirection, "xgcm.Axis"]
+GridPosition = Literal["face"] | Padding
 VectorFields = dict[str, tuple[str, str] | tuple[str, str, str]]
 
 

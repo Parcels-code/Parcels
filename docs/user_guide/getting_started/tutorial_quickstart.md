@@ -89,7 +89,7 @@ npart = 10  # number of particles to be released
 lat = np.linspace(-32.5, -30.5, npart)
 lon = np.repeat(32, npart)
 time = np.repeat(ds_fields.time.values[0], npart) # at initial time of input data
-z = np.repeat(ds_fields.depth.values[0], npart) # at the first depth (surface)
+z = np.repeat(0.5, npart) # at 0.5 meter depth (first level of the input data)
 
 pset = parcels.ParticleSet(
     fieldset=fieldset, pclass=parcels.Particle, t=time, z=z, y=lat, x=lon

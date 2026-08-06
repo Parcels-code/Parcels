@@ -6,7 +6,7 @@ import pytest
 import xarray as xr
 from numpy.testing import assert_allclose
 
-from parcels import Field, FieldSet
+from parcels import FieldSet
 from parcels._core.index_search import (
     LEFT_OUT_OF_BOUNDS,
     RIGHT_OUT_OF_BOUNDS,
@@ -18,7 +18,6 @@ from parcels._core.xgrid import (
     _transpose_xfield_data_to_tzyx,
 )
 from parcels._datasets.structured.generic import X, Y, Z, datasets, datasets_sgrid
-from parcels.interpolators import XLinear
 from tests import utils
 
 GridTestCase = namedtuple("GridTestCase", ["ds", "attr", "expected"])
@@ -146,16 +145,6 @@ def test_invalid_depth():
 
     with pytest.raises(ValueError, match="Depth DataArray .* must be strictly increasing*"):
         XGrid.from_dataset(ds, mesh="flat")
-
-
-@pytest.mark.skip(
-    "Needs updating after refactoring from https://github.com/Parcels-code/Parcels/pull/2646"
-)  # TODO: axis checking no longer relies on these axis attributes being set (since we inspect the sgrid metadata directly) - I think this might be able to be removed entirely since sgrid metadata have quite informative error messaging. For planned future PR that deals with xgcm related cleanup
-def test_dim_without_axis():
-    ds = xr.Dataset({"z1d": (["depth"], [0])}, coords={"depth": [0]})
-    grid = XGrid.from_dataset(ds, mesh="flat")
-    with pytest.raises(ValueError, match='Dimension "depth" has no axis attribute*'):
-        Field("z1d", ds["z1d"], grid, XLinear)
 
 
 @pytest.mark.skip(
