@@ -101,4 +101,6 @@ If your Dataset is so large that it doesn't fit into memory, and you have very f
 
 ```{note}
 The long-term plan for Parcels development is to make this Option 4 work well for all cases. However, this will require significant work on Dask indexing.
+If you have ideas for how to make Parcels faster, we'd love to hear from you!
+Feel free to open an issue or reach out to us on Zulip.
 ```
