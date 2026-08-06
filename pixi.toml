@@ -33,7 +33,6 @@ holoviews = ">=1.22.0" # https://github.com/prefix-dev/rattler-build/issues/2326
 uxarray = ">=2026.04.1"
 dask = ">=2024.5.1"
 zarr = ">=3"
-xgcm = { git = "https://github.com/VeckoTheGecko/xgcm", rev = "relax-pixi-build-python" } # TODO: Switch to release version after release is cut
 cf_xarray = ">=0.8.6"
 cftime = ">=1.6.3"
 pooch = ">=1.8.0"
@@ -64,7 +63,6 @@ pyarrow = "20.0.*"
 uxarray = "==2026.04.1"
 dask = "2024.6.*"
 zarr = "3.0.*"
-xgcm = { git = "https://github.com/VeckoTheGecko/xgcm", rev = "relax-pixi-build-python" } # TODO: Switch to release version after release is cut
 cf_xarray = "0.10.*"
 cftime = "1.6.*"
 pooch = "1.8.*"
