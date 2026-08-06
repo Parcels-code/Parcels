@@ -178,8 +178,7 @@ def test_execution_order(kernel_type):
         particles.dx += 0.2
 
     def SampleP(particles, fieldset):  # pragma: no cover
-        particles.p = fieldset.U[particles]
-        print(particles.x, particles.p, fieldset.U[particles])
+        particles.p, _ = fieldset.UV[particles]
 
     SampleParticle = Particle.add_variable(Variable("p", dtype=np.float32, initial=0.0))
 
