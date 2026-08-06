@@ -542,14 +542,14 @@ def _convert_center_pos_to_fpoint(
     position: ptyping.GridPosition,
     f_point_position: sgrid.Padding,
 ) -> tuple[int, float]:
-    """Converts a physical position relative to the cell edges defined in the grid to be relative to the center point.
+    """Converts a physical position relative to the cell edges defined in the grid to be relative to the face center.
 
     This is used to "localize" a position to be relative to the staggered grid at which the field is defined, so that
     it can be easily interpolated.
 
     This also handles different model input cell edges and centers are staggered in different directions (e.g., with NEMO and MITgcm).
     """
-    if position != "face":  # Data is already defined on the F points
+    if position != "face":  # Data is already defined on the F nodes
         return index, bcoord
 
     bcoord = bcoord - 0.5
