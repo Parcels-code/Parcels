@@ -265,7 +265,7 @@ class XGrid(BaseGrid):
         >>> grid.localize(position, dims)
         {'depth': (3, 0.75), 'YC': (9, 0.75), 'XC': (5, 0.01)}
         """
-        dim_to_axis = _get_dim_to_axis_mapping(self.sgrid_metadata) | {"time": "T"}
+        dim_to_axis = _get_dim_to_axis_mapping(self.sgrid_metadata)
         axis_to_var = {dim_to_axis[dim]: dim for dim in dims if dim in dim_to_axis}
         var_positions = {
             axis: get_dim_position(self.sgrid_metadata, dim) for axis, dim in axis_to_var.items() if axis != "T"
