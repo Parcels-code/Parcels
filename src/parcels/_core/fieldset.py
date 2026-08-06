@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import functools
 import sys
 import warnings
 from collections.abc import Iterable
@@ -122,7 +121,7 @@ class FieldSet:
     @property
     def time_interval(self):
         """Returns the valid executable time interval of the FieldSet,
-        which is the intersection of the time intervals of all fields
+        which is the overlap of the time intervals of all fields
         in the FieldSet.
         """
         time_intervals = (m.time_interval for m in self.models)
@@ -131,7 +130,14 @@ class FieldSet:
         time_intervals = [t for t in time_intervals if t is not None]
         if len(time_intervals) == 0:  # All fields are constant fields
             return None
-        return functools.reduce(lambda x, y: x.intersection(y), time_intervals)
+
+        overlap = time_intervals[0]
+        for time_interval in time_intervals[1:]:
+            if overlap is None:
+                return None
+            overlap = overlap.intersection(time_interval)
+
+        return overlap
 
     def add_field(self, field: Field, name: str | None = None):
         """Add a :class:`parcels.field.Field` object to the FieldSet.
@@ -289,6 +295,7 @@ class FieldSet:
         ds: xr.Dataset,
         mesh: ptyping.TMesh | None = None,
         vector_fields: ptyping.VectorFields | NotSetType = NOTSET,
+        skip_field_data_validation: bool = False,
     ):  # TODO: Update mesh to be discovered from the dataset metadata
         """Create a FieldSet from a dataset using SGRID convention metadata.
 
@@ -307,6 +314,8 @@ class FieldSet:
             Mapping of vector field names to tuples of component variable names in the dataset.
             For example, ``{"UV": ("U", "V"), "UVW": ("U", "V", "W")}``.
             If omitted (default), vector fields are auto-discovered from standard variable names (``U``/``V``/``W``).
+        skip_field_data_validation : bool, optional
+            If True, skip validation of the field data. This can be useful for performance reasons, but may lead to unexpected behavior if the field data is invalid. Default is False.
 
         Returns
         -------
@@ -321,7 +330,9 @@ class FieldSet:
 
         See https://sgrid.github.io/sgrid/ for more information on the SGRID conventions.
         """
-        model = StructuredModelData.from_sgrid_conventions(ds, mesh, vector_fields)
+        model = StructuredModelData.from_sgrid_conventions(
+            ds, mesh, vector_fields, skip_field_data_validation=skip_field_data_validation
+        )
         return cls([model])
 
     def describe(self, buf: IO | None = None) -> None:

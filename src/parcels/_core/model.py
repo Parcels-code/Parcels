@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Hashable, Sequence
 from typing import Any, Self
@@ -7,6 +8,7 @@ from typing import Any, Self
 import cf_xarray  # noqa: F401
 import uxarray as ux
 import xarray as xr
+import zarr
 from dask import is_dask_collection
 
 import parcels._sgrid as sgrid
@@ -23,7 +25,6 @@ from parcels._core.xgrid import (
 )
 from parcels._logger import logger
 from parcels._python import NOTSET, NotSetType
-from parcels.convert import _ds_rename_using_standard_names
 from parcels.interpolators import (
     CGrid_Velocity,
     Ux_Velocity,
@@ -131,12 +132,31 @@ def preprocess_sgrid_model_data(ds: xr.Dataset) -> xr.Dataset:
     return ds
 
 
+def validate_field_data(ds: xr.Dataset) -> xr.Dataset:
+    if any(isinstance(da.variable._data, zarr.Array) for da in ds.data_vars.values()):
+        warnings.warn(
+            "Changing a Zarr-backed dataset. This may convert the Parcels backend to NumPy. "
+            "If you want to keep the Zarr backend, please use `skip_field_data_validation=True` when creating the FieldSet.",
+            UserWarning,
+            stacklevel=2,
+        )
+    return ds.fillna(0)
+
+
 class StructuredModelData(ModelData):
-    def __init__(self, data: xr.Dataset, mesh: ptyping.TMesh, vector_field_components: ptyping.VectorFields):
+    def __init__(
+        self,
+        data: xr.Dataset,
+        mesh: ptyping.TMesh,
+        vector_field_components: ptyping.VectorFields,
+        skip_field_data_validation: bool = False,
+    ):
         if not isinstance(data, xr.Dataset):
             raise ValueError(f"Expected `data` to be an xarray.Dataset . Got {type(data)}")
 
         data = preprocess_sgrid_model_data(data)
+        if not skip_field_data_validation:
+            data = validate_field_data(data)
         grid = XGrid(data, mesh)
 
         self.data = data
@@ -181,7 +201,11 @@ class StructuredModelData(ModelData):
 
     @classmethod
     def from_sgrid_conventions(
-        cls, ds: xr.Dataset, mesh: ptyping.TMesh | None, vector_fields: ptyping.VectorFields | NotSetType
+        cls,
+        ds: xr.Dataset,
+        mesh: ptyping.TMesh | None,
+        vector_fields: ptyping.VectorFields | NotSetType,
+        skip_field_data_validation: bool = False,
     ) -> Self:
         ds = ds.copy()
         if mesh is None:
@@ -212,7 +236,12 @@ class StructuredModelData(ModelData):
         vector_fields = resolve_vector_fields(ds, vector_fields)
         assert_valid_vector_fields(ds, vector_fields)
 
-        model = cls(ds, mesh=mesh, vector_field_components=vector_fields)
+        model = cls(
+            ds,
+            mesh=mesh,
+            vector_field_components=vector_fields,
+            skip_field_data_validation=skip_field_data_validation,
+        )
         model._fields = model.construct_fields()
         for f in model._fields:
             if isinstance(f, Field):
@@ -401,7 +430,7 @@ def _discover_ux_U_and_V(ds: ux.UxDataset) -> ux.UxDataset:
     if "W" not in ds:
         for common_W in common_ux_W:
             if common_W in ds:
-                ds = _ds_rename_using_standard_names(ds, {common_W: "W"})
+                ds = ds.rename({common_W: "W"})
                 break
 
     if "U" in ds and "V" in ds:
@@ -420,7 +449,7 @@ def _discover_ux_U_and_V(ds: ux.UxDataset) -> ux.UxDataset:
                     "Please rename the appropriate variables in your dataset to have both 'U' and 'V' for Parcels simulation."
                 )
             else:
-                ds = _ds_rename_using_standard_names(ds, {common_U: "U", common_V: "V"})
+                ds = ds.rename({common_U: "U", common_V: "V"})
                 break
 
         else:

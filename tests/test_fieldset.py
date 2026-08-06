@@ -9,13 +9,12 @@ import pytest
 import xarray as xr
 
 import parcels.tutorial
-from parcels import Field, ParticleFile, ParticleSet, XGrid, convert, open_raw_zarr
+from parcels import ParticleFile, ParticleSet, convert, open_raw_zarr
 from parcels._core.fieldset import FieldSet, _datetime_to_msg
 from parcels._core.model import _default_vector_field_components
 from parcels._datasets.structured.generic import datasets as datasets_structured
 from parcels._datasets.structured.generic import datasets_sgrid
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
-from parcels.interpolators import XLinear
 from tests import utils
 
 ds = datasets_structured["ds_2d_left"]
@@ -221,22 +220,41 @@ def test_default_vector_field_components(data_vars, expected):
     assert got == expected
 
 
-# TODO restructure: use adding of fieldset notation to test this
-@pytest.mark.skip("Needs updating after refactoring from https://github.com/Parcels-code/Parcels/pull/2646")
-def test_fieldset_time_interval():
-    grid1 = XGrid.from_dataset(ds, mesh="flat")
-    field1 = Field("field1", ds["U_A_grid"], grid1, interp_method=XLinear)
+def test_multi_model_time_interval():
+    ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]]
+    fieldset = FieldSet.from_sgrid_conventions(ds1, mesh="flat")
 
-    ds2 = ds.copy()
+    ds2 = ds1.copy().rename({"U_A_grid": "U2", "V_A_grid": "V2"})
     ds2["time"] = (ds2["time"].dims, ds2["time"].data + np.timedelta64(timedelta(days=1)), ds2["time"].attrs)
-    grid2 = XGrid.from_dataset(ds2, mesh="flat")
-    field2 = Field("field2", ds2["U_A_grid"], grid2, interp_method=XLinear)
+    fieldset += FieldSet.from_sgrid_conventions(ds2, mesh="flat")
 
-    fieldset = FieldSet([field1, field2])
+    ds3 = ds1.copy().rename({"U_A_grid": "U3", "V_A_grid": "V3"})
+    ds3["time"] = (ds3["time"].dims, ds3["time"].data + np.timedelta64(timedelta(days=2)), ds3["time"].attrs)
+    fieldset += FieldSet.from_sgrid_conventions(ds3, mesh="flat")
+
     fieldset.add_constant_field("constant_field", 1.0, mesh="flat")
 
-    assert fieldset.time_interval.left == np.datetime64("2000-01-02")
+    assert len(fieldset.models) == 4
+    assert fieldset.time_interval.left == np.datetime64("2000-01-03")
     assert fieldset.time_interval.right == np.datetime64("2001-01-01")
+
+
+def test_multi_model_nonoverlapping_time_interval():
+    ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]]
+    fieldset = FieldSet.from_sgrid_conventions(ds1, mesh="flat")
+
+    ds2 = ds1.copy().rename({"U_A_grid": "U2", "V_A_grid": "V2"})
+    ds2["time"] = (ds2["time"].dims, ds2["time"].data + np.timedelta64(timedelta(days=1000)), ds2["time"].attrs)
+    fieldset += FieldSet.from_sgrid_conventions(ds2, mesh="flat")
+
+    ds3 = ds1.copy().rename({"U_A_grid": "U3", "V_A_grid": "V3"})
+    ds3["time"] = (ds3["time"].dims, ds3["time"].data + np.timedelta64(timedelta(days=2000)), ds3["time"].attrs)
+    fieldset += FieldSet.from_sgrid_conventions(ds3, mesh="flat")
+
+    fieldset.add_constant_field("constant_field", 1.0, mesh="flat")
+
+    assert len(fieldset.models) == 4
+    assert fieldset.time_interval is None
 
 
 def test_fieldset_time_interval_constant_fields():
@@ -330,6 +348,16 @@ def test_fieldset_from_sgrid_conventions(ds_name):
     assert len(fieldset.fields) > 0
 
 
+def test_fieldset_skip_field_data_validation():
+    ds = datasets_structured["ds_2d_left"]
+    ds["U_A_grid"][:] = np.nan
+
+    fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
+    assert np.isfinite(fieldset.U_A_grid.data).all()
+    fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat", skip_field_data_validation=True)
+    assert np.isnan(fieldset.U_A_grid.data).all()
+
+
 def test_fieldset_add_error_on_duplicate_fields():
     """Test that adding FieldSets with overlapping field names raises a ValueError."""
     ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]].rename({"U_A_grid": "U", "V_A_grid": "V"})
@@ -385,6 +413,21 @@ def test_fieldset_add_error_on_duplicate_context_values():
 
     with pytest.raises(ValueError, match="context value names in common.*'kh'"):
         fset1 + fset2
+
+
+@pytest.mark.parametrize("skip", [True, False])
+def test_zarr_warning_on_fieldset_creation(skip, tmp_path):
+    """Test that creating a FieldSet from a Zarr-backed dataset raises a warning about potential backend changes."""
+    ds = parcels.tutorial.open_dataset("CopernicusMarine_data_for_Argo_tutorial/data")
+    ds = convert.copernicusmarine_to_sgrid(fields={"U": ds["uo"], "V": ds["vo"]})
+    path = tmp_path / "ds.zarr"
+    ds.to_zarr(path)
+    ds_zarr = open_raw_zarr(path)
+    if not skip:
+        with pytest.warns(UserWarning, match="Changing a Zarr-backed dataset"):
+            FieldSet.from_sgrid_conventions(ds_zarr, skip_field_data_validation=skip)
+    else:
+        FieldSet.from_sgrid_conventions(ds_zarr, skip_field_data_validation=skip)
 
 
 def test_fieldset_add_context_values():
@@ -484,7 +527,7 @@ time interval: (np.datetime64('2000-01-02T12:00:00.000000000'), np.datetime64('2
     path = tmp_path / "ds.zarr"
     ds_fset.to_zarr(path)
     ds_zarr = open_raw_zarr(path)
-    fieldset = FieldSet.from_sgrid_conventions(ds_zarr)
+    fieldset = FieldSet.from_sgrid_conventions(ds_zarr, skip_field_data_validation=True)
 
     io = StringIO()
     expected = """\

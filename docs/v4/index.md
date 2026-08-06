@@ -18,7 +18,6 @@ The pages below provide further background on the development of Parcels v4. You
 
 ```{toctree}
 nojit
-TODO
 Parcels v4 Issue Tracker <https://github.com/Parcels-code/Parcels/issues?q=sort%3Aupdated-desc%20is%3Aissue%20is%3Aopen%20(milestone%3A%22Parcels%20v4.0%20(preview)%22%20OR%20milestone%3A%22Parcels%20v4.x%20(stable)%22)>
 Parcels v4 migration guide <../user_guide/v4-migration>
 ```

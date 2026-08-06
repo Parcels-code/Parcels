@@ -38,8 +38,11 @@ from parcels._core.warnings import (
     FileWarning,
     KernelWarning,
     ParticleSetWarning,
+    FieldEvalWarning,
 )
 from parcels._logger import logger
+from . import convert
+from . import kernels
 
 __all__ = [  # noqa: RUF022
     # Core classes
@@ -73,6 +76,9 @@ __all__ = [  # noqa: RUF022
     # Utilities
     "logger",
     "read_particlefile",
+    "convert",
+    # kernels
+    "kernels",
 ]
 
 _stdlib_warnings.warn(

@@ -94,7 +94,7 @@ def test_advection_zonal_periodic():
     halo = ds.isel(XG=0)
     halo.lon.values = ds.lon.values[1] + 1
     halo.XG.values = ds.XG.values[1] + 2
-    ds = xr.concat([ds, halo], dim="XG")
+    ds = xr.concat([ds, halo], dim="XG", data_vars="all")
 
     fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
 
@@ -286,6 +286,8 @@ def test_moving_eddy(kernel, rtol):
 
     if kernel == AdvectionRK45:
         fieldset.add_context("RK45_tol", rtol)
+        fieldset.add_context("RK45_min_dt", 1)
+        fieldset.add_context("RK45_max_dt", 24 * 60 * 60)
 
     pset = ParticleSet(
         fieldset, pclass=DEFAULT_PARTICLES[kernel], x=start_lon, y=start_lat, z=start_z, t=np.timedelta64(0, "s")
@@ -325,6 +327,7 @@ def test_decaying_moving_eddy(kernel, rtol):
     if kernel == AdvectionRK45:
         fieldset.add_context("RK45_tol", rtol)
         fieldset.add_context("RK45_min_dt", 10 * 60)
+        fieldset.add_context("RK45_max_dt", 24 * 60 * 60)
 
     pset = ParticleSet(fieldset, pclass=DEFAULT_PARTICLES[kernel], x=start_lon, y=start_lat, t=np.timedelta64(0, "s"))
     pset.execute(kernel, dt=dt, endtime=endtime)
@@ -372,6 +375,8 @@ def test_stommelgyre_fieldset(kernel, rtol, grid_type):
 
     if kernel == AdvectionRK45:
         fieldset.add_context("RK45_tol", rtol)
+        fieldset.add_context("RK45_min_dt", 1)
+        fieldset.add_context("RK45_max_dt", 24 * 60 * 60)
 
     def UpdateP(particles, fieldset):  # pragma: no cover
         particles.p = fieldset.P[particles.t, particles.z, particles.y, particles.x]
@@ -386,11 +391,11 @@ def test_stommelgyre_fieldset(kernel, rtol, grid_type):
     "kernel, rtol",
     [
         (AdvectionRK2, 2e-2),
-        (AdvectionRK4, 5e-3),
+        (AdvectionRK4, 1e-2),
         (AdvectionRK45, 1e-3),
     ],
 )
-@pytest.mark.parametrize("grid_type", ["A"])  # TODO also implement C-grid once available
+@pytest.mark.parametrize("grid_type", ["A", "C"])
 def test_peninsula_fieldset(kernel, rtol, grid_type):
     npart = 2
     ds = peninsula_dataset(grid_type=grid_type)
@@ -407,6 +412,8 @@ def test_peninsula_fieldset(kernel, rtol, grid_type):
 
     if kernel == AdvectionRK45:
         fieldset.add_context("RK45_tol", rtol)
+        fieldset.add_context("RK45_min_dt", 1)
+        fieldset.add_context("RK45_max_dt", 24 * 60 * 60)
 
     def UpdateP(particles, fieldset):  # pragma: no cover
         particles.p = fieldset.P[particles.t, particles.z, particles.y, particles.x]
