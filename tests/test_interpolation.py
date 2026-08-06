@@ -17,12 +17,14 @@ from parcels._core.index_search import _search_time_index
 from parcels._core.mesh import get_mesh
 from parcels._datasets.structured.generated import simple_UV_dataset
 from parcels.interpolators import (
+    CGrid_Velocity,
     XFreeslip,
     XLinear,
     XLinearInvdistLandTracer,
     XNearest,
     XPartialslip,
 )
+from parcels.interpolators._base import VectorInterpolator
 from parcels.interpolators._xinterpolators import _get_corner_data_Agrid
 from parcels.kernels import AdvectionRK4_3D
 from tests.utils import TEST_DATA
@@ -275,12 +277,32 @@ def test_corner_gather_keeps_axes_missing_from_the_mapping():
         assert out[0, 0, 0, 0, p] == data.values[ti[p], 0, yi[p], xi[p]]
 
 
-interp_methods = {
-    "linear": XLinear,
-}
+class XNearest_Velocity(VectorInterpolator):  # noqa:  N801
+    """Nearest-Neighbour interpolation on a regular grid for VectorFields of velocity."""
+
+    def interp(
+        self,
+        particle_positions: dict[str, float | np.ndarray],
+        grid_positions,
+        vectorfield: VectorField,
+    ):
+        """Nearest-Neighbour interpolation on a regular grid for VectorFields of velocity."""
+        _xnearest = XNearest()
+        u = _xnearest.interp(particle_positions, grid_positions, vectorfield.U)
+        v = _xnearest.interp(particle_positions, grid_positions, vectorfield.V)
+        w = _xnearest.interp(particle_positions, grid_positions, vectorfield.W)
+        return u, v, w
 
 
-@pytest.mark.parametrize(("interp_name", "interp_method"), [("linear", XLinear)])
+@pytest.mark.parametrize(
+    ("interp_name", "interp_method"),
+    [
+        ("linear", XLinear),
+        ("freeslip", XFreeslip),
+        ("nearest", XNearest_Velocity),
+        ("cgrid_velocity", CGrid_Velocity),
+    ],
+)
 def test_interp_regression_v3(interp_name, interp_method):
     """Test that the v4 versions of the interpolation are the same as the v3 versions."""
     ds_input = xr.open_dataset(str(TEST_DATA / f"test_interpolation_data_random_{interp_name}.nc"))
@@ -320,9 +342,8 @@ def test_interp_regression_v3(interp_name, interp_method):
     )
 
     fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
-    assert isinstance(fieldset.U.interp_method, interp_method)
-    assert isinstance(fieldset.V.interp_method, interp_method)
-    assert isinstance(fieldset.W.interp_method, interp_method)
+    if interp_name in ["cgrid_velocity", "freeslip", "nearest"]:
+        fieldset.UVW.interp_method = interp_method()
 
     x, y, z = np.meshgrid(np.linspace(0, 1, 7), np.linspace(0, 1, 13), np.linspace(0, 1, 5))
 
@@ -341,7 +362,6 @@ def test_interp_regression_v3(interp_name, interp_method):
         output_file=outfile,
     )
 
-    print(str(TEST_DATA / f"test_interpolation_jit_{interp_name}.zarr"))
     ds_v3 = xr.open_zarr(str(TEST_DATA / f"test_interpolation_jit_{interp_name}.zarr"))
     ds_v4 = read_particlefile(f"test_interpolation_v4_{interp_name}.parquet")
 
