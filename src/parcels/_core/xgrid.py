@@ -478,7 +478,7 @@ def assert_valid_lat_lon(da_lat, da_lon, metadata: sgrid.SGrid2DMetadata):
     for dim in da_lon.dims:
         if get_dim_position(metadata, dim) == "face":
             raise ValueError(
-                f"Longitude DataArray {da_lon.name!r} with dims {da_lon.dims} is defined on the center of the grid, but must be defined on the F points."
+                f"Longitude DataArray {da_lon.name!r} with dims {da_lon.dims} is defined on the faces of the grid, but must be defined on the F nodes."
             )
     for dim in da_lat.dims:
         if get_dim_position(metadata, dim) == "face":
