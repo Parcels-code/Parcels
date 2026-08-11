@@ -1,10 +1,26 @@
+import os
 from pathlib import Path
+from typing import Any
 
 import polars as pl
+import pyarrow.parquet as pq
 import xarray as xr
 
 
-def particlefile_to_v3_zarr(from_parquet: Path, to_zarr: Path) -> None:
+def _decode_dict_to_utf8(d: dict[Any, Any]) -> dict[Any, Any]:
+    ret = {}
+    for key, item in d.items():
+        if isinstance(key, bytes):
+            key = key.decode("utf8")
+        if isinstance(item, dict):
+            item = _decode_dict_to_utf8(item)
+        if isinstance(item, bytes):
+            item = item.decode("utf8")
+        ret[key] = item
+    return ret
+
+
+def particlefile_to_v3_zarr(from_parquet: str | os.PathLike, to_zarr: str | os.PathLike) -> None:
     """Convert a v4 particle file (parquet) to v3-style zarr output.
 
     Reads the parquet file, renames columns to v3 conventions
@@ -33,17 +49,26 @@ def particlefile_to_v3_zarr(from_parquet: Path, to_zarr: Path) -> None:
     to_zarr = Path(to_zarr)
     if to_zarr.suffix != ".zarr":
         raise ValueError(f"Parameter `to_zarr` must have a '.zarr' suffix. Got {to_zarr=}.")
-
+    from_parquet = Path(from_parquet)
     df = pl.read_parquet(from_parquet)
+    table = pq.read_table(from_parquet)
+
+    # TODO: Check for available memory here and fail as a safeguard?
 
     # Rename columns to v3 conventions
     rename_map = {"particle_id": "trajectory", "t": "time", "x": "lon", "y": "lat", "z": "depth"}
     try:
         df = df.rename(rename_map)
     except pl.exceptions.ColumnNotFoundError as e:
-        e.add_note(f"Expected to have all columns {list(rename_map)} in the output parquet. Got columns {list(df.columns)}.")
+        e.add_note(
+            f"Expected to have all columns {list(rename_map)} in the output parquet. Got columns {list(df.columns)}."
+        )
         raise e
-    
+
+    metadata_per_field = {}
+    for parquet_var in table.schema.names:
+        zarr_var = rename_map.get(parquet_var, parquet_var)  # default to parquet name
+        metadata_per_field[zarr_var] = table.field(parquet_var).metadata or {}
 
     # Group by trajectory, sort by time, and assign observation index
     df = df.sort("trajectory", "time")
@@ -59,11 +84,16 @@ def particlefile_to_v3_zarr(from_parquet: Path, to_zarr: Path) -> None:
     for var in data_vars:
         pivoted = df.pivot(on="obs", index="trajectory", values=var, sort_columns=True)
         value_cols = [c for c in pivoted.columns if c != "trajectory"]
-        ds_dict[var] = (["trajectory", "obs"], pivoted.select(value_cols).to_numpy())
+        ds_dict[var] = (
+            ["trajectory", "obs"],
+            pivoted.select(value_cols).to_numpy(),
+            _decode_dict_to_utf8(metadata_per_field[var]),
+        )
 
     ds = xr.Dataset(
         ds_dict,
         coords={"trajectory": trajectories.to_numpy()},
+        attrs=_decode_dict_to_utf8(table.schema.metadata),
     )
 
     ds.to_zarr(to_zarr)

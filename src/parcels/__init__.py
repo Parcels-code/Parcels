@@ -13,6 +13,7 @@ from parcels._core.fieldset import FieldSet
 from parcels._xarray import open_raw_zarr
 from parcels._core.particleset import ParticleSet
 from parcels._core.particlefile import ParticleFile, read_particlefile
+from ._v3 import particlefile_to_v3_zarr
 from parcels._core.particle import (
     Variable,
     Particle,
@@ -76,6 +77,7 @@ __all__ = [  # noqa: RUF022
     # Utilities
     "logger",
     "read_particlefile",
+    "particlefile_to_v3_zarr",
     "convert",
     # kernels
     "kernels",
