@@ -8,6 +8,6 @@ except ImportError as err:
     )
     raise err
 
-from . import sgrid, time
+from . import sgrid, time, particle
 
-__all__ = ["sgrid", "time"]
+__all__ = ["particle", "sgrid", "time"]
