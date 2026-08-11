@@ -7,6 +7,8 @@ from hypothesis import strategies as st
 
 from parcels._core.particle import Particle, Variable, get_default_particle
 
+__all__ = ["particle_class", "variable", "variable_name"]
+
 # Valid numpy dtypes for Variable
 _VARIABLE_DTYPES = [np.float32, np.float64, np.int32, np.int64, np.bool_]
 
