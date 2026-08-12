@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Literal, TypeVar, cast
 import cftime
 import numpy as np
 
-from parcels._reprs import timeinterval_repr
+from parcels._repr_utils import timeinterval_repr
 
 if TYPE_CHECKING:
     from parcels._typing import TimeLike

@@ -21,7 +21,7 @@ from parcels._datasets.structured.generated import simple_UV_dataset
 from parcels._datasets.structured.generic import datasets as datasets_structured
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
 from parcels.interpolators import Ux_Velocity, UxConstantFaceConstantZC
-from parcels.interpolators._base import ScalarInterpolator
+from parcels.interpolators._base import VectorInterpolator
 from parcels.kernels import AdvectionEE, AdvectionRK2, AdvectionRK4, AdvectionRK4_3D, AdvectionRK45
 from tests.common_kernels import DoNothing
 from tests.utils import DEFAULT_PARTICLES
@@ -48,13 +48,62 @@ def zonal_flow_fieldset() -> FieldSet:
     return FieldSet.from_sgrid_conventions(ds, mesh="flat")
 
 
+@pytest.fixture
+def time_varying_zonal_flow_fieldset() -> FieldSet:
+    """Flat A-grid whose U varies in time only (V = 0), sampled 3-hourly.
+
+    Because U is spatially uniform, a particle's displacement depends on its own
+    clock and nothing else.
+    """
+    nt = 25
+    ds = simple_UV_dataset(dims=(nt, 2, 6, 6), mesh="flat")
+    times = np.array([np.timedelta64(3 * i, "h") for i in range(nt)])
+    ds["time"] = ("time", times, {"axis": "T"})
+    u = np.cos(2 * np.pi * (times / np.timedelta64(1, "s")) / 86400.0)  # 1 m/s, 1-day period
+    ds["U"].data[:] = u[:, None, None, None]
+    return FieldSet.from_sgrid_conventions(ds, mesh="flat")
+
+
+def test_execute_trajectory_independent_of_other_particles_release_times(time_varying_zonal_flow_fieldset):
+    """A particle's trajectory must not depend on when its batch-mates were released.
+
+    ``ParticleSet`` accepts a per-particle ``t``, so a set can hold particles on
+    different time indices. Interpolation is per-particle, hence batching a
+    particle with later-released mates must not change its own result.
+    """
+    fieldset = time_varying_zonal_flow_fieldset
+    t0 = np.timedelta64(0, "s")
+
+    def run(release_times):
+        npart = len(release_times)
+        pset = ParticleSet(
+            fieldset,
+            pclass=Particle,
+            t=np.array(release_times),
+            z=np.zeros(npart),
+            y=np.zeros(npart),
+            x=np.zeros(npart),
+        )
+        pset.execute(AdvectionRK4, dt=np.timedelta64(1, "h"), endtime=np.timedelta64(48, "h"))
+        return pset.x[0], pset.y[0]
+
+    alone = run([t0])
+    uniform = run([t0] * 4)
+    staggered = run([t0] + [t0 + np.timedelta64(3, "h")] * 3)
+
+    assert uniform == pytest.approx(alone)
+    assert staggered == pytest.approx(alone)
+
+
 def test_pset_execute_invalid_arguments(fieldset, fieldset_no_time_interval):
-    for dt in [np.timedelta64(0, "s"), np.timedelta64(None)]:
-        with pytest.raises(
-            ValueError,
-            match="dt must be a non-zero datetime.timedelta or np.timedelta64 object, got .*",
-        ):
-            ParticleSet(fieldset, x=[0.2], y=[5.0], pclass=Particle).execute(AdvectionRK4, dt=dt)
+    with pytest.raises(RuntimeWarning, match="invalid value encountered in cast.*"):
+        ParticleSet(fieldset, x=[0.2], y=[5.0], pclass=Particle).execute(AdvectionRK4, dt=np.timedelta64(None))
+
+    with pytest.raises(
+        ValueError,
+        match="dt must be a non-zero datetime.timedelta or np.timedelta64 object, got .*",
+    ):
+        ParticleSet(fieldset, x=[0.2], y=[5.0], pclass=Particle).execute(AdvectionRK4, dt=np.timedelta64(0, "s"))
 
     with pytest.raises(
         ValueError,
@@ -130,15 +179,28 @@ def test_particleset_endtime_type(fieldset, endtime, expectation):
         pset.execute(endtime=endtime, dt=np.timedelta64(10, "m"), kernels=DoNothing)
 
 
-def test_particleset_run_to_endtime(fieldset):
-    starttime = fieldset.time_interval.left
-    endtime = fieldset.time_interval.right
+def test_sampleUonly(fieldset):
 
     def SampleU(particles, fieldset):  # pragma: no cover
         _ = fieldset.U[particles]
 
+    pset = ParticleSet(fieldset, x=[0.2], y=[5.0])
+    with pytest.raises(
+        RuntimeWarning,
+        match="Sampling of velocities should normally be done using fieldset.UV or fieldset.UVW object; tread carefully",
+    ):
+        pset.execute(SampleU, runtime=np.timedelta64(1, "D"), dt=np.timedelta64(1, "D"))
+
+
+def test_particleset_run_to_endtime(fieldset):
+    starttime = fieldset.time_interval.left
+    endtime = fieldset.time_interval.right
+
+    def SampleUV(particles, fieldset):  # pragma: no cover
+        _, _ = fieldset.UV[particles]
+
     pset = ParticleSet(fieldset, x=[0.2], y=[5.0], t=[starttime])
-    pset.execute(SampleU, endtime=endtime, dt=np.timedelta64(1, "D"))
+    pset.execute(SampleUV, endtime=endtime, dt=np.timedelta64(1, "D"))
     assert np.timedelta64(int(pset[0].t), "s") + fieldset.time_interval.left == endtime
 
 
@@ -148,6 +210,11 @@ def test_particleset_run_RK_to_endtime_fwd_bwd(fieldset, kernel, dt):
     """Test that RK kernels can be run to the endtime of a fieldset (and not throw OutsideTimeInterval)"""
     starttime = fieldset.time_interval.left
     endtime = fieldset.time_interval.right
+
+    if kernel == AdvectionRK45:
+        fieldset.add_context("RK45_tol", 10)
+        fieldset.add_context("RK45_min_dt", 1)
+        fieldset.add_context("RK45_max_dt", 24 * 60 * 60)
 
     # Setting zero velocities to avoid OutofBoundsErrors
     fieldset.U.data[:] = 0.0
@@ -168,11 +235,11 @@ def test_particleset_interpolate_on_domainedge(zonal_flow_fieldset):
 
     MyParticle = Particle.add_variable(Variable("var"))
 
-    def SampleU(particles, fieldset):  # pragma: no cover
-        particles.var = fieldset.U[particles]
+    def SampleUV(particles, fieldset):  # pragma: no cover
+        particles.var, _ = fieldset.UV[particles]
 
     pset = ParticleSet(fieldset, pclass=MyParticle, x=fieldset.U.grid.lon[-1], y=fieldset.U.grid.lat[-1])
-    pset.execute(SampleU, runtime=np.timedelta64(1, "D"), dt=np.timedelta64(1, "D"))
+    pset.execute(SampleUV, runtime=np.timedelta64(1, "D"), dt=np.timedelta64(1, "D"))
     np.testing.assert_equal(pset[0].var, 1)
 
 
@@ -180,7 +247,7 @@ def test_particleset_interpolate_outside_domainedge(zonal_flow_fieldset):
     fieldset = zonal_flow_fieldset
 
     def SampleU(particles, fieldset):  # pragma: no cover
-        particles.dx = fieldset.U[particles]
+        particles.dx, _ = fieldset.UV[particles]
 
     dlat = 1e-3
     pset = ParticleSet(fieldset, x=fieldset.U.grid.lon[-1], y=fieldset.U.grid.lat[-1] + dlat)
@@ -301,7 +368,7 @@ def test_some_particles_throw_outofbounds(zonal_flow_fieldset):
 def test_delete_on_all_errors(fieldset):
     def MoveRight(particles, fieldset):  # pragma: no cover
         particles.dx += 1
-        fieldset.U[particles.t, particles.z, particles.y, particles.x, particles]
+        fieldset.UV[particles.t, particles.z, particles.y, particles.x, particles]
 
     def DeleteAllErrorParticles(particles, fieldset):  # pragma: no cover
         particles[particles.state > 20].state = StatusCode.Delete
@@ -316,7 +383,7 @@ def test_some_particles_throw_outoftime(fieldset):
     pset = ParticleSet(fieldset, x=np.zeros_like(time), y=np.zeros_like(time), t=time)
 
     def FieldAccessOutsideTime(particles, fieldset):  # pragma: no cover
-        fieldset.U[particles.t + 400 * 86400, particles.z, particles.y, particles.x, particles]
+        fieldset.UV[particles.t + 400 * 86400, particles.z, particles.y, particles.x, particles]
 
     with pytest.raises(OutsideTimeInterval):
         pset.execute(FieldAccessOutsideTime, runtime=np.timedelta64(1, "D"), dt=np.timedelta64(10, "D"))
@@ -329,17 +396,18 @@ def test_raise_general_error(): ...
 
 
 def test_errorinterpolation(fieldset):
-    class NaNInterpolator(ScalarInterpolator):  # pragma: no cover
+    class NaNInterpolator(VectorInterpolator):  # pragma: no cover
         def interp(self, particle_positions, grid_positions, field):
-            return np.nan * np.zeros_like(particle_positions["x"])
+            nanvals = np.nan * np.zeros_like(particle_positions["x"])
+            return nanvals, nanvals, nanvals
 
-    def SampleU(particles, fieldset):  # pragma: no cover
-        fieldset.U[particles.t, particles.z, particles.y, particles.x, particles]
+    def SampleUV(particles, fieldset):  # pragma: no cover
+        fieldset.UV[particles.t, particles.z, particles.y, particles.x, particles]
 
-    fieldset.U.interp_method = NaNInterpolator()
+    fieldset.UV.interp_method = NaNInterpolator()
     pset = ParticleSet(fieldset, x=[0, 2], y=[0, 0])
     with pytest.raises(FieldInterpolationError):
-        pset.execute(SampleU, runtime=np.timedelta64(2, "s"), dt=np.timedelta64(1, "s"))
+        pset.execute(SampleUV, runtime=np.timedelta64(2, "s"), dt=np.timedelta64(1, "s"))
 
 
 def test_execution_check_stopallexecution(fieldset):
@@ -357,7 +425,7 @@ def test_execution_recover_out_of_bounds(fieldset):
     npart = 2
 
     def MoveRight(particles, fieldset):  # pragma: no cover
-        fieldset.U[particles.t, particles.z, particles.y, particles.x + 0.1, particles]
+        fieldset.UV[particles.t, particles.z, particles.y, particles.x + 0.1, particles]
         particles.dx += 0.1
 
     def MoveLeft(particles, fieldset):  # pragma: no cover

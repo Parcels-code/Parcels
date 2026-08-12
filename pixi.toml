@@ -6,12 +6,15 @@ channels = ["conda-forge"]
 platforms = ["win-64", "linux-64", "osx-64", "osx-arm64"]
 requires-pixi = ">=0.72.0"
 
+[exclude-newer]
+pixi-build-python = "0d"
+
 [package]
 name = "parcels"
 version = "dynamic" # dynamic versioning needs better support in pixi https://github.com/prefix-dev/pixi/issues/2923#issuecomment-2598460666 . Putting `version = "dynamic"` here for now until pixi recommends something else.
 
 [package.build]
-backend = { name = "pixi-build-python", version = "0.7.*" }
+backend = { name = "pixi-build-python", version = "0.*" }
 
 [package.host-dependencies]
 setuptools = "*"
@@ -30,7 +33,6 @@ holoviews = ">=1.22.0" # https://github.com/prefix-dev/rattler-build/issues/2326
 uxarray = ">=2026.04.1"
 dask = ">=2024.5.1"
 zarr = ">=3"
-xgcm = { git = "https://github.com/xgcm/xgcm", rev = "master" } # TODO: Switch to release version after release is cut
 cf_xarray = ">=0.8.6"
 cftime = ">=1.6.3"
 pooch = ">=1.8.0"
@@ -61,7 +63,6 @@ pyarrow = "20.0.*"
 uxarray = "==2026.04.1"
 dask = "2024.6.*"
 zarr = "3.0.*"
-xgcm = { git = "https://github.com/xgcm/xgcm", rev = "master" } # TODO: Switch to release version after release is cut
 cf_xarray = "0.10.*"
 cftime = "1.6.*"
 pooch = "1.8.*"
@@ -93,6 +94,7 @@ trajan = "*"
 matplotlib-base = ">=2.0.2"
 gsw = "*"
 py-triangle = "*"
+cmocean = ">=4.0.3,<5"
 
 [feature.devtools.dependencies]
 pdbpp = "*"

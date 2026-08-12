@@ -49,7 +49,7 @@ def KeepInOcean(particles, fieldset):
     through_surface = particles.state == parcels.StatusCode.ErrorThroughSurface
 
     # move particles to surface
-    particles[through_surface].dz = fieldset.W.grid.depth[0] - particles[through_surface].z
+    particles[through_surface].dz = fieldset.surface - particles[through_surface].z
 
     # change state from error to evaluate
     particles[through_surface].state = parcels.StatusCode.Evaluate
@@ -71,6 +71,7 @@ dx, dy = 1.0 / len(ds.XG), 1.0 / len(ds.YG)
 ds["W"] = ds["U"] - 0.1 # 0.1 m/s towards the surface
 
 fieldset = parcels.FieldSet.from_sgrid_conventions(ds, mesh="flat")
+fieldset.add_context("surface", 0)  # surface is at z=0
 ```
 
 If we advect particles with the `AdvectionRK2_3D` kernel, Parcels will raise a `FieldOutOfBoundSurfaceError`:

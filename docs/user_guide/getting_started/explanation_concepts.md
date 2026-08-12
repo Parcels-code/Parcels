@@ -52,7 +52,7 @@ fieldset += parcels.FieldSet.from_sgrid_conventions(ds_fset, vector_fields={"UVs
 
 ### Grid
 
-Each `parcels.Field` is defined on a grid. With Parcels, we can simulate particles in fields on both structured (**`parcels.XGrid`**) and unstructured (**`parcels.UxGrid`**) grids. The grid is defined by the coordinates of grid cell nodes, edges, and faces. `parcels.XGrid` objects are based on [`xgcm.Grid`](https://xgcm.readthedocs.io/en/latest/grids.html), while `parcels.UxGrid` objects are based on [`uxarray.Grid`](https://uxarray.readthedocs.io/en/stable/generated/uxarray.Grid.html#uxarray.Grid) objects.
+Each `parcels.Field` is defined on a grid. With Parcels, we can simulate particles in fields on both structured (**`parcels.XGrid`**) and unstructured (**`parcels.UxGrid`**) grids. The grid is defined by the coordinates of grid cell nodes, edges, and faces. `parcels.XGrid` objects are based on Xarray Datasets with attached SGRID metadata, while `parcels.UxGrid` objects are based on [`uxarray.Grid`](https://uxarray.readthedocs.io/en/stable/generated/uxarray.Grid.html#uxarray.Grid) objects.
 
 ```{admonition} 📖 Read more about grids
 :class: seealso
@@ -94,6 +94,7 @@ pset = parcels.ParticleSet(fieldset=fieldset, pclass=parcels.Particle, t=t, z=z,
 ```{admonition} 🖥️ Learn more about how to create ParticleSets
 :class: seealso
 - [Release particles at different times](../examples/tutorial_delaystart.ipynb)
+- [Sampling initial Field values](../examples/tutorial_sampling.ipynb#sampling-initial-field-values)
 ```
 
 ## 3. Kernels

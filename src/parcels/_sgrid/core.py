@@ -38,15 +38,6 @@ class Padding(enum.Enum):
     BOTH = "both"
 
 
-SGRID_PADDING_TO_XGCM_POSITION = {
-    Padding.LOW: "right",
-    Padding.HIGH: "left",
-    Padding.BOTH: "inner",
-    Padding.NONE: "outer",
-    # "center" position is not used in SGrid, in SGrid this would just be the edges/faces themselves
-}
-
-
 def get_n_faces(n_nodes: int, padding: Padding) -> int:
     """Get number of faces along a dimension"""
     if padding in [Padding.LOW, Padding.HIGH]:
@@ -465,31 +456,6 @@ def parse_grid_attrs(attrs: dict[str, Hashable]) -> SGrid2DMetadata | SGrid3DMet
             e2.add_note("Failed to parse as 3D SGrid")
             raise SGridParsingException("Failed to parse SGrid metadata as either 2D or 3D grid") from e2
     return grid
-
-
-def xgcm_parse_sgrid(ds: xr.Dataset):
-    # Function similar to that provided in `xgcm.metadata_parsers.
-    # Might at some point be upstreamed to xgcm directly
-    grid = ds.sgrid.metadata
-
-    if isinstance(grid, SGrid2DMetadata):
-        dimensions = grid.face_dimensions + (grid.vertical_dimensions or ())
-    else:
-        assert isinstance(grid, SGrid3DMetadata)
-        dimensions = grid.volume_dimensions
-
-    xgcm_coords = {}
-    for face_node_padding, axis in zip(dimensions, "XYZ", strict=False):
-        xgcm_position = SGRID_PADDING_TO_XGCM_POSITION[face_node_padding.padding]
-
-        coords = {}
-        for pos, dim in [("center", face_node_padding.face), (xgcm_position, face_node_padding.node)]:
-            # only include dimensions in dataset (ignore dimensions in metadata that may not exist - e.g., due to `.isel`)
-            if dim in ds.dims:
-                coords[pos] = dim
-        xgcm_coords[axis] = coords
-
-    return (ds, {"coords": xgcm_coords})
 
 
 def _get_unique_names(grid: SGrid2DMetadata | SGrid3DMetadata) -> set[str]:

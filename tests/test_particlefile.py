@@ -215,13 +215,8 @@ def test_write_timebackward(fieldset, tmp_parquet):
     df = pd.read_parquet(tmp_parquet)
 
     assert df["particle_id"].dtype == "int64"
-    assert bool(
-        df.groupby("particle_id")
-        .apply(
-            lambda x: (np.diff(x["t"]) < 0).all()  # for each particle - set True if it has decreasing time
-        )
-        .all()  # ensure for all particles
-    )
+    dt_per_particle = df.groupby("particle_id")["t"].diff().dropna()
+    assert (dt_per_particle < 0).all()
 
 
 @pytest.mark.xfail
@@ -293,7 +288,13 @@ def test_time_is_age(fieldset, tmp_parquet, outputdt):
     pset = ParticleSet(fieldset, pclass=AgeParticle, x=npart * [0], y=npart * [0], t=time)
     ofile = ParticleFile(tmp_parquet, outputdt=outputdt)
 
-    pset.execute(IncreaseAge, runtime=np.timedelta64(npart * 2, "s"), dt=np.timedelta64(1, "s"), output_file=ofile)
+    if outputdt > np.timedelta64(1, "s"):
+        warning_ctx = pytest.warns(ParticleSetWarning, match="Some of the particles have a start time difference.*")
+    else:
+        warning_ctx = does_not_raise()
+
+    with warning_ctx:
+        pset.execute(IncreaseAge, runtime=np.timedelta64(npart * 2, "s"), dt=np.timedelta64(1, "s"), output_file=ofile)
 
     df = parcels.read_particlefile(tmp_parquet)
 
@@ -302,6 +303,29 @@ def test_time_is_age(fieldset, tmp_parquet, outputdt):
         release_time = pd.Timestamp(time[i]).to_pydatetime()
         traj_time = (df_traj["t"] - release_time).dt.total_seconds()
         assert (df_traj["age"] == traj_time).all()
+
+
+@pytest.mark.parametrize("npart", [1, 10])
+def test_sampling_initial_value(fieldset, npart, tmp_parquet):
+    # Test that inital value of a field gets sampled
+
+    SampleParticle = get_default_particle(np.float64).add_variable(Variable("sample", initial=np.nan))
+
+    def SampleKernel(particles, fieldset):  # pragma: no cover
+        particles.sample, _ = fieldset.UV[particles]
+
+    x = np.zeros(npart)
+    y = np.zeros(npart)
+    t = np.zeros(npart, dtype="timedelta64[s]")
+
+    pset = ParticleSet(fieldset, pclass=SampleParticle, x=x, y=y, t=t)
+    pset.sample, _ = fieldset.UV[pset]  # Sample initial value
+
+    ofile = ParticleFile(tmp_parquet, outputdt=np.timedelta64(1, "s"))
+    pset.execute(SampleKernel, runtime=np.timedelta64(2, "s"), dt=np.timedelta64(1, "s"), output_file=ofile)
+
+    df = parcels.read_particlefile(tmp_parquet)
+    np.testing.assert_allclose(df["sample"].is_finite().all(), True)
 
 
 def test_reset_dt(fieldset, tmp_parquet):
@@ -318,6 +342,24 @@ def test_reset_dt(fieldset, tmp_parquet):
     pset.execute(Update_lon, runtime=5 * dt, dt=dt, output_file=ofile)
 
     assert np.allclose(pset.x, 0.6)
+
+
+@pytest.mark.parametrize("dt", [100, 200])
+def test_subsecond_outputdt(fieldset, dt, tmp_parquet):
+    """Test that outputdt can be subsecond and that the output times are correct."""
+
+    def Update_lon(particles, fieldset):  # pragma: no cover
+        particles.dx += dt / 1000.0  # Move at a rate of 1 unit per second
+
+    pset = ParticleSet(fieldset, x=[0], y=[0])
+    ofile = ParticleFile(tmp_parquet, outputdt=np.timedelta64(dt, "ms"))
+    pset.execute(Update_lon, runtime=np.timedelta64(1, "s"), dt=np.timedelta64(dt, "ms"), output_file=ofile)
+
+    df = parcels.read_particlefile(tmp_parquet)
+    np.testing.assert_allclose(df["x"], np.arange(0, 1 + 1e-6, dt / 1000.0), atol=1e-6)
+    expected_t = np.arange(0, 1001, dt).astype("timedelta64[ms]")
+    elapsed_t = (df["t"] - df["t"].min()).to_numpy().astype("timedelta64[ms]")
+    np.testing.assert_allclose(elapsed_t, expected_t, atol=1)
 
 
 def test_correct_misaligned_outputdt_dt(fieldset, tmp_parquet):
