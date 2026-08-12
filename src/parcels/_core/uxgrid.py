@@ -45,6 +45,7 @@ class UxGrid(BaseGrid):
         self.z = z
         self._mesh = get_mesh(mesh)
         self._spatialhash = None
+        self.uxgrid.face_node_connectivity.load()
 
     @property
     def depth(self):
