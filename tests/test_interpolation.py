@@ -310,6 +310,10 @@ def test_interp_regression_v3(interp_name, interp_method):
     xdim = ds_input["U"].shape[3]
     time = [np.timedelta64(int(t), "s") for t in ds_input["time"].values]
 
+    # Convert the coordinates to float32 to match v3 behavior. This makes a difference for Cgrid velocity interpolation
+    for dim in ["lon", "lat", "depth"]:
+        ds_input[dim] = ds_input[dim].astype(np.float32)
+
     ds = xr.Dataset(
         {
             "U": (["time", "depth", "YG", "XG"], ds_input["U"].values),
@@ -333,8 +337,8 @@ def test_interp_regression_v3(interp_name, interp_method):
             topology_dimension=2,
             node_dimensions=("XG", "YG"),
             face_dimensions=(
-                sgrid.FaceNodePadding("XC", "XG", sgrid.Padding.HIGH),
-                sgrid.FaceNodePadding("YC", "YG", sgrid.Padding.HIGH),
+                sgrid.FaceNodePadding("XC", "XG", sgrid.Padding.LOW),
+                sgrid.FaceNodePadding("YC", "YG", sgrid.Padding.LOW),
             ),
             node_coordinates=("lon", "lat"),
             vertical_dimensions=(sgrid.FaceNodePadding("ZC", "depth", sgrid.Padding.HIGH),),
