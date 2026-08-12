@@ -204,8 +204,6 @@ def AdvectionAnalytical(particles, fieldset):  # pragma: no cover
 
     def compute_ds(F0, F1, r, direction, tol):  # noqa: N803
         with np.errstate(divide="ignore", invalid="ignore"):
-            print("NOW IN COMPUTE_DS")
-            print(F0, F1, r, direction)
             up = F0 * (1 - r) + F1 * r
             r_target = np.where(direction * up >= 0.0, 1.0, 0.0)
             B = F0 - F1
