@@ -50,7 +50,7 @@ def _generate_dummy_data(particle: ParticleClass, nparticles=10, nobs=10) -> pd.
 
 @st.composite
 def particlefile_output(draw, nobs=None, nparticles=None) -> pd.DataFrame:
-    # at the moment this doesn't include the metadata (due to poor support in 
+    # at the moment this doesn't include the metadata (due to poor support in
     # polars/pandas)
     #
     # we could also explore whether this can include the metadata, and whether the
