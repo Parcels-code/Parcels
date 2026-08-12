@@ -3,6 +3,7 @@
 import numpy as np
 
 from parcels._core.statuscodes import StatusCode
+from parcels.interpolators._xinterpolators import _get_cgrid_velocities
 
 __all__ = [
     "AdvectionAnalytical",
@@ -168,112 +169,43 @@ def AdvectionAnalytical(particles, fieldset):  # pragma: no cover
     dt = particles.dt
     direction = 1.0 if dt > 0 else -1.0
     withW = True if "W" in [f.name for f in fieldset.fields.values()] else False
-    withTime = True if len(fieldset.U.grid.time) > 1 else False
 
-    igrid = fieldset.U.igrid
+    vectorfield = fieldset.UVW if withW else fieldset.UV
+    # withTime = True if len(vectorfield.grid.time) > 1 else False
+    igrid = vectorfield.igrid
+    grid = vectorfield.grid
 
     _, grid_positions = _get_positions(
         fieldset.U, particles.t, particles.z, particles.y, particles.x, particles, particles.ei[:, igrid]
     )
-    xi, xsi = grid_positions["X"]["index"], grid_positions["X"]["bcoord"]
-    yi, eta = grid_positions["Y"]["index"], grid_positions["Y"]["bcoord"]
+    _, xsi = grid_positions["X"]["index"], grid_positions["X"]["bcoord"]
+    _, eta = grid_positions["Y"]["index"], grid_positions["Y"]["bcoord"]
     zi, zeta = grid_positions["Z"]["index"], grid_positions["Z"]["bcoord"]
-    ti, tau = grid_positions["T"]["index"], grid_positions["T"]["bcoord"]
+    U0, U1, V0, V1, W0, W1, px, py = _get_cgrid_velocities(vectorfield, grid_positions)
 
-    ds_t = dt
-    # if withTime:
-    #     time_i = np.linspace(0, fieldset.U.grid.time[ti + 1] - fieldset.U.grid.time[ti], I_s)
-    #     ds_t = min(ds_t, time_i[np.where(particles.time - fieldset.U.grid.time[ti] < time_i)[0][0]])
-    # print("withTime", withTime, "ds_t", ds_t, dt)
-    if withW:
-        if abs(xsi - 1) < tol:
-            if fieldset.U.data[0, zi + 1, yi + 1, xi + 1] > 0:
-                xi += 1
-                xsi = 0
-        if abs(eta - 1) < tol:
-            if fieldset.V.data[0, zi + 1, yi + 1, xi + 1] > 0:
-                yi += 1
-                eta = 0
-        if abs(zeta - 1) < tol:
-            if fieldset.W.data[0, zi + 1, yi + 1, xi + 1] > 0:
-                zi += 1
-                zeta = 0
-    else:
-        if abs(xsi - 1) < tol:
-            if fieldset.U.data[0, 0, yi + 1, xi + 1] > 0:
-                xi += 1
-                xsi = 0
-        if abs(eta - 1) < tol:
-            if fieldset.V.data[0, 0, yi + 1, xi + 1] > 0:
-                yi += 1
-                eta = 0
-
-    # particles.ei[:, igrid] = fieldset.U.grid.ravel_index(zi, yi, xi)
-
-    grid = fieldset.U.grid
-    if grid._gtype < 2:
-        px = np.array([grid.lon[xi], grid.lon[xi + 1], grid.lon[xi + 1], grid.lon[xi]])
-        py = np.array([grid.lat[yi], grid.lat[yi], grid.lat[yi + 1], grid.lat[yi + 1]])
-    else:
-        px = np.array([grid.lon[yi, xi], grid.lon[yi, xi + 1], grid.lon[yi + 1, xi + 1], grid.lon[yi + 1, xi]])
-        py = np.array([grid.lat[yi, xi], grid.lat[yi, xi + 1], grid.lat[yi + 1, xi + 1], grid.lat[yi + 1, xi]])
-
-    if grid._mesh.is_spherical():
-        px = ((px + 180.0) % 360.0) - 180.0
-        px[1:] = np.where(px[1:] - px[0] > 180, px[1:] - 360, px[1:])
-        px[1:] = np.where(-px[1:] + px[0] > 180, px[1:] + 360, px[1:])
     if withW:
         pz = np.array([grid.depth[zi], grid.depth[zi + 1]])
         dz = pz[1] - pz[0]
     else:
         dz = 1.0
-    c1 = i_u._geodetic_distance(
-        py[0], py[1], px[0], px[1], grid._mesh, np.einsum("ij,ji->i", i_u.phi2D_lin(0.0, xsi), py)
-    )
-    c2 = i_u._geodetic_distance(
-        py[1], py[2], px[1], px[2], grid._mesh, np.einsum("ij,ji->i", i_u.phi2D_lin(eta, 1.0), py)
-    )
-    c3 = i_u._geodetic_distance(
-        py[2], py[3], px[2], px[3], grid._mesh, np.einsum("ij,ji->i", i_u.phi2D_lin(1.0, xsi), py)
-    )
-    c4 = i_u._geodetic_distance(
-        py[3], py[0], px[3], px[0], grid._mesh, np.einsum("ij,ji->i", i_u.phi2D_lin(eta, 0.0), py)
-    )
 
     rad = np.pi / 180.0
     deg2m = 1852 * 60.0
     meshJac = (deg2m * deg2m * np.cos(rad * particles.y)) if grid._mesh.is_spherical() else 1
     dxdy = i_u._compute_jacobian_determinant(py, px, eta, xsi) * meshJac
 
+    U0 *= direction * dz
+    U1 *= direction * dz
+    V0 *= direction * dz
+    V1 *= direction * dz
     if withW:
-        U0 = direction * fieldset.U.data[ti, zi + 1, yi + 1, xi] * c4 * dz
-        U1 = direction * fieldset.U.data[ti, zi + 1, yi + 1, xi + 1] * c2 * dz
-        V0 = direction * fieldset.V.data[ti, zi + 1, yi, xi + 1] * c1 * dz
-        V1 = direction * fieldset.V.data[ti, zi + 1, yi + 1, xi + 1] * c3 * dz
-        if withTime:
-            U0 = U0 * (1 - tau) + tau * direction * fieldset.U.data[ti + 1, zi + 1, yi + 1, xi] * c4 * dz
-            U1 = U1 * (1 - tau) + tau * direction * fieldset.U.data[ti + 1, zi + 1, yi + 1, xi + 1] * c2 * dz
-            V0 = V0 * (1 - tau) + tau * direction * fieldset.V.data[ti + 1, zi + 1, yi, xi + 1] * c1 * dz
-            V1 = V1 * (1 - tau) + tau * direction * fieldset.V.data[ti + 1, zi + 1, yi + 1, xi + 1] * c3 * dz
-    else:
-        U0 = (direction * fieldset.U.data[ti, 0, yi + 1, xi] * c4 * dz).values.flatten()
-        U1 = (direction * fieldset.U.data[ti, 0, yi + 1, xi + 1] * c2 * dz).values.flatten()
-        V0 = (direction * fieldset.V.data[ti, 0, yi, xi + 1] * c1 * dz).values.flatten()
-        V1 = (direction * fieldset.V.data[ti, 0, yi + 1, xi + 1] * c3 * dz).values.flatten()
-        if withTime:
-            U0 = U0 * (1 - tau) + (tau * direction * fieldset.U.data[ti + 1, 0, yi + 1, xi] * c4 * dz).values.flatten()
-            U1 = (
-                U1 * (1 - tau)
-                + (tau * direction * fieldset.U.data[ti + 1, 0, yi + 1, xi + 1] * c2 * dz).values.flatten()
-            )
-            V0 = V0 * (1 - tau) + (tau * direction * fieldset.V.data[ti + 1, 0, yi, xi + 1] * c1 * dz).values.flatten()
-            V1 = (
-                V1 * (1 - tau)
-                + (tau * direction * fieldset.V.data[ti + 1, 0, yi + 1, xi + 1] * c3 * dz).values.flatten()
-            )
+        W0 *= direction * dxdy
+        W1 *= direction * dxdy
 
     def compute_ds(F0, F1, r, direction, tol):  # noqa: N803
         with np.errstate(divide="ignore", invalid="ignore"):
+            print("NOW IN COMPUTE_DS")
+            print(F0, F1, r, direction)
             up = F0 * (1 - r) + F1 * r
             r_target = np.where(direction * up >= 0.0, 1.0, 0.0)
             B = F0 - F1
@@ -283,28 +215,23 @@ def AdvectionAnalytical(particles, fieldset):  # pragma: no cover
             F_r1 = np.where(np.abs(B) > tol, r_target + delta / B, np.nan)
             F_r0 = np.where(np.abs(B) > tol, r + delta / B, np.nan)
 
-            ds = -1.0 / B * np.log(F_r1 / F_r0)
-            ds = np.where(F_r1 * F_r0 < tol, np.inf, ds)
-            ds = np.where(B == 0, -delta * direction / up, ds)
-            ds = np.where((np.abs(B) < tol) & (np.abs(delta) < tol), np.inf, ds)
+            d_s = -1.0 / B * np.log(F_r1 / F_r0)
+            d_s = np.where(F_r1 * F_r0 < tol, np.inf, d_s)
+            d_s = np.where(B == 0, -delta * direction / up, d_s)
+            d_s = np.where((np.abs(B) < tol) & (np.abs(delta) < tol), np.inf, d_s)
 
-            ds = np.where(ds < tol, np.inf, ds)
-        return ds, B, delta
+            d_s = np.where(d_s < tol, np.inf, d_s)
+        return d_s, B, delta
 
     ds_x, B_x, delta_x = compute_ds(U0, U1, xsi, direction, tol)
     ds_y, B_y, delta_y = compute_ds(V0, V1, eta, direction, tol)
     if withW:
-        W0 = direction * fieldset.W.data[ti, zi, yi + 1, xi + 1] * dxdy
-        W1 = direction * fieldset.W.data[ti, zi + 1, yi + 1, xi + 1] * dxdy
-        if withTime:
-            W0 = W0 * (1 - tau) + tau * direction * fieldset.W.data[ti + 1, zi, yi + 1, xi + 1] * dxdy
-            W1 = W1 * (1 - tau) + tau * direction * fieldset.W.data[ti + 1, zi + 1, yi + 1, xi + 1] * dxdy
-        ds_z, B_z, delta_z = compute_ds(W0.values.flatten(), W1.values.flatten(), zeta, direction, tol)
+        ds_z, B_z, delta_z = compute_ds(W0, W1, zeta, direction, tol)
     else:
         ds_z = np.inf
 
     # take the minimum travel time
-    s_min = min(abs(ds_x), abs(ds_y), abs(ds_z), abs(ds_t / (dxdy * dz)))
+    s_min = min(abs(ds_x), abs(ds_y), abs(ds_z), abs(dt / (dxdy * dz)))
 
     # calculate end position in time s_min
     def compute_rs(r, B, delta, s_min):  # noqa: N803
