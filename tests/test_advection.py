@@ -507,14 +507,14 @@ def test_mitgcm():
 
 @pytest.mark.parametrize("u", [0.2, -0.3, 0])
 @pytest.mark.parametrize("v", [-0.3, 0, 1])
-@pytest.mark.parametrize("w", [None])  # , 1, -0.3, 0, -1])
+@pytest.mark.parametrize("w", [None, 0.05, 0, -0.05])
 @pytest.mark.parametrize("direction", [1, -1])
 def test_uniform_analytical(u, v, w, direction, tmp_parquet):
     ds = simple_UV_dataset(mesh="flat")
     ds["U"].data[:] = u
     ds["V"].data[:] = v
     if w is not None:
-        ds["W"].data[:] = w
+        ds["W"] = xr.full_like(ds["U"], w)
     fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
 
     x0, y0, z0 = 6.1, 6.2, 0.5
@@ -531,7 +531,7 @@ def test_uniform_analytical(u, v, w, direction, tmp_parquet):
     assert np.abs(pset.x - x0 - runtime * u * direction) < 1e-6
     assert np.abs(pset.y - y0 - runtime * v * direction) < 1e-6
     if w is not None:
-        assert np.abs(pset.depth - z0 - runtime * w * direction) < 1e-4
+        assert np.abs(pset.z - z0 - runtime * w * direction) < 1e-4
 
     df = pd.read_parquet(tmp_parquet)
     times = (direction * (df["t"] - df["t"][0])).values.astype("timedelta64[s]")
