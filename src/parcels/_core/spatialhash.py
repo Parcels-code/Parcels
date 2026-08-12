@@ -12,7 +12,7 @@ from parcels._core.index_search import (
 )
 from parcels._core.warnings import FieldSetWarning
 from parcels._python import isinstance_noimport
-from parcels._reprs import spatialhash_describe
+from parcels._repr_utils import spatialhash_describe
 
 # Budget on the total number of (face, hash cell) pairs in the hash table:
 # max(_HASH_ENTRIES_PER_FACE * nfaces, _HASH_ENTRY_BUDGET_MIN).
