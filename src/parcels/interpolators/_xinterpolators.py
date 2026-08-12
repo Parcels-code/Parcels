@@ -159,6 +159,135 @@ class XLinear_Velocity(VectorInterpolator):  # noqa:  N801
         return u, v, w
 
 
+def _get_cgrid_velocities(
+    vectorfield: VectorField, grid_positions: dict[ptyping.XgridAxis, dict[str, int | float | np.ndarray]]
+):
+    # Helper function to get the edge velocities for a given C-grid vector field and position.
+    xi, xsi = grid_positions["X"]["index"], grid_positions["X"]["bcoord"]
+    yi, eta = grid_positions["Y"]["index"], grid_positions["Y"]["bcoord"]
+    zi, _ = grid_positions["Z"]["index"], grid_positions["Z"]["bcoord"]
+    ti, tau = grid_positions["T"]["index"], grid_positions["T"]["bcoord"]
+
+    U = vectorfield.U.data
+    V = vectorfield.V.data
+    grid = vectorfield.grid
+    offsets = _get_offsets_dictionary(grid)
+    tdim, zdim, ydim, xdim = U.shape[0], U.shape[1], U.shape[2], U.shape[3]
+    lenT = 2 if np.any(tau > 0) else 1
+
+    if grid.lon.ndim == 1:
+        px = np.array([grid.lon[xi], grid.lon[xi + 1], grid.lon[xi + 1], grid.lon[xi]])
+        py = np.array([grid.lat[yi], grid.lat[yi], grid.lat[yi + 1], grid.lat[yi + 1]])
+    else:
+        px = np.array([grid.lon[yi, xi], grid.lon[yi, xi + 1], grid.lon[yi + 1, xi + 1], grid.lon[yi + 1, xi]])
+        py = np.array([grid.lat[yi, xi], grid.lat[yi, xi + 1], grid.lat[yi + 1, xi + 1], grid.lat[yi + 1, xi]])
+
+    if grid._mesh.is_spherical():
+        px = ((px + 180.0) % 360.0) - 180.0
+        px[1:] = np.where(px[1:] - px[0] > 180, px[1:] - 360, px[1:])
+        px[1:] = np.where(-px[1:] + px[0] > 180, px[1:] + 360, px[1:])
+    c1 = i_u._geodetic_distance(
+        py[0], py[1], px[0], px[1], grid._mesh, np.einsum("ij,ji->i", i_u.phi2D_lin(0.0, xsi), py), grid.deg2m
+    )
+    c2 = i_u._geodetic_distance(
+        py[1], py[2], px[1], px[2], grid._mesh, np.einsum("ij,ji->i", i_u.phi2D_lin(eta, 1.0), py), grid.deg2m
+    )
+    c3 = i_u._geodetic_distance(
+        py[2], py[3], px[2], px[3], grid._mesh, np.einsum("ij,ji->i", i_u.phi2D_lin(1.0, xsi), py), grid.deg2m
+    )
+    c4 = i_u._geodetic_distance(
+        py[3], py[0], px[3], px[0], grid._mesh, np.einsum("ij,ji->i", i_u.phi2D_lin(eta, 0.0), py), grid.deg2m
+    )
+
+    def _create_selection_dict(dims, zdir=False):
+        """Helper function to create DataArrays for indexing."""
+        axis_dim = grid.get_axis_dim_mapping(dims)
+        selection_dict = {
+            axis_dim["X"]: xr.DataArray(xi_full, dims=("points")),
+            axis_dim["Y"]: xr.DataArray(yi_full, dims=("points")),
+        }
+
+        # Time coordinates: 2 points at ti, then 2 points at ti+1
+        if "time" in dims:
+            if lenT == 1:
+                ti_full = np.repeat(ti, 2)
+            else:
+                ti_1 = np.clip(ti + 1, 0, tdim - 1)
+                ti_full = np.concatenate([np.repeat(ti, 2), np.repeat(ti_1, 2)])
+            selection_dict["time"] = xr.DataArray(ti_full, dims=("points"))
+
+        if "Z" in axis_dim:
+            if zdir:
+                # Z coordinates: 1 point at zi and 1 point at zi+1 repeated for lenT time levels
+                zi_0 = np.clip(zi + offsets["Z"], 0, zdim - 1)
+                zi_1 = np.clip(zi + offsets["Z"] + 1, 0, zdim - 1)
+                zi_full = np.tile(np.array([zi_0, zi_1]).flatten(), lenT)
+            else:
+                # Z coordinates: 2 points at zi, repeated for lenT time levels
+                zi_full = np.repeat(zi, lenT * 2)
+            selection_dict[axis_dim["Z"]] = xr.DataArray(zi_full, dims=("points"))
+
+        return selection_dict
+
+    def _compute_corner_data(data, selection_dict) -> np.ndarray:
+        """Helper function to load and reduce corner data over time dimension if needed."""
+        corner_data = data.isel(selection_dict).data.reshape(lenT, 2, len(xsi))
+
+        if lenT == 2:
+            tau_full = tau[np.newaxis, :]
+            corner_data = corner_data[0, :] * (1 - tau_full) + corner_data[1, :] * tau_full
+        else:
+            corner_data = corner_data[0, :]
+        return corner_data
+
+    # Compute U velocity
+    yi_o = np.clip(yi + offsets["Y"], 0, ydim - 1)
+    yi_full = np.tile(np.array([yi_o, yi_o]).flatten(), lenT)
+
+    xi_1 = np.clip(xi + 1, 0, xdim - 1)
+    xi_full = np.tile(np.array([xi, xi_1]).flatten(), lenT)
+
+    selection_dict = _create_selection_dict(U.dims)
+    corner_data = _compute_corner_data(U, selection_dict)
+
+    U0 = corner_data[0, :] * c4
+    U1 = corner_data[1, :] * c2
+
+    # Compute V velocity
+    yi_1 = np.clip(yi + 1, 0, ydim - 1)
+    yi_full = np.tile(np.array([yi, yi_1]).flatten(), lenT)
+
+    xi_o = np.clip(xi + offsets["X"], 0, xdim - 1)
+    xi_full = np.tile(np.array([xi_o, xi_o]).flatten(), lenT)
+
+    selection_dict = _create_selection_dict(V.dims)
+    corner_data = _compute_corner_data(V, selection_dict)
+
+    V0 = corner_data[0, :] * c1
+    V1 = corner_data[1, :] * c3
+
+    if vectorfield.W:
+        W = vectorfield.W.data
+
+        # Y coordinates: yi+offset for each spatial point, repeated for time
+        yi_o = np.clip(yi + offsets["Y"], 0, ydim - 1)
+        yi_full = np.tile(yi_o, (lenT) * 2)
+
+        # X coordinates: xi+offset for each spatial point, repeated for time
+        xi_o = np.clip(xi + offsets["X"], 0, xdim - 1)
+        xi_full = np.tile(xi_o, (lenT) * 2)
+
+        selection_dict = _create_selection_dict(W.dims, zdir=True)
+        corner_data = _compute_corner_data(W, selection_dict)
+        W0 = corner_data[0, :]
+        W1 = corner_data[1, :]
+    else:
+        W0 = np.zeros_like(U0)
+        W1 = np.zeros_like(U1)
+
+    return U0, U1, V0, V1, W0, W1, px, py
+
+
 class CGrid_Velocity(VectorInterpolator):  # noqa:  N801
     """
     Interpolation kernel for velocity fields on a C-Grid.
@@ -177,109 +306,13 @@ class CGrid_Velocity(VectorInterpolator):  # noqa:  N801
         Following Delandmeter and Van Sebille (2019), velocity fields should be interpolated
         only in the direction of the grid cell faces.
         """
-        xi, xsi = grid_positions["X"]["index"], grid_positions["X"]["bcoord"]
-        yi, eta = grid_positions["Y"]["index"], grid_positions["Y"]["bcoord"]
-        zi, zeta = grid_positions["Z"]["index"], grid_positions["Z"]["bcoord"]
-        ti, tau = grid_positions["T"]["index"], grid_positions["T"]["bcoord"]
-
-        U = vectorfield.U.data
-        V = vectorfield.V.data
+        _, xsi = grid_positions["X"]["index"], grid_positions["X"]["bcoord"]
+        _, eta = grid_positions["Y"]["index"], grid_positions["Y"]["bcoord"]
+        _, zeta = grid_positions["Z"]["index"], grid_positions["Z"]["bcoord"]
         grid = vectorfield.grid
-        offsets = _get_offsets_dictionary(grid)
-        tdim, zdim, ydim, xdim = U.shape[0], U.shape[1], U.shape[2], U.shape[3]
-        lenT = 2 if np.any(tau > 0) else 1
 
-        if grid.lon.ndim == 1:
-            px = np.array([grid.lon[xi], grid.lon[xi + 1], grid.lon[xi + 1], grid.lon[xi]])
-            py = np.array([grid.lat[yi], grid.lat[yi], grid.lat[yi + 1], grid.lat[yi + 1]])
-        else:
-            px = np.array([grid.lon[yi, xi], grid.lon[yi, xi + 1], grid.lon[yi + 1, xi + 1], grid.lon[yi + 1, xi]])
-            py = np.array([grid.lat[yi, xi], grid.lat[yi, xi + 1], grid.lat[yi + 1, xi + 1], grid.lat[yi + 1, xi]])
-
-        if grid._mesh.is_spherical():
-            px = ((px + 180.0) % 360.0) - 180.0
-            px[1:] = np.where(px[1:] - px[0] > 180, px[1:] - 360, px[1:])
-            px[1:] = np.where(-px[1:] + px[0] > 180, px[1:] + 360, px[1:])
-        c1 = i_u._geodetic_distance(
-            py[0], py[1], px[0], px[1], grid._mesh, np.einsum("ij,ji->i", i_u.phi2D_lin(0.0, xsi), py), grid.deg2m
-        )
-        c2 = i_u._geodetic_distance(
-            py[1], py[2], px[1], px[2], grid._mesh, np.einsum("ij,ji->i", i_u.phi2D_lin(eta, 1.0), py), grid.deg2m
-        )
-        c3 = i_u._geodetic_distance(
-            py[2], py[3], px[2], px[3], grid._mesh, np.einsum("ij,ji->i", i_u.phi2D_lin(1.0, xsi), py), grid.deg2m
-        )
-        c4 = i_u._geodetic_distance(
-            py[3], py[0], px[3], px[0], grid._mesh, np.einsum("ij,ji->i", i_u.phi2D_lin(eta, 0.0), py), grid.deg2m
-        )
-
-        def _create_selection_dict(dims, zdir=False):
-            """Helper function to create DataArrays for indexing."""
-            axis_dim = grid.get_axis_dim_mapping(dims)
-            selection_dict = {
-                axis_dim["X"]: xr.DataArray(xi_full, dims=("points")),
-                axis_dim["Y"]: xr.DataArray(yi_full, dims=("points")),
-            }
-
-            # Time coordinates: 2 points at ti, then 2 points at ti+1
-            if "time" in dims:
-                if lenT == 1:
-                    ti_full = np.repeat(ti, 2)
-                else:
-                    ti_1 = np.clip(ti + 1, 0, tdim - 1)
-                    ti_full = np.concatenate([np.repeat(ti, 2), np.repeat(ti_1, 2)])
-                selection_dict["time"] = xr.DataArray(ti_full, dims=("points"))
-
-            if "Z" in axis_dim:
-                if zdir:
-                    # Z coordinates: 1 point at zi and 1 point at zi+1 repeated for lenT time levels
-                    zi_0 = np.clip(zi + offsets["Z"], 0, zdim - 1)
-                    zi_1 = np.clip(zi + offsets["Z"] + 1, 0, zdim - 1)
-                    zi_full = np.tile(np.array([zi_0, zi_1]).flatten(), lenT)
-                else:
-                    # Z coordinates: 2 points at zi, repeated for lenT time levels
-                    zi_full = np.repeat(zi, lenT * 2)
-                selection_dict[axis_dim["Z"]] = xr.DataArray(zi_full, dims=("points"))
-
-            return selection_dict
-
-        def _compute_corner_data(data, selection_dict) -> np.ndarray:
-            """Helper function to load and reduce corner data over time dimension if needed."""
-            corner_data = data.isel(selection_dict).data.reshape(lenT, 2, len(xsi))
-
-            if lenT == 2:
-                tau_full = tau[np.newaxis, :]
-                corner_data = corner_data[0, :] * (1 - tau_full) + corner_data[1, :] * tau_full
-            else:
-                corner_data = corner_data[0, :]
-            return corner_data
-
-        # Compute U velocity
-        yi_o = np.clip(yi + offsets["Y"], 0, ydim - 1)
-        yi_full = np.tile(np.array([yi_o, yi_o]).flatten(), lenT)
-
-        xi_1 = np.clip(xi + 1, 0, xdim - 1)
-        xi_full = np.tile(np.array([xi, xi_1]).flatten(), lenT)
-
-        selection_dict = _create_selection_dict(U.dims)
-        corner_data = _compute_corner_data(U, selection_dict)
-
-        U0 = corner_data[0, :] * c4
-        U1 = corner_data[1, :] * c2
+        U0, U1, V0, V1, W0, W1, px, py = _get_cgrid_velocities(vectorfield, grid_positions)
         Uvel = (1 - xsi) * U0 + xsi * U1
-
-        # Compute V velocity
-        yi_1 = np.clip(yi + 1, 0, ydim - 1)
-        yi_full = np.tile(np.array([yi, yi_1]).flatten(), lenT)
-
-        xi_o = np.clip(xi + offsets["X"], 0, xdim - 1)
-        xi_full = np.tile(np.array([xi_o, xi_o]).flatten(), lenT)
-
-        selection_dict = _create_selection_dict(V.dims)
-        corner_data = _compute_corner_data(V, selection_dict)
-
-        V0 = corner_data[0, :] * c1
-        V1 = corner_data[1, :] * c3
         Vvel = (1 - eta) * V0 + eta * V1
 
         if grid._mesh.is_spherical():
@@ -309,20 +342,7 @@ class CGrid_Velocity(VectorInterpolator):  # noqa:  N801
             v /= conversion
 
         if vectorfield.W:
-            W = vectorfield.W.data
-
-            # Y coordinates: yi+offset for each spatial point, repeated for time
-            yi_o = np.clip(yi + offsets["Y"], 0, ydim - 1)
-            yi_full = np.tile(yi_o, (lenT) * 2)
-
-            # X coordinates: xi+offset for each spatial point, repeated for time
-            xi_o = np.clip(xi + offsets["X"], 0, xdim - 1)
-            xi_full = np.tile(xi_o, (lenT) * 2)
-
-            selection_dict = _create_selection_dict(W.dims, zdir=True)
-            corner_data = _compute_corner_data(W, selection_dict)
-
-            w = corner_data[0, :] * (1 - zeta) + corner_data[1, :] * zeta
+            w = W0 * (1 - zeta) + W1 * zeta
             if is_dask_collection(w):
                 w = w.compute()
         else:
