@@ -27,6 +27,7 @@ from parcels._datasets.structured.generated import (
     stommel_gyre_dataset,
 )
 from parcels._datasets.structured.generic import datasets_sgrid
+from parcels.interpolators import CGrid_Velocity
 from parcels.kernels import (
     AdvectionAnalytical,
     AdvectionDiffusionEM,
@@ -508,16 +509,13 @@ def test_mitgcm():
     np.testing.assert_allclose(pset.y, lat_v3, atol=1)
 
 
-# def test_analyticalAgrid():
-#     lon = np.arange(0, 15, dtype=np.float32)
-#     lat = np.arange(0, 15, dtype=np.float32)
-#     U = np.ones((lat.size, lon.size), dtype=np.float32)
-#     V = np.ones((lat.size, lon.size), dtype=np.float32)
-#     fieldset = FieldSet.from_data({"U": U, "V": V}, {"lon": lon, "lat": lat}, mesh="flat")
-#     pset = ParticleSet(fieldset, pclass=Particle, lon=1, lat=1)
+def test_analytical_throwserror_on_Agrid():
+    ds = simple_UV_dataset(mesh="flat")
+    fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
+    pset = ParticleSet(fieldset, x=1, y=1)
 
-#     with pytest.raises(NotImplementedError):
-#         pset.execute(AdvectionAnalytical, runtime=1)
+    with pytest.raises(NotImplementedError):
+        pset.execute(AdvectionAnalytical, runtime=1, dt=1)
 
 
 @pytest.mark.parametrize("u", [0.2, -0.3, 0])
@@ -531,6 +529,8 @@ def test_uniform_analytical(u, v, w, direction, tmp_parquet):
     if w is not None:
         ds["W"] = xr.full_like(ds["U"], w)
     fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
+    fieldset.UV.interp_method = CGrid_Velocity()
+    fieldset.UVW.interp_method = CGrid_Velocity()
 
     x0, y0, z0 = 6.1, 6.2, 0.5
     pset = ParticleSet(fieldset, pclass=Particle, x=x0, y=y0, z=z0)

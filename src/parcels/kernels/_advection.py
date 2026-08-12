@@ -3,7 +3,6 @@
 import numpy as np
 
 from parcels._core.statuscodes import StatusCode
-from parcels.interpolators._xinterpolators import _get_cgrid_velocities
 
 __all__ = [
     "AdvectionAnalytical",
@@ -163,6 +162,7 @@ def AdvectionAnalytical(particles, fieldset):  # pragma: no cover
     """
     import parcels._core.utils.interpolation as i_u
     from parcels._core.field import _get_positions
+    from parcels.interpolators._xinterpolators import CGrid_Velocity, _get_cgrid_velocities
 
     tol = 1e-10
     # I_s = 10  # number of intermediate time steps
@@ -171,6 +171,11 @@ def AdvectionAnalytical(particles, fieldset):  # pragma: no cover
     withW = True if "W" in [f.name for f in fieldset.fields.values()] else False
 
     vectorfield = fieldset.UVW if withW else fieldset.UV
+    if not isinstance(vectorfield.interp_method, CGrid_Velocity):
+        raise NotImplementedError(
+            "Analytical advection is only implemented for C-grid velocity fields, "
+            f"but the fieldset has interp_method={vectorfield.interp_method}"
+        )
     # withTime = True if len(vectorfield.grid.time) > 1 else False
     igrid = vectorfield.igrid
     grid = vectorfield.grid
