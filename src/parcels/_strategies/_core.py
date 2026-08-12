@@ -18,7 +18,7 @@ def _generate_dummy_data(particle: ParticleClass, nparticles=10, nobs=10) -> pd.
     Each column is typed with the variable's numpy dtype and carries the
     variable's ``attrs`` as pandera column-level metadata.
     """
-    columns = {}
+    columns: dict[str, np.ndarray] = {}
     variables = {var.name: var for var in particle.variables if var.to_write}
     try:
         particle_id = variables["particle_id"]
