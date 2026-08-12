@@ -528,9 +528,11 @@ def test_uniform_analytical(u, v, w, direction, tmp_parquet):
     ds["V"].data[:] = v
     if w is not None:
         ds["W"] = xr.full_like(ds["U"], w)
+
     fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
     fieldset.UV.interp_method = CGrid_Velocity()
-    fieldset.UVW.interp_method = CGrid_Velocity()
+    if w is not None:
+        fieldset.UVW.interp_method = CGrid_Velocity()
 
     x0, y0, z0 = 6.1, 6.2, 0.5
     pset = ParticleSet(fieldset, pclass=Particle, x=x0, y=y0, z=z0)
