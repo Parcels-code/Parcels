@@ -56,7 +56,7 @@ ds = parcels.open_raw_zarr(store)
 |                                                                                                                      | The fieldset data can't be changed after it is loaded, as dask operations are not supported on the raw zarr data. |
 
 ```{note}
-In our performance testing, we have found that using zarr files saved without any compression can be considerably faster than using compressed zarr files. However, we are working on an upstream fix in to make caching compressed zarr files faster, so this may change in the future.
+In our performance testing, we have found that using zarr files saved without any compression can be considerably faster than using compressed zarr files.
 ```
 
 ## Option 3: use Windowed Arrays
