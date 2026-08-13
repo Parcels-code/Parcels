@@ -23,6 +23,11 @@ def tmp_parquet(tmp_path):
 
 
 @pytest.fixture
+def tmp_zarr(tmp_path):
+    return tmp_path / "tmp.zarr"
+
+
+@pytest.fixture
 def fieldset() -> FieldSet:
     """FieldSet with U and V"""
     ds = datasets_structured["ds_2d_left"].copy()
