@@ -275,7 +275,7 @@ def read_particlefile(path: PathLike, decode_times: bool = True) -> pd.DataFrame
 
     values = table.column("t").to_numpy()
     var = xr.Variable(("t",), values, attrs)
-    values = xr.coders.CFDatetimeCoder(time_unit="s").decode(var).values
+    values = xr.coders.CFDatetimeCoder(time_unit="ns").decode(var).values
     if "since" in attrs["units"]:
         values = values.astype("datetime64[ns]")
         df = df.with_columns(pl.Series("t", values, dtype=pl.Datetime("ns")))
