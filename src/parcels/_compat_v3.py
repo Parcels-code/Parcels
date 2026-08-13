@@ -1,4 +1,5 @@
 import os
+import warnings
 from pathlib import Path
 from typing import TYPE_CHECKING, Any
 
@@ -100,4 +101,8 @@ def particlefile_to_v3_zarr(from_parquet: str | Path | io.BytesIO, to_zarr: str 
     )
     ds = ds.assign_coords({"obs": ds["obs"]})
 
-    ds.to_zarr(to_zarr)
+    with warnings.catch_warnings():
+        warnings.filterwarnings(
+            "ignore", message="Consolidated metadata is currently not part in the Zarr format 3 specification."
+        )
+        ds.to_zarr(to_zarr)
