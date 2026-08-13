@@ -303,11 +303,6 @@ def test_fieldset_grid_deduplication():
     ...
 
 
-def test_fieldset_add_field_after_pset():
-    # ? Should it be allowed to add fields (normal or vector) after a ParticleSet has been initialized?
-    ...
-
-
 def test_fieldset_from_icon():
     ds = convert.icon_to_ugrid(datasets_unstructured["icon_square_delaunay_uniform_z_coordinate"])
     fieldset = FieldSet.from_ugrid_conventions(ds)
