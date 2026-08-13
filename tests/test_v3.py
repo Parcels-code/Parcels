@@ -9,7 +9,7 @@ from parcels._v3 import particlefile_to_v3_zarr
 
 
 def assert_valid_v3_particlefile_structure(ds: xr.Dataset):
-    for var in ["lat", "lon", "depth", "time"]:
+    for var in ["lat", "lon", "z", "time"]:
         assert var in ds.variables
 
     assert set(ds.dims) == {"obs", "trajectory"}

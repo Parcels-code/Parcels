@@ -29,7 +29,7 @@ def particlefile_to_v3_zarr(from_parquet: str | Path | io.BytesIO, to_zarr: str 
 
     Reads the parquet file, renames columns to v3 conventions
     (``particle_id`` -> ``trajectory``, ``t`` -> ``time``, ``x`` -> ``lon``,
-    ``y`` -> ``lat``, ``z`` -> ``depth``), and reshapes the data into a 2D
+    ``y`` -> ``lat``), and reshapes the data into a 2D
     ``(trajectory, obs)`` zarr store.
 
     Parameters
@@ -59,7 +59,7 @@ def particlefile_to_v3_zarr(from_parquet: str | Path | io.BytesIO, to_zarr: str 
     # TODO: Check for available memory here and fail as a safeguard?
 
     # Rename columns to v3 conventions
-    rename_map = {"particle_id": "trajectory", "t": "time", "x": "lon", "y": "lat", "z": "depth"}
+    rename_map = {"particle_id": "trajectory", "t": "time", "x": "lon", "y": "lat"}
     try:
         df = df.rename(rename_map)
     except pl.exceptions.ColumnNotFoundError as e:
