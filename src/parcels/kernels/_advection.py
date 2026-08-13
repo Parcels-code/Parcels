@@ -167,7 +167,7 @@ def AdvectionAnalytical(particles, fieldset):  # pragma: no cover
     tol = 1e-10
     # I_s = 10  # number of intermediate time steps
     dt = particles.dt
-    direction = 1.0 if dt > 0 else -1.0
+    direction = 1.0 if np.any(dt > 0) else -1.0
     withW = True if "W" in [f.name for f in fieldset.fields.values()] else False
 
     vectorfield = fieldset.UVW if withW else fieldset.UV
@@ -234,7 +234,7 @@ def AdvectionAnalytical(particles, fieldset):  # pragma: no cover
         ds_z = np.inf
 
     # take the minimum travel time
-    s_min = min(abs(ds_x), abs(ds_y), abs(ds_z), abs(dt / (dxdy * dz)))
+    s_min = np.minimum(np.minimum(np.abs(ds_x), np.abs(ds_y)), np.minimum(np.abs(ds_z), np.abs(dt / (dxdy * dz))))
 
     # calculate end position in time s_min
     def compute_rs(r, B, delta, s_min):  # noqa: N803
@@ -263,7 +263,7 @@ def AdvectionAnalytical(particles, fieldset):  # pragma: no cover
         rs_z = compute_rs(zeta, B_z, delta_z, s_min)
         particles.dz += (1.0 - rs_z) * pz[0] + rs_z * pz[1] - particles.z
 
-    if particles.dt > 0:
-        particles.dt = max(direction * s_min * (dxdy * dz), 1e-7)
+    if direction > 0:
+        particles.dt = np.maximum(direction * s_min * (dxdy * dz), 1e-7)
     else:
-        particles.dt = min(direction * s_min * (dxdy * dz), -1e-7)
+        particles.dt = np.minimum(direction * s_min * (dxdy * dz), -1e-7)
