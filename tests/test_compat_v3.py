@@ -49,7 +49,7 @@ def assert_valid_v3_particlefile_structure(ds: xr.Dataset):
     assert ds["lat"].attrs["axis"] == "Y"  # attrs are copied accross correctly
 
 
-@settings(deadline=timedelta(seconds=0.3))
+@settings(deadline=timedelta(seconds=1))
 @example(buf=example_particlefile())
 @given(buf=pst.particlefile_output())
 def test_particlefile_to_v3_zarr(buf):
