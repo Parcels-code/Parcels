@@ -54,6 +54,7 @@ clean:
 	rm -rf $(BUILDDIR)/*
 	rm -rf .jupyter_cache
 	find . -name "*.parquet" -delete
+	find . -name "*.zarr" -type d -exec rm -rf {} +
 
 html:
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html

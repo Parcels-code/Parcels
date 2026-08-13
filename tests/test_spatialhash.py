@@ -1,3 +1,5 @@
+from io import StringIO
+
 import numpy as np
 
 from parcels._core.fieldset import FieldSet
@@ -18,6 +20,31 @@ def test_spatialhash_init():
     grid = FieldSet.from_sgrid_conventions(ds, mesh="flat").data_g.grid
     spatialhash = grid.get_spatial_hash()
     assert spatialhash is not None
+
+
+def test_spatialhash_describe():
+    ds = datasets["2d_left_rotated"]
+    grid = FieldSet.from_sgrid_conventions(ds, mesh="flat").data_g.grid
+    spatialhash = grid.get_spatial_hash()
+
+    io = StringIO()
+    expected = """\
+Spatial Hash Grid Statistics
+Grid type                                       : XGrid
+Mesh                                            : FlatMesh()
+Total mesh faces                                : 1,711
+Valid (non-NaN) mesh faces                      : 1,711
+Bitwidth (current / max)                        : 1023 / 1023  (higher = finer resolution hash grid)
+Total hash cells                                : 1,073,741,824
+Occupied hash cells                             : 796,054, 0.0741%
+Total (hash cell --> grid face) entries         : 1,080,194
+Entries per occupied hash cell (avg)            : 1.36
+Entries per face (avg)                          : 631.32
+Faces per occupied hash cell (min / mean / max) : 1 / 1.36 / 4
+"""
+    spatialhash.describe(io)
+    actual = io.getvalue()
+    assert actual == expected
 
 
 def test_invalid_positions():
@@ -93,3 +120,59 @@ def test_mixed_positions():
     assert i[0] == 14  # Actual value for 2d_left_rotated center
     assert j[1] == -3
     assert i[1] == -3
+
+
+def test_nan_node_invalidates_touching_faces():
+    """Any mesh face that touches a NaN node should not be added to the HashTable."""
+    ds = datasets["2d_left_rotated"]
+    grid = FieldSet.from_sgrid_conventions(ds, mesh="flat").data_g.grid
+    clat, clon, jj, ii = _cell_centers(grid)
+
+    # `grid._ds` shares its lon/lat arrays with the module-level `datasets` fixture
+    # (from_sgrid_conventions does not copy them), so deep-copy before mutating,
+    # otherwise the NaN injected below leaks into every other test in the session.
+    grid._ds = grid._ds.copy(deep=True)
+
+    # Set one interior node to NaN, and calculate the indexes of faces that touch it.
+    nj, ni = 10, 10
+    touching = [
+        (nj - 1, ni - 1),
+        (nj - 1, ni),
+        (nj, ni - 1),
+        (nj, ni),
+    ]
+    grid._ds["lon"].values[nj, ni] = np.nan
+    grid._ds["lat"].values[nj, ni] = np.nan
+    spatialhash = grid.get_spatial_hash(reconstruct=True)
+
+    # From the indexes of the faces that touch the NaN node, calculate their
+    # face_ids.
+    n_faces_x = clon.shape[1]
+    invalid_ids = set()
+    for j, i in touching:
+        invalid_ids.add(j * n_faces_x + i)
+
+    # Get a set of all of the face_ids that are in the table, and assert that the
+    # ones touching the NaN node are not among them.
+    faces_in_table = set(np.unique(spatialhash._hash_table["faces"]).tolist())
+    assert invalid_ids.isdisjoint(faces_in_table)
+
+    # The total number of mesh faces should be greater than the number in the table,
+    # since the NaN faces are filtered from the table.
+    n_total_faces = jj.size
+    assert n_total_faces > len(faces_in_table)
+
+    # Queries landing on those 4 faces should return GridSearchErrors (-3).
+    touching_lat = np.array([clat[j, i] for j, i in touching])
+    touching_lon = np.array([clon[j, i] for j, i in touching])
+    j_touch, i_touch, _ = spatialhash.query(touching_lat, touching_lon)
+    assert np.all(j_touch == -3)
+    assert np.all(i_touch == -3)
+
+    # All mesh cells not contacting the NaN node should resolve queries.
+    mask = np.ones(clat.shape, dtype=bool)
+    for j, i in touching:
+        mask[j, i] = False
+    j_rest, i_rest, _ = spatialhash.query(clat[mask], clon[mask])
+    assert np.array_equal(j_rest, jj[mask])
+    assert np.array_equal(i_rest, ii[mask])
