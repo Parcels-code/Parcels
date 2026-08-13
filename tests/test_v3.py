@@ -14,15 +14,14 @@ def assert_valid_v3_particlefile_structure(ds: xr.Dataset):
 
     assert set(ds.dims) == {"obs", "trajectory"}
 
+    assert ds["lat"].attrs["axis"] == "Y"  # attrs are copied accross correctly
 
-@given(df=pst.particlefile_output())
-def test_particlefile_to_v3_zarr(df):
+
+@given(buf=pst.particlefile_output())
+def test_particlefile_to_v3_zarr(buf):
     with tempfile.TemporaryDirectory() as tmpdir:
-        tmp_parquet = Path(tmpdir) / "tmp.parquet"
         tmp_zarr = Path(tmpdir) / "output.zarr"
 
-        df.to_parquet(tmp_parquet)
-
-        particlefile_to_v3_zarr(tmp_parquet, tmp_zarr)
+        particlefile_to_v3_zarr(from_parquet=buf, to_zarr=tmp_zarr)
         ds = xr.open_zarr(tmp_zarr)
         assert_valid_v3_particlefile_structure(ds)

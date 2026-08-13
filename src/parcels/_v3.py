@@ -1,10 +1,14 @@
 import os
 from pathlib import Path
-from typing import Any
+from typing import TYPE_CHECKING, Any
 
 import polars as pl
 import pyarrow.parquet as pq
 import xarray as xr
+
+if TYPE_CHECKING:
+    import io
+    from pathlib import Path
 
 
 def _decode_dict_to_utf8(d: dict[Any, Any]) -> dict[Any, Any]:
@@ -20,7 +24,7 @@ def _decode_dict_to_utf8(d: dict[Any, Any]) -> dict[Any, Any]:
     return ret
 
 
-def particlefile_to_v3_zarr(from_parquet: str | os.PathLike, to_zarr: str | os.PathLike) -> None:
+def particlefile_to_v3_zarr(from_parquet: str | Path | io.BytesIO, to_zarr: str | os.PathLike) -> None:
     """Convert a v4 particle file (parquet) to v3-style zarr output.
 
     Reads the parquet file, renames columns to v3 conventions
@@ -49,7 +53,6 @@ def particlefile_to_v3_zarr(from_parquet: str | os.PathLike, to_zarr: str | os.P
     to_zarr = Path(to_zarr)
     if to_zarr.suffix != ".zarr":
         raise ValueError(f"Parameter `to_zarr` must have a '.zarr' suffix. Got {to_zarr=}.")
-    from_parquet = Path(from_parquet)
     df = pl.read_parquet(from_parquet)
     table = pq.read_table(from_parquet)
 
