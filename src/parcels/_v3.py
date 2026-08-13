@@ -98,5 +98,6 @@ def particlefile_to_v3_zarr(from_parquet: str | Path | io.BytesIO, to_zarr: str 
         coords={"trajectory": trajectories.to_numpy()},
         attrs=_decode_dict_to_utf8(table.schema.metadata),
     )
+    ds = ds.assign_coords({"obs": ds["obs"]})
 
     ds.to_zarr(to_zarr)

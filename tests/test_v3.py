@@ -13,6 +13,7 @@ def assert_valid_v3_particlefile_structure(ds: xr.Dataset):
         assert var in ds.variables
 
     assert set(ds.dims) == {"obs", "trajectory"}
+    assert set(ds.coords) == {"obs", "trajectory"}
 
     assert ds["lat"].attrs["axis"] == "Y"  # attrs are copied accross correctly
 
