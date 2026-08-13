@@ -1,11 +1,42 @@
+import io
 import tempfile
+from datetime import timedelta
 from pathlib import Path
 
+import numpy as np
 import xarray as xr
-from hypothesis import given
+from hypothesis import example, given, settings
 
 import parcels._strategies as pst
+from parcels import FieldSet, ParticleFile, ParticleSet, StatusCode
 from parcels._compat_v3 import particlefile_to_v3_zarr
+from parcels._core.particle import Particle
+from parcels._datasets.structured.generic import datasets as datasets_structured
+
+
+def example_particlefile() -> io.BytesIO:
+    ds = datasets_structured["ds_2d_left"].copy()
+    ds = ds[["U_A_grid", "V_A_grid", "grid"]].rename({"U_A_grid": "U", "V_A_grid": "V"})
+    fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
+
+    npart = 10
+    pset = ParticleSet(fieldset, pclass=Particle, x=np.zeros(npart), y=np.zeros(npart))
+
+    def RandomDelete(particles, fieldset):  # pragma: no cover
+        particles.state = np.where(
+            np.random.rand(len(particles)) < 0.3,
+            StatusCode.Delete,
+            particles.state,
+        )
+
+    with tempfile.TemporaryDirectory() as tmpdir:
+        parquet_path = Path(tmpdir) / "output.parquet"
+        ofile = ParticleFile(parquet_path, outputdt=np.timedelta64(1, "s"))
+        pset.execute(RandomDelete, runtime=np.timedelta64(5, "s"), dt=np.timedelta64(1, "s"), output_file=ofile)
+
+        buf = io.BytesIO(parquet_path.read_bytes())
+
+    return buf
 
 
 def assert_valid_v3_particlefile_structure(ds: xr.Dataset):
@@ -18,6 +49,8 @@ def assert_valid_v3_particlefile_structure(ds: xr.Dataset):
     assert ds["lat"].attrs["axis"] == "Y"  # attrs are copied accross correctly
 
 
+@settings(deadline=timedelta(seconds=0.3))
+@example(buf=example_particlefile())
 @given(buf=pst.particlefile_output())
 def test_particlefile_to_v3_zarr(buf):
     with tempfile.TemporaryDirectory() as tmpdir:
