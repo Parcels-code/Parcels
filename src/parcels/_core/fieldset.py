@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import functools
 import sys
 import warnings
 from collections.abc import Iterable
@@ -24,7 +23,7 @@ from parcels._core.utils.time import get_datetime_type_calendar
 from parcels._core.utils.time import is_compatible as datetime_is_compatible
 from parcels._core.warnings import FieldSetWarning
 from parcels._python import NOTSET, NotSetType
-from parcels._reprs import fieldset_describe
+from parcels._repr_utils import fieldset_describe
 from parcels.interpolators import (
     XConstantField,
 )
@@ -122,7 +121,7 @@ class FieldSet:
     @property
     def time_interval(self):
         """Returns the valid executable time interval of the FieldSet,
-        which is the intersection of the time intervals of all fields
+        which is the overlap of the time intervals of all fields
         in the FieldSet.
         """
         time_intervals = (m.time_interval for m in self.models)
@@ -131,30 +130,14 @@ class FieldSet:
         time_intervals = [t for t in time_intervals if t is not None]
         if len(time_intervals) == 0:  # All fields are constant fields
             return None
-        return functools.reduce(lambda x, y: x.intersection(y), time_intervals)
 
-    def add_field(self, field: Field, name: str | None = None):
-        """Add a :class:`parcels.field.Field` object to the FieldSet.
+        overlap = time_intervals[0]
+        for time_interval in time_intervals[1:]:
+            if overlap is None:
+                return None
+            overlap = overlap.intersection(time_interval)
 
-        Parameters
-        ----------
-        field : parcels.field.Field
-            Field object to be added
-        name : str
-            Name of the :class:`parcels.field.Field` object to be added. Defaults
-            to name in Field object.
-        """
-        if not isinstance(field, (Field, VectorField)):
-            raise ValueError(f"Expected `field` to be a Field or VectorField object. Got {type(field)}")
-        assert_compatible_calendars((*self.fields.values(), field))
-
-        name = field.name if name is None else name
-
-        if name in self.fields:
-            raise ValueError(f"FieldSet already has a Field with name '{name}'")
-
-        self.fields[name] = field
-        _warn_if_fields_use_different_meshes(self.fields.values())
+        return overlap
 
     def to_windowed_arrays(self, *, max_levels: int | None = None):
         """Wrap dask-backed field data in rolling time-window caches.

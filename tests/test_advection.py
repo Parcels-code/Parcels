@@ -94,7 +94,7 @@ def test_advection_zonal_periodic():
     halo = ds.isel(XG=0)
     halo.lon.values = ds.lon.values[1] + 1
     halo.XG.values = ds.XG.values[1] + 2
-    ds = xr.concat([ds, halo], dim="XG")
+    ds = xr.concat([ds, halo], dim="XG", data_vars="all")
 
     fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
 
@@ -286,6 +286,8 @@ def test_moving_eddy(kernel, rtol):
 
     if kernel == AdvectionRK45:
         fieldset.add_context("RK45_tol", rtol)
+        fieldset.add_context("RK45_min_dt", 1)
+        fieldset.add_context("RK45_max_dt", 24 * 60 * 60)
 
     pset = ParticleSet(
         fieldset, pclass=DEFAULT_PARTICLES[kernel], x=start_lon, y=start_lat, z=start_z, t=np.timedelta64(0, "s")
@@ -325,6 +327,7 @@ def test_decaying_moving_eddy(kernel, rtol):
     if kernel == AdvectionRK45:
         fieldset.add_context("RK45_tol", rtol)
         fieldset.add_context("RK45_min_dt", 10 * 60)
+        fieldset.add_context("RK45_max_dt", 24 * 60 * 60)
 
     pset = ParticleSet(fieldset, pclass=DEFAULT_PARTICLES[kernel], x=start_lon, y=start_lat, t=np.timedelta64(0, "s"))
     pset.execute(kernel, dt=dt, endtime=endtime)
@@ -372,6 +375,8 @@ def test_stommelgyre_fieldset(kernel, rtol, grid_type):
 
     if kernel == AdvectionRK45:
         fieldset.add_context("RK45_tol", rtol)
+        fieldset.add_context("RK45_min_dt", 1)
+        fieldset.add_context("RK45_max_dt", 24 * 60 * 60)
 
     def UpdateP(particles, fieldset):  # pragma: no cover
         particles.p = fieldset.P[particles.t, particles.z, particles.y, particles.x]
@@ -407,6 +412,8 @@ def test_peninsula_fieldset(kernel, rtol, grid_type):
 
     if kernel == AdvectionRK45:
         fieldset.add_context("RK45_tol", rtol)
+        fieldset.add_context("RK45_min_dt", 1)
+        fieldset.add_context("RK45_max_dt", 24 * 60 * 60)
 
     def UpdateP(particles, fieldset):  # pragma: no cover
         particles.p = fieldset.P[particles.t, particles.z, particles.y, particles.x]
@@ -458,11 +465,19 @@ def test_nemo_3D_curvilinear_fieldset(kernel):
     if kernel == AdvectionRK4:
         np.testing.assert_allclose([p.z for p in pset], z_initial)
     elif kernel == AdvectionRK4_3D:
-        # TODO check why decimals needs to be so low in RK4_3D (compare to v3)
-        np.testing.assert_allclose(
-            [p.z for p in pset],
-            [0.666162, 0.8667131, 0.92150104, 0.9605109, 0.9577529, 1.0041442, 1.0284728, 1.0033542, 1.2949713, 1.3928112],
-        )  # fmt:skip
+        depths_from_v3 = [
+            0.66616202,
+            0.86671308,
+            0.92108645,
+            0.95940743,
+            0.95945352,
+            1.00413373,
+            1.02847297,
+            1.00335434,
+            1.27260261,
+            1.38021829,
+        ]  # depths from cell 1 of https://docs.parcels-code.org/en/v3.1.4/examples/tutorial_nemo_3D.html
+        np.testing.assert_allclose([p.z for p in pset], depths_from_v3, rtol=2e-7)
 
 
 def test_mitgcm():
