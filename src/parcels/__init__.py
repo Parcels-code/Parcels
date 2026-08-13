@@ -13,7 +13,7 @@ from parcels._core.fieldset import FieldSet
 from parcels._xarray import open_raw_zarr
 from parcels._core.particleset import ParticleSet
 from parcels._core.particlefile import ParticleFile, read_particlefile
-from ._v3 import particlefile_to_v3_zarr
+from parcels._compat_v3 import particlefile_to_v3_zarr
 from parcels._core.particle import (
     Variable,
     Particle,

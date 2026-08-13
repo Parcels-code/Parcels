@@ -5,7 +5,7 @@ import xarray as xr
 from hypothesis import given
 
 import parcels._strategies as pst
-from parcels._v3 import particlefile_to_v3_zarr
+from parcels._compat_v3 import particlefile_to_v3_zarr
 
 
 def assert_valid_v3_particlefile_structure(ds: xr.Dataset):
