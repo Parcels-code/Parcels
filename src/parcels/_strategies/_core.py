@@ -18,11 +18,9 @@ __all__ = [
 
 
 def _generate_dummy_data(particle: ParticleClass, nparticles=10, nobs=10) -> pd.DataFrame:
-    """Build a pandera DataFrameSchema from a ParticleClass.
+    """Build a pandas dataframe from a particleclass.
 
-    Only variables with ``to_write=True`` are included in the schema.
-    Each column is typed with the variable's numpy dtype and carries the
-    variable's ``attrs`` as pandera column-level metadata.
+    Only variables with ``to_write=True`` are included.
     """
     columns: dict[str, np.ndarray] = {}
     variables = {var.name: var for var in particle.variables if var.to_write}
