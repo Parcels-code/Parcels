@@ -98,7 +98,7 @@ examples/tutorial_peninsula_AvsCgrid.ipynb
 :caption: Run a simulation
 :name: run-simulation
 :titlesonly:
-
+examples/explanation_performance.md
 examples/tutorial_dt_integrators.ipynb
 ```
 

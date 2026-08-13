@@ -139,29 +139,6 @@ class FieldSet:
 
         return overlap
 
-    def add_field(self, field: Field, name: str | None = None):
-        """Add a :class:`parcels.field.Field` object to the FieldSet.
-
-        Parameters
-        ----------
-        field : parcels.field.Field
-            Field object to be added
-        name : str
-            Name of the :class:`parcels.field.Field` object to be added. Defaults
-            to name in Field object.
-        """
-        if not isinstance(field, (Field, VectorField)):
-            raise ValueError(f"Expected `field` to be a Field or VectorField object. Got {type(field)}")
-        assert_compatible_calendars((*self.fields.values(), field))
-
-        name = field.name if name is None else name
-
-        if name in self.fields:
-            raise ValueError(f"FieldSet already has a Field with name '{name}'")
-
-        self.fields[name] = field
-        _warn_if_fields_use_different_meshes(self.fields.values())
-
     def to_windowed_arrays(self, *, max_levels: int | None = None):
         """Wrap dask-backed field data in rolling time-window caches.
 

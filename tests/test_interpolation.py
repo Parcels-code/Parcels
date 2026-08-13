@@ -11,18 +11,20 @@ from parcels import (
     StatusCode,
     Variable,
     VectorField,
-    read_particlefile,
+    particlefile_to_v3_zarr,
 )
 from parcels._core.index_search import _search_time_index
 from parcels._core.mesh import get_mesh
 from parcels._datasets.structured.generated import simple_UV_dataset
 from parcels.interpolators import (
+    CGrid_Velocity,
     XFreeslip,
     XLinear,
     XLinearInvdistLandTracer,
     XNearest,
     XPartialslip,
 )
+from parcels.interpolators._base import VectorInterpolator
 from parcels.interpolators._xinterpolators import _get_corner_data_Agrid
 from parcels.kernels import AdvectionRK4_3D
 from tests.utils import TEST_DATA
@@ -275,18 +277,42 @@ def test_corner_gather_keeps_axes_missing_from_the_mapping():
         assert out[0, 0, 0, 0, p] == data.values[ti[p], 0, yi[p], xi[p]]
 
 
-interp_methods = {
-    "linear": XLinear,
-}
+class XNearest_Velocity(VectorInterpolator):  # noqa:  N801
+    """Nearest-Neighbour interpolation on a regular grid for VectorFields of velocity."""
+
+    def interp(
+        self,
+        particle_positions: dict[str, float | np.ndarray],
+        grid_positions,
+        vectorfield: VectorField,
+    ):
+        """Nearest-Neighbour interpolation on a regular grid for VectorFields of velocity."""
+        _xnearest = XNearest()
+        u = _xnearest.interp(particle_positions, grid_positions, vectorfield.U)
+        v = _xnearest.interp(particle_positions, grid_positions, vectorfield.V)
+        w = _xnearest.interp(particle_positions, grid_positions, vectorfield.W)
+        return u, v, w
 
 
-@pytest.mark.parametrize(("interp_name", "interp_method"), [("linear", XLinear)])
-def test_interp_regression_v3(interp_name, interp_method):
+@pytest.mark.parametrize(
+    ("interp_name", "interp_method"),
+    [
+        ("linear", XLinear),
+        ("freeslip", XFreeslip),
+        ("nearest", XNearest_Velocity),
+        ("cgrid_velocity", CGrid_Velocity),
+    ],
+)
+def test_interp_regression_v3(interp_name, interp_method, tmp_zarr, tmp_parquet):
     """Test that the v4 versions of the interpolation are the same as the v3 versions."""
     ds_input = xr.open_dataset(str(TEST_DATA / f"test_interpolation_data_random_{interp_name}.nc"))
     ydim = ds_input["U"].shape[2]
     xdim = ds_input["U"].shape[3]
     time = [np.timedelta64(int(t), "s") for t in ds_input["time"].values]
+
+    # Convert the coordinates to float32 to match v3 behavior. This makes a difference for Cgrid velocity interpolation
+    for dim in ["lon", "lat", "depth"]:
+        ds_input[dim] = ds_input[dim].astype(np.float32)
 
     ds = xr.Dataset(
         {
@@ -311,8 +337,8 @@ def test_interp_regression_v3(interp_name, interp_method):
             topology_dimension=2,
             node_dimensions=("XG", "YG"),
             face_dimensions=(
-                sgrid.FaceNodePadding("XC", "XG", sgrid.Padding.HIGH),
-                sgrid.FaceNodePadding("YC", "YG", sgrid.Padding.HIGH),
+                sgrid.FaceNodePadding("XC", "XG", sgrid.Padding.LOW),
+                sgrid.FaceNodePadding("YC", "YG", sgrid.Padding.LOW),
             ),
             node_coordinates=("lon", "lat"),
             vertical_dimensions=(sgrid.FaceNodePadding("ZC", "depth", sgrid.Padding.HIGH),),
@@ -320,9 +346,8 @@ def test_interp_regression_v3(interp_name, interp_method):
     )
 
     fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
-    assert isinstance(fieldset.U.interp_method, interp_method)
-    assert isinstance(fieldset.V.interp_method, interp_method)
-    assert isinstance(fieldset.W.interp_method, interp_method)
+    if interp_name in ["cgrid_velocity", "freeslip", "nearest"]:
+        fieldset.UVW.interp_method = interp_method()
 
     x, y, z = np.meshgrid(np.linspace(0, 1, 7), np.linspace(0, 1, 13), np.linspace(0, 1, 5))
 
@@ -333,53 +358,21 @@ def test_interp_regression_v3(interp_name, interp_method):
         any_error = particles.state >= 50  # This captures all Errors
         particles[any_error].state = StatusCode.Delete
 
-    outfile = ParticleFile(f"test_interpolation_v4_{interp_name}.parquet", outputdt=np.timedelta64(1, "s"), mode="w")
+    outfile = ParticleFile(tmp_parquet, outputdt=np.timedelta64(1, "s"), mode="w")
     pset.execute(
         [AdvectionRK4_3D, DeleteParticle],
         runtime=np.timedelta64(4, "s"),
         dt=np.timedelta64(1, "s"),
         output_file=outfile,
     )
+    particlefile_to_v3_zarr(tmp_parquet, tmp_zarr)
+    ds_v4 = xr.open_zarr(tmp_zarr)
 
-    print(str(TEST_DATA / f"test_interpolation_jit_{interp_name}.zarr"))
     ds_v3 = xr.open_zarr(str(TEST_DATA / f"test_interpolation_jit_{interp_name}.zarr"))
-    ds_v4 = read_particlefile(f"test_interpolation_v4_{interp_name}.parquet")
+    # v3 zarr is not sorted by particle_id, so we sort it here to match the v4 output
+    ds_v3 = ds_v3.sortby("trajectory")
 
-    v3_starts = np.column_stack([ds_v3.lon[:, 0].values, ds_v3.lat[:, 0].values, ds_v3.z[:, 0].values])
-    unique_starts_v3, inverse_indices = np.unique(v3_starts, axis=0, return_inverse=True)
-
-    v4_pid_to_data = {pid: ds_v4.filter(ds_v4["particle_id"] == pid) for pid in ds_v4["particle_id"].unique()}
-
-    for start_lon, start_lat, start_z in unique_starts_v3:
-        # Find particles in v3 with this starting position
-        ind_v3 = np.where(
-            inverse_indices
-            == np.where(
-                (unique_starts_v3[:, 0] == start_lon)
-                & (unique_starts_v3[:, 1] == start_lat)
-                & (unique_starts_v3[:, 2] == start_z)
-            )[0][0]
-        )[0][0]
-
-        # Find particles in v4 with this starting position using vectorized filter
-        v4_mask = (ds_v4["x"] == start_lon) & (ds_v4["y"] == start_lat) & (ds_v4["z"] == start_z)
-        ind_v4 = ds_v4.filter(v4_mask)["particle_id"].unique().to_numpy()
-
-        v3_lon = ds_v3.lon[ind_v3, :].values
-        v3_lat = ds_v3.lat[ind_v3, :].values
-        v3_z = ds_v3.z[ind_v3, :].values
-
-        # Use cached v4 data
-        v4_data = v4_pid_to_data[ind_v4[0]]
-        v4_lon = v4_data["x"].to_numpy()[:-1]
-        v4_lat = v4_data["y"].to_numpy()[:-1]
-        v4_z = v4_data["z"].to_numpy()[:-1]
-
-        # Skip if all NaN
-        if np.all(np.isnan(v3_lon)) or np.all(np.isnan(v4_lon)):
-            continue
-
-        tol = 1e-6
-        np.testing.assert_allclose(v3_lon, v4_lon, atol=tol)
-        np.testing.assert_allclose(v3_lat, v4_lat, atol=tol)
-        np.testing.assert_allclose(v3_z, v4_z, atol=tol)
+    # v4 also writes last timestep, so has one more observation than v3. We ignore the last timestep to match v3.
+    np.testing.assert_allclose(ds_v3["lon"].values, ds_v4["lon"].values[:, :-1], atol=1e-6, equal_nan=True)
+    np.testing.assert_allclose(ds_v3["lat"].values, ds_v4["lat"].values[:, :-1], atol=1e-6, equal_nan=True)
+    np.testing.assert_allclose(ds_v3["z"].values, ds_v4["z"].values[:, :-1], atol=1e-6, equal_nan=True)
