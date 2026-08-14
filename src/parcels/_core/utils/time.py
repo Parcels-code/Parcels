@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import functools
+import operator
 from datetime import datetime, timedelta
 from typing import TYPE_CHECKING, Literal, TypeVar, cast
 
@@ -182,7 +184,10 @@ def maybe_convert_python_timedelta_to_numpy(dt: timedelta | np.timedelta64) -> n
                 dts.append(np.timedelta64(value, np_unit))
 
         if dts:
-            return sum(dts)
+            # Not `sum`: it starts from the integer 0, and `0 + np.timedelta64(...)` uses
+            # numpy's deprecated 'generic' timedelta unit. Adding the parts to each other
+            # keeps the same result unit without an integer start value.
+            return functools.reduce(operator.add, dts)
         else:
             return np.timedelta64(0, "s")
     except Exception as e:
