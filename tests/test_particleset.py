@@ -224,8 +224,9 @@ def test_sampling_pset(fieldset, npart, witht):
     if witht:
         t = npart * [np.timedelta64(0, "s")]
         pset = ParticleSet(fieldset, x=x, y=y, t=t)
+        pset.sample, _ = fieldset.UV[pset]
+        np.testing.assert_allclose(pset.sample, 2.0, rtol=1e-12)
     else:
-        pset = ParticleSet(fieldset, x=x, y=y)
-    pset.sample, _ = fieldset.UV[pset]
-
-    np.testing.assert_allclose(pset.sample, 2.0, rtol=1e-12)
+        with pytest.raises(ValueError, match="Time values for particles with indices .* cannot be NaN."):
+            pset = ParticleSet(fieldset, x=x, y=y)
+            pset.sample, _ = fieldset.UV[pset]
