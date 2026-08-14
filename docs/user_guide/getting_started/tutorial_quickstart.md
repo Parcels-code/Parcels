@@ -50,9 +50,7 @@ ds_fset = parcels.convert.copernicusmarine_to_sgrid(fields=fields)
 fieldset = parcels.FieldSet.from_sgrid_conventions(ds_fset)
 ```
 
-Now, in order to improve performance, we can convert the `parcels.FieldSet` to windowed arrays. This is especially useful for large datasets with many timeslices, as it allows Parcels to load only the necessary timeslices into memory during the simulation.
-
-#TODO add link to performance explanation notebook here.
+Now, in order to improve performance, we can convert the `parcels.FieldSet` to windowed arrays. This is especially useful for large datasets with many timeslices, as it allows Parcels to load only the necessary timeslices into memory during the simulation. For more information about squeezing performance out of Parcels, see the [performance tutorial](../examples/explanation_performance.md).
 
 ```{code-cell}
 # Convert the FieldSet to windowed arrays for better performance

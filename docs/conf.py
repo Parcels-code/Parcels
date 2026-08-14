@@ -522,6 +522,7 @@ nb_execution_mode = "cache"
 nb_execution_excludepatterns = ["jupyter_execute", ".jupyter_cache"]
 nb_execution_raise_on_error = True
 nb_execution_timeout = 75
+suppress_warnings = ["mystnb.unknown_mime_type"]
 
 # -- Options for autoapi --------------------------------------------------
 autoapi_dirs = ["../src/parcels"]

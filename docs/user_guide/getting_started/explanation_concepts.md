@@ -56,7 +56,7 @@ Each `parcels.Field` is defined on a grid. With Parcels, we can simulate particl
 
 ```{admonition} 📖 Read more about grids
 :class: seealso
-- [Grids explanation](../examples/explanation_grids.md)
+- [Grids explanation](../examples/explanation_grids.ipynb)
 ```
 
 ### Interpolation
