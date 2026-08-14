@@ -359,7 +359,10 @@ def test_subsecond_outputdt(fieldset, dt, tmp_parquet):
     np.testing.assert_allclose(df["x"], np.arange(0, 1 + 1e-6, dt / 1000.0), atol=1e-6)
     expected_t = np.arange(0, 1001, dt).astype("timedelta64[ms]")
     elapsed_t = (df["t"] - df["t"].min()).to_numpy().astype("timedelta64[ms]")
-    np.testing.assert_allclose(elapsed_t, expected_t, atol=1)
+    # Compare the millisecond counts rather than the timedelta64 arrays themselves:
+    # assert_allclose evaluates `atol + rtol * abs(y)`, and adding the bare integer
+    # atol to a timedelta64 relies on the deprecated 'generic' timedelta unit.
+    np.testing.assert_allclose(elapsed_t.astype("int64"), expected_t.astype("int64"), atol=1)
 
 
 def test_correct_misaligned_outputdt_dt(fieldset, tmp_parquet):
