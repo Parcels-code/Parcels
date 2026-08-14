@@ -530,41 +530,26 @@ class XNearest(ScalarInterpolator):
 
         # Spatial coordinates: left if barycentric < 0.5, otherwise right
         zi_1 = np.clip(zi + 1, 0, data.shape[1] - 1)
-        zi_full = np.where(zeta < 0.5, zi, zi_1)
+        zi_full = np.where(zeta <= 0.5, zi, zi_1)
 
         yi_1 = np.clip(yi + 1, 0, data.shape[2] - 1)
-        yi_full = np.where(eta < 0.5, yi, yi_1)
+        yi_full = np.where(eta <= 0.5, yi, yi_1)
 
         xi_1 = np.clip(xi + 1, 0, data.shape[3] - 1)
-        xi_full = np.where(xsi < 0.5, xi, xi_1)
+        xi_full = np.where(xsi <= 0.5, xi, xi_1)
 
-        # Time coordinates: 1 point at ti, then 1 point at ti+1
-        if lenT == 1:
-            ti_full = ti
-        else:
-            ti_1 = np.clip(ti + 1, 0, data.shape[0] - 1)
-            ti_full = np.concatenate([ti, ti_1])
-            xi_full = np.repeat(xi_full, 2)
-            yi_full = np.repeat(yi_full, 2)
-            zi_full = np.repeat(zi_full, 2)
-
-        # Create DataArrays for indexing
-        selection_dict = {
-            axis_dim["X"]: xr.DataArray(xi_full, dims=("points")),
-            axis_dim["Y"]: xr.DataArray(yi_full, dims=("points")),
+        levels: dict[ptyping.XgcmAxisDirection, tuple[np.ndarray, ...]] = {
+            "T": (ti,) if lenT == 1 else (ti, np.clip(ti + 1, 0, data.shape[0] - 1)),
+            "Z": (zi_full,),
+            "Y": (yi_full,),
+            "X": (xi_full,),
         }
-        if "Z" in axis_dim:
-            selection_dict[axis_dim["Z"]] = xr.DataArray(zi_full, dims=("points"))
-        if "time" in data.dims:
-            selection_dict["time"] = xr.DataArray(ti_full, dims=("points"))
-
-        corner_data = data.isel(selection_dict).data.reshape(lenT, len(xsi))
+        corner_data = _gather_corners(data, axis_dim, levels, len(xsi))[:, 0, 0, 0]
 
         if lenT == 2:
-            value = corner_data[0, :] * (1 - tau) + corner_data[1, :] * tau
+            value = corner_data[0] * (1 - tau) + corner_data[1] * tau
         else:
-            value = corner_data[0, :]
-
+            value = corner_data[0]
         return value.compute() if is_dask_collection(value) else value
 
 

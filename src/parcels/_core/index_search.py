@@ -44,7 +44,7 @@ def _search_1d_array(
     # TODO v4: We probably rework this to deal with 0D arrays before this point (as we already know field dimensionality)
     if len(arr) < 2:
         return np.zeros(shape=x.shape, dtype=np.int32), np.zeros_like(x)
-    index = np.clip(np.searchsorted(arr, x, side="right") - 1, 0, len(arr) - 2)
+    index = np.clip(np.searchsorted(arr, x, side="left") - 1, 0, len(arr) - 2)
     # Use broadcasting to avoid repeated array access
     arr_index = arr[index]
     arr_next = arr[np.clip(index + 1, 1, len(arr) - 1)]  # Ensure we don't go out of bounds

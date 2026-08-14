@@ -22,7 +22,7 @@ from parcels import (
     convert,
 )
 from parcels._core.particle import Particle, get_default_particle
-from parcels._core.particlefile import _get_schema
+from parcels._core.particlefile import get_schema
 from parcels._core.utils.time import TimeInterval, timedelta_to_float
 from parcels._datasets.structured.generated import peninsula_dataset
 from parcels.interpolators import XLinear
@@ -344,6 +344,24 @@ def test_reset_dt(fieldset, tmp_parquet):
     assert np.allclose(pset.x, 0.6)
 
 
+@pytest.mark.parametrize("dt", [100, 200])
+def test_subsecond_outputdt(fieldset, dt, tmp_parquet):
+    """Test that outputdt can be subsecond and that the output times are correct."""
+
+    def Update_lon(particles, fieldset):  # pragma: no cover
+        particles.dx += dt / 1000.0  # Move at a rate of 1 unit per second
+
+    pset = ParticleSet(fieldset, x=[0], y=[0])
+    ofile = ParticleFile(tmp_parquet, outputdt=np.timedelta64(dt, "ms"))
+    pset.execute(Update_lon, runtime=np.timedelta64(1, "s"), dt=np.timedelta64(dt, "ms"), output_file=ofile)
+
+    df = parcels.read_particlefile(tmp_parquet)
+    np.testing.assert_allclose(df["x"], np.arange(0, 1 + 1e-6, dt / 1000.0), atol=1e-6)
+    expected_t = np.arange(0, 1001, dt).astype("timedelta64[ms]")
+    elapsed_t = (df["t"] - df["t"].min()).to_numpy().astype("timedelta64[ms]")
+    np.testing.assert_allclose(elapsed_t, expected_t, atol=1)
+
+
 def test_correct_misaligned_outputdt_dt(fieldset, tmp_parquet):
     """Testing that outputdt does not need to be a multiple of dt."""
 
@@ -560,7 +578,7 @@ def test_pfile_set_towrite_False(fieldset, tmp_parquet):
     ],
 )
 def test_particle_schema(particle):
-    s = _get_schema(particle, {}, TimeInterval(datetime(2023, 1, 1, 12, 0), datetime(2023, 1, 2, 12, 0)))
+    s = get_schema(particle, {}, TimeInterval(datetime(2023, 1, 1, 12, 0), datetime(2023, 1, 2, 12, 0)))
 
     written_variables = [v for v in particle.variables if v.to_write]
 

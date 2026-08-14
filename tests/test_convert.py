@@ -159,6 +159,7 @@ def test_convert_copernicusmarine_no_currents(caplog):
     assert caplog.text == ""
 
 
+@pytest.mark.filterwarnings("ignore:The delft3d_to_sgrid function is experimental")
 def test_convert_structured_delft3d():
     ds = open_remote_dataset("Delft3D_data/Rotterdam_tiny")
     coords = ds[["XZETA", "YZETA", "SIGMA_C"]]
