@@ -89,7 +89,7 @@ npart = 10  # number of particles to be released
 lat = np.linspace(-32.5, -30.5, npart)
 lon = np.repeat(32, npart)
 time = np.repeat(ds_fields.time.values[0], npart) # at initial time of input data
-z = np.repeat(ds_fields.depth.values[0], npart) # at the first depth (surface)
+z = np.repeat(0.5, npart) # at 0.5 meter depth (first level of the input data)
 
 pset = parcels.ParticleSet(
     fieldset=fieldset, pclass=parcels.Particle, t=time, z=z, y=lat, x=lon
@@ -111,6 +111,14 @@ velocity = ds_fields.isel(time=0, depth=0).plot.quiver(x="longitude", y="latitud
 ax = temperature.axes
 ax.scatter(lon, lat, s=40, c='w', edgecolors='r');
 ```
+
+If you also want to sample the initial value of a field, you can do so by calling the field with the `ParticleSet` as an argument. For example, in the code above you would add one line (assuming that the ParticleSet has a variable `temperature`) to sample the initial temperature values, before calling `pset.execute(...)`.
+
+```python
+pset.temperature = fieldset.thetao[pset]
+```
+
+See the [sampling tutorial](../examples/tutorial_sampling.ipynb#sampling-initial-field-values) for more information on initial sampling of fields.
 
 ## Compute: `Kernel`
 

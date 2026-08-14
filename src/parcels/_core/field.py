@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 from parcels._core.index_search import GRID_SEARCH_ERROR, LEFT_OUT_OF_BOUNDS, RIGHT_OUT_OF_BOUNDS, _search_time_index
+from parcels._core.particleset import ParticleSet
 from parcels._core.particlesetview import ParticleSetView
 from parcels._core.statuscodes import (
     AllParcelsErrorCodes,
@@ -109,6 +110,9 @@ class Field:
 
     @property
     def time_interval(self):  # TODO PR: Remove in favour of referencing model time_interval directly
+        if "time" not in self.model.data[self.name].dims:
+            # This field does not have a time-dimension
+            return None
         return self.model.time_interval
 
     def __repr__(self):
@@ -183,7 +187,7 @@ class Field:
     def __getitem__(self, key):
         self._check_velocitysampling()
         try:
-            if isinstance(key, ParticleSetView):
+            if isinstance(key, (ParticleSetView, ParticleSet)):
                 return self.eval(key.t, key.z, key.y, key.x, key)
             else:
                 return self.eval(*key)
@@ -292,7 +296,7 @@ class VectorField:
 
     def __getitem__(self, key):
         try:
-            if isinstance(key, ParticleSetView):
+            if isinstance(key, (ParticleSetView, ParticleSet)):
                 return self.eval(key.t, key.z, key.y, key.x, key)
             else:
                 return self.eval(*key)

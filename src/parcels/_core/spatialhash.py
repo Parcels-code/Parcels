@@ -1,4 +1,6 @@
+import sys
 import warnings
+from typing import IO
 
 import numpy as np
 
@@ -10,6 +12,7 @@ from parcels._core.index_search import (
 )
 from parcels._core.warnings import FieldSetWarning
 from parcels._python import isinstance_noimport
+from parcels._repr_utils import spatialhash_describe
 
 # Budget on the total number of (face, hash cell) pairs in the hash table:
 # max(_HASH_ENTRIES_PER_FACE * nfaces, _HASH_ENTRY_BUDGET_MIN).
@@ -55,19 +58,19 @@ class SpatialHash:
 
         if isinstance_noimport(grid, "XGrid"):
             self._coord_dim = 2  # Number of computational coordinates is 2 (bilinear interpolation)
-            if self._source_grid._mesh == "spherical":
+            if self._source_grid._mesh.is_spherical():
                 lon = np.deg2rad(self._source_grid.lon)
                 lat = np.deg2rad(self._source_grid.lat)
                 x, y, z = _latlon_rad_to_xyz(lat, lon)
                 # Boundaries of the hash grid are the Cartesian bounding box of the
                 # transformed grid, so that regional domains retain full quantization
                 # resolution instead of spreading it over the whole unit cube
-                self._xmin = x.min()
-                self._xmax = x.max()
-                self._ymin = y.min()
-                self._ymax = y.max()
-                self._zmin = z.min()
-                self._zmax = z.max()
+                self._xmin = np.nanmin(x)
+                self._xmax = np.nanmax(x)
+                self._ymin = np.nanmin(y)
+                self._ymax = np.nanmax(y)
+                self._zmin = np.nanmin(z)
+                self._zmax = np.nanmax(z)
                 _xbound = np.stack(
                     (
                         x[:-1, :-1],
@@ -122,10 +125,10 @@ class SpatialHash:
 
             else:
                 # Boundaries of the hash grid are the bounding box of the source grid
-                self._xmin = self._source_grid.lon.min()
-                self._xmax = self._source_grid.lon.max()
-                self._ymin = self._source_grid.lat.min()
-                self._ymax = self._source_grid.lat.max()
+                self._xmin = np.nanmin(self._source_grid.lon)
+                self._xmax = np.nanmax(self._source_grid.lon)
+                self._ymin = np.nanmin(self._source_grid.lat)
+                self._ymax = np.nanmax(self._source_grid.lat)
                 # setting min and max below is needed for mesh="flat"
                 self._zmin = 0.0
                 self._zmax = 0.0
@@ -160,7 +163,7 @@ class SpatialHash:
 
         elif isinstance_noimport(grid, "UxGrid"):
             self._coord_dim = grid.uxgrid.n_max_face_nodes  # Number of barycentric coordinates
-            if self._source_grid._mesh == "spherical":
+            if self._source_grid._mesh.is_spherical():
                 # Reshape node coordinates to (nfaces, nnodes_per_face)
                 nids = self._source_grid.uxgrid.face_node_connectivity.values
                 lon = self._source_grid.uxgrid.node_lon.values[nids]
@@ -258,7 +261,10 @@ class SpatialHash:
         nx = xqhigh.astype(np.int64) - xqlow + 1
         ny = yqhigh.astype(np.int64) - yqlow + 1
         nz = zqhigh.astype(np.int64) - zqlow + 1
-        return int((nx * ny * nz).sum())
+        # NaN values are not allowed in the SpatialHash table, so faces with a NaN
+        # bounding box do not contribute to the entry count
+        valid_face = _generate_valid_mask(self._xlow, self._xhigh, self._ylow, self._yhigh, self._zlow, self._zhigh)
+        return int(np.where(valid_face, nx * ny * nz, 0).sum())
 
     def _initialize_hash_table(self):
         """Create a mapping that relates unstructured grid faces to hash indices by determining
@@ -299,7 +305,11 @@ class SpatialHash:
         nx = (xqhigh - xqlow + 1).astype(np.int32, copy=False)
         ny = (yqhigh - yqlow + 1).astype(np.int32, copy=False)
         nz = (zqhigh - zqlow + 1).astype(np.int32, copy=False)
-        num_hash_per_face = (nx * ny * nz).astype(
+
+        # prevent NaN values from entering the SpatialHash table by setting their
+        # num_hash_per_face equal to 0
+        valid_face = _generate_valid_mask(self._xlow, self._xhigh, self._ylow, self._yhigh, self._zlow, self._zhigh)
+        num_hash_per_face = np.where(valid_face.ravel(), nx * ny * nz, 0).astype(
             np.int32, copy=False
         )  # Since nx, ny, nz are in the 10-bit range, their product fits in int32
         # Sums over faces can exceed int32, so accumulate in int64
@@ -404,7 +414,7 @@ class SpatialHash:
 
         y = np.asarray(y)
         x = np.asarray(x)
-        if self._source_grid._mesh == "spherical":
+        if self._source_grid._mesh.is_spherical():
             # Convert coords to Cartesian coordinates (x, y, z)
             lat = np.deg2rad(y)
             lon = np.deg2rad(x)
@@ -523,6 +533,22 @@ class SpatialHash:
             i_best.reshape(query_codes.shape),
             coords_best.reshape((num_queries, coordinates.shape[1])),
         )
+
+    def describe(self, buf: IO | None = None) -> None:
+        """
+        Summary of the SpatialHash's hash-table statistics (resolution, occupancy,
+        entry counts).
+
+        Parameters
+        ----------
+        buf : file-like, default: sys.stdout
+            writable buffer
+        """
+        if buf is None:
+            buf = sys.stdout
+        assert buf is not None
+
+        buf.write(spatialhash_describe(self))
 
 
 def _dilate_bits(n):
@@ -737,3 +763,30 @@ def _encode_morton3d(x, y, z, xmin, xmax, ymin, ymax, zmin, zmax, bitwidth=1023)
 
     # Since our compact type fits in 30 bits, uint32 is enough.
     return code.astype(np.uint32)
+
+
+def _generate_valid_mask(xlow, xhigh, ylow, yhigh, zlow, zhigh):
+    """
+    Flag faces whose bounding box is fully defined, i.e. none of their 6 bounds
+    is NaN (a NaN indicates a corner node with a missing/masked coordinate).
+
+    Parameters
+    ----------
+    xlow, xhigh : array_like
+        Per-face bounding box in x.
+    ylow, yhigh : array_like
+        Per-face bounding box in y.
+    zlow, zhigh : array_like
+        Per-face bounding box in z.
+
+    Returns
+    -------
+    valid_face : ndarray of bool
+        Same shape as the inputs; True where the face's bounding box is finite,
+        False where it contains a NaN.
+    """
+    invalid_face = (
+        np.isnan(xlow) | np.isnan(xhigh) | np.isnan(ylow) | np.isnan(yhigh) | np.isnan(zlow) | np.isnan(zhigh)
+    )
+
+    return ~invalid_face

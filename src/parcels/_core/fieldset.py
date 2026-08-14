@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-import functools
 import sys
+import warnings
 from collections.abc import Iterable
 from typing import IO, TYPE_CHECKING
 
@@ -21,8 +21,9 @@ from parcels._core.model import (
 from parcels._core.utils.string import _assert_str_and_python_varname
 from parcels._core.utils.time import get_datetime_type_calendar
 from parcels._core.utils.time import is_compatible as datetime_is_compatible
+from parcels._core.warnings import FieldSetWarning
 from parcels._python import NOTSET, NotSetType
-from parcels._reprs import fieldset_describe
+from parcels._repr_utils import fieldset_describe
 from parcels.interpolators import (
     XConstantField,
 )
@@ -73,6 +74,7 @@ class FieldSet:
         self._fields: dict[str, Field | VectorField] | None = None
         self.reconstruct_fields()
         self.context: dict[str, float] = {}
+        _warn_if_fields_use_different_meshes(self.fields.values())
 
     def __setattr__(self, name, value):
         """Set field attribute by name. If context exists and name in context, raise error to prevent overwriting context variable."""
@@ -119,7 +121,7 @@ class FieldSet:
     @property
     def time_interval(self):
         """Returns the valid executable time interval of the FieldSet,
-        which is the intersection of the time intervals of all fields
+        which is the overlap of the time intervals of all fields
         in the FieldSet.
         """
         time_intervals = (m.time_interval for m in self.models)
@@ -128,29 +130,14 @@ class FieldSet:
         time_intervals = [t for t in time_intervals if t is not None]
         if len(time_intervals) == 0:  # All fields are constant fields
             return None
-        return functools.reduce(lambda x, y: x.intersection(y), time_intervals)
 
-    def add_field(self, field: Field, name: str | None = None):
-        """Add a :class:`parcels.field.Field` object to the FieldSet.
+        overlap = time_intervals[0]
+        for time_interval in time_intervals[1:]:
+            if overlap is None:
+                return None
+            overlap = overlap.intersection(time_interval)
 
-        Parameters
-        ----------
-        field : parcels.field.Field
-            Field object to be added
-        name : str
-            Name of the :class:`parcels.field.Field` object to be added. Defaults
-            to name in Field object.
-        """
-        if not isinstance(field, (Field, VectorField)):
-            raise ValueError(f"Expected `field` to be a Field or VectorField object. Got {type(field)}")
-        assert_compatible_calendars((*self.fields.values(), field))
-
-        name = field.name if name is None else name
-
-        if name in self.fields:
-            raise ValueError(f"FieldSet already has a Field with name '{name}'")
-
-        self.fields[name] = field
+        return overlap
 
     def to_windowed_arrays(self, *, max_levels: int | None = None):
         """Wrap dask-backed field data in rolling time-window caches.
@@ -185,7 +172,7 @@ class FieldSet:
             model.to_windowed_arrays(max_levels=max_levels)
         return self
 
-    def add_constant_field(self, name: str, value, mesh: ptyping.Mesh = "spherical"):
+    def add_constant_field(self, name: str, value, mesh: ptyping.TMesh = "spherical"):
         """Wrapper function to add a Field that is constant in space,
            useful e.g. when using constant horizontal diffusivity
 
@@ -215,6 +202,7 @@ class FieldSet:
         self.reconstruct_fields()
         field = getattr(self, name)
         field.interp_method = XConstantField()
+        _warn_if_fields_use_different_meshes(self.fields.values())
 
     def add_context(self, name, value):
         """Add context variable to the FieldSet.
@@ -282,8 +270,9 @@ class FieldSet:
     def from_sgrid_conventions(
         cls,
         ds: xr.Dataset,
-        mesh: ptyping.Mesh | None = None,
+        mesh: ptyping.TMesh | None = None,
         vector_fields: ptyping.VectorFields | NotSetType = NOTSET,
+        skip_field_data_validation: bool = False,
     ):  # TODO: Update mesh to be discovered from the dataset metadata
         """Create a FieldSet from a dataset using SGRID convention metadata.
 
@@ -302,6 +291,8 @@ class FieldSet:
             Mapping of vector field names to tuples of component variable names in the dataset.
             For example, ``{"UV": ("U", "V"), "UVW": ("U", "V", "W")}``.
             If omitted (default), vector fields are auto-discovered from standard variable names (``U``/``V``/``W``).
+        skip_field_data_validation : bool, optional
+            If True, skip validation of the field data. This can be useful for performance reasons, but may lead to unexpected behavior if the field data is invalid. Default is False.
 
         Returns
         -------
@@ -316,7 +307,9 @@ class FieldSet:
 
         See https://sgrid.github.io/sgrid/ for more information on the SGRID conventions.
         """
-        model = StructuredModelData.from_sgrid_conventions(ds, mesh, vector_fields)
+        model = StructuredModelData.from_sgrid_conventions(
+            ds, mesh, vector_fields, skip_field_data_validation=skip_field_data_validation
+        )
         return cls([model])
 
     def describe(self, buf: IO | None = None) -> None:
@@ -359,6 +352,28 @@ def assert_compatible_fieldsets(left: FieldSet, right: FieldSet) -> None:
     if common_context:
         raise ValueError(
             f"Cannot add FieldSets that have context value names in common. Duplicate context value names are: {sorted(common_context)}"
+        )
+
+
+def _warn_if_fields_use_different_meshes(fields: Iterable[Field | VectorField]):
+    """Warn if multiple fields use different meshes on the underlying grids.
+
+    Parameters
+    ----------
+    fields : Iterable[Field | VectorField]
+        The fields to check for conflicting meshes.
+
+    Warns
+    -----
+    FieldSetWarning
+        If the fields have different meshes on the underlying grids.
+    """
+    meshes = {field.grid._mesh for field in fields}
+    if len(meshes) > 1:
+        warnings.warn(
+            f"FieldSet has multiple different meshes: {meshes}. This may lead to unexpected behavior during execution.",
+            category=FieldSetWarning,
+            stacklevel=3,
         )
 
 

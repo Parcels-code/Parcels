@@ -59,14 +59,14 @@ import parcels.tutorial
 ds_fields = parcels.tutorial.open_dataset("CopernicusMarine_data_for_Argo_tutorial/data")
 
 # Create an idealised wind field and add it to the dataset
-tdim, ydim, xdim = (len(ds_fields.time),len(ds_fields.latitude), len(ds_fields.longitude))
+ydim, xdim = len(ds_fields.latitude), len(ds_fields.longitude)
 ds_fields["UWind"] = xr.DataArray(
-    data=0.5 * np.ones((tdim, ydim, xdim)) * np.sin(ds_fields.latitude.values - ds_fields.latitude.values.mean())[None, :, None],
-    coords=[ds_fields.time, ds_fields.latitude, ds_fields.longitude])
+    data=0.5 * np.ones((ydim, xdim)) * np.sin(ds_fields.latitude.values - ds_fields.latitude.values.mean())[:, None],
+    coords=[ds_fields.latitude, ds_fields.longitude])
 
 ds_fields["VWind"] = xr.DataArray(
-    data=np.zeros((tdim, ydim, xdim)),
-    coords=[ds_fields.time, ds_fields.latitude, ds_fields.longitude])
+    data=np.zeros((ydim, xdim)),
+    coords=[ds_fields.latitude, ds_fields.longitude])
 
 fields = {
     "U": ds_fields["uo"],
@@ -103,11 +103,10 @@ First run a simulation where we apply Kernels as `[AdvectionRK2, wind_kernel]`
 ```{code-cell}
 :tags: [hide-output]
 npart = 10
-z = np.repeat(ds_fields.depth[0].values, npart)
 lons = np.repeat(32.2, npart)
 lats = np.linspace(-32.5, -30.5, npart)
 
-pset = parcels.ParticleSet(fieldset, pclass=parcels.Particle, z=z, y=lats, x=lons)
+pset = parcels.ParticleSet(fieldset, pclass=parcels.Particle, y=lats, x=lons)
 output_file = parcels.ParticleFile(
     path="advection_then_wind.parquet", outputdt=np.timedelta64(6,'h')
 )
@@ -124,7 +123,7 @@ Then also run a simulation where we apply the Kernels in the reverse order as `[
 ```{code-cell}
 :tags: [hide-output]
 pset_reverse = parcels.ParticleSet(
-    fieldset, pclass=parcels.Particle, z=z, y=lats, x=lons
+    fieldset, pclass=parcels.Particle, y=lats, x=lons
 )
 output_file_reverse = parcels.ParticleFile(
     path="wind_then_advection.parquet", outputdt=np.timedelta64(6,"h")

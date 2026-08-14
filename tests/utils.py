@@ -134,7 +134,7 @@ def assert_valid_field_data(data: xr.DataArray, grid: XGrid):
     assert len(data.shape) == 4, f"Field data should have 4 dimensions (time, depth, lat, lon), got dims {data.dims}"
 
     for ax_expected, dim in zip(_FIELD_DATA_ORDERING, data.dims, strict=True):
-        ax_actual = get_axis_from_dim_name(grid.xgcm_grid.axes, dim)
+        ax_actual = get_axis_from_dim_name(grid.sgrid_metadata, dim)
         if ax_actual is None:
             continue  # None is ok
         assert ax_actual == ax_expected, f"Expected axis {ax_expected} for dimension '{dim}', got {ax_actual}"
