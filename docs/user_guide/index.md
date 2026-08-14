@@ -16,7 +16,7 @@ getting_started/installation.md
 ```
 
 ```{note}
-If you have code that uses Parcels v3, you can migrate to Parcels v4 using [this migration guide](v4-migration.md)
+If you have code that uses Parcels v3, you can migrate to Parcels v4 using [🎓 the v3 to v4 migration guide](v4-migration.md)
 ```
 
 ## Getting started
@@ -114,10 +114,13 @@ examples/tutorial_diffusion.ipynb
 examples/tutorial_interaction.ipynb
 ```
 
+## Other
+
 ```{toctree}
-:hidden:
 :caption: Other
-v3 to v4 migration guide <v4-migration>
+:name: other
+:titlesonly:
+🎓 v3 to v4 migration guide <v4-migration>
 examples/tutorial_stuck_particles.ipynb
 examples/tutorial_unstuck_Agrid.ipynb
 examples/tutorial_homepage_animation.md
