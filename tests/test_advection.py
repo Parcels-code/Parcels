@@ -395,11 +395,12 @@ def test_stommelgyre_fieldset(kernel, rtol, grid_type):
         (AdvectionRK45, 1e-3),
     ],
 )
+@pytest.mark.parametrize("mesh", ["flat", "spherical"])
 @pytest.mark.parametrize("grid_type", ["A", "C"])
-def test_peninsula_fieldset(kernel, rtol, grid_type):
+def test_peninsula_fieldset(kernel, rtol, grid_type, mesh):
     npart = 2
     ds = peninsula_dataset(grid_type=grid_type)
-    fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
+    fieldset = FieldSet.from_sgrid_conventions(ds, mesh=mesh)
 
     dt = np.timedelta64(30, "m")
     runtime = np.timedelta64(23, "h")
@@ -412,7 +413,7 @@ def test_peninsula_fieldset(kernel, rtol, grid_type):
 
     if kernel == AdvectionRK45:
         fieldset.add_context("RK45_tol", rtol)
-        fieldset.add_context("RK45_min_dt", 1)
+        fieldset.add_context("RK45_min_dt", 10)
         fieldset.add_context("RK45_max_dt", 24 * 60 * 60)
 
     def UpdateP(particles, fieldset):  # pragma: no cover
