@@ -60,6 +60,7 @@ class ParticleSet:
         self,
         fieldset,
         pclass=Particle,
+        *,
         t=None,
         z=None,
         y=None,

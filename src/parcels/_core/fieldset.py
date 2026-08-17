@@ -263,7 +263,7 @@ class FieldSet:
         -----
         See https://ugrid-conventions.github.io/ugrid-conventions/ for more information on the UGRID conventions.
         """
-        model = UnstructuredModelData.from_ugrid_conventions(ds, mesh, vector_fields)
+        model = UnstructuredModelData.from_ugrid_conventions(ds, mesh=mesh, vector_fields=vector_fields)
         return cls([model])
 
     @classmethod
@@ -308,7 +308,7 @@ class FieldSet:
         See https://sgrid.github.io/sgrid/ for more information on the SGRID conventions.
         """
         model = StructuredModelData.from_sgrid_conventions(
-            ds, mesh, vector_fields, skip_field_data_validation=skip_field_data_validation
+            ds, mesh=mesh, vector_fields=vector_fields, skip_field_data_validation=skip_field_data_validation
         )
         return cls([model])
 
