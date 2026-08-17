@@ -6,7 +6,7 @@
 :hidden:
 
 Contributing Guidelines <self>
-Versioning Policy <policies>
+Policies <policies>
 Release Notes <https://github.com/Parcels-code/Parcels/releases>
 ```
 
