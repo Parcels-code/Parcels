@@ -227,6 +227,14 @@ Use <code>Particle.add_variables()</code>, which also takes a list of <code>Vari
 </div>
 <hr class="migration-divider" />
 
+<div class="migration-bubble migration-change">
+Parameters <code>indices</code>, <code>timestamps</code>, and <code>time_periodic</code> removed from <code>FieldSet</code> constructors.
+</div>
+<div class="migration-bubble migration-how">
+Simply manipulate the datasets with Xarray to the same effect before passing them to Parcels.
+</div>
+<hr class="migration-divider" />
+
 </div>
 
 ## ParticleSet
