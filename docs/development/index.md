@@ -71,6 +71,10 @@ There are many ways that you can contribute to Parcels. You can:
 
 All of these require you to [make an account on GitHub](https://github.com/signup), so that should be your first step.
 
+```{important}
+Make sure to follow our [policy on AI tooling](policies.md).
+```
+
 If you want to suggest quick edits to the documentation, it's as easy as going to the page and clicking "Edit on GitHub" in the righthand panel. For other changes, it's a matter of looking through the [issue tracker](https://github.com/Parcels-code/parcels/issues) which documents tasks that are being considered. Pay particular attention to [issues tagged with "good first issue"](https://github.com/Parcels-code/parcels/issues?q=is%3Aopen+is%3Aissue+label%3A%22good+first+issue%22), as these are tasks that don't require deep familiarity with the codebase. Once you've chosen an issue you would like to contribute towards, comment on it to flag your interest in working on it. This allows the community to know who's interested, and provide any guidance in its implementation (maybe the scope has changed since the issue was last updated).
 
 If you're having trouble using Parcels, feel free to create a discussion in our Discussions tab and we'll be happy to support. Want to suggest a feature, or have encountered a problem that is a result of a bug in Parcels, then search for an issue in the tracker or [create a new one](https://github.com/Parcels-code/parcels/issues/new/choose) with the relevant details.
