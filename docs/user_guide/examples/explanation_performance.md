@@ -24,7 +24,7 @@ _Uses Parcels Backend: Numpy_
 
 For relatively small Datasets (less than a few GB), it is possible to load the entire FieldSet into memory. This can be done by calling the `load()` method on the `xarray.Dataset` object:
 
-```{code-block} python
+```python
 ds = ds.load()
 ```
 
@@ -44,7 +44,7 @@ _Uses Parcels Backend: Zarr_
 
 If your Dataset is too large to fit into memory, but your particles are only distributed over a small part of the domain, it could be efficient to use cached zarr files. This can be done by using the (experimental) `zarr.CacheStore` in combination with the `parcels.open_raw_zarr()` function. This will make Parcels only load the chunks that are needed for the particles, and cache these chunks in memory for future use.
 
-```{code-block} python
+```python
 source_store = zarr.storage.LocalStore(filenames)
 cache_store = zarr.storage.MemoryStore()
 
@@ -75,7 +75,7 @@ If your Dataset is so large that it doesn't fit into memory, you can use the `fi
 
 The two timeslices (the current and the next) are fully loaded into memory, so this method is especially useful if your particles are distributed over the entire domain, as all data will then have to be accessed anyway.
 
-```{code-block} python
+```python
 fieldset.to_windowed_arrays()
 ```
 
