@@ -28,7 +28,7 @@ Parcels concepts diagram with key classes in blue boxes
 
 ## 1. FieldSet
 
-Parcels provides a framework to simulate particles **within a set of fields**, such as flow velocities and temperature. To start a parcels simulation we must define this dataset with the **`parcels.FieldSet`** class.
+Parcels provides a framework to simulate particles **within a set of fields**, such as flow velocities and temperature. To start a Parcels simulation we must define this dataset with the **`parcels.FieldSet`** class.
 
 The input dataset from which to create a `parcels.FieldSet` can be an [`xarray.Dataset`](https://docs.xarray.dev/en/stable/user-guide/data-structures.html#dataset) with output from a hydrodynamic model or reanalysis. Such a dataset usually contains a number of gridded variables (e.g. `"U"`), which in Parcels become `parcels.Field` objects. A list of `parcels.Field` objects is stored in a `parcels.FieldSet` in an analoguous way to how `xarray.DataArray` objects combine to make an `xarray.Dataset`.
 
@@ -44,7 +44,7 @@ fieldset = parcels.FieldSet.from_sgrid_conventions(ds_fset)
 In some cases, we might want to combine fields from different sources in the same `parcels.FieldSet`, such as ocean currents from one dataset and Stokes drift from another. This is possible in Parcels by creating multiple `parcels.FieldSet` objects and combining them into a single `parcels.FieldSet`:
 
 ```python
-dataset2 = xr.dataset("insert_stokes_data_files.nc")
+dataset2 = xr.open_dataset("insert_stokes_data_files.nc")
 fields2 = {"Ustokes": ds_fields["ustokes"], "Vstokes": ds_fields["vstokes"]}
 ds_fset = parcels.convert.copernicusmarine_to_sgrid(fields=fields2)
 fieldset += parcels.FieldSet.from_sgrid_conventions(ds_fset, vector_fields={"UVstokes": ["Ustokes", "Vstokes"]})

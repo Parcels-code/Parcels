@@ -1,5 +1,5 @@
 """autoSphinx configuration file for Parcels documentation."""
-# parcels documentation build configuration file, created by
+# Parcels documentation build configuration file, created by
 # sphinx-quickstart on Tue Oct 20 09:58:20 2015.
 #
 # This file is execfile()d with the current directory set to its

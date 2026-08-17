@@ -377,7 +377,7 @@ def _warn_if_fields_use_different_meshes(fields: Iterable[Field | VectorField]):
         )
 
 
-class CalendarError(Exception):  # TODO: Move to a parcels errors module
+class CalendarError(Exception):  # TODO: Move to a Parcels errors module
     """Exception raised when the calendar of a field is not compatible with the rest of the Fields. The user should ensure that they only add fields to a FieldSet that have compatible CFtime calendars."""
 
 

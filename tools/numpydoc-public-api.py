@@ -27,7 +27,7 @@ ROOT_PACKAGE = "parcels"
 
 # full list of numpydoc error codes: https://numpydoc.readthedocs.io/en/latest/validation.html
 SKIP_ERRORS = [
-    "GL01",  # parcels is fine with the summary line starting directly after `"""`, or on the next line.
+    "GL01",  # Parcels is fine with the summary line starting directly after `"""`, or on the next line.
     "SA01",  # Parcels doesn't require the "See also" section
     "SA04",  #
     "ES01",  # We don't require the extended summary for all docstrings

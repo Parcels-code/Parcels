@@ -16,7 +16,7 @@ def grid_and_dataset(draw) -> tuple[sgrid.SGrid2DMetadata, xr.Dataset]:
     # used only for test_metadata - for all other tests we can simply do `ds.sgrid.metadata` to get the metadata
     metadata_2d = draw(
         pst.sgrid.grid_metadata.filter(
-            # parcels can only generate 2D Sgrid datasets, that also have coordinates
+            # Parcels can only generate 2D Sgrid datasets, that also have coordinates
             lambda meta: isinstance(meta, sgrid.SGrid2DMetadata) and meta.node_coordinates is not None
         )
     )
