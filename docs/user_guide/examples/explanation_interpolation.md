@@ -89,4 +89,4 @@ grid_positions = {
 
 The `.interp()` method should return a float (in the case of a `ScalarInterpolator` or a tuple of three floats `(u, v, w)` in the case of a `VectorInterpolator`).
 
-Writing custom interpolators is not trivial, so we recommend that you have a look at the built-in interpolators in {py:func}`parcels.interpolators._xinterpolators` or {py:func}`parcels.interpolators._uxinterpolators` to see how they are implemented.
+Writing custom interpolators is not trivial, so we recommend that you have a look at the built-in [structured-grid interpolators](https://github.com/Parcels-code/Parcels/blob/main/src/parcels/interpolators/_xinterpolators.py) or the [unstructured-grid interpolators](https://github.com/Parcels-code/Parcels/blob/main/src/parcels/interpolators/_uxinterpolators.py) to see how they are implemented.

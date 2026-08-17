@@ -99,7 +99,7 @@ pset = parcels.ParticleSet(fieldset=fieldset, pclass=parcels.Particle, t=t, z=z,
 
 ## 3. Kernels
 
-A **{py:obj}`parcels.Kernel`** object is a little snippet of code, which is applied to the particles in the {py:obj}`parcels.ParticleSet`, for every time step during a simulation. Kernels define the computation or numerical integration done by Parcels, and can represent many processes such as advection, ageing, growth, or simply the sampling of a field.
+A **`kernel`** function is a little snippet of code, which is applied to the particles in the {py:obj}`parcels.ParticleSet`, for every time step during a simulation. Kernels define the computation or numerical integration done by Parcels, and can represent many processes such as advection, ageing, growth, or simply the sampling of a field.
 
 Advection of a particle by the flow, the change in position $\mathbf{x}(t) = (x(t), y(t))$ at time $t$, can be described by the equation:
 
