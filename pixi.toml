@@ -123,7 +123,7 @@ parcels = { path = "." }
 numpydoc = "*"
 myst-nb = "*"
 ipython = "*"
-sphinx = "*"
+sphinx = ">=9.0.0"
 pandoc = "*"
 pydata-sphinx-theme = "*"
 sphinx-autobuild = "*"

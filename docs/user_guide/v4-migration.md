@@ -283,7 +283,7 @@ Use the <a href="examples/tutorial_delaystart"><code>ParticleSet</code> construc
 ParticleFiles output is in <a href="getting_started/tutorial_output">parquet format</a>
 </div>
 <div class="migration-bubble migration-how">
-Read the output with <code>polars.read_parquet</code> or (to automatically handle cftime) <code>parcels.read_particlefile</code>
+Read the output with <code>polars.read_parquet()</code> or (to automatically handle cftime) <code>parcels.read_particlefile()</code>. For compatility with old postprocessing codes, convert the new Parquet output to v3-style zarr output using <code>parcels.particlefile_to_v3_zarr()</code>
 </div>
 <hr class="migration-divider" />
 

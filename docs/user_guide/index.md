@@ -120,9 +120,11 @@ examples/tutorial_interaction.ipynb
 :caption: Other
 :name: other
 :titlesonly:
+📖 v4 development <../v4/index>
 🎓 v3 to v4 migration guide <v4-migration>
 examples/tutorial_stuck_particles.ipynb
 examples/tutorial_unstuck_Agrid.ipynb
 examples/tutorial_homepage_animation.md
-<!-- examples/documentation_geospatial.ipynb -->
 ```
+
+<!-- examples/documentation_geospatial.ipynb -->

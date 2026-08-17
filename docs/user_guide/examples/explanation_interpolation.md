@@ -14,7 +14,13 @@ particles.temperature = fieldset.temperature[particles]
 ````{note}
 The statement above is shorthand for
 ```python
-particles.temperature = fieldset.temperature[particles.t, particles.z, particles.y, particles.x, particles]
+particles.temperature = fieldset.temperature[
+    particles.t,
+    particles.z,
+    particles.y,
+    particles.x,
+    particles
+]
 ```
 where the `particles` argument at the end provides the grid search algorithm with a first guess for the element indices to interpolate on.
 
@@ -38,27 +44,29 @@ the requested value at the particles location.
 
 The interpolators included in Parcels are designed for common interpolation schemes in Parcels simulations; see the [Using the built-in interpolators tutorial](./tutorial_interpolation.ipynb).
 
-If we want to create a custom interpolation method, we need to look at the interpolator API. Each interpolator is a class that inherits from either the `ScalarInterpolator` or `VectorInterpolator` class. The `ScalarInterpolator` class is used for scalar fields, such as temperature or salinity, while the `VectorInterpolator` class is used for vector fields, such as velocity. An interpolator class than has to have a `.interp()` method with the following signature:
+If we want to create a custom interpolation method, we need to look at the interpolator API. Each interpolator is a class that inherits from either the `ScalarInterpolator` or `VectorInterpolator` class. The `ScalarInterpolator` class is used for scalar fields, such as temperature or salinity, while the `VectorInterpolator` class is used for vector fields, such as velocity.
+
+An interpolator class must have a `.interp()` method with the following signature:
 
 ```python
-    def interp(
-        self,
-        particle_positions: dict[str, float | np.ndarray],
-        grid_positions: dict[ptyping.XgridAxis, dict[str, int | float | np.ndarray]],
-        field: Field,
-    ):
-        ...
+def interp(
+    self,
+    particle_positions: dict[str, float | np.ndarray],
+    grid_positions: dict[ptyping.XgridAxis, dict[str, int | float | np.ndarray]],
+    field: Field,
+):
+    ...
 ```
 
 The `particle_positions` dictionary contains:
 
-```
-particle_positions = {"t", t, "z", z, "y", y, "x", x}
+```python
+particle_positions = {"t": t, "z": z, "y": y, "x": x}
 ```
 
 For structured (`X`) grids, the `grid_positions` dictionary contains:
 
-```
+```python
 grid_positions = {
     "T": {"index": ti, "bcoord": tau},
     "Z": {"index": zi, "bcoord": zeta},
@@ -71,7 +79,7 @@ where `index` is the grid index in the corresponding dimension, and `bcoord` is 
 
 For unstructured (`UX`) grids, the same dictionary is defined as:
 
-```
+```python
 grid_positions = {
     "T": {"index": ti, "bcoord": tau},
     "Z": {"index": zi, "bcoord": zeta},
@@ -79,6 +87,6 @@ grid_positions = {
 }
 ```
 
-The `.interp()` method should return a float (in the case o a `ScalarInterpolator` or a tuple of three floats `(u, v, w)` in the case of a `VectorInterpolator`).
+The `.interp()` method should return a float (in the case of a `ScalarInterpolator` or a tuple of three floats `(u, v, w)` in the case of a `VectorInterpolator`).
 
-Writing custom interpolators is not trivial, so we recommend that you have a look at the built-in interpolators in `parcels.interpolators._xinterpolators` or `parcels.interpolators._uxinterpolators` to see how they are implemented.
+Writing custom interpolators is not trivial, so we recommend that you have a look at the built-in interpolators in {py:func}`parcels.interpolators._xinterpolators` or {py:func}`parcels.interpolators._uxinterpolators` to see how they are implemented.
