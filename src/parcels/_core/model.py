@@ -203,6 +203,7 @@ class StructuredModelData(ModelData):
     def from_sgrid_conventions(
         cls,
         ds: xr.Dataset,
+        *,
         mesh: ptyping.TMesh | None,
         vector_fields: ptyping.VectorFields | NotSetType,
         skip_field_data_validation: bool = False,
@@ -358,7 +359,7 @@ class UnstructuredModelData(ModelData):
 
     @classmethod
     def from_ugrid_conventions(
-        cls, ds: ux.UxDataset, mesh: ptyping.TMesh, vector_fields: ptyping.VectorFields | NotSetType
+        cls, ds: ux.UxDataset, *, mesh: ptyping.TMesh, vector_fields: ptyping.VectorFields | NotSetType
     ):
         ds_dims = list(ds.dims)
         if not all(dim in ds_dims for dim in ["time", "zf", "zc"]):
