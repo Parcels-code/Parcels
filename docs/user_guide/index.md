@@ -1,6 +1,6 @@
 # User guide
 
-The core of our user guide is a series of Jupyter notebooks which document how to implement specific Lagrangian simulations with the flexibility of **Parcels**.
+The core of our user guide is a series of Jupyter notebooks which document how to implement specific Lagrangian simulations with the flexibility of Parcels.
 
 Before diving into these advanced _how-to_ guides (🖥️), we suggest users get started by reading the explanation (📖) of the core concepts and trying the tutorials (🎓).
 

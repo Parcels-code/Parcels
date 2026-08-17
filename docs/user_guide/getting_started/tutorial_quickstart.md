@@ -6,7 +6,7 @@ kernelspec:
 
 # 🎓 Quickstart tutorial
 
-Welcome to the **Parcels** quickstart tutorial, in which we will go through all the necessary steps to run a simulation.
+Welcome to the Parcels quickstart tutorial, in which we will go through all the necessary steps to run a simulation.
 The code in this notebook can be used as a starting point to run Parcels in your own environment. Along the way we will
 familiarize ourselves with some specific classes and methods. If you are ever confused about one of these and want to
 read more, we have a [concepts overview](./explanation_concepts.md) discussing them in more detail. Let's dive in!

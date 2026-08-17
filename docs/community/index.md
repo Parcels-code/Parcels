@@ -51,7 +51,7 @@ Report a bug with an Issue
 ````{grid-item-card} Sharing user code
 :shadow: md
 
-Curious to see if someone has already written the custom `Kernel` you are thinking of or runs **Parcels** with the same hydrodynamic data? Check out the parcels_contributions repository and share examples with other users!
+Curious to see if someone has already written the custom `Kernel` you are thinking of or runs Parcels with the same hydrodynamic data? Check out the parcels_contributions repository and share examples with other users!
 
 ```{image} https://img.shields.io/badge/maintainer_needed-red
 :width: 40%
