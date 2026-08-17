@@ -1,4 +1,4 @@
-# Parcels v4 development
+# 📖 Parcels v4 development
 
 Supported by funding from the [WarmWorld](https://www.warmworld.de) [ELPHE](https://www.kooperation-international.de/foerderung/projekte/detail/info/warmworld-elphe-ermoeglichung-von-lagranian-particle-tracking-fuer-hochaufloesende-und-unstrukturierte-gitter) project and an [NWO Vici project](https://www.nwo.nl/en/researchprogrammes/nwo-talent-programme/projects-vici/vici-2022), the Parcels team is working on a major update to the Parcels codebase.
 

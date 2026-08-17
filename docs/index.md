@@ -88,7 +88,6 @@ Connect with our community!
 :hidden:
 
 Home <self>
-Getting started <getting_started/index>
 User guide <user_guide/index>
 Community <community/index>
 Development <development/index>

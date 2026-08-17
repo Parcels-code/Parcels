@@ -90,7 +90,7 @@ class Field:
         # TODO PR: Enable isinstance check once ModelData is moved to abc.ModelData
         # if not isinstance(model, "ModelData"):
         #     raise ValueError(
-        #         f"Expected `model` to be a parcels ModelData object. Got {type(model)}."
+        #         f"Expected `model` to be a Parcels ModelData object. Got {type(model)}."
         #     )
 
         _assert_str_and_python_varname(name)

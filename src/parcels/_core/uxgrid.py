@@ -4,6 +4,7 @@ from typing import Literal
 
 import numpy as np
 import uxarray as ux
+from dask import is_dask_collection
 
 from parcels._core.basegrid import BaseGrid
 from parcels._core.index_search import GRID_SEARCH_ERROR, _search_1d_array, uxgrid_point_in_cell
@@ -45,6 +46,8 @@ class UxGrid(BaseGrid):
         self.z = z
         self._mesh = get_mesh(mesh)
         self._spatialhash = None
+        if is_dask_collection(self.uxgrid.face_node_connectivity.data):
+            self.uxgrid.face_node_connectivity.load()
 
     @property
     def depth(self):
