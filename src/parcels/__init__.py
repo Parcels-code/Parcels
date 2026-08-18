@@ -7,8 +7,6 @@ except Exception:
     # Local copy or not installed with setuptools.
     __version__ = "unknown"
 
-import warnings as _stdlib_warnings
-
 from parcels._core.fieldset import FieldSet
 from parcels._xarray import open_raw_zarr
 from parcels._core.particleset import ParticleSet
@@ -82,9 +80,3 @@ __all__ = [  # noqa: RUF022
     # kernels
     "kernels",
 ]
-
-_stdlib_warnings.warn(
-    "This is an alpha version of Parcels v4. The API is not stable and may change without deprecation warnings.",
-    UserWarning,
-    stacklevel=2,
-)

@@ -204,7 +204,6 @@ html_theme_options = {
             "type": "fontawesome",
         }
     ],
-    "announcement": "WARNING: This documentation is built for v4 of Parcels, which is unreleased and in active development. Use the version switcher in the bottom right to select your version of Parcels, or see <a href='https://docs.parcels-code.org/'>stable docs</a>.",
     "header_links_before_dropdown": 8,
     "navbar_align": "left",
 }
