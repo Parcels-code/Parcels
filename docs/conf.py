@@ -523,6 +523,11 @@ nb_execution_excludepatterns = ["jupyter_execute", ".jupyter_cache"]
 nb_execution_raise_on_error = True
 nb_execution_timeout = 75
 suppress_warnings = ["mystnb.unknown_mime_type"]
+nitpicky = True
+nitpick_ignore_regex = [
+    (r"py:class", r".*"),
+    (r"py:mod", r".*"),
+]
 
 # -- Options for autoapi --------------------------------------------------
 autoapi_dirs = ["../src/parcels"]
