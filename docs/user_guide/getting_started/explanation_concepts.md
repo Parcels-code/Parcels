@@ -54,6 +54,8 @@ fieldset += parcels.FieldSet.from_sgrid_conventions(ds_fset, vector_fields={"UVs
 
 Each {py:obj}`parcels.Field` is defined on a grid. With Parcels, we can simulate particles in fields on both structured (**{py:obj}`parcels.XGrid`**) and unstructured (**{py:obj}`parcels.UxGrid`**) grids. The grid is defined by the coordinates of grid cell nodes, edges, and faces. {py:obj}`parcels.XGrid` objects are based on Xarray Datasets with attached SGRID metadata, while {py:obj}`parcels.UxGrid` objects are based on [`uxarray.Grid`](https://uxarray.readthedocs.io/en/stable/generated/uxarray.Grid.html#uxarray.Grid) objects.
 
+The user doesn't need to manually construct or manage grids - this is done internally by Parcels. When using {py:obj}`parcels.FieldSet.from_sgrid_conventions()` or {py:obj}`parcels.FieldSet.from_ugrid_conventions()` the correct grid object is constructed for your data.
+
 ```{admonition} 📖 Read more about grids
 :class: seealso
 - [Grids explanation](../examples/explanation_grids.ipynb)
