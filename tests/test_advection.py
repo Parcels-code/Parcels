@@ -27,7 +27,9 @@ from parcels._datasets.structured.generated import (
     stommel_gyre_dataset,
 )
 from parcels._datasets.structured.generic import datasets_sgrid
+from parcels.interpolators import CGrid_Velocity
 from parcels.kernels import (
+    AdvectionAnalytical,
     AdvectionDiffusionEM,
     AdvectionDiffusionM1,
     AdvectionEE,
@@ -506,3 +508,52 @@ def test_mitgcm():
         1952691.93845841,
     ]
     np.testing.assert_allclose(pset.y, lat_v3, atol=1)
+
+
+def test_analytical_throwserror_on_Agrid():
+    ds = simple_UV_dataset(mesh="flat")
+    fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
+    pset = ParticleSet(fieldset, x=1, y=1)
+
+    with pytest.raises(NotImplementedError):
+        pset.execute(AdvectionAnalytical, runtime=1, dt=1)
+
+
+@pytest.mark.parametrize("u", [0.2, -0.3, 0])
+@pytest.mark.parametrize("v", [-0.3, 0, 1])
+@pytest.mark.parametrize("w", [None, 0.05, 0, -0.05])
+@pytest.mark.parametrize("direction", [1, -1])
+def test_uniform_analytical(u, v, w, direction, tmp_parquet):
+    ds = simple_UV_dataset(mesh="flat")
+    ds["U"].data[:] = u
+    ds["V"].data[:] = v
+    if w is not None:
+        ds["W"] = xr.full_like(ds["U"], w)
+
+    fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
+    fieldset.UV.interp_method = CGrid_Velocity()
+    if w is not None:
+        fieldset.UVW.interp_method = CGrid_Velocity()
+
+    x0, y0, z0 = 6.1, 6.2, 0.5
+    pset = ParticleSet(fieldset, pclass=Particle, x=x0, y=y0, z=z0)
+
+    outfile = ParticleFile(tmp_parquet, outputdt=np.timedelta64(1, "s"))
+    runtime = 4
+    pset.execute(
+        AdvectionAnalytical,
+        runtime=np.timedelta64(runtime, "s"),
+        dt=np.timedelta64(direction, "s"),
+        output_file=outfile,
+    )
+    assert np.abs(pset.x - x0 - runtime * u * direction) < 1e-6
+    assert np.abs(pset.y - y0 - runtime * v * direction) < 1e-6
+    if w is not None:
+        assert np.abs(pset.z - z0 - runtime * w * direction) < 1e-4
+
+    df = pd.read_parquet(tmp_parquet)
+    times = (direction * (df["t"] - df["t"][0])).values.astype("timedelta64[s]")
+    timeref = np.arange(0, 5).astype("timedelta64[s]")
+    assert np.allclose(times, timeref, atol=np.timedelta64(1, "ms"))
+    lons = df["x"].values
+    assert np.allclose(lons, x0 + direction * u * np.arange(0, 5))

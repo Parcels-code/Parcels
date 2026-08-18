@@ -190,6 +190,105 @@ class XLinear_Velocity(VectorInterpolator):  # noqa:  N801
         return u, v, w
 
 
+def _get_cgrid_velocities(
+    vectorfield: VectorField, grid_positions: dict[ptyping.XgridAxis, dict[str, int | float | np.ndarray]]
+):
+    # Helper function to get the edge velocities for a given C-grid vector field and position.
+    xi, xsi = grid_positions["X"]["index"], grid_positions["X"]["bcoord"]
+    yi, eta = grid_positions["Y"]["index"], grid_positions["Y"]["bcoord"]
+    zi, _ = grid_positions["Z"]["index"], grid_positions["Z"]["bcoord"]
+    ti, tau = grid_positions["T"]["index"], grid_positions["T"]["bcoord"]
+
+    U = vectorfield.U.data
+    V = vectorfield.V.data
+    grid = vectorfield.grid
+    offsets = _get_offsets_dictionary(grid)
+    tdim, zdim, ydim, xdim = U.shape[0], U.shape[1], U.shape[2], U.shape[3]
+    lenT = 2 if np.any(tau > 0) else 1
+
+    if grid.lon.ndim == 1:
+        px = np.array([grid.lon[xi], grid.lon[xi + 1], grid.lon[xi + 1], grid.lon[xi]])
+        py = np.array([grid.lat[yi], grid.lat[yi], grid.lat[yi + 1], grid.lat[yi + 1]])
+    else:
+        px = np.array([grid.lon[yi, xi], grid.lon[yi, xi + 1], grid.lon[yi + 1, xi + 1], grid.lon[yi + 1, xi]])
+        py = np.array([grid.lat[yi, xi], grid.lat[yi, xi + 1], grid.lat[yi + 1, xi + 1], grid.lat[yi + 1, xi]])
+
+    if grid._mesh.is_spherical():
+        px = ((px + 180.0) % 360.0) - 180.0
+        px[1:] = np.where(px[1:] - px[0] > 180, px[1:] - 360, px[1:])
+        px[1:] = np.where(-px[1:] + px[0] > 180, px[1:] + 360, px[1:])
+    c1 = i_u._geodetic_distance(
+        py[0], py[1], px[0], px[1], grid._mesh, np.einsum("ij,ji->i", i_u.phi2D_lin(0.0, xsi), py), grid.deg2m
+    )
+    c2 = i_u._geodetic_distance(
+        py[1], py[2], px[1], px[2], grid._mesh, np.einsum("ij,ji->i", i_u.phi2D_lin(eta, 1.0), py), grid.deg2m
+    )
+    c3 = i_u._geodetic_distance(
+        py[2], py[3], px[2], px[3], grid._mesh, np.einsum("ij,ji->i", i_u.phi2D_lin(1.0, xsi), py), grid.deg2m
+    )
+    c4 = i_u._geodetic_distance(
+        py[3], py[0], px[3], px[0], grid._mesh, np.einsum("ij,ji->i", i_u.phi2D_lin(eta, 0.0), py), grid.deg2m
+    )
+
+    npart = len(xsi)
+    t_levels = (ti,) if lenT == 1 else (ti, np.clip(ti + 1, 0, tdim - 1))
+
+    def _compute_corner_data(data, y_levels, x_levels, z_levels=None) -> np.ndarray:
+        """Gather the two bracketing face values and reduce over time if needed.
+
+        Exactly one of the Z, Y and X axes contributes the two corners. The
+        other two contribute a single level each.
+        """
+        levels = {
+            "T": t_levels,
+            "Z": z_levels if z_levels is not None else (zi,),
+            "Y": y_levels,
+            "X": x_levels,
+        }
+        axis_dim = grid.get_axis_dim_mapping(data.dims)
+        corner_data = _gather_corners(data, axis_dim, levels, npart).reshape(lenT, 2, npart)
+
+        if lenT == 2:
+            tau_full = tau[np.newaxis, :]
+            corner_data = corner_data[0, :] * (1 - tau_full) + corner_data[1, :] * tau_full
+        else:
+            corner_data = corner_data[0, :]
+        return corner_data
+
+    # Compute U velocity: the two corners are the X faces
+    yi_o = np.clip(yi + offsets["Y"], 0, ydim - 1)
+    xi_1 = np.clip(xi + 1, 0, xdim - 1)
+    corner_data = _compute_corner_data(U, y_levels=(yi_o,), x_levels=(xi, xi_1))
+
+    U0 = corner_data[0, :] * c4
+    U1 = corner_data[1, :] * c2
+
+    # Compute V velocity: the two corners are the Y faces
+    yi_1 = np.clip(yi + 1, 0, ydim - 1)
+    xi_o = np.clip(xi + offsets["X"], 0, xdim - 1)
+    corner_data = _compute_corner_data(V, y_levels=(yi, yi_1), x_levels=(xi_o,))
+
+    V0 = corner_data[0, :] * c1
+    V1 = corner_data[1, :] * c3
+
+    if vectorfield.W:
+        W = vectorfield.W.data
+
+        # Compute W velocity: the two corners are the Z faces
+        yi_o = np.clip(yi + offsets["Y"], 0, ydim - 1)
+        xi_o = np.clip(xi + offsets["X"], 0, xdim - 1)
+        zi_0 = np.clip(zi + offsets["Z"], 0, zdim - 1)
+        zi_1 = np.clip(zi + offsets["Z"] + 1, 0, zdim - 1)
+        corner_data = _compute_corner_data(W, y_levels=(yi_o,), x_levels=(xi_o,), z_levels=(zi_0, zi_1))
+        W0 = corner_data[0, :]
+        W1 = corner_data[1, :]
+    else:
+        W0 = np.zeros_like(U0)
+        W1 = np.zeros_like(U1)
+
+    return U0, U1, V0, V1, W0, W1, px, py
+
+
 class CGrid_Velocity(VectorInterpolator):  # noqa:  N801
     """
     Interpolation kernel for velocity fields on a C-Grid.
@@ -208,83 +307,13 @@ class CGrid_Velocity(VectorInterpolator):  # noqa:  N801
         Following Delandmeter and Van Sebille (2019), velocity fields should be interpolated
         only in the direction of the grid cell faces.
         """
-        xi, xsi = grid_positions["X"]["index"], grid_positions["X"]["bcoord"]
-        yi, eta = grid_positions["Y"]["index"], grid_positions["Y"]["bcoord"]
-        zi, zeta = grid_positions["Z"]["index"], grid_positions["Z"]["bcoord"]
-        ti, tau = grid_positions["T"]["index"], grid_positions["T"]["bcoord"]
-
-        U = vectorfield.U.data
-        V = vectorfield.V.data
+        _, xsi = grid_positions["X"]["index"], grid_positions["X"]["bcoord"]
+        _, eta = grid_positions["Y"]["index"], grid_positions["Y"]["bcoord"]
+        _, zeta = grid_positions["Z"]["index"], grid_positions["Z"]["bcoord"]
         grid = vectorfield.grid
-        offsets = _get_offsets_dictionary(grid)
-        tdim, zdim, ydim, xdim = U.shape[0], U.shape[1], U.shape[2], U.shape[3]
-        lenT = 2 if np.any(tau > 0) else 1
 
-        if grid.lon.ndim == 1:
-            px = np.array([grid.lon[xi], grid.lon[xi + 1], grid.lon[xi + 1], grid.lon[xi]])
-            py = np.array([grid.lat[yi], grid.lat[yi], grid.lat[yi + 1], grid.lat[yi + 1]])
-        else:
-            px = np.array([grid.lon[yi, xi], grid.lon[yi, xi + 1], grid.lon[yi + 1, xi + 1], grid.lon[yi + 1, xi]])
-            py = np.array([grid.lat[yi, xi], grid.lat[yi, xi + 1], grid.lat[yi + 1, xi + 1], grid.lat[yi + 1, xi]])
-
-        if grid._mesh.is_spherical():
-            px = ((px + 180.0) % 360.0) - 180.0
-            px[1:] = np.where(px[1:] - px[0] > 180, px[1:] - 360, px[1:])
-            px[1:] = np.where(-px[1:] + px[0] > 180, px[1:] + 360, px[1:])
-        c1 = i_u._geodetic_distance(
-            py[0], py[1], px[0], px[1], grid._mesh, np.einsum("ij,ji->i", i_u.phi2D_lin(0.0, xsi), py), grid.deg2m
-        )
-        c2 = i_u._geodetic_distance(
-            py[1], py[2], px[1], px[2], grid._mesh, np.einsum("ij,ji->i", i_u.phi2D_lin(eta, 1.0), py), grid.deg2m
-        )
-        c3 = i_u._geodetic_distance(
-            py[2], py[3], px[2], px[3], grid._mesh, np.einsum("ij,ji->i", i_u.phi2D_lin(1.0, xsi), py), grid.deg2m
-        )
-        c4 = i_u._geodetic_distance(
-            py[3], py[0], px[3], px[0], grid._mesh, np.einsum("ij,ji->i", i_u.phi2D_lin(eta, 0.0), py), grid.deg2m
-        )
-
-        npart = len(xsi)
-        t_levels = (ti,) if lenT == 1 else (ti, np.clip(ti + 1, 0, tdim - 1))
-
-        def _compute_corner_data(data, y_levels, x_levels, z_levels=None) -> np.ndarray:
-            """Gather the two bracketing face values and reduce over time if needed.
-
-            Exactly one of the Z, Y and X axes contributes the two corners. The
-            other two contribute a single level each.
-            """
-            levels = {
-                "T": t_levels,
-                "Z": z_levels if z_levels is not None else (zi,),
-                "Y": y_levels,
-                "X": x_levels,
-            }
-            axis_dim = grid.get_axis_dim_mapping(data.dims)
-            corner_data = _gather_corners(data, axis_dim, levels, npart).reshape(lenT, 2, npart)
-
-            if lenT == 2:
-                tau_full = tau[np.newaxis, :]
-                corner_data = corner_data[0, :] * (1 - tau_full) + corner_data[1, :] * tau_full
-            else:
-                corner_data = corner_data[0, :]
-            return corner_data
-
-        # Compute U velocity: the two corners are the X faces
-        yi_o = np.clip(yi + offsets["Y"], 0, ydim - 1)
-        xi_1 = np.clip(xi + 1, 0, xdim - 1)
-        corner_data = _compute_corner_data(U, y_levels=(yi_o,), x_levels=(xi, xi_1))
-
-        U0 = corner_data[0, :] * c4
-        U1 = corner_data[1, :] * c2
+        U0, U1, V0, V1, W0, W1, px, py = _get_cgrid_velocities(vectorfield, grid_positions)
         Uvel = (1 - xsi) * U0 + xsi * U1
-
-        # Compute V velocity: the two corners are the Y faces
-        yi_1 = np.clip(yi + 1, 0, ydim - 1)
-        xi_o = np.clip(xi + offsets["X"], 0, xdim - 1)
-        corner_data = _compute_corner_data(V, y_levels=(yi, yi_1), x_levels=(xi_o,))
-
-        V0 = corner_data[0, :] * c1
-        V1 = corner_data[1, :] * c3
         Vvel = (1 - eta) * V0 + eta * V1
 
         if grid._mesh.is_spherical():
@@ -314,16 +343,7 @@ class CGrid_Velocity(VectorInterpolator):  # noqa:  N801
             v /= conversion
 
         if vectorfield.W:
-            W = vectorfield.W.data
-
-            # Compute W velocity: the two corners are the Z faces
-            yi_o = np.clip(yi + offsets["Y"], 0, ydim - 1)
-            xi_o = np.clip(xi + offsets["X"], 0, xdim - 1)
-            zi_0 = np.clip(zi + offsets["Z"], 0, zdim - 1)
-            zi_1 = np.clip(zi + offsets["Z"] + 1, 0, zdim - 1)
-            corner_data = _compute_corner_data(W, y_levels=(yi_o,), x_levels=(xi_o,), z_levels=(zi_0, zi_1))
-
-            w = corner_data[0, :] * (1 - zeta) + corner_data[1, :] * zeta
+            w = W0 * (1 - zeta) + W1 * zeta
             if is_dask_collection(w):
                 w = w.compute()
         else:
