@@ -88,6 +88,8 @@ examples/tutorial_write_in_kernel.ipynb
 examples/explanation_interpolation.md
 examples/tutorial_interpolation.ipynb
 examples/tutorial_peninsula_AvsCgrid.ipynb
+examples/tutorial_stuck_particles.ipynb
+examples/tutorial_unstuck_Agrid.ipynb
 ```
 
 <!-- examples/tutorial_analyticaladvection.ipynb -->
@@ -122,8 +124,6 @@ examples/tutorial_interaction.ipynb
 :titlesonly:
 📖 v4 development <../v4/index>
 🎓 v3 to v4 migration guide <v4-migration>
-examples/tutorial_stuck_particles.ipynb
-examples/tutorial_unstuck_Agrid.ipynb
 examples/tutorial_homepage_animation.md
 ```
 
