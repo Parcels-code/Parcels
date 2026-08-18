@@ -31,7 +31,7 @@ a table showing the latest notebook execution:
 - **Prefer `import parcels` over `from parcels import class` in tutorials and how-to guides** so its obvious in later
   code cells which classes and methods are part of Parcels.
 - [**Avoid too much Repitition In Documentation**](https://www.writethedocs.org/guide/writing/docs-principles/#arid):
-  tutorials and how-to guides notebooks will often have repetition of the general **Parcels** steps, (e.g., imports ) -
+  tutorials and how-to guides notebooks will often have repetition of the general Parcels steps, (e.g., imports ) -
   this is needed so that users have complete examples that they can copy and experiment with.`. We try to limit each page
   in the documentation to a small number of examples.
 - Introduce links and cross-references to maximize discoverability of documentation. This also reduces the necessity for

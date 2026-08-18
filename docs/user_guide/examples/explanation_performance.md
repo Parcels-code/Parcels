@@ -13,7 +13,7 @@ In this tutorial, we will show how to squeeze performance in Parcels by using a 
 Note that the concept of Parcels Backends is different from [Xarray backends](https://docs.xarray.dev/en/latest/api/backends.html).
 
 ```{note}
-You can check which Backend Parcels is using by calling `fieldset.describe()`. The last column shows the Backend that is used for each Field.
+You can check which Backend Parcels is using by calling {py:func}`parcels.FieldSet.describe()`. The last column shows the Backend that is used for each Field.
 ```
 
 ## Option 1: load the full FieldSet into memory
@@ -42,7 +42,7 @@ This will make Parcels use `numpy` functions in the interpolation routines, whic
 
 _Uses Parcels Backend: Zarr_
 
-If your Dataset is too large to fit into memory, but your particles are only distributed over a small part of the domain, it could be efficient to use cached zarr files. This can be done by using the (experimental) `zarr.CacheStore` in combination with the `parcels.open_raw_zarr()` function. This will make Parcels only load the chunks that are needed for the particles, and cache these chunks in memory for future use.
+If your Dataset is too large to fit into memory, but your particles are only distributed over a small part of the domain, it could be efficient to use cached zarr files. This can be done by using the (experimental) `zarr.CacheStore` in combination with the {py:func}`parcels.open_raw_zarr()` function. This will make Parcels only load the chunks that are needed for the particles, and cache these chunks in memory for future use.
 
 ```{code-block} python
 source_store = zarr.storage.LocalStore(filenames)
@@ -71,7 +71,7 @@ _Uses Parcels Backend: WindowedArray_
 
 **Best for: large Datasets (more than a few GB) and particles distributed over the entire domain**
 
-If your Dataset is so large that it doesn't fit into memory, you can use the `fieldset.to_windowed_arrays()` method to make Parcels only hold two timeslices in memory. Note that this only works if the two timeslices still fit into memory.
+If your Dataset is so large that it doesn't fit into memory, you can use the {py:func}`parcels.FieldSet.to_windowed_arrays()` method to make Parcels only hold two timeslices in memory. Note that this only works if the two timeslices still fit into memory.
 
 The two timeslices (the current and the next) are fully loaded into memory, so this method is especially useful if your particles are distributed over the entire domain, as all data will then have to be accessed anyway.
 
