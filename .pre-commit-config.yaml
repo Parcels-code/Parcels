@@ -59,3 +59,10 @@ repos:
             "--option",
             "align_comments=false",
           ]
+  - repo: local
+    hooks:
+      - id: vale-british-english
+        name: Vale British-English tutorial prose
+        entry: pixi run -e docs python tools/lint_british_english.py
+        language: system
+        files: ^docs/user_guide/(examples|getting_started)/tutorial.*\.(md|ipynb)$

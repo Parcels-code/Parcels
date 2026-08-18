@@ -164,7 +164,7 @@ pset.execute(
 
 ## Read output
 
-To start analyzing the trajectories computed by **Parcels**, we can open the `ParticleFile` using the `read_particlefile()` utility, which itself uses `polars`:
+To start analysing the trajectories computed by **Parcels**, we can open the `ParticleFile` using the `read_particlefile()` utility, which itself uses `polars`:
 
 ```{code-cell}
 df = parcels.read_particlefile("output-quickstart.parquet")
@@ -179,7 +179,7 @@ Let's verify that Parcels has computed the advection of the virtual particles!
 ```{code-cell}
 import matplotlib.pyplot as plt
 
-# plot positions and color particles by time
+# plot positions and colour particles by time
 scatter = plt.scatter(df['x'], df['y'], c=df['t'])
 plt.scatter(df['x'][:npart], df['y'][:npart], facecolors="none", edgecolors='r') # starting positions
 plt.scatter(lon, lat, facecolors="none", edgecolors='r') # starting positions

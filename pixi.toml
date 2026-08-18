@@ -130,6 +130,7 @@ sphinx-autobuild = "*"
 sphinxcontrib-mermaid = "*"
 sphinx-design = "*"
 sphinx-autoapi = "*"
+vale = "*"
 
 [feature.docs.tasks]
 docs-only-clean = { cmd = "make clean", cwd = "docs", description = "Cleans the documentation folder of build artifacts." }
@@ -142,6 +143,7 @@ docs-watch = { cmd = "make livehtml", cwd = "docs", description = "Build and aut
   "docs-only-clean",
 ] }
 docs-linkcheck = { cmd = "make linkcheck", cwd = "docs", description = "Verify all links in documentation don't 404." }
+docs-spelling = { cmd = "python tools/lint_british_english.py docs/user_guide/examples/tutorial*.ipynb docs/user_guide/examples/tutorial*.md docs/user_guide/getting_started/tutorial*.ipynb docs/user_guide/getting_started/tutorial*.md", description = "Check tutorial prose uses British English." }
 
 [feature.pre-commit.dependencies]
 pre_commit = "*"
