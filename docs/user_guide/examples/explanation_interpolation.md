@@ -1,10 +1,10 @@
 # 📖 Interpolators Overview and API
 
 Interpolation is an important functionality of Parcels. On this page we will discuss the way it is
-implemented in **Parcels** and how to write a custom interpolator function.
+implemented in Parcels and how to write a custom interpolator function.
 
 When we want to know the state of particles in an environmental field, such as temperature or velocity,
-we _evaluate_ the `parcels.Field` at the particles real position in time and space (`t`, `z`, `y`, `x`).
+we _evaluate_ the {py:obj}`parcels.Field` at the particles real position in time and space (`t`, `z`, `y`, `x`).
 In Parcels we can do this using square brackets:
 
 ```
