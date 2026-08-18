@@ -59,3 +59,9 @@ repos:
             "--option",
             "align_comments=false",
           ]
+  - repo: https://github.com/vale-cli/vale
+    rev: v3.17.1
+    hooks:
+      - id: vale
+        name: Vale British-English tutorial prose
+        files: ^docs/user_guide/(examples|getting_started)/tutorial.*\.md$
