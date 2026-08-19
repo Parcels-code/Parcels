@@ -30,7 +30,7 @@ bibliography: paper.bib
 # Summary
 
 Parcels [@Lange2017; @Delandmeter2019] is a highly customisable Lagrangian simulation framework.
-Version 4 of the software is a major update which overhauls the software internals to natively leverage Xarray CITE dataset objects.
+Version 4 of the software is a major update which overhauls the software internals to natively leverage Xarray [@Delandmeter2019] dataset objects.
 This makes Parcels compatable with many new data formats (e.g., Zarr, Icechunk) and execution modes (e.g., streaming data from cloud buckets or other data providers - such as the [Copernicus Marine Data Store](https://marine.copernicus.eu/)).
 With this update Parcels also adds several new features, including support for unstructured grid datasets (enabling simulations on (combinations of) different grid geometries), support for custom interpolators (surfacing to scientists even more control over the numerics of their simulation), and trajectory output in Parquet format.
 
