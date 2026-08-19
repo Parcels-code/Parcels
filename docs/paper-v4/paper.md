@@ -50,6 +50,10 @@ Running natively on these grid geometries, which can be represented as unstructu
 Finally, some naming conventions and abstractions in the Parcels codebase were previously oriented towards oceanographers.
 These domain specific items have been removed in this version, and our documentation has been adapted so that the applicability of Parcels to other (geo)scientific domains, such as atmospheric or cryospheric particle tracking, is more apparent.
 
+# State of the field
+
+> TODO: A description of how this software compares to other commonly-used packages in the research area. If related tools exist, provide a clear “build vs. contribute” justification explaining your unique scholarly contribution and why existing alternatives are insufficient.
+
 # Software design
 
 When working with output from a single circulation model, version 4 of Parcels assumes data (i.e., the field data and mesh data) is all contained in a single Xarray dataset object.
