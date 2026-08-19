@@ -30,9 +30,9 @@ bibliography: paper.bib
 # Summary
 
 Parcels [@Lange2017; @Delandmeter2019] is a highly customisable Lagrangian simulation framework.
-Version 4 of the software is a major update which overhauls the software internals to natively leverage Xarray CITE dataset objects, and adds support for unstructured grid datasets.
-This makes Parcels compatable with many new data formats (e.g., Zarr, Icechunk) and execution modes (e.g., streaming data from cloud buckets, or data providers such as the [Copernicus Marine Data Store](https://marine.copernicus.eu/)), while also enabling simulations on (combinations of) different grid geometries.
-With this update Parcels also adds support for custom interpolators, which surfaces to scientists even more control over the numerics of their simulation.
+Version 4 of the software is a major update which overhauls the software internals to natively leverage Xarray CITE dataset objects.
+This makes Parcels compatable with many new data formats (e.g., Zarr, Icechunk) and execution modes (e.g., streaming data from cloud buckets or other data providers - such as the [Copernicus Marine Data Store](https://marine.copernicus.eu/)).
+With this update Parcels also adds several new features, including support for unstructured grid datasets (enabling simulations on (combinations of) different grid geometries), support for custom interpolators (surfacing to scientists even more control over the numerics of their simulation), and trajectory output in Parquet format.
 
 # Statement of need
 
@@ -64,6 +64,8 @@ A strength of earlier Parcels versions has been the ability for users to write "
 This added flexibility has enabled users to model a wide range of physical phenomena.
 Parcels version 4 adds custom interpolators, allowing users to also have control on how field data is interpolated at particle positions.
 Users can use a range of pre-packaged interpolators, or write their own, and set them on a field-by-field basis overriding the default linear interpolators.
+
+Parcels version 4 also changes the output format from Zarr to Parquet, aligning better with that tabular nature of particle trajectory output.
 
 # Example use-case
 
