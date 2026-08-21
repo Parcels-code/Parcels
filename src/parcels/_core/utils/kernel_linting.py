@@ -11,7 +11,7 @@ from typing import TypeVar
 
 from parcels._core.warnings import KernelWarning
 
-_MIGRATION_GUIDE: str = "https://docs.oceanparcels.org/en/latest/user_guide/v4-migration.html"
+_V4_MIGRATION_GUIDE: str = "https://docs.oceanparcels.org/en/latest/user_guide/v4-migration.html"
 
 _DEPRECATED_COORD_ATTRS: dict[str, str] = {
     "lon": "x",
@@ -30,7 +30,7 @@ _DEPRECATED_DELTA_NAMES: dict[str, str] = {
 
 _PARTICLE_NAMES: tuple[str, ...] = ("particle", "particles")
 
-_F = TypeVar("_F", bound=types.FunctionType)
+_F = TypeVar("_F", bound=Callable[..., object])
 
 
 class KernelValidationError(Exception):
@@ -84,7 +84,7 @@ class _KernelValidator(ast.NodeVisitor):
                     message=(
                         f"Kernel signature must be `def {self.func_name}(particles, fieldset)`, "
                         f"but got `def {self.func_name}({', '.join(param_names)})`. "
-                        f"See {_MIGRATION_GUIDE} for more info."
+                        f"See {_V4_MIGRATION_GUIDE} for more info."
                     ),
                 )
             )
@@ -103,7 +103,7 @@ class _KernelValidator(ast.NodeVisitor):
                     message=(
                         f"`{callee.value.id}.delete()` is no longer valid syntax in Parcels kernels. "
                         f"Use `particle.state = StatusCode.Delete` instead. "
-                        f"See {_MIGRATION_GUIDE} for more info."
+                        f"See {_V4_MIGRATION_GUIDE} for more info."
                     ),
                     lineno=node.lineno,
                 )
@@ -124,7 +124,7 @@ class _KernelValidator(ast.NodeVisitor):
                         message=(
                             f"`{name}.{attr}` is deprecated. "
                             f"Use `particles.{replacement}` instead. "
-                            f"See {_MIGRATION_GUIDE} for more info."
+                            f"See {_V4_MIGRATION_GUIDE} for more info."
                         ),
                         lineno=node.lineno,
                     )
@@ -157,7 +157,7 @@ class _KernelValidator(ast.NodeVisitor):
                     message=(
                         f"`{node.id}` is no longer valid in Parcels v4. "
                         f"Use `{replacement}` instead. "
-                        f"See {_MIGRATION_GUIDE} for more info."
+                        f"See {_V4_MIGRATION_GUIDE} for more info."
                     ),
                     lineno=node.lineno,
                 )
@@ -180,7 +180,7 @@ class _KernelValidator(ast.NodeVisitor):
                             f"Don't change the location of a particle directly in a Kernel. "
                             f"Use `particles.dx`, `particles.dy`, `particles.dz` instead of "
                             f"assigning to `{target.value.id}.{target.attr}`. "
-                            f"See {_MIGRATION_GUIDE} for more info."
+                            f"See {_V4_MIGRATION_GUIDE} for more info."
                         ),
                         lineno=lineno,
                     )
