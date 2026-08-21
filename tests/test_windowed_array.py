@@ -34,7 +34,7 @@ def test_windowed_isel_matches_dask_loads_once_and_evicts():
         got = win.isel(sel).data
         ref = lazy.isel(sel).data.compute()
         worst = max(worst, float(np.abs(got - ref).max()))
-        max_cache = max(max_cache, len(win._cache))
+        max_cache = max(max_cache, win._cache.sizes["time"])
 
     assert worst == 0.0  # byte-identical to dask
     assert win.loads == ntime  # each time level read exactly once
@@ -65,7 +65,7 @@ def test_windowed_isel_backward_clock_loads_once_and_evicts():
         got = win.isel(sel).data
         ref = lazy.isel(sel).data.compute()
         worst = max(worst, float(np.abs(got - ref).max()))
-        max_cache = max(max_cache, len(win._cache))
+        max_cache = max(max_cache, win._cache.sizes["time"])
 
     assert worst == 0.0  # byte-identical to dask
     assert win.loads == ntime  # each time level read exactly once, going backward
@@ -139,14 +139,14 @@ def test_windowed_isel_empty_selection():
     assert got.shape == ref.shape == (0,)
     assert got.dtype == base.dtype
     assert win.loads == 0  # nothing read
-    assert win._cache == {}  # nothing cached, nothing evicted
+    assert win._cache.sizes["time"] == 0  # nothing cached, nothing evicted
 
     # a warm cache must survive an interleaved empty call (no spurious eviction)
     full = xr.DataArray(np.zeros(5, dtype=int), dims="p")
     win.isel(dict(time=full, depth=full, lat=full, lon=full))
-    assert sorted(win._cache) == [0]
+    assert list(win._cache["time"].values) == [0]
     win.isel(sel)
-    assert sorted(win._cache) == [0]
+    assert list(win._cache["time"].values) == [0]
 
 
 def test_maybe_windowed_passthrough_for_non_time_leading():
