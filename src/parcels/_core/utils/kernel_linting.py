@@ -174,7 +174,7 @@ class _KernelValidator(ast.NodeVisitor):
                 and isinstance(target.value, ast.Name)
                 and target.value.id in _PARTICLE_NAMES
             ):
-                self.result.errors.append(
+                self.result.warnings.append(
                     _Violation(
                         message=(
                             f"Don't change the location of a particle directly in a Kernel. "
@@ -214,12 +214,12 @@ def validate_kernel(func: _F) -> _F:
     Errors (raises ``KernelValidationError``):
     - Kernel signature is not ``def ...(particles, fieldset)``
     - ``particle.delete()`` or ``particles.delete()`` calls
-    - Direct assignment to particle location attributes (x/y/z/lon/lat/depth)
 
     Warnings
     --------
     - References to deprecated ``particle.lon``, ``.lat``, ``.depth`` (use ``.x``, ``.y``, ``.z``)
     - References to deprecated ``particle_dlon``, ``particle_dlat``, ``particle_ddepth``
+    - Direct assignment to particle location attributes (x/y/z/lon/lat/depth)
     - Sampling ``particle.ei`` (ordering concern)
     """
     result: _ValidationResult = _validate_kernel_ast(func)
