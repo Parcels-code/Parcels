@@ -41,6 +41,7 @@ from parcels._core.warnings import (
     ParticleSetWarning,
     FieldEvalWarning,
 )
+from parcels._core.utils.kernel_linting import validate_kernel, KernelValidationError
 from parcels._logger import logger
 from . import convert
 from . import kernels
@@ -81,6 +82,9 @@ __all__ = [  # noqa: RUF022
     "convert",
     # kernels
     "kernels",
+    # Kernel validation
+    "validate_kernel",
+    "KernelValidationError",
 ]
 
 _stdlib_warnings.warn(
