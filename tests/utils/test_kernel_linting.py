@@ -1,6 +1,6 @@
 import pytest
 
-from parcels._core.utils.kernel import KernelValidationError, validate_kernel
+from parcels._core.utils.kernel_linting import KernelValidationError, validate_kernel
 from parcels._core.warnings import KernelWarning
 
 
@@ -199,26 +199,12 @@ class TestDeprecatedDeltaWarnings:
 
 
 class TestIndexSamplingWarnings:
-    def test_xi_warns(self):
-        with pytest.warns(KernelWarning, match=r"particles\.xi.*before advection"):
+    def test_ei_warns(self):
+        with pytest.warns(KernelWarning, match=r"particles\.ei.*before advection"):
 
             @validate_kernel
             def my_kernel(particles, fieldset):
-                val = particles.xi  # noqa: F841
-
-    def test_yi_warns(self):
-        with pytest.warns(KernelWarning, match=r"particles\.yi.*before advection"):
-
-            @validate_kernel
-            def my_kernel(particles, fieldset):
-                val = particles.yi  # noqa: F841
-
-    def test_zi_warns(self):
-        with pytest.warns(KernelWarning, match=r"particles\.zi.*before advection"):
-
-            @validate_kernel
-            def my_kernel(particles, fieldset):
-                val = particles.zi  # noqa: F841
+                val = particles.ei  # noqa: F841
 
 
 # === MIXED: errors + warnings together ===

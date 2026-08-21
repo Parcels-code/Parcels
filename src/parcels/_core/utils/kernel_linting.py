@@ -17,6 +17,9 @@ _DEPRECATED_COORD_ATTRS: dict[str, str] = {
     "lon": "x",
     "lat": "y",
     "depth": "z",
+    "xi": "ei",
+    "yi": "ei",
+    "zi": "ei",
 }
 
 _DEPRECATED_DELTA_NAMES: dict[str, str] = {
@@ -24,8 +27,6 @@ _DEPRECATED_DELTA_NAMES: dict[str, str] = {
     "particle_dlat": "particles.dy",
     "particle_ddepth": "particles.dz",
 }
-
-_INDEX_ATTRS: set[str] = {"xi", "yi", "zi"}
 
 _PARTICLE_NAMES: tuple[str, ...] = ("particle", "particles")
 
@@ -130,11 +131,11 @@ class _KernelValidator(ast.NodeVisitor):
                 )
 
             # Index attribute sampling (warning)
-            if attr in _INDEX_ATTRS:
+            if attr == "ei":
                 self.result.warnings.append(
                     _Violation(
                         message=(
-                            f"Be careful when sampling `{name}.{attr}`, as this is updated "
+                            f"Be careful when sampling `{name}.ei`, as this is updated "
                             f"in the kernel loop. Best to place the sampling statement "
                             f"before advection."
                         ),
@@ -219,7 +220,7 @@ def validate_kernel(func: _F) -> _F:
     --------
     - References to deprecated ``particle.lon``, ``.lat``, ``.depth`` (use ``.x``, ``.y``, ``.z``)
     - References to deprecated ``particle_dlon``, ``particle_dlat``, ``particle_ddepth``
-    - Sampling ``particle.xi``/``.yi``/``.zi`` (ordering concern)
+    - Sampling ``particle.ei`` (ordering concern)
     """
     result: _ValidationResult = _validate_kernel_ast(func)
     report: str = result.get_report(func)
