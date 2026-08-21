@@ -123,7 +123,7 @@ parcels = { path = "." }
 numpydoc = "*"
 myst-nb = "*"
 ipython = "*"
-sphinx = "*"
+sphinx = ">=9.0.0"
 pandoc = "*"
 pydata-sphinx-theme = "*"
 sphinx-autobuild = "*"
@@ -160,6 +160,7 @@ mypy = "*"
 lxml = "*" # in CI
 types-tqdm = "*"
 pandas-stubs = "*"
+pyarrow-stubs = "*"
 
 [feature.typing.tasks]
 typing = { cmd = "mypy src/parcels --install-types", description = "Run static type checking with mypy." }

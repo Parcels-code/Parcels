@@ -90,7 +90,7 @@ class Field:
         # TODO PR: Enable isinstance check once ModelData is moved to abc.ModelData
         # if not isinstance(model, "ModelData"):
         #     raise ValueError(
-        #         f"Expected `model` to be a parcels ModelData object. Got {type(model)}."
+        #         f"Expected `model` to be a Parcels ModelData object. Got {type(model)}."
         #     )
 
         _assert_str_and_python_varname(name)
@@ -393,6 +393,9 @@ def _assert_same_time_interval(fields: Sequence[Field]) -> None:
 
 def _get_positions(field: Field, t, z, y, x, particles, _ei) -> tuple[dict, dict]:
     """Initialize and populate particle_positions and grid_positions dictionaries"""
+    if np.any(np.isnan(t)):
+        nan_indices = np.where(np.isnan(t))[0]
+        raise ValueError(f"Time values for particles with indices {nan_indices} cannot be NaN.")
     particle_positions = {"t": t, "z": z, "y": y, "x": x}
     grid_positions = {}
     grid_positions.update(_search_time_index(field, t))

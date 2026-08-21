@@ -142,9 +142,7 @@ class Kernel:
                     )
                     self.fieldset.add_context("RK45_tol", 10)
                 if self.fieldset.U.grid._mesh.is_spherical():
-                    self.fieldset.RK45_tol /= (
-                        self.fieldset.U.grid.deg2m
-                    )  # TODO does not account for zonal variation in meter -> degree conversion
+                    self.fieldset.context["RK45_tol"] = self.fieldset.RK45_tol / self.fieldset.U.grid.deg2m
                 if not hasattr(self.fieldset, "RK45_min_dt"):
                     warnings.warn(
                         "Setting RK45 minimum timestep to 1 s. Use fieldset.add_context('RK45_min_dt', [timestep]) to change.",

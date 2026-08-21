@@ -1,5 +1,5 @@
 """autoSphinx configuration file for Parcels documentation."""
-# parcels documentation build configuration file, created by
+# Parcels documentation build configuration file, created by
 # sphinx-quickstart on Tue Oct 20 09:58:20 2015.
 #
 # This file is execfile()d with the current directory set to its
@@ -522,6 +522,12 @@ nb_execution_mode = "cache"
 nb_execution_excludepatterns = ["jupyter_execute", ".jupyter_cache"]
 nb_execution_raise_on_error = True
 nb_execution_timeout = 75
+suppress_warnings = ["mystnb.unknown_mime_type"]
+nitpicky = True
+nitpick_ignore_regex = [
+    (r"py:class", r".*"),
+    (r"py:mod", r".*"),
+]
 
 # -- Options for autoapi --------------------------------------------------
 autoapi_dirs = ["../src/parcels"]

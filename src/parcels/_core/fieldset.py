@@ -139,29 +139,6 @@ class FieldSet:
 
         return overlap
 
-    def add_field(self, field: Field, name: str | None = None):
-        """Add a :class:`parcels.field.Field` object to the FieldSet.
-
-        Parameters
-        ----------
-        field : parcels.field.Field
-            Field object to be added
-        name : str
-            Name of the :class:`parcels.field.Field` object to be added. Defaults
-            to name in Field object.
-        """
-        if not isinstance(field, (Field, VectorField)):
-            raise ValueError(f"Expected `field` to be a Field or VectorField object. Got {type(field)}")
-        assert_compatible_calendars((*self.fields.values(), field))
-
-        name = field.name if name is None else name
-
-        if name in self.fields:
-            raise ValueError(f"FieldSet already has a Field with name '{name}'")
-
-        self.fields[name] = field
-        _warn_if_fields_use_different_meshes(self.fields.values())
-
     def to_windowed_arrays(self, *, max_levels: int | None = None):
         """Wrap dask-backed field data in rolling time-window caches.
 
@@ -286,7 +263,7 @@ class FieldSet:
         -----
         See https://ugrid-conventions.github.io/ugrid-conventions/ for more information on the UGRID conventions.
         """
-        model = UnstructuredModelData.from_ugrid_conventions(ds, mesh, vector_fields)
+        model = UnstructuredModelData.from_ugrid_conventions(ds, mesh=mesh, vector_fields=vector_fields)
         return cls([model])
 
     @classmethod
@@ -331,7 +308,7 @@ class FieldSet:
         See https://sgrid.github.io/sgrid/ for more information on the SGRID conventions.
         """
         model = StructuredModelData.from_sgrid_conventions(
-            ds, mesh, vector_fields, skip_field_data_validation=skip_field_data_validation
+            ds, mesh=mesh, vector_fields=vector_fields, skip_field_data_validation=skip_field_data_validation
         )
         return cls([model])
 
@@ -400,7 +377,7 @@ def _warn_if_fields_use_different_meshes(fields: Iterable[Field | VectorField]):
         )
 
 
-class CalendarError(Exception):  # TODO: Move to a parcels errors module
+class CalendarError(Exception):  # TODO: Move to a Parcels errors module
     """Exception raised when the calendar of a field is not compatible with the rest of the Fields. The user should ensure that they only add fields to a FieldSet that have compatible CFtime calendars."""
 
 

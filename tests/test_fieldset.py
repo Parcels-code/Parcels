@@ -9,13 +9,13 @@ import pytest
 import xarray as xr
 
 import parcels.tutorial
+import tests
 from parcels import ParticleFile, ParticleSet, convert, open_raw_zarr
 from parcels._core.fieldset import FieldSet, _datetime_to_msg
 from parcels._core.model import _default_vector_field_components
 from parcels._datasets.structured.generic import datasets as datasets_structured
 from parcels._datasets.structured.generic import datasets_sgrid
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
-from tests import utils
 
 ds = datasets_structured["ds_2d_left"]
 
@@ -109,7 +109,7 @@ def test_fieldset_from_structured_generic_datasets(ds):
 
     assert len(fieldset.fields) == len(ds.data_vars) - 1  # `-1` for the SGRID metadata
     for field in fieldset.fields.values():
-        utils.assert_valid_field_data(field.data, field.grid)
+        tests.utils.assert_valid_field_data(field.data, field.grid)
 
     assert len(fieldset.gridset) == 1
 
@@ -303,11 +303,6 @@ def test_fieldset_grid_deduplication():
     ...
 
 
-def test_fieldset_add_field_after_pset():
-    # ? Should it be allowed to add fields (normal or vector) after a ParticleSet has been initialized?
-    ...
-
-
 def test_fieldset_from_icon():
     ds = convert.icon_to_ugrid(datasets_unstructured["icon_square_delaunay_uniform_z_coordinate"])
     fieldset = FieldSet.from_ugrid_conventions(ds)
@@ -415,6 +410,7 @@ def test_fieldset_add_error_on_duplicate_context_values():
         fset1 + fset2
 
 
+@tests.mark.zarr_filterwarning_consolidated_metadata
 @pytest.mark.parametrize("skip", [True, False])
 def test_zarr_warning_on_fieldset_creation(skip, tmp_path):
     """Test that creating a FieldSet from a Zarr-backed dataset raises a warning about potential backend changes."""
@@ -475,6 +471,7 @@ time interval: (np.datetime64('2000-01-01T00:00:00.000000000'), np.datetime64('2
     assert actual == expected
 
 
+@tests.mark.zarr_filterwarning_consolidated_metadata
 def test_fieldset_describe_backends(tmp_path):
     ds_u = parcels.tutorial.open_dataset("NemoNorthSeaORCA025-N006_data/U")
     ds_v = parcels.tutorial.open_dataset("NemoNorthSeaORCA025-N006_data/V")

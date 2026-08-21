@@ -211,3 +211,22 @@ def test_pset_default_z_closest_to_zero(depths):
     pset = ParticleSet(fieldset, x=[0], y=[0])
     expected_z = depths[np.argmin(np.abs(depths))]
     assert np.isclose(pset.z[0], expected_z)
+
+
+@pytest.mark.parametrize("npart", [1, 10])
+@pytest.mark.parametrize("witht", [True, False])
+def test_sampling_pset(fieldset, npart, witht):
+    # Test that inital value of a field gets sampled
+    fieldset.U.data[:] = 2.0
+
+    x = np.zeros(npart)
+    y = np.zeros(npart)
+    if witht:
+        t = npart * [np.timedelta64(0, "s")]
+        pset = ParticleSet(fieldset, x=x, y=y, t=t)
+        pset.sample, _ = fieldset.UV[pset]
+        np.testing.assert_allclose(pset.sample, 2.0, rtol=1e-12)
+    else:
+        with pytest.raises(ValueError, match="Time values for particles with indices .* cannot be NaN."):
+            pset = ParticleSet(fieldset, x=x, y=y)
+            pset.sample, _ = fieldset.UV[pset]

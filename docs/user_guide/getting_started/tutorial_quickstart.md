@@ -6,14 +6,14 @@ kernelspec:
 
 # 🎓 Quickstart tutorial
 
-Welcome to the **Parcels** quickstart tutorial, in which we will go through all the necessary steps to run a simulation.
+Welcome to the Parcels quickstart tutorial, in which we will go through all the necessary steps to run a simulation.
 The code in this notebook can be used as a starting point to run Parcels in your own environment. Along the way we will
 familiarize ourselves with some specific classes and methods. If you are ever confused about one of these and want to
 read more, we have a [concepts overview](./explanation_concepts.md) discussing them in more detail. Let's dive in!
 
 ## Imports
 
-Parcels depends on `xarray`, expecting inputs in the form of [`xarray.Dataset`](https://docs.xarray.dev/en/stable/generated/xarray.Dataset.html). Output files can be read with `polars`.
+Parcels depends on `xarray`, expecting inputs in the form of [`xarray.Dataset`](https://docs.xarray.dev/en/stable/generated/xarray.Dataset.html). Output files can be read with [Polars](https://pola.rs).
 
 ```{code-cell}
 import numpy as np
@@ -40,7 +40,7 @@ As we can see, the reanalysis dataset contains eastward velocity `uo`, northward
 These hydrodynamic fields need to be stored in a {py:obj}`parcels.FieldSet` object. Parcels provides tooling to parse many types
 of models or observations into such a `parcels.FieldSet` object. This is done in a two-step approach.
 
-First, we convert the dataset into an SGRID-compliant dataset, for example by using a version of `parcels.convert.<MODEL>_to_sgrid()`. Then, we create the `parcels.FieldSet` from the SGRID-compliant dataset using `parcels.FieldSet.from_sgrid_conventions()`.
+First, we convert the dataset into an SGRID-compliant dataset, for example by using a version of `parcels.convert.<MODEL>_to_sgrid()`. Then, we create the {py:obj}`parcels.FieldSet` from the SGRID-compliant dataset using {py:func}`parcels.FieldSet.from_sgrid_conventions()`.
 
 Below, we use a combination of {py:func}`parcels.convert.copernicusmarine_to_sgrid()` and {py:func}`parcels.FieldSet.from_sgrid_conventions()`, providing the names of the velocity fields in the dataset in the dictionary `fields`:
 
@@ -50,16 +50,14 @@ ds_fset = parcels.convert.copernicusmarine_to_sgrid(fields=fields)
 fieldset = parcels.FieldSet.from_sgrid_conventions(ds_fset)
 ```
 
-Now, in order to improve performance, we can convert the `parcels.FieldSet` to windowed arrays. This is especially useful for large datasets with many timeslices, as it allows Parcels to load only the necessary timeslices into memory during the simulation.
-
-#TODO add link to performance explanation notebook here.
+Now, in order to improve performance, we can convert the {py:obj}`parcels.FieldSet` to windowed arrays. This is especially useful for large datasets with many timeslices, as it allows Parcels to load only the necessary timeslices into memory during the simulation. For more information about squeezing performance out of Parcels, see the [performance tutorial](../examples/explanation_performance.md).
 
 ```{code-cell}
 # Convert the FieldSet to windowed arrays for better performance
 fieldset = fieldset.to_windowed_arrays()
 ```
 
-You can inspect the `parcels.FieldSet` object with the `describe` method in order to see which `parcels.Field`s are included, and which grid and interpolation method is used for each field. This also gives information on the type of mesh and the time interval of the `parcels.FieldSet`:
+You can inspect the {py:obj}`parcels.FieldSet` object with the `describe` method in order to see which {py:obj}`parcels.Field`s are included, and which grid and interpolation method is used for each field. This also gives information on the type of mesh and the time interval of the {py:obj}`parcels.FieldSet`:
 
 ```{code-cell}
 fieldset.describe()
@@ -74,11 +72,11 @@ velocity = ds_fields.isel(time=0, depth=0).plot.quiver(x="longitude", y="latitud
 
 ## Input virtual particles: `ParticleSet`
 
-Now that we have created a `parcels.FieldSet` object from the hydrodynamic data, we need to provide our second input:
+Now that we have created a {py:obj}`parcels.FieldSet` object from the hydrodynamic data, we need to provide our second input:
 the virtual particles for which we will calculate the trajectories.
 
-We need to create a {py:obj}`parcels.ParticleSet` object with the particles' initial time and position. The `parcels.ParticleSet`
-object also needs to know about the `FieldSet` in which the particles "live". Finally, we need to specify the type of
+We need to create a {py:obj}`parcels.ParticleSet` object with the particles' initial time and position. The {py:obj}`parcels.ParticleSet`
+object also needs to know about the {py:obj}`parcels.FieldSet` in which the particles "live". Finally, we need to specify the type of
 {py:obj}`parcels.ParticleClass` we want to use. The default particles have `t`, `z`, `y`, and `x`, but you can easily add
 other {py:obj}`parcels.Variable`s such as size, temperature, or age to create your own particles to mimic plastic or an [ARGO float](../examples/tutorial_Argofloats.ipynb).
 
@@ -96,13 +94,6 @@ pset = parcels.ParticleSet(
 )
 ```
 
-Again, you can inspect the `pset` by printing it:
-
-```{code-cell}
-:tags: [hide-output]
-print(pset)
-```
-
 And you can plot the particles on top of the temperature and velocity field:
 
 ```{code-cell}
@@ -112,7 +103,7 @@ ax = temperature.axes
 ax.scatter(lon, lat, s=40, c='w', edgecolors='r');
 ```
 
-If you also want to sample the initial value of a field, you can do so by calling the field with the `ParticleSet` as an argument. For example, in the code above you would add one line (assuming that the ParticleSet has a variable `temperature`) to sample the initial temperature values, before calling `pset.execute(...)`.
+If you also want to sample the initial value of a field, you can do so by calling the field with the {py:obj}`parcels.ParticleSet` as an argument. For example, in the code above you would add one line (assuming that the ParticleSet has a variable `temperature`) to sample the initial temperature values, before calling `pset.execute(...)`.
 
 ```python
 pset.temperature = fieldset.thetao[pset]
@@ -123,7 +114,7 @@ See the [sampling tutorial](../examples/tutorial_sampling.ipynb#sampling-initial
 ## Compute: `Kernel`
 
 After setting up the input data and particle start locations and times, we need to specify what calculations to do with
-the particles. These calculations, or numerical integrations, will be performed by what we call a {py:obj}`parcels.Kernel`, operating on
+the particles. These calculations, or numerical integrations, will be performed by what we call a `kernel` function, operating on
 all particles in the `ParticleSet`. The most common calculation is the advection of particles through the velocity field.
 Parcels comes with a number of common {py:obj}`parcels.kernels`, from which we will use the Runge-Kutta advection kernel {py:obj}`parcels.kernels.AdvectionRK2`:
 
@@ -166,7 +157,7 @@ pset.execute(
 
 ## Read output
 
-To start analyzing the trajectories computed by **Parcels**, we can open the `ParticleFile` using the `read_particlefile()` utility, which itself uses `polars`:
+To start analyzing the trajectories computed by Parcels, we can open the {py:obj}`parcels.ParticleFile` using the {py:func}`parcels.read_particlefile()` utility, which itself uses `polars`:
 
 ```{code-cell}
 df = parcels.read_particlefile("output-quickstart.parquet")
@@ -180,15 +171,20 @@ Let's verify that Parcels has computed the advection of the virtual particles!
 
 ```{code-cell}
 import matplotlib.pyplot as plt
+import matplotlib.dates as mdates
+
+# convert time to matplotlib date format for plotting
+time_values = mdates.date2num(df["t"].to_list())
 
 # plot positions and color particles by time
-scatter = plt.scatter(df['x'], df['y'], c=df['t'])
+scatter = plt.scatter(df['x'], df['y'], c=time_values)
 plt.scatter(df['x'][:npart], df['y'][:npart], facecolors="none", edgecolors='r') # starting positions
 plt.scatter(lon, lat, facecolors="none", edgecolors='r') # starting positions
 plt.xlim(31,33)
 plt.ylabel("Latitude [deg N]")
 plt.ylim(-33,-30)
-plt.colorbar(scatter, label="Observation number")
+colorbar = plt.colorbar(scatter, label="Time")
+colorbar.ax.yaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d %H:%M"))
 plt.show()
 ```
 
@@ -225,22 +221,26 @@ When we check the output, we can see that the particles have returned to their o
 ```{code-cell}
 df_back = parcels.read_particlefile("output-backwards.parquet")
 
-scatter = plt.scatter(df_back['x'], df_back['y'], c=df_back['t'])
+# convert time to matplotlib date format for plotting
+time_values = mdates.date2num(df_back["t"].to_list())
+
+scatter = plt.scatter(df_back['x'], df_back['y'], c=time_values)
 particles_at_max_time = df_back.filter(pl.col("t") == df_back["t"].max())
 plt.scatter(particles_at_max_time['x'], particles_at_max_time['y'], facecolors="none", edgecolors='r') # starting positions
 plt.xlabel("Longitude [deg E]")
 plt.xlim(31,33)
 plt.ylabel("Latitude [deg N]")
 plt.ylim(-33,-30)
-plt.colorbar(scatter, label="Observation number")
+colorbar = plt.colorbar(scatter, label="Time")
+colorbar.ax.yaxis.set_major_formatter(mdates.DateFormatter("%Y-%m-%d %H:%M"))
 plt.show()
 ```
 
-Using Euler forward advection, the final positions are equal to the original positions with an accuracy of 2 decimals:
+Using RK2 advection, the final positions are equal to the original positions with an accuracy of 5 decimals:
 
 ```{code-cell}
 # testing that final location == original location
 particles_at_min_time = df_back.filter(pl.col("t") == df_back["t"].min())
-np.testing.assert_almost_equal(particles_at_min_time["y"], lat, 2)
-np.testing.assert_almost_equal(particles_at_min_time['x'], lon, 2)
+np.testing.assert_almost_equal(particles_at_min_time["y"], lat, decimal=5)
+np.testing.assert_almost_equal(particles_at_min_time['x'], lon, decimal=5)
 ```

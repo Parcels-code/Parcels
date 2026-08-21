@@ -25,9 +25,9 @@ You can find your current environment with `conda env list` and identifying the 
 ```
 
 ```bash
+conda config --add channels conda-forge
 conda create -n parcelsv4-env python
 conda activate parcelsv4-env
-conda config --add channels conda-forge
 conda install -c https://prefix.dev/parcels parcels
 conda install trajan cartopy jupyter
 ```

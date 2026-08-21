@@ -203,6 +203,7 @@ class StructuredModelData(ModelData):
     def from_sgrid_conventions(
         cls,
         ds: xr.Dataset,
+        *,
         mesh: ptyping.TMesh | None,
         vector_fields: ptyping.VectorFields | NotSetType,
         skip_field_data_validation: bool = False,
@@ -323,7 +324,7 @@ class UnstructuredModelData(ModelData):
             raise ValueError(f"Expected `data` to be an uxarray.UxDataset . Got {type(data)}")
 
         if not isinstance(grid, UxGrid):
-            raise ValueError(f"Expected `grid` to be a parcels UxGrid object. Got {type(grid)}.")
+            raise ValueError(f"Expected `grid` to be a Parcels UxGrid object. Got {type(grid)}.")
 
         self.data = data
         self.grid = grid
@@ -358,7 +359,7 @@ class UnstructuredModelData(ModelData):
 
     @classmethod
     def from_ugrid_conventions(
-        cls, ds: ux.UxDataset, mesh: ptyping.TMesh, vector_fields: ptyping.VectorFields | NotSetType
+        cls, ds: ux.UxDataset, *, mesh: ptyping.TMesh, vector_fields: ptyping.VectorFields | NotSetType
     ):
         ds_dims = list(ds.dims)
         if not all(dim in ds_dims for dim in ["time", "zf", "zc"]):

@@ -1,6 +1,6 @@
 # User guide
 
-The core of our user guide is a series of Jupyter notebooks which document how to implement specific Lagrangian simulations with the flexibility of **Parcels**.
+The core of our user guide is a series of Jupyter notebooks which document how to implement specific Lagrangian simulations with the flexibility of Parcels.
 
 Before diving into these advanced _how-to_ guides (🖥️), we suggest users get started by reading the explanation (📖) of the core concepts and trying the tutorials (🎓).
 
@@ -16,7 +16,7 @@ getting_started/installation.md
 ```
 
 ```{note}
-If you have code that uses Parcels v3, you can migrate to Parcels v4 using [this migration guide](v4-migration.md)
+If you have code that uses Parcels v3, you can migrate to Parcels v4 using [🎓 the v3 to v4 migration guide](v4-migration.md)
 ```
 
 ## Getting started
@@ -88,6 +88,8 @@ examples/tutorial_write_in_kernel.ipynb
 examples/explanation_interpolation.md
 examples/tutorial_interpolation.ipynb
 examples/tutorial_peninsula_AvsCgrid.ipynb
+examples/tutorial_stuck_particles.ipynb
+examples/tutorial_unstuck_Agrid.ipynb
 ```
 
 <!-- examples/tutorial_analyticaladvection.ipynb -->
@@ -98,7 +100,7 @@ examples/tutorial_peninsula_AvsCgrid.ipynb
 :caption: Run a simulation
 :name: run-simulation
 :titlesonly:
-
+examples/explanation_performance.md
 examples/tutorial_dt_integrators.ipynb
 ```
 
@@ -114,12 +116,15 @@ examples/tutorial_diffusion.ipynb
 examples/tutorial_interaction.ipynb
 ```
 
+## Other
+
 ```{toctree}
-:hidden:
 :caption: Other
-v3 to v4 migration guide <v4-migration>
-examples/tutorial_stuck_particles.ipynb
-examples/tutorial_unstuck_Agrid.ipynb
+:name: other
+:titlesonly:
+📖 v4 development <../v4/index>
+🎓 v3 to v4 migration guide <v4-migration>
 examples/tutorial_homepage_animation.md
-<!-- examples/documentation_geospatial.ipynb -->
 ```
+
+<!-- examples/documentation_geospatial.ipynb -->
