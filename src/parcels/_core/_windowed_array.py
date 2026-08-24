@@ -118,7 +118,6 @@ class WindowedArray:
                 dim=self._tdim,
             )
 
-
     # -- intercepted indexing -------------------------------------------------
     def isel(self, indexers: dict | None = None, **kwargs):
         sel = dict(indexers) if indexers is not None else {}
