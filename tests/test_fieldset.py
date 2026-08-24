@@ -447,7 +447,6 @@ def test_fieldset_describe(fieldset_two_models: FieldSet):
     fieldset = fieldset_two_models
     io = StringIO()
     expected = """\
-| Name           | Type        | Grid number   | Interp method / value   | Backend   |
 | Name           | Type        | Grid number   | Interp method / value   | Parcels backend   |
 |:---------------|:------------|:--------------|:------------------------|:------------------|
 | my_list        | Context     | -             | [1, 2, 'hello']         | -                 |
@@ -460,7 +459,7 @@ def test_fieldset_describe(fieldset_two_models: FieldSet):
 | UV_wind        | VectorField | 1             | XLinear_Velocity(...)   | -                 |
 | constant_field | Field       | 2             | XConstantField(...)     | NumPy             |
 
-mesh: flat
+mesh: FlatMesh()
 time interval: (np.datetime64('2000-01-01T00:00:00.000000000'), np.datetime64('2001-01-01T00:00:00.000000000'))
 """
     fieldset.describe(io)

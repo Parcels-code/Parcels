@@ -13,10 +13,10 @@ import xarray as xr
 import parcels._typing as ptyping
 from parcels._core.field import Field, VectorField
 from parcels._core.model import (
-    CONSTANT_FIELD_MODELS,
     ModelData,
     StructuredModelData,
     UnstructuredModelData,
+    create_empty_constant_field_model,
 )
 from parcels._core.utils.string import _assert_str_and_python_varname
 from parcels._core.utils.time import get_datetime_type_calendar
@@ -71,6 +71,7 @@ class FieldSet:
         # assert_compatible_calendars(fields)
 
         self.models = list(models)
+        self.constant_model: StructuredModelData | None = None
         self._fields: dict[str, Field | VectorField] | None = None
         self.reconstruct_fields()
         self.context: dict[str, float] = {}
@@ -96,6 +97,8 @@ class FieldSet:
         fields = []
         for model in self.models:
             fields += model.construct_fields()
+        if self.constant_model is not None:
+            fields += self.constant_model.construct_fields()
         self._fields = {f.name: f for f in fields}
 
     def __getattr__(self, name):
@@ -113,6 +116,16 @@ class FieldSet:
         assert_compatible_fieldsets(self, other)
         combined = FieldSet(self.models + other.models)
         combined.context = {**self.context, **other.context}
+        # Carry over constant model
+        if self.constant_model is not None and other.constant_model is not None:
+            # Merge data variables from both constant models into one
+            combined.constant_model = self.constant_model
+            for name in other.constant_model.scalar_field_names:
+                combined.constant_model.data[name] = other.constant_model.data[name]
+        elif self.constant_model is not None or other.constant_model is not None:
+            combined.constant_model = self.constant_model or other.constant_model
+
+        combined.reconstruct_fields()
         return combined
 
     # def __repr__(self):
@@ -189,15 +202,13 @@ class FieldSet:
                correction for zonal velocity U near the poles.
             2. flat: No conversion, lat/lon are assumed to be in m.
         """
-        try:
-            model = CONSTANT_FIELD_MODELS[mesh]
-        except KeyError as e:
-            raise ValueError(f"mesh must be one of ['flat', 'spherical']. Got {mesh!r}.") from e
+        if mesh not in ("flat", "spherical"):
+            raise ValueError(f"mesh must be one of ['flat', 'spherical']. Got {mesh!r}.")
 
-        model.data[name] = (["time", "depth", "lat", "lon"], np.full((1, 1, 1, 1), value))
+        if self.constant_model is None:
+            self.constant_model = create_empty_constant_field_model(mesh)
 
-        if model not in self.models:
-            self.models.append(model)
+        self.constant_model.data[name] = (["time", "depth", "lat", "lon"], np.full((1, 1, 1, 1), value))
 
         self.reconstruct_fields()
         field = getattr(self, name)

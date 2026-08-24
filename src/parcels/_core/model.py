@@ -289,8 +289,9 @@ def assert_vector_field_components_in_dataset(ds: xr.Dataset, vector_fields: pty
     return
 
 
-CONSTANT_FIELD_MODELS = {
-    mesh: StructuredModelData.from_sgrid_conventions(
+def create_empty_constant_field_model(mesh: ptyping.TMesh) -> StructuredModelData:
+    """Create a empty model for constant fields with the given mesh type."""
+    return StructuredModelData.from_sgrid_conventions(
         xr.Dataset(
             {},
             coords={
@@ -314,8 +315,6 @@ CONSTANT_FIELD_MODELS = {
         mesh=mesh,  # type:ignore
         vector_fields={},
     )
-    for mesh in ["flat", "spherical"]
-}
 
 
 class UnstructuredModelData(ModelData):
