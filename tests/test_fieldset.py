@@ -234,7 +234,8 @@ def test_multi_model_time_interval():
 
     fieldset.add_constant_field("constant_field", 1.0, mesh="flat")
 
-    assert len(fieldset.models) == 4
+    assert len(fieldset.models) == 3
+    assert fieldset.constant_model is not None
     assert fieldset.time_interval.left == np.datetime64("2000-01-03")
     assert fieldset.time_interval.right == np.datetime64("2001-01-01")
 
@@ -253,7 +254,8 @@ def test_multi_model_nonoverlapping_time_interval():
 
     fieldset.add_constant_field("constant_field", 1.0, mesh="flat")
 
-    assert len(fieldset.models) == 4
+    assert len(fieldset.models) == 3
+    assert fieldset.constant_model is not None
     assert fieldset.time_interval is None
 
 
@@ -491,7 +493,7 @@ def test_fieldset_describe_backends(tmp_path):
 | UVW    | VectorField |             0 | CGrid_Velocity(...)     | -                 |
 
 mesh: SphericalMesh(radius=6366707.019493707)
-time interval: (np.datetime64('2000-01-02T12:00:00.000000000'), np.datetime64('2000-01-12T12:00:00.000000000'))
+time interval: (np.datetime64('2000-01-02T12:00:00.000000000'), np.datetime64('2000-01-27T12:00:00.000000000'))
 """
     fieldset.describe(io)
     actual = io.getvalue()
@@ -511,7 +513,7 @@ time interval: (np.datetime64('2000-01-02T12:00:00.000000000'), np.datetime64('2
 | UVW    | VectorField |             0 | CGrid_Velocity(...)     | -                 |
 
 mesh: SphericalMesh(radius=6366707.019493707)
-time interval: (np.datetime64('2000-01-02T12:00:00.000000000'), np.datetime64('2000-01-12T12:00:00.000000000'))
+time interval: (np.datetime64('2000-01-02T12:00:00.000000000'), np.datetime64('2000-01-27T12:00:00.000000000'))
 """
     fieldset.describe(io)
     actual = io.getvalue()
@@ -533,7 +535,7 @@ time interval: (np.datetime64('2000-01-02T12:00:00.000000000'), np.datetime64('2
 | UVW    | VectorField |             0 | CGrid_Velocity(...)     | -                 |
 
 mesh: SphericalMesh(radius=6366707.019493707)
-time interval: (np.datetime64('2000-01-02T12:00:00.000000000'), np.datetime64('2000-01-12T12:00:00.000000000'))
+time interval: (np.datetime64('2000-01-02T12:00:00.000000000'), np.datetime64('2000-01-27T12:00:00.000000000'))
 """
     fieldset.describe(io)
     actual = io.getvalue()
