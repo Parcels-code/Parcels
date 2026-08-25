@@ -312,7 +312,7 @@ def create_empty_constant_field_model(mesh: ptyping.TMesh) -> StructuredModelDat
                 ),
             ),
         ),
-        mesh=mesh,  # type:ignore
+        mesh=mesh,
         vector_fields={},
     )
 
