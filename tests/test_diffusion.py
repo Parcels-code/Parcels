@@ -93,7 +93,7 @@ def test_randomexponential(lambd):
 
     def vertical_randomexponential(particles, fieldset):  # pragma: no cover
         # Kernel for random exponential variable in z direction
-        particles.z = np.random.exponential(scale=1 / fieldset.lambd, size=len(particles))
+        particles.dz += np.random.exponential(scale=1 / fieldset.lambd, size=len(particles))
 
     pset.execute(vertical_randomexponential, runtime=np.timedelta64(1, "s"), dt=np.timedelta64(1, "s"))
 

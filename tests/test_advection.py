@@ -37,6 +37,7 @@ from parcels.kernels import (
     AdvectionRK4_3D,
     AdvectionRK45,
 )
+from tests.mark import ignore_kernel_warnings
 from tests.utils import DEFAULT_PARTICLES, assert_cftime_like_particlefile
 
 
@@ -84,6 +85,7 @@ def periodicBC(particles, fieldset):
     particles.x = np.fmod(particles.x, 2)
 
 
+@ignore_kernel_warnings
 def test_advection_zonal_periodic():
     ds = simple_UV_dataset(dims=(2, 2, 2, 2), mesh="flat")
     ds["U"].data[:] = 0.1
