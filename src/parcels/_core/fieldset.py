@@ -7,7 +7,6 @@ from typing import IO, TYPE_CHECKING
 
 import cf_xarray  # noqa: F401
 import numpy as np
-import uxarray as ux
 import xarray as xr
 
 import parcels._typing as ptyping
@@ -29,6 +28,8 @@ from parcels.interpolators import (
 )
 
 if TYPE_CHECKING:
+    import uxarray as ux
+
     from parcels._core.basegrid import BaseGrid
     from parcels._typing import TimeLike
 __all__ = ["FieldSet"]

@@ -1,14 +1,16 @@
 from __future__ import annotations
 
-from typing import Literal
+from typing import TYPE_CHECKING, Literal
 
 import numpy as np
-import uxarray as ux
 from dask import is_dask_collection
 
 from parcels._core.basegrid import BaseGrid
 from parcels._core.index_search import GRID_SEARCH_ERROR, _search_1d_array, uxgrid_point_in_cell
 from parcels._core.mesh import SphericalMesh, get_mesh
+
+if TYPE_CHECKING:
+    import uxarray as ux
 
 _UXGRID_AXES = Literal["Z", "FACE"]
 
@@ -36,6 +38,8 @@ class UxGrid(BaseGrid):
         mesh : str
             The type of mesh used for the grid. Either "flat" or "spherical".
         """
+        import uxarray as ux
+
         if grid.n_max_face_nodes > 3:
             raise ValueError("Provided ux.grid.Grid must contain only triangular cells (n_max_face_nodes=3)")
         self.uxgrid = grid

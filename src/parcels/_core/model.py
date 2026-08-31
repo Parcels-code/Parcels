@@ -3,10 +3,9 @@ from __future__ import annotations
 import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Hashable, Sequence
-from typing import Any, Self
+from typing import TYPE_CHECKING, Any, Self
 
 import cf_xarray  # noqa: F401
-import uxarray as ux
 import xarray as xr
 import zarr
 from dask import is_dask_collection
@@ -36,6 +35,9 @@ from parcels.interpolators import (
     XLinear_Velocity,
 )
 from parcels.interpolators._base import ScalarInterpolator, VectorInterpolator
+
+if TYPE_CHECKING:
+    import uxarray as ux
 
 
 class ModelData(ABC):
@@ -319,6 +321,8 @@ def create_empty_constant_field_model(mesh: ptyping.TMesh) -> StructuredModelDat
 
 class UnstructuredModelData(ModelData):
     def __init__(self, data: ux.UxDataset, grid: UxGrid, vector_field_components: ptyping.VectorFields):
+        import uxarray as ux
+
         if not isinstance(data, ux.UxDataset):
             raise ValueError(f"Expected `data` to be an uxarray.UxDataset . Got {type(data)}")
 
