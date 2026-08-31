@@ -124,7 +124,7 @@ def AdvectionEE(particles, fieldset):
     particles.dy += v1 * particles.dt
 ```
 
-Note that the (optional) `@parcels.validate_kernel` decorator can be used to ensure that the kernel function is correctly defined and can be safely executed by parcels.
+Note that the (optional) `@parcels.validate_kernel` decorator can be used to ensure that the kernel function is correctly defined and follows recommendations.
 
 Basic kernels are included in Parcels to compute advection and diffusion. The standard advection kernel is {py:obj}`parcels.kernels.AdvectionRK2`, a [second-order Runge-Kutta integrator](https://en.wikipedia.org/wiki/Runge%E2%80%93Kutta_methods#The_Runge%E2%80%93Kutta_method) of the advection function.
 
