@@ -11,7 +11,7 @@ from typing import TypeVar
 
 from parcels._core.warnings import KernelWarning
 
-_V4_MIGRATION_GUIDE: str = "https://docs.oceanparcels.org/en/latest/user_guide/v4-migration.html"
+_V4_MIGRATION_GUIDE: str = "https://docs.parcels-code.org/en/latest/user_guide/v4-migration.html"
 
 _DEPRECATED_COORD_ATTRS: dict[str, str] = {
     "lon": "x",
