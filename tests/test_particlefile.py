@@ -370,7 +370,7 @@ def test_correct_misaligned_outputdt_dt(fieldset, tmp_parquet):
     """Testing that outputdt does not need to be a multiple of dt."""
 
     def Update_lon(particles, fieldset):  # pragma: no cover
-        particles.x += particles.dt
+        particles.dx = particles.dt
 
     particle = get_default_particle(np.float64)
     pset = ParticleSet(fieldset, pclass=particle, x=[0], y=[0])

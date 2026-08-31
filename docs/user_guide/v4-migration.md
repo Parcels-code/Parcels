@@ -88,6 +88,14 @@ How to migrate
 <div class="migration-chat">
 
 <div class="migration-bubble migration-change">
+The Kernel API has had some major changes (see also below)
+</div>
+<div class="migration-bubble migration-how">
+Add the <code>@parcels.validate_kernel</code> decorator above your Kernel function definition to check for errors and warnings.
+</div>
+<hr class="migration-divider" />
+
+<div class="migration-bubble migration-change">
 The Kernel loop is 'vectorized': the input of a Kernel is a collection of particles
 </div>
 <div class="migration-bubble migration-how">
