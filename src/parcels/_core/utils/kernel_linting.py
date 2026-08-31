@@ -45,6 +45,8 @@ class _Violation:
 
 def _format_violations(func_name: str, violations: list[_Violation], label: str) -> str:
     """Format a list of violations into a readable string."""
+    if len(violations) == 0:
+        return ""
     header: str = f"Kernel `{func_name}` has {len(violations)} {label}(s):\n"
     lines: list[str] = []
     for v in violations:
