@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING
 
 import numpy as np
 
-from parcels._core.basegrid import GridType
 from parcels._core.statuscodes import (
     StatusCode,
     _raise_field_interpolation_error,
@@ -19,7 +18,6 @@ from parcels._core.statuscodes import (
 from parcels._core.warnings import FieldEvalWarning, KernelWarning
 from parcels._python import assert_same_function_signature
 from parcels.kernels import (
-    AdvectionAnalytical,
     AdvectionRK4,
     AdvectionRK45,
 )
@@ -126,12 +124,12 @@ class Kernel:
         This function is to be called from the derived class when setting up the 'kernel'.
         """
         if self.fieldset is not None:
-            if kernel is AdvectionAnalytical:
-                if self._fieldset.U.interp_method != "cgrid_velocity":
-                    raise NotImplementedError("Analytical Advection only works with C-grids")
-                if self._fieldset.U.grid._gtype not in [GridType.CurvilinearZGrid, GridType.RectilinearZGrid]:
-                    raise NotImplementedError("Analytical Advection only works with Z-grids in the vertical")
-            elif kernel is AdvectionRK45:
+            # if kernel is AdvectionAnalytical:
+            #     if self._fieldset.U.interp_method != "cgrid_velocity":
+            #         raise NotImplementedError("Analytical Advection only works with C-grids")
+            #     if self._fieldset.U.grid._gtype not in [GridType.CurvilinearZGrid, GridType.RectilinearZGrid]:
+            #         raise NotImplementedError("Analytical Advection only works with Z-grids in the vertical")
+            if kernel is AdvectionRK45:
                 if "next_dt" not in [v.name for v in self.pclass.variables]:
                     raise ValueError('ParticleClass requires a "next_dt" for AdvectionRK45 Kernel.')
                 if not hasattr(self.fieldset, "RK45_tol"):

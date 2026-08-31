@@ -39,41 +39,56 @@ def simple_UV_dataset(dims=(360, 2, 30, 4), maxdepth=1, mesh="spherical"):
     )
 
 
-def radial_rotation_dataset(xdim=200, ydim=200):  # Define 2D flat, square fieldset for testing purposes.
+def radial_rotation_dataset(xdim=200, ydim=200, grid_type="A"):  # Define 2D flat, square fieldset for testing purposes.
     lon = np.linspace(0, 60, xdim, dtype=np.float32)
     lat = np.linspace(0, 60, ydim, dtype=np.float32)
 
     x0 = 30.0  # Define the origin to be the centre of the Field.
     y0 = 30.0
 
+    dx, dy = lon[-1] / xdim, lat[-1] / ydim  # Define the grid spacing in x and y directions.
+
     U = np.zeros((2, 1, ydim, xdim), dtype=np.float32)
     V = np.zeros((2, 1, ydim, xdim), dtype=np.float32)
+    R = np.zeros((2, 1, ydim, xdim), dtype=np.float32)
 
     omega = 2 * np.pi / 86400.0  # Define the rotational period as 1 day.
 
+    def calc_r_theta(ln, lt, x0, y0):
+        r = np.sqrt((ln - x0) ** 2 + (lt - y0) ** 2)
+        theta = np.arctan2((lt - y0), (ln - x0))
+        return r, theta
+
     for i in range(lon.size):
         for j in range(lat.size):
-            r = np.sqrt((lon[i] - x0) ** 2 + (lat[j] - y0) ** 2)
-            assert r >= 0.0
-            assert r <= np.sqrt(x0**2 + y0**2)
+            r, theta = calc_r_theta(lon[i], lat[j], x0, y0)
+            R[:, :, j, i] = r
+            if grid_type == "A":
+                r, theta = calc_r_theta(lon[i], lat[j], x0, y0)
+                U[:, :, j, i] = r * np.sin(theta) * omega
+                V[:, :, j, i] = -r * np.cos(theta) * omega
+            elif grid_type == "C":
+                r, theta = calc_r_theta(lon[i] - dx / 2, lat[j], x0, y0)
+                U[:, :, j, i] = r * np.sin(theta) * omega
 
-            theta = np.arctan2((lat[j] - y0), (lon[i] - x0))
-            assert abs(theta) <= np.pi
-
-            U[:, :, j, i] = r * np.sin(theta) * omega
-            V[:, :, j, i] = -r * np.cos(theta) * omega
+                r, theta = calc_r_theta(lon[i], lat[j] - dy / 2, x0, y0)
+                V[:, :, j, i] = -r * np.cos(theta) * omega
 
     return xr.Dataset(
-        {"U": (["time", "depth", "YG", "XG"], U), "V": (["time", "depth", "YG", "XG"], V)},
+        {
+            "U": (["time", "depth", "YG", "XC"], U),
+            "V": (["time", "depth", "YC", "XG"], V),
+            "R": (["time", "depth", "YC", "XC"], R),
+        },
         coords={
             "time": (["time"], [np.timedelta64(0, "s"), np.timedelta64(10, "D")], {"axis": "T"}),
             "depth": (["depth"], np.array([0.0]), {"axis": "Z"}),
-            "YC": (["YC"], np.arange(ydim) + 0.5, {"axis": "Y"}),
-            "YG": (["YG"], np.arange(ydim), {"axis": "Y", "c_grid_axis_shift": -0.5}),
-            "XC": (["XC"], np.arange(xdim) + 0.5, {"axis": "X"}),
-            "XG": (["XG"], np.arange(xdim), {"axis": "X", "c_grid_axis_shift": -0.5}),
-            "lat": (["YG"], lat, {"axis": "Y", "c_grid_axis_shift": 0.5}),
-            "lon": (["XG"], lon, {"axis": "X", "c_grid_axis_shift": -0.5}),
+            "YC": (["YC"], np.arange(ydim) - 0.5, {"axis": "Y", "c_grid_axis_shift": +0.5}),
+            "YG": (["YG"], np.arange(ydim), {"axis": "Y"}),
+            "XC": (["XC"], np.arange(xdim) - 0.5, {"axis": "X", "c_grid_axis_shift": +0.5}),
+            "XG": (["XG"], np.arange(xdim), {"axis": "X"}),
+            "lat": (["YG"], lat, {"axis": "Y"}),
+            "lon": (["XG"], lon, {"axis": "X"}),
         },
     ).pipe(
         sgrid._attach_sgrid_metadata,
@@ -84,7 +99,7 @@ def radial_rotation_dataset(xdim=200, ydim=200):  # Define 2D flat, square field
             node_coordinates=("lon", "lat"),
             face_dimensions=(
                 sgrid.FaceNodePadding("XC", "XG", sgrid.Padding.LOW),
-                sgrid.FaceNodePadding("YC", "YG", sgrid.Padding.HIGH),
+                sgrid.FaceNodePadding("YC", "YG", sgrid.Padding.LOW),
             ),
             vertical_dimensions=(sgrid.FaceNodePadding("ZC", "depth", sgrid.Padding.BOTH),),
         ),
