@@ -234,7 +234,8 @@ def test_multi_model_time_interval():
 
     fieldset.add_constant_field("constant_field", 1.0, mesh="flat")
 
-    assert len(fieldset.models) == 4
+    assert len(fieldset.models) == 3
+    assert fieldset.constant_model is not None
     assert fieldset.time_interval.left == np.datetime64("2000-01-03")
     assert fieldset.time_interval.right == np.datetime64("2001-01-01")
 
@@ -253,7 +254,8 @@ def test_multi_model_nonoverlapping_time_interval():
 
     fieldset.add_constant_field("constant_field", 1.0, mesh="flat")
 
-    assert len(fieldset.models) == 4
+    assert len(fieldset.models) == 3
+    assert fieldset.constant_model is not None
     assert fieldset.time_interval is None
 
 
@@ -443,14 +445,10 @@ def test_fieldset_add_context_values():
     assert fset.context["c2"] == 2.0
 
 
-@pytest.mark.xfail(
-    reason="There's test pollution occuring between test_fieldKh_Brownian and this test due to how constant fields are handled. We should remove this global state."
-)
 def test_fieldset_describe(fieldset_two_models: FieldSet):
     fieldset = fieldset_two_models
     io = StringIO()
     expected = """\
-| Name           | Type        | Grid number   | Interp method / value   | Backend   |
 | Name           | Type        | Grid number   | Interp method / value   | Parcels backend   |
 |:---------------|:------------|:--------------|:------------------------|:------------------|
 | my_list        | Context     | -             | [1, 2, 'hello']         | -                 |
@@ -463,7 +461,7 @@ def test_fieldset_describe(fieldset_two_models: FieldSet):
 | UV_wind        | VectorField | 1             | XLinear_Velocity(...)   | -                 |
 | constant_field | Field       | 2             | XConstantField(...)     | NumPy             |
 
-mesh: flat
+mesh: FlatMesh()
 time interval: (np.datetime64('2000-01-01T00:00:00.000000000'), np.datetime64('2001-01-01T00:00:00.000000000'))
 """
     fieldset.describe(io)
