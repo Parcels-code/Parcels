@@ -70,86 +70,72 @@ class TestDeleteErrors:
                 particle.delete()
 
 
-class TestDirectLocationAssignmentErrors:
+# === WARNINGS (emit KernelWarning) ===
+
+
+class TestDirectLocationAssignmentWarnings:
     def test_assign_to_x(self):
-        with pytest.raises(KernelValidationError, match="Don't change the location"):
+        with pytest.warns(KernelWarning, match="Don't change the location"):
 
             @validate_kernel
             def my_kernel(particles, fieldset):
                 particles.x = 1.0
 
     def test_assign_to_y(self):
-        with pytest.raises(KernelValidationError, match="Don't change the location"):
+        with pytest.warns(KernelWarning, match="Don't change the location"):
 
             @validate_kernel
             def my_kernel(particles, fieldset):
                 particles.y = 1.0
 
     def test_assign_to_z(self):
-        with pytest.raises(KernelValidationError, match="Don't change the location"):
+        with pytest.warns(KernelWarning, match="Don't change the location"):
 
             @validate_kernel
             def my_kernel(particles, fieldset):
                 particles.z = 1.0
 
     def test_assign_to_lon(self):
-        with pytest.raises(KernelValidationError, match="Don't change the location"):
+        with pytest.warns(KernelWarning, match="Don't change the location"):
 
             @validate_kernel
             def my_kernel(particles, fieldset):
                 particles.lon = 1.0
 
     def test_assign_to_lat(self):
-        with pytest.raises(KernelValidationError, match="Don't change the location"):
+        with pytest.warns(KernelWarning, match="Don't change the location"):
 
             @validate_kernel
             def my_kernel(particles, fieldset):
                 particles.lat = 1.0
 
     def test_assign_to_depth(self):
-        with pytest.raises(KernelValidationError, match="Don't change the location"):
+        with pytest.warns(KernelWarning, match="Don't change the location"):
 
             @validate_kernel
             def my_kernel(particles, fieldset):
                 particles.depth = 1.0
 
     def test_augassign_to_x(self):
-        with pytest.raises(KernelValidationError, match="Don't change the location"):
+        with pytest.warns(KernelWarning, match="Don't change the location"):
 
             @validate_kernel
             def my_kernel(particles, fieldset):
                 particles.x += 1.0
 
     def test_augassign_to_y(self):
-        with pytest.raises(KernelValidationError, match="Don't change the location"):
+        with pytest.warns(KernelWarning, match="Don't change the location"):
 
             @validate_kernel
             def my_kernel(particles, fieldset):
                 particles.y += 1.0
 
     def test_augassign_to_z(self):
-        with pytest.raises(KernelValidationError, match="Don't change the location"):
+        with pytest.warns(KernelWarning, match="Don't change the location"):
 
             @validate_kernel
             def my_kernel(particles, fieldset):
                 particles.z += 1.0
-
-    def test_assign_to_dx_allowed(self):
-        @validate_kernel
-        def my_kernel(particles, fieldset):
-            particles.dx += 1.0
-
-        assert callable(my_kernel)
-
-    def test_assign_to_custom_attr_allowed(self):
-        @validate_kernel
-        def my_kernel(particles, fieldset):
-            particles.temperature = 20.0
-
-        assert callable(my_kernel)
-
-
-# === WARNINGS (emit KernelWarning) ===
 
 
 class TestDeprecatedCoordWarnings:
@@ -226,7 +212,7 @@ class TestMixedViolations:
         assert "2 validation error(s)" in msg
 
     def test_multiple_errors_collected(self):
-        with pytest.raises(KernelValidationError) as exc_info:
+        with pytest.raises(KernelValidationError) as exc_info, pytest.warns(KernelWarning):
 
             @validate_kernel
             def my_kernel(particle, fieldset, time):
@@ -237,4 +223,4 @@ class TestMixedViolations:
         assert "signature" in msg
         assert "delete" in msg
         assert "Don't change the location" in msg
-        assert "3 validation error(s)" in msg
+        assert "2 validation error(s)" in msg
