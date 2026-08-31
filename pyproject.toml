@@ -66,7 +66,7 @@ markers = [ # can be skipped by doing `pytest -m "not slow"` etc.
 ]
 
 filterwarnings = [
-  "error:.*removed in a future release of Parcels.*:DeprecationWarning", # Have Parcels DeprecationWarnings fail CI (prevents deprecated items being used in internal code)
+  "error::DeprecationWarning", # test suite should not raise deprecation warnings (not from 3rd party libraries, or from Parcels itself)
   "error:::parcels.*",
   "error::UserWarning",
   "ignore:This is an alpha version of Parcels v4.*:UserWarning", # TODO v4: Remove when warning is removed
