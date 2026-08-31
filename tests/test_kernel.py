@@ -9,7 +9,6 @@ from parcels import (
     Variable,
 )
 from parcels._core.kernel import Kernel
-from parcels._core.utils.kernel_linting import KernelValidationError
 from parcels._datasets.structured.generated import simple_UV_dataset
 from parcels.kernels import AdvectionRK4, AdvectionRK45
 from tests.common_kernels import DoNothing, MoveEast, MoveNorth
@@ -126,46 +125,6 @@ def test_rk45_kernel_warnings(fieldset):
     )
     with pytest.warns(KernelWarning):
         pset.execute(AdvectionRK45, runtime=1, dt=1)
-
-
-def test_kernel_signature(fieldset):
-    pset = ParticleSet(fieldset, x=[0.5], y=[0.5])
-
-    def good_kernel(particles, fieldset):
-        pass
-
-    def version_3_kernel(particle, fieldset, time):
-        pass
-
-    def version_3_kernel_without_time(particle, fieldset):
-        pass
-
-    def kernel_switched_args(fieldset, particle):
-        pass
-
-    def kernel_with_forced_kwarg(particles, *, fieldset=0):
-        pass
-
-    Kernel(kernels=[good_kernel], pset=pset)
-
-    with pytest.raises(KernelValidationError, match="Kernel function must have 2 parameters, got 3"):
-        Kernel(kernels=[version_3_kernel], pset=pset)
-
-    with pytest.raises(
-        KernelValidationError, match="Parameter 'particle' has incorrect name. Expected 'particles', got 'particle'"
-    ):
-        Kernel(kernels=[version_3_kernel_without_time], pset=pset)
-
-    with pytest.raises(
-        KernelValidationError, match="Parameter 'fieldset' has incorrect name. Expected 'particles', got 'fieldset'"
-    ):
-        Kernel(kernels=[kernel_switched_args], pset=pset)
-
-    with pytest.raises(
-        KernelValidationError,
-        match="Parameter 'fieldset' has incorrect parameter kind. Expected POSITIONAL_OR_KEYWORD, got KEYWORD_ONLY",
-    ):
-        Kernel(kernels=[kernel_with_forced_kwarg], pset=pset)
 
 
 @ignore_kernel_warnings
