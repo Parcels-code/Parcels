@@ -5,7 +5,7 @@ import inspect
 import textwrap
 import types
 import warnings
-from collections.abc import Callable, Sequence
+from collections.abc import Sequence
 from dataclasses import dataclass, field
 from typing import TypeVar
 
@@ -30,7 +30,7 @@ _DEPRECATED_DELTA_NAMES: dict[str, str] = {
 
 _PARTICLE_NAMES: tuple[str, ...] = ("particle", "particles")
 
-_F = TypeVar("_F", bound=Callable[..., object])
+_F = TypeVar("_F", bound=types.FunctionType)
 
 
 class KernelValidationError(Exception):
@@ -195,7 +195,7 @@ class _KernelValidator(ast.NodeVisitor):
         self.generic_visit(node)
 
 
-def _validate_kernel_ast(func: Callable[..., object]) -> _ValidationResult:
+def _validate_kernel_ast(func: types.FunctionType) -> _ValidationResult:
     """Parse the AST of a kernel function and return a _ValidationResult."""
     source: str = textwrap.dedent(inspect.getsource(func))
     tree: ast.Module = ast.parse(source)
