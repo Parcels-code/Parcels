@@ -86,8 +86,8 @@ pytest-xdist = "*"
 
 [feature.test.tasks]
 tests = { cmd = "pytest", description = "Run the test suite." }
-tests-flaky = { cmd = "pytest -m 'flaky' --run-flaky-tests", description = "Run flaky tests." }
-tests-validation = { cmd = "pytest -m 'validation' --run-validation-tests", description = "Run validation tests." }
+tests-flaky = { cmd = "pytest -m 'flaky' --run-flaky-tests", description = "Run only flaky tests." }
+tests-validation = { cmd = "pytest -m 'validation' --run-validation-tests", description = "Run only validation tests." }
 tests-notebooks = { cmd = "pytest --nbval-lax docs/user_guide/examples", description = "Run the user guide example notebooks as tests." }
 
 
