@@ -80,6 +80,7 @@ pytest = "*"
 hypothesis = "*"
 pytest-html = "*"
 pytest-cov = "*"
+pytest-reportlog = "*"
 
 [feature.test.tasks]
 tests = { cmd = "pytest", description = "Run the test suite." }
