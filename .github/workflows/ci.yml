@@ -333,7 +333,7 @@ jobs:
           name: Mypy report
           path: mypy-report
   qaqc:
-    name: "Documentation: pixi run docs-spelling"
+    name: "Additional QAQC (separate to pre-commit - pixi run more-qaqc)"
     runs-on: ubuntu-latest
     needs: [cache-pixi-lock]
     permissions:
