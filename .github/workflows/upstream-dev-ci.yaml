@@ -129,7 +129,7 @@ jobs:
         run: |
           pixi run \
             --manifest-path "$MANIFEST_PATH" \
-            test --timeout=60 -rf -nauto --report-log "$LOG_PATH"
+            tests-nightly --timeout=60 -rf -nauto --report-log "$LOG_PATH"
       - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         if: failure()
         with:
@@ -158,3 +158,4 @@ jobs:
         uses: scientific-python/issue-from-pytest-log-action@35b4e0a9e06f8e7e261778289cf4b968b722662d # v1.6.2
         with:
           log-path: logs/${{ needs.upstream-dev.outputs.log-file }}
+          assignees: VeckoTheGecko,erikvansebille

@@ -35,8 +35,8 @@ pytest-timeout = "*"
 pytest-xdist = "*"
 
 [feature.test.tasks]
-tests = { cmd = "pytest", cwd = "../..", description = "Run the test suite." }
-tests-validation = { cmd = "pytest -m 'validation'", cwd = "../..", description = "Run validation tests." }
+tests-nightly = { cmd = "pytest --run-validation-tests", cwd = "../..", description = "Run nightly tests (normal tests and validation tests)" }
+
 
 [feature.typing.pypi-dependencies]
 mypy = "*"
@@ -46,7 +46,7 @@ pandas-stubs = "*"
 pyarrow-stubs = "*"
 
 [feature.typing.tasks]
-typing = { cmd = "mypy src/parcels --install-types", description = "Run static type checking with mypy." }
+typing = { cmd = "mypy src/parcels --install-types", cwd = "../..", description = "Run static type checking with mypy." }
 
 [environments]
 default = { features = [
