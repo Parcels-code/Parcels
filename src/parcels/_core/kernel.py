@@ -16,11 +16,10 @@ from parcels._core.statuscodes import (
     _raise_grid_searching_error,
     _raise_outside_time_interval_error,
 )
+from parcels._core.utils.kernel_linting import validate_kernel
 from parcels._core.warnings import FieldEvalWarning, KernelWarning
-from parcels._python import assert_same_function_signature
 from parcels.kernels import (
     AdvectionAnalytical,
-    AdvectionRK4,
     AdvectionRK45,
 )
 
@@ -67,7 +66,7 @@ class Kernel:
         for f in kernels:
             if not isinstance(f, types.FunctionType):
                 raise TypeError(f"Argument `kernels` should be a function or list of functions. Got {type(f)}")
-            assert_same_function_signature(f, ref=AdvectionRK4, context="Kernel")
+            validate_kernel(f)
 
         if len(kernels) == 0:
             raise ValueError("List of `kernels` should have at least one function.")

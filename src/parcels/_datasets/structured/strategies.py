@@ -6,6 +6,10 @@ from hypothesis.extra.numpy import arrays as np_arrays
 import parcels._sgrid as sgrid
 import parcels._strategies as pst
 
+TCoords1D = np.ndarray[tuple[int], np.dtype[np.float64]]
+TCoords2D = np.ndarray[tuple[int, int], np.dtype[np.float64]]
+TCoords = TCoords1D | TCoords2D
+
 
 @st.composite
 def sgrid_dataset(draw, grid: sgrid.SGrid2DMetadata | None = None) -> xr.Dataset:
@@ -35,6 +39,8 @@ def sgrid_dataset(draw, grid: sgrid.SGrid2DMetadata | None = None) -> xr.Dataset
     has_curvilinear_grid = draw(st.booleans())
     coord_name1, coord_name2 = grid.node_coordinates
 
+    c1: TCoords  # pyright: ignore[reportInvalidTypeForm]
+    c2: TCoords  # pyright: ignore[reportInvalidTypeForm]
     if has_curvilinear_grid:
         c1, c2 = np.meshgrid(np.linspace(0, 100, N), np.linspace(0, 100, M), indexing="ij")
         coord1_dims = [node_dim1, node_dim2]

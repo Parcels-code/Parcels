@@ -396,6 +396,7 @@ class ParticleSet:
 
         if isinstance(kernels, types.FunctionType):
             kernels = [kernels]
+
         self._kernel = Kernel(kernels, self)
 
         if output_file is not None:

@@ -12,6 +12,7 @@ from parcels._core.kernel import Kernel
 from parcels._datasets.structured.generated import simple_UV_dataset
 from parcels.kernels import AdvectionRK4, AdvectionRK45
 from tests.common_kernels import DoNothing, MoveEast, MoveNorth
+from tests.mark import ignore_kernel_warnings
 
 
 def test_unknown_var_in_kernel(fieldset):
@@ -24,6 +25,7 @@ def test_unknown_var_in_kernel(fieldset):
         pset.execute(ErrorKernel, runtime=np.timedelta64(2, "s"), dt=np.timedelta64(1, "s"))
 
 
+@ignore_kernel_warnings
 def test_context_in_kernel(fieldset):
     pset = ParticleSet(fieldset, x=[0.5], y=[0.5])
 
@@ -36,6 +38,7 @@ def test_context_in_kernel(fieldset):
     assert pset.x == -0.5
 
 
+@ignore_kernel_warnings
 def test_func_context_in_kernel(fieldset):
     pset = ParticleSet(fieldset, x=[0.5], y=[0.5])
 
@@ -124,46 +127,7 @@ def test_rk45_kernel_warnings(fieldset):
         pset.execute(AdvectionRK45, runtime=1, dt=1)
 
 
-def test_kernel_signature(fieldset):
-    pset = ParticleSet(fieldset, x=[0.5], y=[0.5])
-
-    def good_kernel(particles, fieldset):
-        pass
-
-    def version_3_kernel(particle, fieldset, time):
-        pass
-
-    def version_3_kernel_without_time(particle, fieldset):
-        pass
-
-    def kernel_switched_args(fieldset, particle):
-        pass
-
-    def kernel_with_forced_kwarg(particles, *, fieldset=0):
-        pass
-
-    Kernel(kernels=[good_kernel], pset=pset)
-
-    with pytest.raises(ValueError, match="Kernel function must have 2 parameters, got 3"):
-        Kernel(kernels=[version_3_kernel], pset=pset)
-
-    with pytest.raises(
-        ValueError, match="Parameter 'particle' has incorrect name. Expected 'particles', got 'particle'"
-    ):
-        Kernel(kernels=[version_3_kernel_without_time], pset=pset)
-
-    with pytest.raises(
-        ValueError, match="Parameter 'fieldset' has incorrect name. Expected 'particles', got 'fieldset'"
-    ):
-        Kernel(kernels=[kernel_switched_args], pset=pset)
-
-    with pytest.raises(
-        ValueError,
-        match="Parameter 'fieldset' has incorrect parameter kind. Expected POSITIONAL_OR_KEYWORD, got KEYWORD_ONLY",
-    ):
-        Kernel(kernels=[kernel_with_forced_kwarg], pset=pset)
-
-
+@ignore_kernel_warnings
 @pytest.mark.parametrize("kernel_type", ["update_lon", "update_dlon"])
 def test_execution_order(kernel_type):
     ds = simple_UV_dataset(dims=(1, 1, 2, 2), mesh="flat")
