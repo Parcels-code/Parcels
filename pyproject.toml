@@ -59,8 +59,8 @@ python_files = ["test_*.py", "example_*.py", "*tutorial*"]
 minversion = "7"
 markers = [ # can be skipped by doing `pytest -m "not slow"` etc.
   "slow: slow tests",
-  "validation: validation tests (skipped by default, run with `-m validation`)",
-  "flaky: flaky tests (skipped by default, run with `-m flaky`)",
+  "validation: validation tests (skipped by default, run with `--run-validation-tests`)",
+  "flaky: flaky tests (skipped by default, run with `--run-flaky-tests`)",
   "v4alpha: failing tests that should work for v4alpha",
   "v4future: failing tests that should work for a future release of v4",
   "v4remove: failing tests that should probably be removed later",
