@@ -332,8 +332,8 @@ jobs:
         with:
           name: Mypy report
           path: mypy-report
-  spell-check-tutorial-prose:
-    name: "Documentation: pixi run docs-spelling"
+  qaqc:
+    name: "Additional QAQC (separate to pre-commit - pixi run more-qaqc)"
     runs-on: ubuntu-latest
     needs: [cache-pixi-lock]
     permissions:
@@ -401,4 +401,4 @@ jobs:
           persist-credentials: false
 
       - name: Run zizmor
-        uses: zizmorcore/zizmor-action@192e21d79ab29983730a13d1382995c2307fbcaa # v0.5.7
+        uses: zizmorcore/zizmor-action@3dc1ecc9bcb9e94e9b2c709687979e1298497054 # v0.6.2
