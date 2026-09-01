@@ -155,7 +155,7 @@ Change the argument name in your Kernel signature to <code>particles</code>
 <code>particle.delete()</code> is no longer valid
 </div>
 <div class="migration-bubble migration-how">
-Use <code>particle.state = StatusCode.Delete</code>
+Use <code>StatusCode.Delete</code> in combination with boolean indexing - as detailed <a href="examples/tutorial_statuscodes.html">here</a>
 </div>
 <hr class="migration-divider" />
 
