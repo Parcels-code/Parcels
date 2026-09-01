@@ -16,7 +16,7 @@ def pytest_addoption(parser: pytest.Parser):
 
 def pytest_runtest_setup(item):
     if "flaky" in item.keywords and not item.config.getoption("--run-flaky-tests"):
-        pytest.skip("set --run-validation-tests to run flaky tests")
+        pytest.skip("set --run-flaky-tests to run flaky tests")
     if "validation" in item.keywords and not item.config.getoption("--run-validation-tests"):
         pytest.skip("set --run-validation-tests to run validation tests")
 
