@@ -1,0 +1,55 @@
+[workspace]
+name = "Parcels nightly"
+preview = ["pixi-build"]
+channels = ["conda-forge", "nodefaults"]
+platforms = ["linux-64", "osx-arm64"]
+requires-pixi = ">=0.72.0"
+
+[feature.py314.dependencies]
+python = "3.14.*"
+
+[feature.nightly.pypi-dependencies]
+parcels = { path = "../..", editable = true }
+
+[feature.nightly.pypi-options.dependency-overrides]
+# numpy = { version = "*", index = "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" } #! Numba (uxarray dependency) gives import errors with unreleased numpy, prohibiting nightly testing.
+xarray = { version = "*", index = "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" }
+pyarrow = { version = "*", index = "https://pypi.anaconda.org/scientific-python-nightly-wheels/simple" }
+
+cftime = { git = "https://github.com/Unidata/cftime" }
+dask = { git = "https://github.com/dask/dask" }
+distributed = { git = "https://github.com/dask/distributed" }
+zarr = { git = "https://github.com/zarr-developers/zarr-python" }
+uxarray = { git = "https://github.com/uxarray/uxarray" }
+cf_xarray = { git = "https://github.com/xarray-contrib/cf-xarray" }
+pooch = { git = "https://github.com/fatiando/pooch" }
+
+[feature.test.pypi-dependencies]
+nbval = "*"
+pytest = "*"
+hypothesis = "*"
+pytest-html = "*"
+pytest-cov = "*"
+pytest-reportlog = "*"
+
+[feature.test.tasks]
+tests = { cmd = "pytest", cwd = "../..", description = "Run the test suite." }
+tests-validation = { cmd = "pytest -m 'validation'", cwd = "../..", description = "Run validation tests." }
+
+[feature.typing.pypi-dependencies]
+mypy = "*"
+lxml = "*" # in CI
+types-tqdm = "*"
+pandas-stubs = "*"
+pyarrow-stubs = "*"
+
+[feature.typing.tasks]
+typing = { cmd = "mypy src/parcels --install-types", description = "Run static type checking with mypy." }
+
+[environments]
+default = { features = [
+  "nightly",
+  "py314",
+  "test",
+  "typing",
+], solve-group = "main" }
