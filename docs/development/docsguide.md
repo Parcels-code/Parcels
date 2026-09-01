@@ -41,6 +41,5 @@ a table showing the latest notebook execution:
   by any developer or user, so the documentation teaches all of us how to do something with Parcels. Sometimes it can be
   more natural to take on the tone of a teacher, writing to a student/learner, in which case it is okay to use "you".
   Please refrain from using impersonal subjects such as "the user".
-- **Use British English in tutorial prose.** The Vale check covers Markdown files and Markdown cells in tutorial
-  notebooks; preserve the spelling required by code, APIs, and quoted external text.
+- Use British English in tutorial prose. This is validated by a spellchecker that is run in CI.
 - We recommend hard wrapping prose in markdown so that reading it becomes easier in any editor.
