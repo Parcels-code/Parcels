@@ -82,7 +82,6 @@ pytest-html = "*"
 pytest-cov = "*"
 pytest-reportlog = "*"
 pytest-timeout = "*"
-pytest-xdist = "*"
 
 [feature.test.tasks]
 tests = { cmd = "pytest", description = "Run the test suite." }
