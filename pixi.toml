@@ -23,21 +23,21 @@ setuptools_scm = "*"
 
 [package.run-dependencies] # keep section in sync with pyproject.toml dependencies
 python = ">=3.11"
-netcdf4 = ">=1.6.0"
-numpy = ">=2.1.0"
-tqdm = ">=4.50.0"
-xarray = ">=2024.5.0"
-pandas = ">=2.2"
-pyarrow = ">=20.0.0"
-holoviews = ">=1.22.0" # https://github.com/prefix-dev/rattler-build/issues/2326
-uxarray = ">=2026.04.1"
-dask = ">=2024.5.1"
-zarr = ">=3"
 cf_xarray = ">=0.8.6"
 cftime = ">=1.6.3"
-pooch = ">=1.8.0"
+dask = ">=2024.5.1"
+holoviews = ">=1.22.0" # https://github.com/prefix-dev/rattler-build/issues/2326
+netcdf4 = ">=1.6.0"
+numpy = ">=2.1.0"
+pandas = ">=2.2"
 polars = ">=1.31.0"
+pooch = ">=1.8.0"
+pyarrow = ">=20.0.0"
 tabulate = ">=0.10.0"
+tqdm = ">=4.50.0"
+uxarray = ">=2026.04.1"
+xarray = ">=2024.5.0"
+zarr = ">=3"
 
 
 [dependencies]
@@ -54,19 +54,19 @@ build-parcels = { cmd = "rattler-build build --recipe .github/ci/recipe.yaml", d
 
 [feature.minimum.dependencies]
 python = "3.11.*"
-netcdf4 = "1.6.*"
-numpy = "2.1.*"
-tqdm = "4.50.*"
-xarray = "2025.8.*"
-pandas = "2.2.*"
-pyarrow = "20.0.*"
-uxarray = "==2026.04.1"
-dask = "2024.6.*"
-zarr = "3.0.*"
 cf_xarray = "0.10.*"
 cftime = "1.6.*"
-pooch = "1.8.*"
+dask = "2024.6.*"
+netcdf4 = "1.6.*"
+numpy = "2.1.*"
+pandas = "2.2.*"
 polars = "1.31.*"
+pooch = "1.8.*"
+pyarrow = "20.0.*"
+tqdm = "4.50.*"
+uxarray = "==2026.04.1"
+xarray = "2025.8.*"
+zarr = "3.0.*"
 
 [feature.py311.dependencies]
 python = "3.11.*"
