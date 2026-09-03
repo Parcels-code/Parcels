@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import sys
-import warnings
 from collections.abc import Iterable
 from typing import IO, TYPE_CHECKING
 
@@ -11,6 +10,7 @@ import xarray as xr
 
 import parcels._typing as ptyping
 from parcels._core.field import Field, VectorField
+from parcels._core.mesh import FlatMesh, SphericalMesh
 from parcels._core.model import (
     ModelData,
     StructuredModelData,
@@ -20,7 +20,6 @@ from parcels._core.model import (
 from parcels._core.utils.string import _assert_str_and_python_varname
 from parcels._core.utils.time import get_datetime_type_calendar
 from parcels._core.utils.time import is_compatible as datetime_is_compatible
-from parcels._core.warnings import FieldSetWarning
 from parcels._python import NOTSET, NotSetType
 from parcels._repr_utils import fieldset_describe
 from parcels.interpolators import (
@@ -66,17 +65,23 @@ class FieldSet:
     """
 
     def __init__(self, models: list[ModelData]):
+        if models == []:
+            raise ValueError("List of models can't be empty.")
         for model in models:
             if not isinstance(model, ModelData):
                 raise ValueError(f"Expected `model` to be a ModelData object. Got {model}")
         # assert_compatible_calendars(fields)
 
-        self.models = list(models)
+        self.models = models
         self.constant_model: StructuredModelData | None = None
         self._fields: dict[str, Field | VectorField] | None = None
         self.reconstruct_fields()
         self.context: dict[str, float] = {}
-        _warn_if_fields_use_different_meshes(self.fields.values())
+        assert_models_have_same_mesh(self.models)
+
+    @property
+    def mesh(self) -> FlatMesh | SphericalMesh:
+        return self.models[0].mesh
 
     def __setattr__(self, name, value):
         """Set field attribute by name. If context exists and name in context, raise error to prevent overwriting context variable."""
@@ -186,7 +191,7 @@ class FieldSet:
             model.to_windowed_arrays(max_levels=max_levels)
         return self
 
-    def add_constant_field(self, name: str, value, mesh: ptyping.TMesh = "spherical"):
+    def add_constant_field(self, name: str, value):
         """Wrapper function to add a Field that is constant in space,
            useful e.g. when using constant horizontal diffusivity
 
@@ -196,25 +201,16 @@ class FieldSet:
             Name of the :class:`parcels.field.Field` object to be added
         value :
             Value of the constant field
-        mesh : str
-            String indicating the type of mesh coordinates,
-
-            1. spherical (default): Lat and lon in degree, with a
-               correction for zonal velocity U near the poles.
-            2. flat: No conversion, lat/lon are assumed to be in m.
         """
-        if mesh not in ("flat", "spherical"):
-            raise ValueError(f"mesh must be one of ['flat', 'spherical']. Got {mesh!r}.")
-
         if self.constant_model is None:
-            self.constant_model = create_empty_constant_field_model(mesh)
+            self.constant_model = create_empty_constant_field_model(self.mesh)
 
         self.constant_model.data[name] = (["time", "depth", "lat", "lon"], np.full((1, 1, 1, 1), value))
 
         self.reconstruct_fields()
         field = getattr(self, name)
         field.interp_method = XConstantField()
-        _warn_if_fields_use_different_meshes(self.fields.values())
+        assert_models_have_same_mesh(self.models)
 
     def add_context(self, name, value):
         """Add context variable to the FieldSet.
@@ -367,26 +363,23 @@ def assert_compatible_fieldsets(left: FieldSet, right: FieldSet) -> None:
         )
 
 
-def _warn_if_fields_use_different_meshes(fields: Iterable[Field | VectorField]):
-    """Warn if multiple fields use different meshes on the underlying grids.
+class IncompatibleMeshesException(Exception): ...
 
-    Parameters
-    ----------
-    fields : Iterable[Field | VectorField]
-        The fields to check for conflicting meshes.
 
-    Warns
-    -----
-    FieldSetWarning
-        If the fields have different meshes on the underlying grids.
-    """
-    meshes = {field.grid._mesh for field in fields}
-    if len(meshes) > 1:
-        warnings.warn(
-            f"FieldSet has multiple different meshes: {meshes}. This may lead to unexpected behavior during execution.",
-            category=FieldSetWarning,
-            stacklevel=3,
-        )
+def assert_models_have_same_mesh(models: list[ModelData]):
+    if models == []:
+        return
+
+    first_mesh = None
+    for i, model in enumerate(models):
+        if first_mesh is None:
+            first_mesh = model.mesh
+            continue
+
+        if model.mesh != first_mesh:
+            raise IncompatibleMeshesException(
+                f"All ModelData objects must have the same meshes. ModelData at index 0 has a mesh of {first_mesh!r} while ModelData at index {i} has mesh {model.mesh!r} "
+            )
 
 
 class CalendarError(Exception):  # TODO: Move to a Parcels errors module

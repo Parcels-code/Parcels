@@ -5,6 +5,7 @@ import numpy as np
 import pytest
 import xarray as xr
 from numpy.testing import assert_allclose
+from re_assert import Matches
 
 from parcels import FieldSet
 from parcels._core.index_search import (
@@ -54,6 +55,10 @@ def assert_equal(actual, expected):
 def test_grid_init_param_types(ds):
     with pytest.raises(ValueError, match="Invalid value 'invalid'. Valid options are.*"):
         XGrid.from_dataset(ds, mesh="invalid")
+
+
+def test_xgrid_repr(fieldset):
+    Matches(r"\<.*XGrid object at.*\>").assert_matches(repr(fieldset.U.grid))
 
 
 @pytest.mark.parametrize("ds, attr, expected", test_cases)

@@ -26,8 +26,8 @@ def test_fieldKh_Brownian(mesh):
     ds["lon"].data = np.array([-1e6, 1e6])
     ds["lat"].data = np.array([-1e6, 1e6])
     fieldset = FieldSet.from_sgrid_conventions(ds, mesh=mesh)
-    fieldset.add_constant_field("Kh_zonal", kh_zonal, mesh=mesh)
-    fieldset.add_constant_field("Kh_meridional", kh_meridional, mesh=mesh)
+    fieldset.add_constant_field("Kh_zonal", kh_zonal)
+    fieldset.add_constant_field("Kh_meridional", kh_meridional)
 
     npart = 100
     runtime = np.timedelta64(2, "h")

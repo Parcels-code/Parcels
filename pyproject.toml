@@ -20,19 +20,20 @@ classifiers = [
   "Intended Audience :: Science/Research",
 ]
 dependencies = [
+  "cf_xarray >=0.10.0",
   "cftime >=1.6.3",
-  "numpy >=2.1.0",
-  "dask >=2024.5.1",
-  "netCDF4 >=1.7.2",
-  "zarr >=3",
-  "tqdm >=4.50.0",
-  "xarray >=2024.5.0",
-  "pandas >= 2.2",
-  "pyarrow >=20.0.0",
-  "uxarray >=2026.04.1",
+  "dask >=2025.7.0",
+  "netCDF4 >=1.6.0",
+  "numpy >=2.2.0",
+  "pandas >= 2.3",
+  "polars >=1.32.0",
   "pooch >=1.8.0",
-  "cf_xarray >=0.8.6",
-  "polars >=1.31.0",
+  "pyarrow >=21.0.0",
+  "tabulate >=0.9.0",
+  "tqdm >=4.67.0",
+  "uxarray >=2026.04.1",
+  "xarray >=2025.8.0",
+  "zarr >=3.1",
 ]
 
 [project.urls]
@@ -52,14 +53,13 @@ local_scheme = "no-local-version"
 [tool.pytest.ini_options]
 addopts = ["--strict-config", "--strict-markers"]
 xfail_strict = true
-# testpaths = ["tests", "docs/examples"] # TODO v4: Re-enable once examples are back/fixed
 testpaths = ["tests"]
 python_files = ["test_*.py", "example_*.py", "*tutorial*"]
 minversion = "7"
 markers = [ # can be skipped by doing `pytest -m "not slow"` etc.
   "slow: slow tests",
-  "validation: validation tests (skipped by default, run with `-m validation`)",
-  "flaky: flaky tests (skipped by default, run with `-m flaky`)",
+  "validation: validation tests (skipped by default, run with `--run-validation-tests`)",
+  "flaky: flaky tests (skipped by default, run with `--run-flaky-tests`)",
   "v4alpha: failing tests that should work for v4alpha",
   "v4future: failing tests that should work for a future release of v4",
   "v4remove: failing tests that should probably be removed later",
@@ -99,11 +99,6 @@ select = [
   # "T20", # disallows printing in code - Parcels source code should not have dev debugging statements, or should use logging statements instead of prints
   "NPY201", # numpy 2 deprecations
 ]
-
-exclude = [
-  "tests-v3/**",
-  'docs/user_guide/examples_v3/**',
-] # TODO v4: Remove once folders are gone
 
 ignore = [
   # # Rules intentionally excluded

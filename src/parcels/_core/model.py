@@ -15,6 +15,7 @@ import parcels._typing as ptyping
 from parcels._core._windowed_array import maybe_windowed
 from parcels._core.basegrid import BaseGrid
 from parcels._core.field import Field, VectorField
+from parcels._core.mesh import FlatMesh, SphericalMesh
 from parcels._core.utils.time import TimeInterval
 from parcels._core.uxgrid import UxGrid
 from parcels._core.xgrid import (
@@ -45,6 +46,10 @@ class ModelData(ABC):
     grid: BaseGrid
     field_to_interpolator: dict[str, ScalarInterpolator | VectorInterpolator]
     vector_field_components: ptyping.VectorFields
+
+    @property
+    def mesh(self) -> FlatMesh | SphericalMesh:
+        return self.grid._mesh
 
     @abstractmethod
     def construct_fields(self) -> list[Field | VectorField]: ...
@@ -291,8 +296,9 @@ def assert_vector_field_components_in_dataset(ds: xr.Dataset, vector_fields: pty
     return
 
 
-def create_empty_constant_field_model(mesh: ptyping.TMesh) -> StructuredModelData:
+def create_empty_constant_field_model(mesh: SphericalMesh | FlatMesh) -> StructuredModelData:
     """Create a empty model for constant fields with the given mesh type."""
+    mesh_: ptyping.TMesh = "flat" if isinstance(mesh, FlatMesh) else mesh
     return StructuredModelData.from_sgrid_conventions(
         xr.Dataset(
             {},
@@ -314,7 +320,7 @@ def create_empty_constant_field_model(mesh: ptyping.TMesh) -> StructuredModelDat
                 ),
             ),
         ),
-        mesh=mesh,
+        mesh=mesh_,
         vector_fields={},
     )
 

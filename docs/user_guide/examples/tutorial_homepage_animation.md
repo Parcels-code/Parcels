@@ -23,7 +23,6 @@ particle_filename = "copernicusmarine_globalsurface.parquet"
 
 def run_global_copernicusmarine():
     import copernicusmarine
-    copernicusmarine.login()
 
     ds = copernicusmarine.open_dataset(
         dataset_id="cmems_mod_glo_phy-cur_anfc_0.083deg_P1D-m",
@@ -35,7 +34,6 @@ def run_global_copernicusmarine():
         service="arco-geo-series",
         chunk_size_limit=1,
     )
-    ds = ds.fillna(0)
 
     ds_wrap = xr.concat(
         [
@@ -85,7 +83,7 @@ def run_global_copernicusmarine():
         particles.dy += v2 * particles.dt
 
     pset.execute(
-        [AdvectionRK2_periodic],
+        AdvectionRK2_periodic,
         dt=np.timedelta64(1, "h"),
         runtime=np.timedelta64(365, "D"),
         output_file=oufile,

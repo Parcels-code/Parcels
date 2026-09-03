@@ -116,7 +116,7 @@ class Field:
         return self.model.time_interval
 
     def __repr__(self):
-        return f"Field(name={self.name}, model={self.model})"
+        return f"Field(name={self.name!r}, model={self.model})"
 
     @property
     def interp_method(self):

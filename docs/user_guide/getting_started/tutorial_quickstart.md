@@ -157,7 +157,7 @@ pset.execute(
 
 ## Read output
 
-To start analyzing the trajectories computed by Parcels, we can open the {py:obj}`parcels.ParticleFile` using the {py:func}`parcels.read_particlefile()` utility, which itself uses `polars`:
+To start analysing the trajectories computed by Parcels, we can open the {py:obj}`parcels.ParticleFile` using the {py:func}`parcels.read_particlefile()` utility, which itself uses `polars`:
 
 ```{code-cell}
 df = parcels.read_particlefile("output-quickstart.parquet")
@@ -176,7 +176,7 @@ import matplotlib.dates as mdates
 # convert time to matplotlib date format for plotting
 time_values = mdates.date2num(df["t"].to_list())
 
-# plot positions and color particles by time
+# plot positions and colour particles by time
 scatter = plt.scatter(df['x'], df['y'], c=time_values)
 plt.scatter(df['x'][:npart], df['y'][:npart], facecolors="none", edgecolors='r') # starting positions
 plt.scatter(lon, lat, facecolors="none", edgecolors='r') # starting positions

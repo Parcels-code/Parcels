@@ -9,11 +9,13 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 import xarray as xr
+from re_assert import Matches
 
 import parcels.tutorial
 from parcels import (
     Field,
     FieldSet,
+    Particle,
     ParticleFile,
     ParticleSet,
     ParticleSetWarning,
@@ -21,13 +23,24 @@ from parcels import (
     Variable,
     convert,
 )
-from parcels._core.particle import Particle, get_default_particle
+from parcels._core.particle import get_default_particle
 from parcels._core.particlefile import get_schema
 from parcels._core.utils.time import TimeInterval, timedelta_to_float
 from parcels._datasets.structured.generated import peninsula_dataset
 from parcels.interpolators import XLinear
 from parcels.kernels import AdvectionRK4
 from tests.common_kernels import DoNothing
+
+
+def test_particlefile_repr(tmp_parquet):
+    pfile_repr = repr(ParticleFile(tmp_parquet, outputdt=np.timedelta64(1, "s")))
+    match = Matches(
+        r"""\<ParticleFile\>
+    path                : .*
+    outputdt            : 1.0
+    metadata            : .*""",
+    )
+    match.assert_matches(pfile_repr)
 
 
 def test_metadata(fieldset, tmp_parquet):

@@ -1,8 +1,8 @@
 import numpy as np
 import pytest
 
-from parcels import FieldSet, ParticleSet, SphericalMesh
-from parcels._core.mesh import EARTH_RADIUS
+from parcels import FieldSet, ParticleSet
+from parcels._core.mesh import EARTH_RADIUS, FlatMesh, SphericalMesh
 from parcels._datasets.structured.generated import simple_UV_dataset
 from parcels.kernels import AdvectionRK4
 
@@ -82,3 +82,22 @@ def test_spherical_mesh_rejects_non_numeric_radius(bad_radius):
 def test_spherical_mesh_rejects_nonpos_radius(bad_radius):
     with pytest.raises(ValueError):
         SphericalMesh(radius=bad_radius)
+
+
+@pytest.mark.parametrize(
+    "lhs, op, rhs",
+    [
+        (FlatMesh(), "==", FlatMesh()),
+        (FlatMesh(), "!=", SphericalMesh()),
+        (SphericalMesh(), "==", SphericalMesh()),
+        (SphericalMesh(20_000), "!=", SphericalMesh(30_000)),
+    ],
+)
+def test_mesh_equality(lhs, op, rhs):
+    match op:
+        case "==":
+            assert lhs == rhs
+        case "!=":
+            assert lhs != rhs
+        case _:
+            raise NotImplementedError
