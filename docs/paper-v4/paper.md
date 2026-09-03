@@ -52,7 +52,12 @@ These domain specific items have been removed in this version, and our documenta
 
 # State of the field
 
-> TODO: A description of how this software compares to other commonly-used packages in the research area. If related tools exist, provide a clear “build vs. contribute” justification explaining your unique scholarly contribution and why existing alternatives are insufficient.
+Parcels is not the only open-source Lagrangian particle tracking framework for research.
+Other notable frameworks for oceanographic applications include OpenDrift [@dagestad_opendrift_2018], TRACMASS [@doos_evaluation_2017], Ariane [@blanke_kinematics_1997], Drifters.jl, TrackMPD [@jalon-rojas_3d_2019], Ichthyop [@barrier_ichthyop_2026], and the Connectivity Modelling System [@paris_connectivity_2013] -- each with their own strengths and limitations.
+OpenDrift is very good for Search-and-Rescue simulations and operational forecasting, TRACMASS and Ariane excel in deterministic (analytical) particle tracking on structured grids, Drifters.jl is useful for advanced diagnostics, TrackMPD is designed specifically for marine plastic applications, and Ichthyop and the Connectivity Modelling System are especially useful for biological applications.
+Furthermore, many of the hydrodynamic models also have their (online) particle tracking modules, but these are often tightly coupled to the specific model and lack the flexibility offered by standalone frameworks like Parcels.
+In the atmosphere, FlexPart [@stohl_validation_1998] is a widely used Lagrangian particle tracking framework.
+However, none of these packages come with the flexibility in terms of structured and unstructured grid support, and custom kernels and interpolators, that Parcels offers.
 
 # Software design
 
