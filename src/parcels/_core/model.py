@@ -296,8 +296,9 @@ def assert_vector_field_components_in_dataset(ds: xr.Dataset, vector_fields: pty
     return
 
 
-def create_empty_constant_field_model(mesh: ptyping.TMesh) -> StructuredModelData:
+def create_empty_constant_field_model(mesh: SphericalMesh | FlatMesh) -> StructuredModelData:
     """Create a empty model for constant fields with the given mesh type."""
+    mesh_: ptyping.TMesh = "flat" if isinstance(mesh, FlatMesh) else mesh
     return StructuredModelData.from_sgrid_conventions(
         xr.Dataset(
             {},
@@ -319,7 +320,7 @@ def create_empty_constant_field_model(mesh: ptyping.TMesh) -> StructuredModelDat
                 ),
             ),
         ),
-        mesh=mesh,
+        mesh=mesh_,
         vector_fields={},
     )
 

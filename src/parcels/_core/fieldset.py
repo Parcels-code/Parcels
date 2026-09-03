@@ -203,8 +203,7 @@ class FieldSet:
             Value of the constant field
         """
         if self.constant_model is None:
-            mesh = "flat" if isinstance(self.mesh, FlatMesh) else self.mesh
-            self.constant_model = create_empty_constant_field_model(mesh)
+            self.constant_model = create_empty_constant_field_model(self.mesh)
 
         self.constant_model.data[name] = (["time", "depth", "lat", "lon"], np.full((1, 1, 1, 1), value))
 
