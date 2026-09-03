@@ -191,7 +191,7 @@ class FieldSet:
             model.to_windowed_arrays(max_levels=max_levels)
         return self
 
-    def add_constant_field(self, name: str, value, mesh: ptyping.TMesh = "spherical"):
+    def add_constant_field(self, name: str, value):
         """Wrapper function to add a Field that is constant in space,
            useful e.g. when using constant horizontal diffusivity
 
@@ -201,17 +201,9 @@ class FieldSet:
             Name of the :class:`parcels.field.Field` object to be added
         value :
             Value of the constant field
-        mesh : str
-            String indicating the type of mesh coordinates,
-
-            1. spherical (default): Lat and lon in degree, with a
-               correction for zonal velocity U near the poles.
-            2. flat: No conversion, lat/lon are assumed to be in m.
         """
-        if mesh not in ("flat", "spherical"):
-            raise ValueError(f"mesh must be one of ['flat', 'spherical']. Got {mesh!r}.")
-
         if self.constant_model is None:
+            mesh = "flat" if isinstance(self.mesh, FlatMesh) else self.mesh
             self.constant_model = create_empty_constant_field_model(mesh)
 
         self.constant_model.data[name] = (["time", "depth", "lat", "lon"], np.full((1, 1, 1, 1), value))

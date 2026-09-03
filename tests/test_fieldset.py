@@ -33,7 +33,7 @@ def fieldset_two_models():
     fset2 = FieldSet.from_sgrid_conventions(ds2, mesh="flat", vector_fields={"UV_wind": ("U_wind", "V_wind")})
     fset2.add_context("my_value", 2.0)
     fset2.add_context("my_list", [1, 2, "hello"])
-    fset2.add_constant_field("constant_field", 3.0, mesh="flat")
+    fset2.add_constant_field("constant_field", 3.0)
     return fset1 + fset2
 
 
@@ -74,7 +74,7 @@ def test_fieldset_add_context_invalid_name(fieldset, name):
 
 
 def test_fieldset_add_constant_field(fieldset):
-    fieldset.add_constant_field("test_constant_field", 1.0, mesh="flat")
+    fieldset.add_constant_field("test_constant_field", 1.0)
 
     # Get a point in the domain
     time = ds["time"].mean()
@@ -91,7 +91,7 @@ def test_fieldset_gridset(fieldset):
     assert fieldset.fields["UV"].grid in fieldset.gridset
     assert len(fieldset.gridset) == 1
 
-    fieldset.add_constant_field("constant_field", 1.0, mesh="flat")
+    fieldset.add_constant_field("constant_field", 1.0)
     assert len(fieldset.gridset) == 2
 
 
@@ -238,7 +238,7 @@ def test_multi_model_time_interval():
     ds3["time"] = (ds3["time"].dims, ds3["time"].data + np.timedelta64(timedelta(days=2)), ds3["time"].attrs)
     fieldset += FieldSet.from_sgrid_conventions(ds3, mesh="flat")
 
-    fieldset.add_constant_field("constant_field", 1.0, mesh="flat")
+    fieldset.add_constant_field("constant_field", 1.0)
 
     assert len(fieldset.models) == 3
     assert fieldset.constant_model is not None
@@ -258,7 +258,7 @@ def test_multi_model_nonoverlapping_time_interval():
     ds3["time"] = (ds3["time"].dims, ds3["time"].data + np.timedelta64(timedelta(days=2000)), ds3["time"].attrs)
     fieldset += FieldSet.from_sgrid_conventions(ds3, mesh="flat")
 
-    fieldset.add_constant_field("constant_field", 1.0, mesh="flat")
+    fieldset.add_constant_field("constant_field", 1.0)
 
     assert len(fieldset.models) == 3
     assert fieldset.constant_model is not None
