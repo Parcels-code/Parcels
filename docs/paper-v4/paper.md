@@ -67,6 +67,8 @@ These converters also attach relevant CF-convention and grid geometry metadata (
 The diagram in Figure 1 illustrates the code path when working from model data to a fully constructed FieldSet.
 If a user wants to run a simulation with fields from different models, they load each model data into its own FieldSet and then combine the FieldSets together into a single FieldSet.
 
+<!-- Writers note: The source for this image is at `data-ingestion.excalidraw`. Install the VScode Excalidraw Extension (https://marketplace.visualstudio.com/items?itemName=pomdtr.excalidraw-editor ) to easily edit it. -->
+
 ![Figure 1: Code path for the new FieldSet ingestion in v4 of Parcels](./data-ingestion.png)
 
 A strength of earlier Parcels versions has been the ability for users to write custom "kernels" which encode particle actions over the course of a simulation.
