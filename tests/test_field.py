@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
+from re_assert import Matches
 
 from parcels import Field, VectorField
 from parcels._core.fieldset import FieldSet
@@ -37,6 +38,14 @@ def test_field_init_param_types():
         match=r"Received invalid Python variable name.*: it is a reserved keyword. HINT: avoid using the following names:.*",
     ):
         Field(name="while", model=model)
+
+
+def test_field_repr(fieldset):
+    Matches(r"Field\(name=.*, model=.*\)").assert_matches(repr(fieldset.U))
+
+
+def test_vectorfield_repr(fieldset):
+    Matches(r"\<.*VectorField object at.*\>").assert_matches(repr(fieldset.UV))
 
 
 # TODO: Move to test_model.py ?

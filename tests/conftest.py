@@ -3,18 +3,22 @@ import pytest
 from parcels import FieldSet
 from parcels._datasets.structured.generic import datasets as datasets_structured
 
-SKIP_BY_DEFAULT = {"validation", "flaky"}
+
+def pytest_addoption(parser: pytest.Parser):
+    """Add command-line flags for pytest."""
+    parser.addoption("--run-flaky-tests", action="store_true", help="runs flaky tests")
+    parser.addoption(
+        "--run-validation-tests",
+        action="store_true",
+        help="runs validation tests",
+    )
 
 
-def pytest_collection_modifyitems(config, items):
-    if not config.getoption("-m"):
-        for item in items:
-            skip_by_default = list(SKIP_BY_DEFAULT & set(item.keywords))
-            if skip_by_default:
-                skip_marker = skip_by_default[0]  # get first marker in case of multiple
-                item.add_marker(
-                    pytest.mark.skip(reason=f"{skip_marker} tests skipped by default, use `-m {skip_marker}` to run")
-                )
+def pytest_runtest_setup(item):
+    if "flaky" in item.keywords and not item.config.getoption("--run-flaky-tests"):
+        pytest.skip("set --run-flaky-tests to run flaky tests")
+    if "validation" in item.keywords and not item.config.getoption("--run-validation-tests"):
+        pytest.skip("set --run-validation-tests to run validation tests")
 
 
 @pytest.fixture

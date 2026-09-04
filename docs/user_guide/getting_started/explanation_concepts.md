@@ -116,12 +116,15 @@ where $\mathbf{v}(\mathbf{x},t) = (u(\mathbf{x},t), v(\mathbf{x},t))$ describes 
 In Parcels, we can write a kernel function which integrates this equation at each timestep `particles.dt`. To do so, we need the ocean velocity field `fieldset.UV` at the `particles` location, and compute the change in position, `particles.dx` and `particles.dy`.
 
 ```python
+@parcels.validate_kernel
 def AdvectionEE(particles, fieldset):
     """Advection of particles using Explicit Euler (aka Euler Forward) integration."""
     (u1, v1) = fieldset.UV[particles]
     particles.dx += u1 * particles.dt
     particles.dy += v1 * particles.dt
 ```
+
+Note that the (optional) `@parcels.validate_kernel` decorator can be used to ensure that the kernel function is correctly defined and follows recommendations.
 
 Basic kernels are included in Parcels to compute advection and diffusion. The standard advection kernel is {py:obj}`parcels.kernels.AdvectionRK2`, a [second-order Runge-Kutta integrator](https://en.wikipedia.org/wiki/Runge%E2%80%93Kutta_methods#The_Runge%E2%80%93Kutta_method) of the advection function.
 

@@ -5,6 +5,7 @@ from operator import attrgetter
 import numpy as np
 import pytest
 import xarray as xr
+from re_assert import Matches
 
 from parcels import (
     FieldSet,
@@ -33,6 +34,10 @@ def test_create_empty_pset(fieldset):
 
     pset.execute(DoNothing, endtime=1.0, dt=1.0)
     assert pset.size == 0
+
+
+def test_particleset_repr(fieldset):
+    Matches(r"\<.*ParticleSet object at.*\>").assert_matches(repr(ParticleSet(fieldset, pclass=Particle)))
 
 
 @pytest.mark.parametrize("offset", [0, 1, 200])
