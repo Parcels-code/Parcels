@@ -74,7 +74,7 @@ If a user wants to run a simulation with fields from different models, they load
 
 <!-- Writers note: The source for this image is at `data-ingestion.excalidraw`. Install the VScode Excalidraw Extension (https://marketplace.visualstudio.com/items?itemName=pomdtr.excalidraw-editor ) to easily edit it. -->
 
-![Figure 1: Code path for the new FieldSet ingestion in v4 of Parcels](./data-ingestion.png)
+![Code path for the new FieldSet ingestion in v4 of Parcels](./data-ingestion.png)
 
 A strength of earlier Parcels versions has been the ability for users to write custom "kernels" which encode particle actions over the course of a simulation.
 This flexibility has enabled users to model a wide range of physical phenomena, from plastic pollution to plankton and fish larvae.
