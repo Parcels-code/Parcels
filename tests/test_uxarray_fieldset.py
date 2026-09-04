@@ -15,6 +15,7 @@ from parcels.interpolators import (
     UxConstantFaceConstantZC,
     UxLinearNodeLinearZF,
 )
+from tests.utils import create_uxgrid_from_triangulation
 
 
 @pytest.fixture
@@ -149,3 +150,64 @@ def test_icon_evals():
     # value for interpolation is then just computed using query point locations
     # for the latitude and longitude, and the layer centers vertically.
     assert np.allclose(fieldset.p.eval(t=tq, z=zq, y=yq, x=xq), zc * (xq + yq))
+
+
+# Constrained (PSLG) Delaunay triangulation of the three nested polygons in
+# docs/user_guide/examples/tutorial_nestedgrids.ipynb, as produced by
+# triangle.triangulate({"vertices": ..., "segments": ...}, "p").
+#
+# Baked in as literals rather than recomputed: py-triangle is only in the "notebooks"
+# pixi feature, not "test", and the notebook's geometry is what #2878 is about, so
+# pinning it also stops the reproducer drifting if the triangulator changes.
+_NESTEDGRIDS_NODES = np.array(
+    [
+        [10.0, 15.0],
+        [25.0, 10.0],
+        [25.0, 25.0],
+        [17.0, 36.0],
+        [10.0, 32.0],
+        [0.0, -5.0],
+        [35.0, 0.0],
+        [35.0, 25.0],
+        [0.0, 20.0],
+        [-10.0, -20.0],
+        [60.0, -20.0],
+        [60.0, 40.0],
+        [-10.0, 40.0],
+        [25.0, 165.0 / 7.0],  # Steiner point added by the triangulator
+        [10.0, 150.0 / 7.0],  # Steiner point added by the triangulator
+    ]
+)
+_NESTEDGRIDS_FACES = np.array(
+    [
+        [8, 9, 5], [5, 9, 6], [0, 5, 1], [8, 5, 0], [12, 8, 4], [8, 12, 9],
+        [14, 8, 0], [12, 4, 3], [13, 14, 0], [14, 2, 4], [7, 1, 6], [6, 1, 5],
+        [10, 6, 9], [11, 6, 10], [3, 2, 7], [3, 4, 2], [7, 11, 3], [11, 7, 6],
+        [13, 1, 7], [3, 11, 12], [4, 8, 14], [13, 0, 1], [2, 14, 13], [7, 2, 13],
+    ]
+)  # fmt: skip
+
+
+@pytest.mark.xfail(reason="#2878 - see tests/test_spatialhash.py and tests/test_index_search.py for the two causes")
+def test_nestedgrids_notebook_triangulation_spherical_search():
+    """Every particle in tutorial_nestedgrids.ipynb must be located on a spherical mesh.
+
+    The notebook reduced to the grid-search step: same triangulation, same 500
+    positions, no fields or kernel. Covers the reported symptom; the two underlying
+    defects are covered separately by the tests named in the xfail reason.
+    """
+    grid = create_uxgrid_from_triangulation(
+        _NESTEDGRIDS_NODES[:, 0], _NESTEDGRIDS_NODES[:, 1], _NESTEDGRIDS_FACES, mesh="spherical"
+    )
+
+    x, y = np.meshgrid(np.linspace(-8, 58, 25), np.linspace(-18, 38, 20))
+    x = x.ravel()
+    y = y.ravel()
+    z = np.zeros_like(x)
+
+    face = grid.search(z, y, x)["FACE"]["index"]
+    n_lost = int(np.count_nonzero(face < 0))
+    assert n_lost == 0, (
+        f"grid search failed for {n_lost} of {len(x)} particles; e.g. (lon, lat)="
+        f"{np.column_stack((x, y))[face < 0][:3].tolist()}"
+    )

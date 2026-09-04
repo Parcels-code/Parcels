@@ -166,3 +166,101 @@ def assert_cftime_like_particlefile(parquet_path: Path) -> None:
         "CF-time values in Parquet did not get properly decoded. Are the attributes correct?"
     )
     return
+
+
+def create_uxgrid_from_triangulation(node_lon, node_lat, faces, mesh="spherical", z=(0.0, 1.0)):
+    """Wrap a bare triangulation (node lon/lat in degrees, triangles) in a parcels UxGrid."""
+    import uxarray as ux
+
+    from parcels._core.uxgrid import UxGrid
+
+    uxgrid = ux.Grid.from_topology(
+        node_lon=np.asarray(node_lon, dtype=np.float64),
+        node_lat=np.asarray(node_lat, dtype=np.float64),
+        face_node_connectivity=np.asarray(faces, dtype=np.int64),
+    )
+    zc = ux.UxDataArray(np.asarray(z, dtype=np.float64), dims="zf", uxgrid=uxgrid)
+    return UxGrid(uxgrid, zc, mesh=mesh)
+
+
+def create_uxgrid_triangulated_patch(face_deg, centre=(0.0, 0.0), n=8, mesh="spherical"):
+    """Regular ``n`` x ``n`` lon/lat patch of ``face_deg`` quads, split into triangles.
+
+    ``centre`` matters on spherical meshes: the Cartesian coordinate functions have
+    stationary points at lon in {0, +-90, 180} on the equator and at the poles, and a
+    face straddling one varies quadratically rather than linearly there.
+
+    Returns ``(grid, nodes, faces)`` with nodes as (lon, lat) degrees.
+    """
+    half = 0.5 * face_deg * n
+    if abs(centre[1]) + half > 90.0:
+        raise ValueError(
+            f"patch of {n} x {face_deg} deg faces centred at lat {centre[1]} runs past the pole; reduce n or face_deg"
+        )
+    lons = np.linspace(centre[0] - half, centre[0] + half, n + 1)
+    lats = np.linspace(centre[1] - half, centre[1] + half, n + 1)
+    grid_lon, grid_lat = np.meshgrid(lons, lats)
+    nodes = np.column_stack((grid_lon.ravel(), grid_lat.ravel()))
+
+    faces = []
+    for j in range(n):
+        for i in range(n):
+            sw = j * (n + 1) + i
+            se = sw + 1
+            nw = sw + n + 1
+            ne = nw + 1
+            faces.append([sw, se, ne])
+            faces.append([sw, ne, nw])
+    faces = np.asarray(faces, dtype=np.int64)
+
+    grid = create_uxgrid_from_triangulation(nodes[:, 0], nodes[:, 1], faces, mesh=mesh)
+    return grid, nodes, faces
+
+
+# Asymmetric so samples avoid the centroid, edge midpoints, and the shared quad diagonal.
+_INTERIOR_BARYCENTRIC_WEIGHTS = np.array(
+    [
+        [1 / 3, 1 / 3, 1 / 3],
+        [0.70, 0.19, 0.11],
+        [0.11, 0.70, 0.19],
+        [0.19, 0.11, 0.70],
+        [0.46, 0.31, 0.23],
+        [0.23, 0.46, 0.31],
+    ]
+)
+
+
+def sample_points_inside_faces(nodes, faces, weights=None):
+    """Sample points strictly inside each triangle, with the containing face known exactly.
+
+    Triangles are straight-sided in lon/lat, so strictly positive barycentric weights
+    put a point inside its face by construction - no point-in-polygon library needed.
+
+    Returns ``(lon, lat, expected_face)``.
+    """
+    if weights is None:
+        weights = _INTERIOR_BARYCENTRIC_WEIGHTS
+    weights = np.asarray(weights, dtype=np.float64)
+    assert np.all(weights > 0.0), "weights must be strictly positive to lie inside the face"
+    assert np.allclose(weights.sum(axis=1), 1.0), "weights must sum to 1"
+
+    verts = np.asarray(nodes, dtype=np.float64)[np.asarray(faces)]  # (n_face, 3, 2)
+    # (n_face, n_weights, 2)
+    pts = np.einsum("wk,fkc->fwc", weights, verts)
+    expected_face = np.repeat(np.arange(len(faces)), len(weights))
+    return pts[..., 0].ravel(), pts[..., 1].ravel(), expected_face
+
+
+def cartesian_face_bounds_from_vertices(grid):
+    """Per-face Cartesian bounding box from vertices only, as ``SpatialHash`` builds it.
+
+    Lets tests assert on box geometry directly instead of inferring it from a failed query.
+    Returns ``(low, high)``, each shape (n_face, 3).
+    """
+    from parcels._core.index_search import _latlon_rad_to_xyz
+
+    nids = grid.uxgrid.face_node_connectivity.values
+    lon = np.deg2rad(grid.uxgrid.node_lon.values[nids])
+    lat = np.deg2rad(grid.uxgrid.node_lat.values[nids])
+    verts = np.stack(_latlon_rad_to_xyz(lat, lon), axis=-1)  # (n_face, 3, 3)
+    return verts.min(axis=1), verts.max(axis=1)

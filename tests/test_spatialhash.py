@@ -1,10 +1,18 @@
 from io import StringIO
 
 import numpy as np
+import pytest
 
 from parcels._core.fieldset import FieldSet
+from parcels._core.index_search import _latlon_rad_to_xyz
 from parcels._core.spatialhash import _HASH_ENTRIES_PER_FACE, _HASH_ENTRY_BUDGET_MIN
 from parcels._datasets.structured.generic import datasets
+from tests.utils import (
+    cartesian_face_bounds_from_vertices,
+    create_uxgrid_from_triangulation,
+    create_uxgrid_triangulated_patch,
+    sample_points_inside_faces,
+)
 
 
 def _cell_centers(grid):
@@ -176,3 +184,56 @@ def test_nan_node_invalidates_touching_faces():
     j_rest, i_rest, _ = spatialhash.query(clat[mask], clon[mask])
     assert np.array_equal(j_rest, jj[mask])
     assert np.array_equal(i_rest, ii[mask])
+
+
+_SPHERICAL_FACE_CASES = [
+    # Resolution-independent failure: the face straddles a stationary point of a
+    # Cartesian coordinate, so its interior extremum is invisible to the vertices.
+    pytest.param(1.0, (0.0, 0.0), id="1deg-at-cartesian-stationary-point"),
+    # Away from a stationary point the gap is O(face**2), so only large faces fail.
+    pytest.param(15.0, (40.0, 30.0), id="15deg-away-from-stationary-point"),
+    pytest.param(25.0, (25.0, 10.0), id="25deg-notebook-scale"),
+]
+
+
+@pytest.mark.parametrize(("face_deg", "centre"), _SPHERICAL_FACE_CASES)
+@pytest.mark.xfail(reason="#2878 - spherical face bounding boxes are built from vertices only")
+def test_spherical_uxgrid_face_bounds_contain_face_interior(face_deg, centre):
+    """A face's Cartesian bounding box must contain the whole face, not just its vertices.
+
+    Asserts on box geometry only, so the point-in-cell defect cannot mask this one.
+    """
+    grid, nodes, faces = create_uxgrid_triangulated_patch(face_deg, centre=centre, mesh="spherical")
+    lon, lat, expected_face = sample_points_inside_faces(nodes, faces)
+
+    low, high = cartesian_face_bounds_from_vertices(grid)
+    query = np.stack(_latlon_rad_to_xyz(np.deg2rad(lat), np.deg2rad(lon)), axis=-1)
+
+    inside_box = np.all((query >= low[expected_face]) & (query <= high[expected_face]), axis=1)
+    n_outside = int(np.count_nonzero(~inside_box))
+    assert n_outside == 0, (
+        f"{n_outside} of {len(lon)} points lie inside their face but outside that face's "
+        f"Cartesian bounding box; e.g. (lon, lat)="
+        f"{np.column_stack((lon, lat))[~inside_box][:3].tolist()}"
+    )
+
+
+@pytest.mark.parametrize(("face_deg", "centre"), _SPHERICAL_FACE_CASES)
+@pytest.mark.xfail(reason="#2878 - spherical face bounding boxes are built from vertices only")
+def test_spherical_uxgrid_hash_locates_every_interior_point(face_deg, centre):
+    """End-to-end symptom: the hash loses points that lie inside a face.
+
+    The flat build of the same triangulation must locate them all, which shows the
+    fixture is sound and the defect is specific to the spherical path.
+    """
+    _, nodes, faces = create_uxgrid_triangulated_patch(face_deg, centre=centre, mesh="flat")
+    lon, lat, _ = sample_points_inside_faces(nodes, faces)
+
+    flat_grid = create_uxgrid_from_triangulation(nodes[:, 0], nodes[:, 1], faces, mesh="flat")
+    _, flat_face, _ = flat_grid.get_spatial_hash().query(lat, lon)
+    assert np.all(flat_face >= 0), "flat-mesh search lost points, so the test fixture itself is suspect"
+
+    spherical_grid = create_uxgrid_from_triangulation(nodes[:, 0], nodes[:, 1], faces, mesh="spherical")
+    _, spherical_face, _ = spherical_grid.get_spatial_hash().query(lat, lon)
+    n_lost = int(np.count_nonzero(spherical_face < 0))
+    assert n_lost == 0, f"spherical search failed to locate {n_lost} of {len(lon)} interior points"
