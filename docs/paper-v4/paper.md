@@ -64,11 +64,13 @@ However, none of these packages come with the flexibility in terms of structured
 
 # Software design
 
-When working with output from a single circulation model, version 4 of Parcels assumes data (i.e., the field data and mesh data) is all contained in a single Xarray dataset object.
-This object is either opened directly from disk/a data store, or is constructed by the user from the component Field and mesh files with help from a "converter" function.
-These converters also attach relevant CF-convention and grid geometry metadata (SGRID metadata for structured data, UGRID metadata for unstructured data) to the dataset object, allowing the internals of Parcels to assume a certain dataset structure and metadata richness.
-The diagram in Figure 1 illustrates the code path when working from model data to a fully constructed FieldSet.
-If a user wants to run a simulation with fields from different models, they load each model data into its own FieldSet and then combine the FieldSets together into a single FieldSet.
+When working with output from a single circulation model, version 4 of Parcels assumes data (i.e., the field data and mesh data) is all contained in a single Xarray Dataset object that has appropriate metadata.
+This required metadata is certain CF-convention metadata, providing information about important variables/coordinates and their units, as well SGRID or UGRID metadata, providing grid geometry information for structured grid data and unstructured grid data respectively.
+This metadata rich object can either opened directly from disk/a data store, or is constructed by the user from the component input/output files from their particular circulation model.
+Parcels provides "converter" functions for various circulation models which understand model-specific conventions, and attach this metadata appropriately.
+This overall approach both allows the internals of Parcels to assume a certain dataset structure and metadata richness, and still allowing the software to transparently meet users where their (potentially metadata poor) data is at.
+The diagram in Figure 1 illustrates potential code paths when working from model data to a fully constructed FieldSet.
+If a user wants to run a simulation with fields from different models, they load each model data into its own FieldSet and then combine the FieldSets together into a single FieldSet simply with an addition.
 
 <!-- Writers note: The source for this image is at `data-ingestion.excalidraw`. Install the VScode Excalidraw Extension (https://marketplace.visualstudio.com/items?itemName=pomdtr.excalidraw-editor ) to easily edit it. -->
 
