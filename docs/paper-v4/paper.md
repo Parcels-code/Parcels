@@ -97,7 +97,7 @@ We seed particles along the Dutch coast, and within estuaries facing the North S
 We advect the particles for a total of a month (from 2025-11-01 to 2025-12-01) with a timestep of 10 minutes.
 Figure 2 shows the varied types of data and grid geometries that we combine, along with the resulting particle tracks.
 
-![Figure 2: Trajectories of almost 5,000 particles seeded near the port of Rotterdam in The Netherlands. Trajectories are coloured by start date, and final locations of the particles are marked by circles. The mesh of the unstructured flow model (DCSM-FM) is shown in grey, the mesh of the rectilinear Copernicusmarine wind model is shown in red, and the mesh of the curvilinear KNMI wave model is shown in blue.](./usecase_plot.png)
+![Trajectories of almost 5,000 particles seeded near the port of Rotterdam in The Netherlands. Trajectories are coloured by start date, and final locations of the particles are marked by circles. The mesh of the unstructured flow model (DCSM-FM) is shown in grey, the mesh of the rectilinear Copernicusmarine wind model is shown in red, and the mesh of the curvilinear KNMI wave model is shown in blue.](./usecase_plot.png)
 
 # Research impact statement
 
