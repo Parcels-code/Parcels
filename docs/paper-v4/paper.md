@@ -47,8 +47,11 @@ This is particularly important as climate datasets are continually increasing in
 Another interesting change is that climate modellers are increasingly providing model output on different grid geometries, which have attractive features compared to conventional structured grids.
 Running natively on these grid geometries, which can be represented as unstructured grids, without re-interpolation allows researchers to run simulations that fully capture the details from the original dataset.
 
-Finally, some naming conventions and abstractions in the Parcels codebase were previously oriented towards oceanographers.
-These domain specific items have been removed in this version, and our documentation has been adapted so that the applicability of Parcels to other (geo)scientific domains, such as atmospheric or cryospheric particle tracking, is more apparent.
+Finally, an important point is the cross-domain generalisability of Lagrangian particle tracking tools within the geosciences.
+Many of these tools originate from a specific domain, and (as evidenced by documentation, API naming, and input data support) cater to a userbase within the same domain.
+This is despite the fact the numerics of the tools themselves is largely identical between the domains.
+This results in both fractured communities, and toolsets whose usage mirrors the blurry boundaries of the domains themselves.
+Having cross-domain tooling for Lagrangian particle tracking promotes cross-collaboration, software quality, building of better standards, and the overall impact of the software in users scientific workflows.
 
 # State of the field
 
@@ -76,6 +79,9 @@ This flexibility has enabled users to model a wide range of physical phenomena, 
 Parcels version 4 adds custom interpolators, allowing users to also have control on how field data is interpolated at particle positions.
 Users can use a range of pre-packaged interpolators, or write their own, and set them on a field-by-field basis overriding the default linear interpolators.
 
+Version 4 of Parcels also improves generalisability to other domains, such as atmospheric or cryospheric particle tracking.
+It allows the encoding of various input datasets, relaxes domain specific requirements, replaces domain specific terminology, and updates our overall branding.
+
 Parcels version 4 also changes the output format from Zarr to Parquet, aligning better with that tabular nature of particle trajectory output.
 
 # Example use-case
@@ -94,7 +100,6 @@ Figure 2 shows the varied types of data and grid geometries that we combine, alo
 # Research impact statement
 
 Parcels has been cited in over 330 peer reviewed scientific papers so far mostly within the field of oceanography.
-This software update expands the reach of Parcels both to more users within oceanography, and in other domains.
 
 # AI usage disclosure
 
