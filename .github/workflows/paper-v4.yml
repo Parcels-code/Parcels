@@ -1,0 +1,37 @@
+name: paper-v4
+on:
+  push:
+    paths: # since the paper doesn't depend on the rest of the repo
+      - docs/paper-v4/**
+      - .github/workflows/paper-v4.yml
+    branches:
+      - "*"
+  workflow_dispatch:
+
+concurrency:
+  group: branch-${{ github.head_ref }}
+  cancel-in-progress: true
+
+defaults:
+  run:
+    shell: bash -el {0}
+
+permissions: {}
+
+jobs:
+  paper:
+    runs-on: ubuntu-latest
+    name: Paper Draft
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+      - name: Build draft PDF
+        uses: openjournals/openjournals-draft-action@master
+        with:
+          journal: joss
+          paper-path: docs/paper-v4/paper.md
+      - name: Upload
+        uses: actions/upload-artifact@v4
+        with:
+          name: paper
+          path: docs/paper-v4/paper.pdf
