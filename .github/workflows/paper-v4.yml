@@ -8,10 +8,6 @@ on:
       - "*"
   workflow_dispatch:
 
-concurrency:
-  group: branch-${{ github.head_ref }}
-  cancel-in-progress: true
-
 defaults:
   run:
     shell: bash -el {0}
