@@ -5,10 +5,9 @@ import pytest
 
 from parcels._core.fieldset import FieldSet
 from parcels._core.index_search import _latlon_rad_to_xyz
-from parcels._core.spatialhash import _HASH_ENTRIES_PER_FACE, _HASH_ENTRY_BUDGET_MIN
+from parcels._core.spatialhash import _HASH_ENTRIES_PER_FACE, _HASH_ENTRY_BUDGET_MIN, _spherical_triangle_bounds
 from parcels._datasets.structured.generic import datasets
 from tests.utils import (
-    cartesian_face_bounds_from_vertices,
     create_uxgrid_from_triangulation,
     create_uxgrid_triangulated_patch,
     sample_points_inside_faces,
@@ -187,33 +186,34 @@ def test_nan_node_invalidates_touching_faces():
 
 
 _SPHERICAL_FACE_CASES = [
-    # Resolution-independent failure: the face straddles a stationary point of a
-    # Cartesian coordinate, so its interior extremum is invisible to the vertices.
-    pytest.param(1.0, (0.0, 0.0), id="1deg-at-cartesian-stationary-point"),
-    # Away from a stationary point the gap is O(face**2), so only large faces fail.
-    pytest.param(15.0, (40.0, 30.0), id="15deg-away-from-stationary-point"),
-    pytest.param(25.0, (25.0, 10.0), id="25deg-notebook-scale"),
+    pytest.param(1.0, (0.3, 0.6), id="1deg-small-scale"),
+    pytest.param(15.0, (40.0, 30.0), id="15deg-medium-scale"),
+    pytest.param(25.0, (25.0, 10.0), id="25deg-large-scale"),
 ]
 
 
 @pytest.mark.parametrize(("face_deg", "centre"), _SPHERICAL_FACE_CASES)
-@pytest.mark.xfail(reason="#2878 - spherical face bounding boxes are built from vertices only")
-def test_spherical_uxgrid_face_bounds_contain_face_interior(face_deg, centre):
-    """A face's Cartesian bounding box must contain the whole face, not just its vertices.
-
-    Asserts on box geometry only, so the point-in-cell defect cannot mask this one.
-    """
-    grid, nodes, faces = create_uxgrid_triangulated_patch(face_deg, centre=centre, mesh="spherical")
+def test_spherical_triangle_bounds_contains_face_interior(face_deg, centre):
+    """_spherical_triangle_bounds's per-face box must contain the whole face, not just its vertices."""
+    n = 4 if face_deg >= 15.0 else 8
+    _, nodes, faces = create_uxgrid_triangulated_patch(face_deg, centre=centre, n=n, mesh="spherical")
     lon, lat, expected_face = sample_points_inside_faces(nodes, faces)
 
-    low, high = cartesian_face_bounds_from_vertices(grid)
+    face_lon = np.deg2rad(nodes[faces, 0])
+    face_lat = np.deg2rad(nodes[faces, 1])
+    verts = np.stack(_latlon_rad_to_xyz(face_lat, face_lon), axis=-1)  # (n_face, 3, 3)
+
+    xlow, xhigh, ylow, yhigh, zlow, zhigh = _spherical_triangle_bounds(verts)
+    low = np.stack([xlow, ylow, zlow], axis=-1)
+    high = np.stack([xhigh, yhigh, zhigh], axis=-1)
+
     query = np.stack(_latlon_rad_to_xyz(np.deg2rad(lat), np.deg2rad(lon)), axis=-1)
 
     inside_box = np.all((query >= low[expected_face]) & (query <= high[expected_face]), axis=1)
     n_outside = int(np.count_nonzero(~inside_box))
     assert n_outside == 0, (
         f"{n_outside} of {len(lon)} points lie inside their face but outside that face's "
-        f"Cartesian bounding box; e.g. (lon, lat)="
+        f"bounding box; e.g. (lon, lat)="
         f"{np.column_stack((lon, lat))[~inside_box][:3].tolist()}"
     )
 

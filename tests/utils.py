@@ -249,18 +249,3 @@ def sample_points_inside_faces(nodes, faces, weights=None):
     pts = np.einsum("wk,fkc->fwc", weights, verts)
     expected_face = np.repeat(np.arange(len(faces)), len(weights))
     return pts[..., 0].ravel(), pts[..., 1].ravel(), expected_face
-
-
-def cartesian_face_bounds_from_vertices(grid):
-    """Per-face Cartesian bounding box from vertices only, as ``SpatialHash`` builds it.
-
-    Lets tests assert on box geometry directly instead of inferring it from a failed query.
-    Returns ``(low, high)``, each shape (n_face, 3).
-    """
-    from parcels._core.index_search import _latlon_rad_to_xyz
-
-    nids = grid.uxgrid.face_node_connectivity.values
-    lon = np.deg2rad(grid.uxgrid.node_lon.values[nids])
-    lat = np.deg2rad(grid.uxgrid.node_lat.values[nids])
-    verts = np.stack(_latlon_rad_to_xyz(lat, lon), axis=-1)  # (n_face, 3, 3)
-    return verts.min(axis=1), verts.max(axis=1)
