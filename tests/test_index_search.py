@@ -61,8 +61,9 @@ def _near_edge_barycentric_weights(offset):
     )
 
 
-# One interior point plus three a hair inside the edges, which is where the projection
-# defect bites and where a particle crossing between faces sits.
+# One interior point plus three a hair inside the edges -- edge-hugging points are most
+# sensitive to projection accuracy, and are where a particle crossing between faces
+# actually sits.
 _POINT_IN_CELL_WEIGHTS = np.vstack(
     [
         [[1 / 3, 1 / 3, 1 / 3]],
@@ -77,21 +78,19 @@ _POINT_IN_CELL_WEIGHTS = np.vstack(
         pytest.param(1.0, 8, id="1deg"),
         pytest.param(5.0, 8, id="5deg"),
         pytest.param(15.0, 4, id="15deg"),
-        pytest.param(25.0, 4, id="25deg-notebook-scale"),
+        pytest.param(25.0, 4, id="25deg-large-scale"),
     ],
 )
-@pytest.mark.xfail(reason="#2878 - orthogonal, not radial, projection onto the face plane")
 def test_uxgrid_point_in_cell_locates_interior_points_of_large_faces(face_deg, cells_per_side):
     """``uxgrid_point_in_cell`` must accept a point inside the face it is given.
 
-    The spherical branch projects onto the face plane along the normal; membership is
-    defined by the ray from the origin, so the projection must be radial (gnomonic).
-    The error scales with face size times proximity to an edge, not face size alone.
+    The spherical branch's barycentric coordinates come from a gnomonic (radial)
+    projection: membership is defined by the ray from the sphere's center through
+    the point. Coordinates must sum to (very nearly) 1, and every point must be
+    accepted.
 
     The face index is passed in directly, bypassing the hash, so the bounding-box
-    defect cannot influence the result. The tolerance on the coordinate sum is far
-    tighter than the ``rtol=1e-3`` gate in the source: radial projection makes the sum
-    exactly 1, so this pins the fix to the projection rather than to a looser gate.
+    computation cannot influence the result.
     """
     grid, nodes, faces = create_uxgrid_triangulated_patch(
         face_deg, centre=(25.0, 10.0), n=cells_per_side, mesh="spherical"

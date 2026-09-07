@@ -13,6 +13,7 @@ import xarray as xr
 
 import parcels
 from parcels import FieldSet, Particle, Variable
+from parcels._core.index_search import _latlon_rad_to_xyz
 from parcels._core.xgrid import _FIELD_DATA_ORDERING, XGrid, get_axis_from_dim_name
 from parcels._datasets.structured.generated import simple_UV_dataset
 
@@ -233,8 +234,10 @@ _INTERIOR_BARYCENTRIC_WEIGHTS = np.array(
 def sample_points_inside_faces(nodes, faces, weights=None):
     """Sample points strictly inside each triangle, with the containing face known exactly.
 
-    Triangles are straight-sided in lon/lat, so strictly positive barycentric weights
-    put a point inside its face by construction - no point-in-polygon library needed.
+    Each point is a weighted combination of a face's 3 vertex unit vectors on the
+    sphere, renormalized back onto it (a gnomonic projection). Since any strictly
+    positive weights summing to 1 place the result inside the cone spanned by the 3
+    vertices, the point is guaranteed to lie inside the true geodesic triangle.
 
     Returns ``(lon, lat, expected_face)``.
     """
@@ -244,8 +247,17 @@ def sample_points_inside_faces(nodes, faces, weights=None):
     assert np.all(weights > 0.0), "weights must be strictly positive to lie inside the face"
     assert np.allclose(weights.sum(axis=1), 1.0), "weights must sum to 1"
 
-    verts = np.asarray(nodes, dtype=np.float64)[np.asarray(faces)]  # (n_face, 3, 2)
-    # (n_face, n_weights, 2)
+    node_lon = np.asarray(nodes, dtype=np.float64)[:, 0]
+    node_lat = np.asarray(nodes, dtype=np.float64)[:, 1]
+    vx, vy, vz = _latlon_rad_to_xyz(np.deg2rad(node_lat), np.deg2rad(node_lon))
+    verts = np.stack([vx, vy, vz], axis=-1)[np.asarray(faces)]  # (n_face, 3, 3)
+
+    # (n_face, n_weights, 3)
     pts = np.einsum("wk,fkc->fwc", weights, verts)
+    pts /= np.linalg.norm(pts, axis=-1, keepdims=True)
+
+    lon = np.degrees(np.arctan2(pts[..., 1], pts[..., 0]))
+    lat = np.degrees(np.arcsin(np.clip(pts[..., 2], -1.0, 1.0)))
+
     expected_face = np.repeat(np.arange(len(faces)), len(weights))
-    return pts[..., 0].ravel(), pts[..., 1].ravel(), expected_face
+    return lon.ravel(), lat.ravel(), expected_face
