@@ -72,7 +72,7 @@ _POINT_IN_CELL_WEIGHTS = np.vstack(
 
 
 @pytest.mark.parametrize(
-    ("face_deg", "n"),
+    ("face_deg", "cells_per_side"),
     [
         pytest.param(1.0, 8, id="1deg"),
         pytest.param(5.0, 8, id="5deg"),
@@ -81,7 +81,7 @@ _POINT_IN_CELL_WEIGHTS = np.vstack(
     ],
 )
 @pytest.mark.xfail(reason="#2878 - orthogonal, not radial, projection onto the face plane")
-def test_uxgrid_point_in_cell_locates_interior_points_of_large_faces(face_deg, n):
+def test_uxgrid_point_in_cell_locates_interior_points_of_large_faces(face_deg, cells_per_side):
     """``uxgrid_point_in_cell`` must accept a point inside the face it is given.
 
     The spherical branch projects onto the face plane along the normal; membership is
@@ -93,7 +93,9 @@ def test_uxgrid_point_in_cell_locates_interior_points_of_large_faces(face_deg, n
     tighter than the ``rtol=1e-3`` gate in the source: radial projection makes the sum
     exactly 1, so this pins the fix to the projection rather than to a looser gate.
     """
-    grid, nodes, faces = create_uxgrid_triangulated_patch(face_deg, centre=(25.0, 10.0), n=n, mesh="spherical")
+    grid, nodes, faces = create_uxgrid_triangulated_patch(
+        face_deg, centre=(25.0, 10.0), n=cells_per_side, mesh="spherical"
+    )
     lon, lat, expected_face = sample_points_inside_faces(nodes, faces, weights=_POINT_IN_CELL_WEIGHTS)
 
     is_in_cell, coords = uxgrid_point_in_cell(grid, lat, lon, expected_face, expected_face)
