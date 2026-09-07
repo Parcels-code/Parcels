@@ -186,17 +186,16 @@ def test_nan_node_invalidates_touching_faces():
 
 
 _SPHERICAL_FACE_CASES = [
-    pytest.param(1.0, (0.3, 0.6), id="1deg-small-scale"),
-    pytest.param(15.0, (40.0, 30.0), id="15deg-medium-scale"),
-    pytest.param(25.0, (25.0, 10.0), id="25deg-large-scale"),
+    pytest.param(1.0, 8, (0.3, 0.6), id="1deg-small-scale"),
+    pytest.param(15.0, 4, (40.0, 30.0), id="15deg-medium-scale"),
+    pytest.param(25.0, 4, (25.0, 10.0), id="25deg-large-scale"),
 ]
 
 
-@pytest.mark.parametrize(("face_deg", "centre"), _SPHERICAL_FACE_CASES)
-def test_spherical_triangle_bounds_contains_face_interior(face_deg, centre):
+@pytest.mark.parametrize(("face_deg", "cells_per_side", "centre"), _SPHERICAL_FACE_CASES)
+def test_spherical_triangle_bounds_contains_face_interior(face_deg, cells_per_side, centre):
     """_spherical_triangle_bounds's per-face box must contain the whole face, not just its vertices."""
-    n = 4 if face_deg >= 15.0 else 8
-    _, nodes, faces = create_uxgrid_triangulated_patch(face_deg, centre=centre, n=n, mesh="spherical")
+    _, nodes, faces = create_uxgrid_triangulated_patch(face_deg, centre=centre, n=cells_per_side, mesh="spherical")
     lon, lat, expected_face = sample_points_inside_faces(nodes, faces)
 
     face_lon = np.deg2rad(nodes[faces, 0])
@@ -218,15 +217,12 @@ def test_spherical_triangle_bounds_contains_face_interior(face_deg, centre):
     )
 
 
-@pytest.mark.parametrize(("face_deg", "centre"), _SPHERICAL_FACE_CASES)
-@pytest.mark.xfail(reason="#2878 - spherical face bounding boxes are built from vertices only")
-def test_spherical_uxgrid_hash_locates_every_interior_point(face_deg, centre):
-    """End-to-end symptom: the hash loses points that lie inside a face.
-
-    The flat build of the same triangulation must locate them all, which shows the
-    fixture is sound and the defect is specific to the spherical path.
+@pytest.mark.parametrize(("face_deg", "cells_per_side", "centre"), _SPHERICAL_FACE_CASES)
+def test_spherical_uxgrid_hash_locates_every_interior_point(face_deg, cells_per_side, centre):
+    """End-to-end: SpatialHash.query() must locate every point known to lie inside a face,
+    on both a flat and a spherical build of the same triangulation.
     """
-    _, nodes, faces = create_uxgrid_triangulated_patch(face_deg, centre=centre, mesh="flat")
+    _, nodes, faces = create_uxgrid_triangulated_patch(face_deg, centre=centre, n=cells_per_side, mesh="spherical")
     lon, lat, _ = sample_points_inside_faces(nodes, faces)
 
     flat_grid = create_uxgrid_from_triangulation(nodes[:, 0], nodes[:, 1], faces, mesh="flat")
