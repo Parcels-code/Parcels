@@ -112,7 +112,7 @@ class ChunkCachedArray(ExplicitlyIndexedNDArrayMixin):
 
         # Sort points by flat chunk key to group them.
         sort_order = np.argsort(flat_keys, kind="quicksort")
-        sorted_flat_keys = flat_keys[sort_order]  # type: ignore[index]
+        sorted_flat_keys = flat_keys[sort_order]  # type: ignore[call-overload]
 
         # Find group boundaries.
         boundaries = np.concatenate(([0], np.flatnonzero(np.diff(sorted_flat_keys)) + 1, [n_points]))
