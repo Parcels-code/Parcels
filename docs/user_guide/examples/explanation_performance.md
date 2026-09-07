@@ -110,3 +110,26 @@ The long-term plan for Parcels development is to make this Option 4 work well fo
 If you have ideas for how to make Parcels faster, we'd love to hear from you!
 Feel free to [open an issue](https://github.com/Parcels-code/Parcels/issues) or reach out to us on [Zulip](https://clam-community.github.io).
 ```
+
+## Option 5: use ChunkCachedArrays
+
+_Uses Parcels Backend: ChunkCachedArray_
+
+**Best for: large Datasets (more than a few GB) and particles distributed over the entire domain**
+
+If your Dataset is so large that it doesn't fit into memory, you can use the {py:func}`parcels.FieldSet.to_chunk_cached_arrays()`.
+This constructs a cache where individual (dask) chunks of data are stored.
+During a simulation, Parcels fetches data from the chunk cache and, only if the data is not loaded in the cache, retrieves data from disk to use and store in the cache.
+
+This results in a smaller memory footprint than the windowed array approach (especially if the particles aren't distributed over the spatial domain).
+
+```{code-block} python
+fieldset.to_chunkcached_arrays()
+```
+
+### Advantages and disadvantages
+
+| Advantages                                                                                            | Disadvantages                                                                                                                                 |
+| ----------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Parcels will only hold accessed chunks of data in memory, which is much less than the entire Dataset. | With many particles that cover the entire domain, the caching layer (and finding which particles are in which chunks) can have more overhead. |
+| Hydrodynamic files do not have to be reformatted and stored.                                          |                                                                                                                                               |
