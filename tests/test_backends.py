@@ -32,7 +32,9 @@ def nemo_dataset() -> xr.Dataset:
 @pytest.fixture(scope="module")
 def nemo_results(tmp_path_factory, nemo_dataset) -> tuple[xr.Dataset, Path]:
     ref_parquet = tmp_path_factory.mktemp("nemo_ref") / "ref.parquet"
-    run_simulation(nemo_dataset, ref_parquet, "NumPy")
+    run_simulation(
+        nemo_dataset.copy(), ref_parquet, "NumPy"
+    )  # pass in a copy to avoid in-place modifications to the dataset
     return nemo_dataset, ref_parquet
 
 
