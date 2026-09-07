@@ -171,8 +171,8 @@ class SpatialHash:
                 vx, vy, vz = _latlon_rad_to_xyz(np.deg2rad(lat), np.deg2rad(lon))
                 verts = np.stack([vx, vy, vz], axis=-1)  # (nfaces, 3 nodes, 3)
 
-                self._xlow, self._xhigh, self._ylow, self._yhigh, self._zlow, self._zhigh = (
-                    _spherical_triangle_bounds(verts)
+                self._xlow, self._xhigh, self._ylow, self._yhigh, self._zlow, self._zhigh = _spherical_triangle_bounds(
+                    verts
                 )
 
                 # Boundaries of the hash grid are the Cartesian bounding box of the
@@ -691,7 +691,6 @@ def _spherical_triangle_bounds(verts):
     -------
     xlow, xhigh, ylow, yhigh, zlow, zhigh : ndarray, shape (nfaces,)
     """
-
     # --- Step 1: Calculate the bounds from the nodes themselves ----
     v0, v1, v2 = verts[:, 0, :], verts[:, 1, :], verts[:, 2, :]
     nfaces = verts.shape[0]
@@ -722,7 +721,6 @@ def _spherical_triangle_bounds(verts):
         # Compute the total angular length of the arc created by points a and b
         cos_delta = np.clip(np.sum(a * b, axis=-1), -1.0, 1.0)  # (nfaces,)
         delta = np.arccos(cos_delta)  # (nfaces,)
-
 
         # Construct a unit vector perpendicular to a points towards b. (a, u) then
         # forms an orthonormal basis for that plane, so any point on the arc created
