@@ -335,16 +335,15 @@ def uxgrid_point_in_cell(grid, y: np.ndarray, x: np.ndarray, yi: np.ndarray, xi:
             axis=-1,
         )
 
-        # Barycentric coordinates of each point solved directly: coords = w0,w1,w2
+        # Construcuct a matrix of face positions to solve for the
+        # byarycentric coordinates of each point, and then convert to coords = w0,w1,w2
         # such that w0*v0 + w1*v1 + w2*v2 = point, normalized to sum to 1.
-        # This is the gnomonic projection such that each point is projected
-        # onto the face a ray that goes through the center of the unit sphere.
         face_matrix = np.stack(
             (face_vertices[:, 0, :], face_vertices[:, 1, :], face_vertices[:, 2, :]),
             axis=-1,
         )  # (M, 3, 3), columns v0, v1, v2
 
-        # The trailing single axis on `points` tells np.linalg.solve to treat
+        # The trailing single axis on points tells np.linalg.solve to treat
         # the leading M as a batch dimension (one 3x3 solve per point), not as
         # the matrix size.
         weights = np.linalg.solve(face_matrix, points[..., None])  # (M, 3, 1)
