@@ -152,13 +152,6 @@ def test_icon_evals():
     assert np.allclose(fieldset.p.eval(t=tq, z=zq, y=yq, x=xq), zc * (xq + yq))
 
 
-# Constrained (PSLG) Delaunay triangulation of the three nested polygons in
-# docs/user_guide/examples/tutorial_nestedgrids.ipynb, as produced by
-# triangle.triangulate({"vertices": ..., "segments": ...}, "p").
-#
-# Baked in as literals rather than recomputed: py-triangle is only in the "notebooks"
-# pixi feature, not "test", and the notebook's geometry is what #2878 is about, so
-# pinning it also stops the reproducer drifting if the triangulator changes.
 _NESTEDGRIDS_NODES = np.array(
     [
         [10.0, 15.0],
@@ -188,13 +181,13 @@ _NESTEDGRIDS_FACES = np.array(
 )  # fmt: skip
 
 
-@pytest.mark.xfail(reason="#2878 - see tests/test_spatialhash.py and tests/test_index_search.py for the two causes")
-def test_nestedgrids_notebook_triangulation_spherical_search():
-    """Every particle in tutorial_nestedgrids.ipynb must be located on a spherical mesh.
+def test_nestedgrids_triangulation_spherical_search():
+    """Every query point over the mesh's extent must be located by grid.search().
 
-    The notebook reduced to the grid-search step: same triangulation, same 500
-    positions, no fields or kernel. Covers the reported symptom; the two underlying
-    defects are covered separately by the tests named in the xfail reason.
+    The mesh is a single irregular triangulation of three nested polygons, so
+    face size, shape, and orientation all vary widely across it. this causes a broader
+    stress on the spherical search path than a single regular patch of
+    uniform triangles.
     """
     grid = create_uxgrid_from_triangulation(
         _NESTEDGRIDS_NODES[:, 0], _NESTEDGRIDS_NODES[:, 1], _NESTEDGRIDS_FACES, mesh="spherical"
