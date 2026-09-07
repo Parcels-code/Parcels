@@ -335,20 +335,31 @@ def uxgrid_point_in_cell(grid, y: np.ndarray, x: np.ndarray, yi: np.ndarray, xi:
             axis=-1,
         )
 
-        # Get projection points onto element plane. Keep the leading
-        # dimension even for single-face queries so shapes remain (M,3).
-        r1 = face_vertices[:, 1, :] - face_vertices[:, 0, :]
-        r2 = face_vertices[:, 2, :] - face_vertices[:, 0, :]
-        nhat = np.cross(r1, r2)
-        norm = np.linalg.norm(nhat, axis=-1)
-        # Avoid division by zero for degenerate faces
-        norm = np.where(norm == 0.0, 1.0, norm)
-        nhat = nhat / norm[:, None]
-        # Calculate the component of the points in the direction of nhat
-        ptilde = points - face_vertices[:, 0, :]
-        pdotnhat = np.sum(ptilde * nhat, axis=-1)
-        # Reconstruct points with normal component removed.
-        points = ptilde - pdotnhat[:, None] * nhat + face_vertices[:, 0, :]
+        # Barycentric coordinates of each point solved directly: coords = w0,w1,w2
+        # such that w0*v0 + w1*v1 + w2*v2 = point, normalized to sum to 1.
+        # This is the gnomonic projection such that each point is projected
+        # onto the face a ray that goes through the center of the unit sphere.
+        face_matrix = np.stack(
+            (face_vertices[:, 0, :], face_vertices[:, 1, :], face_vertices[:, 2, :]),
+            axis=-1,
+        )  # (M, 3, 3), columns v0, v1, v2
+
+        # The trailing single axis on `points` tells np.linalg.solve to treat
+        # the leading M as a batch dimension (one 3x3 solve per point), not as
+        # the matrix size.
+        weights = np.linalg.solve(face_matrix, points[..., None])  # (M, 3, 1)
+        # drop the trailing axis
+        weights = weights[..., 0]  # (M, 3)
+        weight_sum = weights.sum(axis=-1, keepdims=True)
+
+        # A point is inside only if it's a non-negative combination of the 3
+        # vertices.
+        is_in_cell = np.where(np.all(weights >= -1e-9, axis=1) & (weight_sum[:, 0] > 0), 1, 0)
+
+        # weight_sum can be exactly 0 for a candidate face the point isn't in,
+        # is_in_cell already excludes these, this avoids a spurious divide-by-zero warning only.
+        safe_weight_sum = np.where(weight_sum == 0.0, 1.0, weight_sum)
+        coords = weights / safe_weight_sum
 
     else:
         nids = grid.uxgrid.face_node_connectivity[xi, :].values
@@ -361,13 +372,10 @@ def uxgrid_point_in_cell(grid, y: np.ndarray, x: np.ndarray, yi: np.ndarray, xi:
         )
         points = np.stack((x, y), axis=-1)
 
-    M = len(points)
+        coords = _barycentric_coordinates(face_vertices, points)
 
-    coords = _barycentric_coordinates(face_vertices, points)
-
-    is_in_cell = np.zeros(M, dtype=np.int32)
-    is_in_cell = np.where(np.all((coords >= -1e-6), axis=1), 1, 0)
-    is_in_cell &= np.isclose(np.sum(coords, axis=1), 1.0, rtol=1e-3, atol=1e-6)
+        is_in_cell = np.where(np.all((coords >= -1e-6), axis=1), 1, 0)
+        is_in_cell &= np.isclose(np.sum(coords, axis=1), 1.0, rtol=1e-3, atol=1e-6)
 
     return is_in_cell, coords
 
