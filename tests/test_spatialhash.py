@@ -197,9 +197,7 @@ _SPHERICAL_FACE_CASES = [
 @pytest.mark.parametrize(("face_deg", "cells_per_side", "centre"), _SPHERICAL_FACE_CASES)
 def test_spherical_face_bounds_contains_face_interior(face_deg, cells_per_side, centre, nodes_per_face):
     """_spherical_face_bounds's per-face box must contain the whole face, not just its vertices."""
-    nodes, faces = create_lonlat_patch(
-        face_deg, centre=centre, n=cells_per_side, nodes_per_face=nodes_per_face
-    )
+    nodes, faces = create_lonlat_patch(face_deg, centre=centre, n=cells_per_side, nodes_per_face=nodes_per_face)
     lon, lat, expected_face = sample_points_inside_faces(nodes, faces)
 
     face_lon = np.deg2rad(nodes[faces, 0])
@@ -234,9 +232,7 @@ def test_spherical_face_bounds_ignores_faces_without_area():
     verts = np.stack(
         [
             np.stack(
-                _latlon_rad_to_xyz(
-                    np.deg2rad([node[1] for node in face]), np.deg2rad([node[0] for node in face])
-                ),
+                _latlon_rad_to_xyz(np.deg2rad([node[1] for node in face]), np.deg2rad([node[0] for node in face])),
                 axis=-1,
             )
             for face in faces_lonlat
