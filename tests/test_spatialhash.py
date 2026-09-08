@@ -7,12 +7,7 @@ from parcels._core.fieldset import FieldSet
 from parcels._core.index_search import _latlon_rad_to_xyz
 from parcels._core.spatialhash import _HASH_ENTRIES_PER_FACE, _HASH_ENTRY_BUDGET_MIN, _spherical_face_bounds
 from parcels._datasets.structured.generic import datasets
-from tests.utils import (
-    create_lonlat_patch,
-    create_uxgrid_from_triangulation,
-    create_xgrid_from_lonlat,
-    sample_points_inside_faces,
-)
+from tests.utils import create_lonlat_grid, sample_points_inside_faces
 
 
 def _cell_centers(grid):
@@ -193,13 +188,11 @@ _SPHERICAL_FACE_CASES = [
 ]
 
 
-@pytest.mark.parametrize("nodes_per_face", [3, 4], ids=["triangles", "quads"])
+@pytest.mark.parametrize("grid_type", ["uxgrid", "xgrid"], ids=["triangles", "quads"])
 @pytest.mark.parametrize(("face_deg", "cells_per_side", "centre"), _SPHERICAL_FACE_CASES)
-def test_spherical_face_bounds_contains_face_interior(face_deg, cells_per_side, centre, nodes_per_face):
+def test_spherical_face_bounds_contains_face_interior(face_deg, cells_per_side, centre, grid_type):
     """_spherical_face_bounds's per-face box must contain the whole face, not just its vertices."""
-    nodes, faces = create_lonlat_patch(
-        face_deg, centre=centre, n=cells_per_side, nodes_per_face=nodes_per_face
-    )
+    _, nodes, faces = create_lonlat_grid(grid_type, face_deg, centre=centre, n=cells_per_side)
     lon, lat, expected_face = sample_points_inside_faces(nodes, faces)
 
     face_lon = np.deg2rad(nodes[faces, 0])
@@ -249,32 +242,12 @@ def test_spherical_face_bounds_ignores_faces_without_area():
         assert np.all(high < 1.0), f"a face with no area had its {axis} bound widened to +1"
 
 
-def _patch_grid(grid_type, face_deg, cells_per_side, centre, mesh):
-    """A patch of large faces, wrapped in the requested grid type.
-
-    A UxGrid takes a bare triangulation, while an XGrid takes the quads implied by its
-    2-D lattice of nodes, so the patch is cut to suit and the node list reshaped back
-    into a lattice for the structured case.
-
-    Returns ``(grid, nodes, faces)``.
-    """
-    nodes_per_face = 3 if grid_type == "uxgrid" else 4
-    nodes, faces = create_lonlat_patch(face_deg, centre=centre, n=cells_per_side, nodes_per_face=nodes_per_face)
-
-    if grid_type == "uxgrid":
-        grid = create_uxgrid_from_triangulation(nodes[:, 0], nodes[:, 1], faces, mesh=mesh)
-    else:
-        side = cells_per_side + 1
-        grid = create_xgrid_from_lonlat(nodes[:, 0].reshape(side, side), nodes[:, 1].reshape(side, side), mesh=mesh)
-    return grid, nodes, faces
-
-
 @pytest.mark.parametrize("mesh", ["flat", "spherical"])
 @pytest.mark.parametrize("grid_type", ["uxgrid", "xgrid"])
 @pytest.mark.parametrize(("face_deg", "cells_per_side", "centre"), _SPHERICAL_FACE_CASES)
 def test_hash_locates_every_interior_point(grid_type, face_deg, cells_per_side, centre, mesh):
     """End-to-end: SpatialHash.query() must return the face a point is known to lie inside."""
-    grid, nodes, faces = _patch_grid(grid_type, face_deg, cells_per_side, centre, mesh)
+    grid, nodes, faces = create_lonlat_grid(grid_type, face_deg, centre=centre, n=cells_per_side, mesh=mesh)
     spatialhash = grid.get_spatial_hash()
     lon, lat, expected_face = sample_points_inside_faces(nodes, faces, mesh=mesh)
 

@@ -2,9 +2,13 @@ import numpy as np
 import pytest
 
 from parcels._core.fieldset import FieldSet
-from parcels._core.index_search import _search_indices_curvilinear_2d, uxgrid_point_in_cell
+from parcels._core.index_search import (
+    _search_indices_curvilinear_2d,
+    curvilinear_point_in_cell,
+    uxgrid_point_in_cell,
+)
 from parcels._datasets.structured.generic import datasets
-from tests.utils import create_lonlat_patch, create_uxgrid_from_triangulation, sample_points_inside_faces
+from tests.utils import create_lonlat_grid, sample_points_inside_faces
 
 
 @pytest.fixture
@@ -46,32 +50,25 @@ def test_grid_indexing_fpoints(field_cone):
             assert y > np.min(cell_lat) and y < np.max(cell_lat)
 
 
-def _near_edge_barycentric_weights(offset):
-    """Weights for points just inside each edge; ``offset`` goes to the opposite vertex.
+def _point_in_cell_weights(nodes_per_face, offset=1e-4):
+    """One point at the centre of a face plus one a hair inside each of its edges.
 
-    The rest is split unevenly so samples avoid edge midpoints.
+    An edge's two nodes share whatever is left after every other node takes ``offset``,
+    split unevenly so the samples avoid edge midpoints. Edge-hugging points are the most
+    sensitive to projection accuracy, and are where a particle crossing between faces
+    actually sits.
     """
-    rest = 1.0 - offset
-    return np.array(
-        [
-            [offset, rest * 0.61, rest * 0.39],
-            [rest * 0.61, offset, rest * 0.39],
-            [rest * 0.39, rest * 0.61, offset],
-        ]
-    )
+    near_edge = np.full((nodes_per_face, nodes_per_face), offset)
+    rest = 1.0 - offset * (nodes_per_face - 2)
+    for edge, weights in enumerate(near_edge):
+        weights[edge] = rest * 0.61
+        weights[(edge + 1) % nodes_per_face] = rest * 0.39
+
+    centre = np.full((1, nodes_per_face), 1.0 / nodes_per_face)
+    return np.vstack([centre, near_edge])
 
 
-# One interior point plus three a hair inside the edges -- edge-hugging points are most
-# sensitive to projection accuracy, and are where a particle crossing between faces
-# actually sits.
-_POINT_IN_CELL_WEIGHTS = np.vstack(
-    [
-        [[1 / 3, 1 / 3, 1 / 3]],
-        _near_edge_barycentric_weights(1e-4),
-    ]
-)
-
-
+@pytest.mark.parametrize("grid_type", ["uxgrid", "xgrid"])
 @pytest.mark.parametrize(
     ("face_deg", "cells_per_side"),
     [
@@ -81,30 +78,35 @@ _POINT_IN_CELL_WEIGHTS = np.vstack(
         pytest.param(25.0, 4, id="25deg-large-scale"),
     ],
 )
-def test_uxgrid_point_in_cell_locates_interior_points_of_large_faces(face_deg, cells_per_side):
-    """``uxgrid_point_in_cell`` must accept a point inside the face it is given.
+def test_point_in_cell_locates_interior_points_of_large_faces(grid_type, face_deg, cells_per_side):
+    """A point-in-cell check must accept a point inside the face it is given."""
+    grid, nodes, faces = create_lonlat_grid(grid_type, face_deg, centre=(25.0, 10.0), n=cells_per_side)
+    weights = _point_in_cell_weights(faces.shape[1])
+    lon, lat, expected_face = sample_points_inside_faces(nodes, faces, weights=weights)
 
-    The spherical branch's barycentric coordinates come from a gnomonic (radial)
-    projection: membership is defined by the ray from the sphere's center through
-    the point. Coordinates must sum to (very nearly) 1, and every point must be
-    accepted.
+    # A UxGrid indexes its faces in one flat list, so unraveling leaves yi at 0 and puts
+    # the face id in xi (which is all uxgrid_point_in_cell reads); an XGrid's cells are a
+    # 2-D lattice, so both indexes matter.
+    cell_shape = (1, len(faces)) if grid_type == "uxgrid" else (cells_per_side, cells_per_side)
+    yi, xi = np.unravel_index(expected_face, cell_shape)
 
-    The face index is passed in directly, bypassing the hash, so the bounding-box
-    computation cannot influence the result.
-    """
-    nodes, faces = create_lonlat_patch(face_deg, centre=(25.0, 10.0), n=cells_per_side)
-    grid = create_uxgrid_from_triangulation(nodes[:, 0], nodes[:, 1], faces, mesh="spherical")
-    lon, lat, expected_face = sample_points_inside_faces(nodes, faces, weights=_POINT_IN_CELL_WEIGHTS)
+    point_in_cell = uxgrid_point_in_cell if grid_type == "uxgrid" else curvilinear_point_in_cell
+    is_in_cell, coords = point_in_cell(grid, lat, lon, yi, xi)
 
-    is_in_cell, coords = uxgrid_point_in_cell(grid, lat, lon, expected_face, expected_face)
-
-    coord_sum = coords.sum(axis=1)
-    worst = int(np.argmax(np.abs(coord_sum - 1.0)))
-    assert np.allclose(coord_sum, 1.0, rtol=1e-6, atol=1e-6), (
-        f"barycentric coordinates of interior points do not sum to 1; worst is "
-        f"{coord_sum[worst]:.6f} at (lon, lat)=({lon[worst]:.3f}, {lat[worst]:.3f}) "
-        f"in face {expected_face[worst]}"
+    rejected = is_in_cell == 0
+    n_rejected = int(np.count_nonzero(rejected))
+    assert n_rejected == 0, (
+        f"{n_rejected} of {len(lon)} points were rejected from the face containing them; e.g. "
+        f"(lon, lat)={np.column_stack((lon, lat))[rejected][:3].tolist()}"
     )
 
-    n_rejected = int(np.count_nonzero(is_in_cell == 0))
-    assert n_rejected == 0, f"{n_rejected} of {len(lon)} points were rejected from the face containing them"
+    if grid_type == "uxgrid":
+        # Barycentric coordinates are normalized to sum to 1. The curvilinear branch
+        # returns (xsi, eta) bilinear weights instead, which carry no such invariant.
+        coord_sum = coords.sum(axis=1)
+        worst = int(np.argmax(np.abs(coord_sum - 1.0)))
+        assert np.allclose(coord_sum, 1.0, rtol=1e-6, atol=1e-6), (
+            f"barycentric coordinates of interior points do not sum to 1; worst is "
+            f"{coord_sum[worst]:.6f} at (lon, lat)=({lon[worst]:.3f}, {lat[worst]:.3f}) "
+            f"in face {expected_face[worst]}"
+        )

@@ -184,34 +184,23 @@ def create_uxgrid_from_triangulation(node_lon, node_lat, faces, mesh="spherical"
     return UxGrid(uxgrid, zc, mesh=mesh)
 
 
-def create_xgrid_from_lonlat(node_lon, node_lat, mesh="spherical"):
-    """Wrap a 2-D lattice of node coordinates (lon/lat in degrees) in a parcels XGrid.
+def create_lonlat_grid(grid_type, face_deg, centre=(0.0, 0.0), n=8, mesh="spherical"):
+    """Regular ``n`` x ``n`` lon/lat patch of ``face_deg`` faces, wrapped in a parcels grid.
 
-    Both arrays are shaped ``(ny, nx)`` and hold the grid's nodes, so the grid has
-    ``(ny - 1) x (nx - 1)`` faces. The velocities are zero; only the geometry matters.
-    """
-    ny, nx = np.shape(node_lon)
-    ds = simple_UV_dataset(dims=(2, 2, ny, nx), mesh=mesh).assign_coords(
-        lon=(("YG", "XG"), np.asarray(node_lon, dtype=np.float64)),
-        lat=(("YG", "XG"), np.asarray(node_lat, dtype=np.float64)),
-    )
-    return FieldSet.from_sgrid_conventions(ds, mesh=mesh).U.grid
-
-
-def create_lonlat_patch(face_deg, centre=(0.0, 0.0), n=8, nodes_per_face=3):
-    """Regular ``n`` x ``n`` lon/lat patch of ``face_deg`` quads.
-
-    ``nodes_per_face=4`` keeps each quad whole; ``3`` splits each one along its
-    sw-ne diagonal into two triangles.
+    ``grid_type`` picks how the patch is cut and wrapped: ``"xgrid"`` keeps each quad
+    whole and hands the node lattice to a structured grid, while ``"uxgrid"`` splits each
+    quad along its sw-ne diagonal into two triangles and hands the triangulation to an
+    unstructured grid. The velocities are zero; only the geometry matters.
 
     ``centre`` matters on spherical meshes: the Cartesian coordinate functions have
     stationary points at lon in {0, +-90, 180} on the equator and at the poles, and a
     face straddling one varies quadratically rather than linearly there.
 
-    Returns ``(nodes, faces)`` with nodes as (lon, lat) degrees.
+    Returns ``(grid, nodes, faces)``, with nodes as (lon, lat) degrees and faces indexing
+    into them. Cell ``(j, i)`` of an XGrid is face ``j * n + i``.
     """
-    if nodes_per_face not in (3, 4):
-        raise ValueError(f"nodes_per_face must be 3 or 4, got {nodes_per_face}")
+    if grid_type not in ("uxgrid", "xgrid"):
+        raise ValueError(f"grid_type must be 'uxgrid' or 'xgrid', got {grid_type!r}")
 
     half = 0.5 * face_deg * n
     if abs(centre[1]) + half > 90.0:
@@ -230,12 +219,21 @@ def create_lonlat_patch(face_deg, centre=(0.0, 0.0), n=8, nodes_per_face=3):
             se = sw + 1
             nw = sw + n + 1
             ne = nw + 1
-            if nodes_per_face == 4:
+            if grid_type == "xgrid":
                 faces.append([sw, se, ne, nw])
             else:
                 faces.append([sw, se, ne])
                 faces.append([sw, ne, nw])
-    return nodes, np.asarray(faces, dtype=np.int64)
+    faces = np.asarray(faces, dtype=np.int64)
+
+    if grid_type == "uxgrid":
+        grid = create_uxgrid_from_triangulation(nodes[:, 0], nodes[:, 1], faces, mesh=mesh)
+    else:
+        ds = simple_UV_dataset(dims=(2, 2, n + 1, n + 1), mesh=mesh).assign_coords(
+            lon=(("YG", "XG"), grid_lon), lat=(("YG", "XG"), grid_lat)
+        )
+        grid = FieldSet.from_sgrid_conventions(ds, mesh=mesh).U.grid
+    return grid, nodes, faces
 
 
 def sample_points_inside_faces(nodes, faces, weights=None, n_samples=6, seed=0, mesh="spherical"):
