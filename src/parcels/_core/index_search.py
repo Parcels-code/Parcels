@@ -94,11 +94,11 @@ def _search_time_index(field: Field, time: np.ndarray):
 def curvilinear_point_in_cell(grid, y: np.ndarray, x: np.ndarray, yi: np.ndarray, xi: np.ndarray):
     """Locate points within 2D curvilinear grid cells.
 
-    For spherical grids, the bilinear inverse runs in a tangent plane on a sphere
-    through each cell's centroid — robust across the antimeridian and the
-    polar cap. For flat grids it runs directly in (lon, lat). In both
-    cases the returned (xsi, eta) are bilinear weights in the space the inverse
-    was solved in; downstream interpolators must agree on that same space.
+    For spherical grids, the bilinear inverse runs in a plane tangent to the sphere at
+    each cell's centroid, which is robust across the antimeridian and the polar cap. For
+    flat grids it runs directly in (lon, lat). In both cases the returned (xsi, eta) are
+    bilinear weights in the space the inverse was solved in; downstream interpolators
+    must agree on that same space.
     """
     clon = np.asarray(
         [grid.lon[yi, xi], grid.lon[yi, xi + 1], grid.lon[yi + 1, xi + 1], grid.lon[yi + 1, xi]],
@@ -180,8 +180,9 @@ def _bilinear_inverse_tangent_plane(clon, clat, x, y):
 def _spherical_project_cell_and_query(clon, clat, x, y):
     """Project 4 cell corners and the query onto a plane defined by the cell.
 
-    The plane's basis (e_u, e_v) is built from the cell's edge-midpoint
-    difference vectors, then orthonormalized using Gramm-Schmidt
+    The plane touches the sphere at the cell's centre, and its basis (e_u, e_v) is
+    built from the cell's edge-midpoint difference vectors, then orthonormalized
+    using Gramm-Schmidt
 
     Inputs
     ------
@@ -195,10 +196,15 @@ def _spherical_project_cell_and_query(clon, clat, x, y):
 
     Notes
     -----
-    Orthogonal projection is 2-to-1 on the full sphere: a query and its
-    antipode map to the same (u, v). In practice this is harmless because the
-    downstream bilinear gate ``(xsi, eta) in [0, 1]`` only admits queries whose
-    projected magnitude is ≲ the cell's angular size.
+    The projection is gnomonic (central), which maps great circles to straight
+    lines. A cell's edges are great-circle arcs, so the projected cell is a
+    straight-sided quadrilateral and the bilinear inverse measures a point
+    against the cell's true boundary at any cell size.
+
+    A ray from the origin meets the plane once, so the projection is 2-to-1 on
+    the full sphere: a query and its antipode share a ray and land on the same
+    (u, v). Only the hemisphere facing the plane is kept, which makes the map
+    one-to-one; points behind it project to NaN and fail the bilinear gate.
     """
     cX, cY, cZ = _latlon_rad_to_xyz(np.deg2rad(clat), np.deg2rad(clon))  # (4, N) each
     qX, qY, qZ = _latlon_rad_to_xyz(np.deg2rad(np.asarray(y, dtype=float)), np.deg2rad(np.asarray(x, dtype=float)))
@@ -227,11 +233,23 @@ def _spherical_project_cell_and_query(clon, clat, x, y):
     v_norm = np.where(v_norm == 0.0, 1.0, v_norm)
     e_vx, e_vy, e_vz = vx / v_norm, vy / v_norm, vz / v_norm
 
-    # Orthogonal projection onto span(e_u, e_v): two dot products per point.
-    # Same pattern as uxgrid_point_in_cell (drop the component normal to the plane).
+    # Unit normal of the plane, which is tangent to the sphere at the cell's centre.
+    nx = cX.sum(axis=0)
+    ny = cY.sum(axis=0)
+    nz = cZ.sum(axis=0)
+    n_norm = np.sqrt(nx * nx + ny * ny + nz * nz)
+    n_norm = np.where(n_norm == 0.0, 1.0, n_norm)
+    e_nx, e_ny, e_nz = nx / n_norm, ny / n_norm, nz / n_norm
+
+    # Gnomonic projection: scale each direction until it meets the plane, then read off
+    # its two in-plane components.
     def _project(vx, vy, vz):
-        u = vx * e_ux + vy * e_uy + vz * e_uz
-        v = vx * e_vx + vy * e_vy + vz * e_vz
+        # A direction pointing away from the plane never meets it. Setting those to NaN
+        # keeps the division quiet and leaves them to fail the caller's bilinear gate.
+        along_normal = vx * e_nx + vy * e_ny + vz * e_nz
+        scale = 1.0 / np.where(along_normal > 0.0, along_normal, np.nan)
+        u = scale * (vx * e_ux + vy * e_uy + vz * e_uz)
+        v = scale * (vx * e_vx + vy * e_vy + vz * e_vz)
         return u, v
 
     px_u, px_v = _project(cX, cY, cZ)  # (4, N) each
