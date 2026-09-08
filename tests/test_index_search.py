@@ -4,7 +4,7 @@ import pytest
 from parcels._core.fieldset import FieldSet
 from parcels._core.index_search import _search_indices_curvilinear_2d, uxgrid_point_in_cell
 from parcels._datasets.structured.generic import datasets
-from tests.utils import create_uxgrid_triangulated_patch, sample_points_inside_faces
+from tests.utils import create_lonlat_patch, create_uxgrid_from_triangulation, sample_points_inside_faces
 
 
 @pytest.fixture
@@ -92,9 +92,8 @@ def test_uxgrid_point_in_cell_locates_interior_points_of_large_faces(face_deg, c
     The face index is passed in directly, bypassing the hash, so the bounding-box
     computation cannot influence the result.
     """
-    grid, nodes, faces = create_uxgrid_triangulated_patch(
-        face_deg, centre=(25.0, 10.0), n=cells_per_side, mesh="spherical"
-    )
+    nodes, faces = create_lonlat_patch(face_deg, centre=(25.0, 10.0), n=cells_per_side)
+    grid = create_uxgrid_from_triangulation(nodes[:, 0], nodes[:, 1], faces, mesh="spherical")
     lon, lat, expected_face = sample_points_inside_faces(nodes, faces, weights=_POINT_IN_CELL_WEIGHTS)
 
     is_in_cell, coords = uxgrid_point_in_cell(grid, lat, lon, expected_face, expected_face)

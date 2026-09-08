@@ -5,11 +5,12 @@ import pytest
 
 from parcels._core.fieldset import FieldSet
 from parcels._core.index_search import _latlon_rad_to_xyz
-from parcels._core.spatialhash import _HASH_ENTRIES_PER_FACE, _HASH_ENTRY_BUDGET_MIN, _spherical_triangle_bounds
+from parcels._core.spatialhash import _HASH_ENTRIES_PER_FACE, _HASH_ENTRY_BUDGET_MIN, _spherical_face_bounds
 from parcels._datasets.structured.generic import datasets
 from tests.utils import (
+    create_lonlat_patch,
     create_uxgrid_from_triangulation,
-    create_uxgrid_triangulated_patch,
+    create_xgrid_from_lonlat,
     sample_points_inside_faces,
 )
 
@@ -192,17 +193,20 @@ _SPHERICAL_FACE_CASES = [
 ]
 
 
+@pytest.mark.parametrize("nodes_per_face", [3, 4], ids=["triangles", "quads"])
 @pytest.mark.parametrize(("face_deg", "cells_per_side", "centre"), _SPHERICAL_FACE_CASES)
-def test_spherical_triangle_bounds_contains_face_interior(face_deg, cells_per_side, centre):
-    """_spherical_triangle_bounds's per-face box must contain the whole face, not just its vertices."""
-    _, nodes, faces = create_uxgrid_triangulated_patch(face_deg, centre=centre, n=cells_per_side, mesh="spherical")
+def test_spherical_face_bounds_contains_face_interior(face_deg, cells_per_side, centre, nodes_per_face):
+    """_spherical_face_bounds's per-face box must contain the whole face, not just its vertices."""
+    nodes, faces = create_lonlat_patch(
+        face_deg, centre=centre, n=cells_per_side, nodes_per_face=nodes_per_face
+    )
     lon, lat, expected_face = sample_points_inside_faces(nodes, faces)
 
     face_lon = np.deg2rad(nodes[faces, 0])
     face_lat = np.deg2rad(nodes[faces, 1])
-    verts = np.stack(_latlon_rad_to_xyz(face_lat, face_lon), axis=-1)  # (n_face, 3, 3)
+    verts = np.stack(_latlon_rad_to_xyz(face_lat, face_lon), axis=-1)  # (n_face, nodes_per_face, 3)
 
-    xlow, xhigh, ylow, yhigh, zlow, zhigh = _spherical_triangle_bounds(verts)
+    xlow, xhigh, ylow, yhigh, zlow, zhigh = _spherical_face_bounds(verts)
     low = np.stack([xlow, ylow, zlow], axis=-1)
     high = np.stack([xhigh, yhigh, zhigh], axis=-1)
 
@@ -217,19 +221,67 @@ def test_spherical_triangle_bounds_contains_face_interior(face_deg, cells_per_si
     )
 
 
-@pytest.mark.parametrize(("face_deg", "cells_per_side", "centre"), _SPHERICAL_FACE_CASES)
-def test_spherical_uxgrid_hash_locates_every_interior_point(face_deg, cells_per_side, centre):
-    """End-to-end: SpatialHash.query() must locate every point known to lie inside a face,
-    on both a flat and a spherical build of the same triangulation.
+def test_spherical_face_bounds_ignores_faces_without_area():
+    """A face enclosing no area has no interior for an axis point to fall inside, so its
+    bounds must not be widened to +-1.
     """
-    _, nodes, faces = create_uxgrid_triangulated_patch(face_deg, centre=centre, n=cells_per_side, mesh="spherical")
-    lon, lat, _ = sample_points_inside_faces(nodes, faces)
+    faces_lonlat = [
+        # the last two nodes are the same point
+        [(40.0, 30.0), (40.05, 30.0), (40.05, 30.05), (40.05, 30.05)],
+        # every node on the equator, so all four sit on one great circle
+        [(40.0, 0.0), (40.03, 0.0), (40.08, 0.0), (40.02, 0.0)],
+    ]
+    verts = np.stack(
+        [
+            np.stack(
+                _latlon_rad_to_xyz(
+                    np.deg2rad([node[1] for node in face]), np.deg2rad([node[0] for node in face])
+                ),
+                axis=-1,
+            )
+            for face in faces_lonlat
+        ]
+    )
+    xlow, xhigh, ylow, yhigh, zlow, zhigh = _spherical_face_bounds(verts)
 
-    flat_grid = create_uxgrid_from_triangulation(nodes[:, 0], nodes[:, 1], faces, mesh="flat")
-    _, flat_face, _ = flat_grid.get_spatial_hash().query(lat, lon)
-    assert np.all(flat_face >= 0), "flat-mesh search lost points, so the test fixture itself is suspect"
+    for low, high, axis in ((xlow, xhigh, "x"), (ylow, yhigh, "y"), (zlow, zhigh, "z")):
+        assert np.all(low > -1.0), f"a face with no area had its {axis} bound widened to -1"
+        assert np.all(high < 1.0), f"a face with no area had its {axis} bound widened to +1"
 
-    spherical_grid = create_uxgrid_from_triangulation(nodes[:, 0], nodes[:, 1], faces, mesh="spherical")
-    _, spherical_face, _ = spherical_grid.get_spatial_hash().query(lat, lon)
-    n_lost = int(np.count_nonzero(spherical_face < 0))
-    assert n_lost == 0, f"spherical search failed to locate {n_lost} of {len(lon)} interior points"
+
+def _patch_grid(grid_type, face_deg, cells_per_side, centre, mesh):
+    """A patch of large faces, wrapped in the requested grid type.
+
+    A UxGrid takes a bare triangulation, while an XGrid takes the quads implied by its
+    2-D lattice of nodes, so the patch is cut to suit and the node list reshaped back
+    into a lattice for the structured case.
+
+    Returns ``(grid, nodes, faces)``.
+    """
+    nodes_per_face = 3 if grid_type == "uxgrid" else 4
+    nodes, faces = create_lonlat_patch(face_deg, centre=centre, n=cells_per_side, nodes_per_face=nodes_per_face)
+
+    if grid_type == "uxgrid":
+        grid = create_uxgrid_from_triangulation(nodes[:, 0], nodes[:, 1], faces, mesh=mesh)
+    else:
+        side = cells_per_side + 1
+        grid = create_xgrid_from_lonlat(nodes[:, 0].reshape(side, side), nodes[:, 1].reshape(side, side), mesh=mesh)
+    return grid, nodes, faces
+
+
+@pytest.mark.parametrize("mesh", ["flat", "spherical"])
+@pytest.mark.parametrize("grid_type", ["uxgrid", "xgrid"])
+@pytest.mark.parametrize(("face_deg", "cells_per_side", "centre"), _SPHERICAL_FACE_CASES)
+def test_hash_locates_every_interior_point(grid_type, face_deg, cells_per_side, centre, mesh):
+    """End-to-end: SpatialHash.query() must return the face a point is known to lie inside."""
+    grid, nodes, faces = _patch_grid(grid_type, face_deg, cells_per_side, centre, mesh)
+    spatialhash = grid.get_spatial_hash()
+    lon, lat, expected_face = sample_points_inside_faces(nodes, faces, mesh=mesh)
+
+    j, i, _ = spatialhash.query(lat, lon)
+    # A UxGrid's bounds are one row of faces, so unraveling leaves j at 0 and puts the
+    # face id in i; an XGrid's are the (ny-1, nx-1) cell lattice, so both indexes matter.
+    expected_j, expected_i = np.unravel_index(expected_face, spatialhash._xlow.shape)
+
+    n_wrong = int(np.count_nonzero((j != expected_j) | (i != expected_i)))
+    assert n_wrong == 0, f"{mesh} search failed to locate {n_wrong} of {len(lon)} interior points"
