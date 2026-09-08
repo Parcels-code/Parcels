@@ -78,8 +78,8 @@ class SpatialHash:
                 # Compute the exact bounding box of each face. A face's edges are
                 # great-circle arcs, so its true x/y/z extent is often not spanned by
                 # its node coordinates alone.
-                self._xlow, self._xhigh, self._ylow, self._yhigh, self._zlow, self._zhigh = (
-                    _spherical_face_bounds(verts)
+                self._xlow, self._xhigh, self._ylow, self._yhigh, self._zlow, self._zhigh = _spherical_face_bounds(
+                    verts
                 )
 
                 # Boundaries of the hash grid are the Cartesian bounding box of the

@@ -227,9 +227,7 @@ def test_spherical_face_bounds_ignores_faces_without_area():
     verts = np.stack(
         [
             np.stack(
-                _latlon_rad_to_xyz(
-                    np.deg2rad([node[1] for node in face]), np.deg2rad([node[0] for node in face])
-                ),
+                _latlon_rad_to_xyz(np.deg2rad([node[1] for node in face]), np.deg2rad([node[0] for node in face])),
                 axis=-1,
             )
             for face in faces_lonlat
