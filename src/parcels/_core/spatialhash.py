@@ -62,49 +62,35 @@ class SpatialHash:
                 lon = np.deg2rad(self._source_grid.lon)
                 lat = np.deg2rad(self._source_grid.lat)
                 x, y, z = _latlon_rad_to_xyz(lat, lon)
+
+                # The 4 nodes of each face, wound around it
+                nodes = np.stack((x, y, z), axis=-1)
+                verts = np.stack(
+                    (
+                        nodes[:-1, :-1],
+                        nodes[:-1, 1:],
+                        nodes[1:, 1:],
+                        nodes[1:, :-1],
+                    ),
+                    axis=-2,
+                )
+
+                # Compute the exact bounding box of each face. A face's edges are
+                # great-circle arcs, so its true x/y/z extent is often not spanned by
+                # its node coordinates alone.
+                self._xlow, self._xhigh, self._ylow, self._yhigh, self._zlow, self._zhigh = (
+                    _spherical_face_bounds(verts)
+                )
+
                 # Boundaries of the hash grid are the Cartesian bounding box of the
                 # transformed grid, so that regional domains retain full quantization
                 # resolution instead of spreading it over the whole unit cube
-                self._xmin = np.nanmin(x)
-                self._xmax = np.nanmax(x)
-                self._ymin = np.nanmin(y)
-                self._ymax = np.nanmax(y)
-                self._zmin = np.nanmin(z)
-                self._zmax = np.nanmax(z)
-                _xbound = np.stack(
-                    (
-                        x[:-1, :-1],
-                        x[:-1, 1:],
-                        x[1:, 1:],
-                        x[1:, :-1],
-                    ),
-                    axis=-1,
-                )
-                _ybound = np.stack(
-                    (
-                        y[:-1, :-1],
-                        y[:-1, 1:],
-                        y[1:, 1:],
-                        y[1:, :-1],
-                    ),
-                    axis=-1,
-                )
-                _zbound = np.stack(
-                    (
-                        z[:-1, :-1],
-                        z[:-1, 1:],
-                        z[1:, 1:],
-                        z[1:, :-1],
-                    ),
-                    axis=-1,
-                )
-                # Compute centroid locations of each cells
-                self._xlow = np.min(_xbound, axis=-1)
-                self._xhigh = np.max(_xbound, axis=-1)
-                self._ylow = np.min(_ybound, axis=-1)
-                self._yhigh = np.max(_ybound, axis=-1)
-                self._zlow = np.min(_zbound, axis=-1)
-                self._zhigh = np.max(_zbound, axis=-1)
+                self._xmin = np.nanmin(self._xlow)
+                self._xmax = np.nanmax(self._xhigh)
+                self._ymin = np.nanmin(self._ylow)
+                self._ymax = np.nanmax(self._yhigh)
+                self._zmin = np.nanmin(self._zlow)
+                self._zmax = np.nanmax(self._zhigh)
 
                 degenerate_mask = _find_degenerate_xgrid_faces(x, y, z)
                 degeneracy_count = np.sum(degenerate_mask)
@@ -171,7 +157,7 @@ class SpatialHash:
                 vx, vy, vz = _latlon_rad_to_xyz(np.deg2rad(lat), np.deg2rad(lon))
                 verts = np.stack([vx, vy, vz], axis=-1)  # (nfaces, 3 nodes, 3)
 
-                self._xlow, self._xhigh, self._ylow, self._yhigh, self._zlow, self._zhigh = _spherical_triangle_bounds(
+                self._xlow, self._xhigh, self._ylow, self._yhigh, self._zlow, self._zhigh = _spherical_face_bounds(
                     verts
                 )
 
@@ -663,8 +649,8 @@ _AXIS_POINTS = np.array(
 )
 
 
-def _spherical_triangle_bounds(verts):
-    """Exact per-face x/y/z bounding box for triangular faces on the unit sphere,
+def _spherical_face_bounds(verts):
+    """Exact per-face x/y/z bounding box for convex faces on the unit sphere,
     computed in closed form (no sampling).
 
     A face's edges are great-circle arcs, so the true min/max of x, y, or z
@@ -683,8 +669,8 @@ def _spherical_triangle_bounds(verts):
 
     Parameters
     ----------
-    verts : ndarray, shape (nfaces, 3, 3)
-        Unit-sphere xyz coordinates of each face's 3 nodes, in winding order.
+    verts : ndarray, shape (nfaces, nodes_per_face, 3)
+        Unit-sphere xyz coordinates of each face's nodes, in winding order.
         The last axis is (x, y, z).
 
     Returns
@@ -692,74 +678,80 @@ def _spherical_triangle_bounds(verts):
     xlow, xhigh, ylow, yhigh, zlow, zhigh : ndarray, shape (nfaces,)
     """
     # --- Step 1: Calculate the bounds from the nodes themselves ----
-    v0, v1, v2 = verts[:, 0, :], verts[:, 1, :], verts[:, 2, :]
-    nfaces = verts.shape[0]
+    nodes_per_face = verts.shape[-2]
 
-    xlow, ylow, zlow = np.min(verts, axis=1).T
-    xhigh, yhigh, zhigh = np.max(verts, axis=1).T
+    low = np.min(verts, axis=-2)  # (..., 3), so low[..., 0] holds every face's x bound
+    high = np.max(verts, axis=-2)
 
     # --- Step 2: Check which faces the global extrema fall into (using a gnomonic projection) ---
-    M = np.stack([v0, v1, v2], axis=-1)  # (nfaces, 3, 3), columns v0, v1, v2
-    rhs = np.broadcast_to(_AXIS_POINTS.T, (nfaces, 3, 6))
-    w = np.linalg.solve(M, rhs)  # (nfaces, 3, 6): weights per axis point
+    # A point is inside a triangle of nodes when it can be written as a combination of
+    # the three node vectors using no negative weights. Solving for those weights needs
+    # exactly three nodes, so a face with more nodes is split into a fan of triangles
+    # sharing its first node, and a point inside any one of those triangles is inside
+    # the face.
+    inside = np.zeros(verts.shape[:-2] + (len(_AXIS_POINTS),), dtype=bool)  # (..., 6)
+    for node in range(1, nodes_per_face - 1):
+        M = np.stack([verts[..., 0, :], verts[..., node, :], verts[..., node + 1, :]], axis=-1)
 
-    # An axis point is in a face if its weights are >=0 (1e-12 accounts for machine precision).
-    inside = np.all(w >= -1e-12, axis=1)  # (nfaces, 6)
+        # A triangle with no area encloses nothing. Rather
+        # than let np.linalg.solve raise on it, conver those faces' weights to NaN.
+        weights = np.full(M.shape[:-1] + (len(_AXIS_POINTS),), np.nan)
+        has_area = np.abs(np.linalg.det(M)) > 1e-14
+        if has_area.any():
+            weights[has_area] = np.linalg.solve(M[has_area], _AXIS_POINTS.T)
+
+        # An axis point is in the triangle if its weights are >=0 (1e-12 accounts for
+        # machine precision).
+        inside |= np.all(weights >= -1e-12, axis=-2)
 
     # For faces that contain a global extreme point, override the bound to use that point (which
-    # will be either 1 or -1 on the unit sphere).
-    xhigh = np.where(inside[:, 0], 1.0, xhigh)
-    xlow = np.where(inside[:, 1], -1.0, xlow)
-    yhigh = np.where(inside[:, 2], 1.0, yhigh)
-    ylow = np.where(inside[:, 3], -1.0, ylow)
-    zhigh = np.where(inside[:, 4], 1.0, zhigh)
-    zlow = np.where(inside[:, 5], -1.0, zlow)
+    # will be either 1 or -1 on the unit sphere). _AXIS_POINTS alternates between the two
+    # ends of an axis, so the even entries are the +1 ends and the odd ones the -1 ends.
+    high = np.where(inside[..., 0::2], 1.0, high)
+    low = np.where(inside[..., 1::2], -1.0, low)
 
     # --- Step 3: per-edge extrema ------------------------------------------------
-    # Loop on the vertex combinations that make up each face
-    for a, b in ((v0, v1), (v1, v2), (v2, v0)):
+    # Loop on the pairs of adjacent nodes that make up each face's edges, wrapping
+    # from the last node back to the first.
+    for node in range(nodes_per_face):
+        a = verts[..., node, :]
+        b = verts[..., (node + 1) % nodes_per_face, :]
         # Compute the total angular length of the arc created by points a and b
-        cos_delta = np.clip(np.sum(a * b, axis=-1), -1.0, 1.0)  # (nfaces,)
-        delta = np.arccos(cos_delta)  # (nfaces,)
+        cos_delta = np.clip(np.sum(a * b, axis=-1), -1.0, 1.0)  # (...)
+        delta = np.arccos(cos_delta)  # (...)
 
-        # Construct a unit vector perpendicular to a points towards b. (a, u) then
+        # Construct a unit vector perpendicular to a that points towards b. (a, u) then
         # forms an orthonormal basis for that plane, so any point on the arc created
         # by the vertices (a,b) is in that plane, and can be computed as cos(theta)*a + sin(theta)*u
         # for theta in [0, delta]. theta=0 recovers a and theta=delta recovers b.
-        u = b - cos_delta[:, None] * a
-        u = u / np.linalg.norm(u, axis=-1)[:, None]
+        u = b - cos_delta[..., None] * a
+        edge_length = np.linalg.norm(u, axis=-1)
+        # An edge between two identical nodes has no direction to normalize; dividing
+        # the resulting zero vector by 1 keeps it zero rather than making it NaN.
+        u = u / np.where(edge_length == 0.0, 1.0, edge_length)[..., None]
 
         # Using the identity Acos(theta) + Bsin(theta) = Rcos(theta - phi) where
-        # R is an amplitude R = sqrt(A^2 + B^2) and phi = arctan2(B, A). The edges
-        # max or min then given by the location where theta=0, pi, plus the phase
+        # R is an amplitude R = sqrt(A^2 + B^2) and phi = arctan2(B, A). The edge's
+        # max or min are then given by the location where theta=0, pi, plus the phase
         # shift of phi.
-        amp = np.hypot(a, u)  # (nfaces, 3): wave amplitude R, per coordinate
-        phase = np.arctan2(u, a)  # (nfaces, 3): wave phase phi, per coordinate
+        amp = np.hypot(a, u)  # (..., 3): wave amplitude R, per coordinate
+        phase = np.arctan2(u, a)  # (..., 3): wave phase phi, per coordinate
 
-        # Compute the values of theta that result in a bounding box extrema.
-        theta_max = phase % (2 * np.pi)  # (nfaces, 3)
-        theta_min = (phase + np.pi) % (2 * np.pi)  # (nfaces, 3)
+        # Compute the values of theta that result in a bounding box extremum.
+        theta_max = phase % (2 * np.pi)  # (..., 3)
+        theta_min = (phase + np.pi) % (2 * np.pi)  # (..., 3)
 
-        # Calculate whether or not an extrema generating theta falls into the
+        # Calculate whether or not an extremum-generating theta falls into the
         # arc constructed by each edge.
-        valid_max = theta_max <= delta[:, None]  # (nfaces, 3)
-        valid_min = theta_min <= delta[:, None]  # (nfaces, 3)
+        valid_max = theta_max <= delta[..., None]  # (..., 3)
+        valid_min = theta_min <= delta[..., None]  # (..., 3)
 
-        # For theta that fall on the arc of each edge, construct and array of
-        # amplitudes representing the new candidate bound.
-        candidate_high = np.where(valid_max, amp, -np.inf)  # (nfaces, 3)
-        candidate_low = np.where(valid_min, -amp, np.inf)  # (nfaces, 3)
+        # For theta that fall on the arc of each edge, keep whichever is more extreme:
+        # the currently computed bound, or this edge's candidate for that coordinate.
+        high = np.maximum(high, np.where(valid_max, amp, -np.inf))
+        low = np.minimum(low, np.where(valid_min, -amp, np.inf))
 
-        # Keep whichever is more extreme: the currently computed bound, or this edge's
-        # candidate for that coordinate.
-        xhigh = np.maximum(xhigh, candidate_high[:, 0])
-        yhigh = np.maximum(yhigh, candidate_high[:, 1])
-        zhigh = np.maximum(zhigh, candidate_high[:, 2])
-        xlow = np.minimum(xlow, candidate_low[:, 0])
-        ylow = np.minimum(ylow, candidate_low[:, 1])
-        zlow = np.minimum(zlow, candidate_low[:, 2])
-
-    return xlow, xhigh, ylow, yhigh, zlow, zhigh
+    return low[..., 0], high[..., 0], low[..., 1], high[..., 1], low[..., 2], high[..., 2]
 
 
 def quantize_coordinates(x, y, z, xmin, xmax, ymin, ymax, zmin, zmax, bitwidth=1023):
