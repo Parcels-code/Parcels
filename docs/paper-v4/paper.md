@@ -38,7 +38,7 @@ With this update, Parcels also adds several new features including support for u
 
 The first release of Parcels was in July 2017.
 Since then, the geoscience modelling space has changed.
-A significant portion of the geospatial science community has shifted from creating their own scripts for manipulating NetCDF data, to using open source software - namely Xarray - for working with multidimensional climate data.
+A significant portion of the geospatial science community has shifted from creating their own scripts for manipulating NetCDF data, to using open source software - like Xarray - for working with multidimensional climate data.
 Major benefits of this software include (a) providing a single in-memory, metadata-rich representation of a full NetCDF-like dataset, (b) its flexibility to manipulate datasets in other data-formats (e.g., Zarr, HDF5), and (c) its abstractions that facilitate easy data ingestion from network data sources.
 
 Writing software that natively works from Xarray datasets provides a powerful abstraction layer allowing downstream developers to create software that works across data formats and data ingestion paradigms.
