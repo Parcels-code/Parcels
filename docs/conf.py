@@ -204,6 +204,7 @@ html_theme_options = {
             "type": "fontawesome",
         }
     ],
+    "announcement": "Parcels v4 has been released! 🎉 See <a href='https://parcels-code.org/blog/parcels-v4'>our release blog post</a> for more info",
     "header_links_before_dropdown": 8,
     "navbar_align": "left",
 }
