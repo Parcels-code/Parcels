@@ -13,7 +13,7 @@ In this tutorial, we will show how to squeeze performance in Parcels by using a 
 Note that the concept of Parcels Backends is different from [Xarray backends](https://docs.xarray.dev/en/latest/api/backends.html).
 
 ```{note}
-You can check which Backend Parcels is using by calling `fieldset.describe()`. The last column shows the Backend that is used for each Field.
+You can check which Backend Parcels is using by calling {py:func}`parcels.FieldSet.describe()`. The last column shows the Backend that is used for each Field.
 ```
 
 ## Option 1: load the full FieldSet into memory
@@ -42,7 +42,7 @@ This will make Parcels use `numpy` functions in the interpolation routines, whic
 
 _Uses Parcels Backend: Zarr_
 
-If your Dataset is too large to fit into memory, but your particles are only distributed over a small part of the domain, it could be efficient to use cached zarr files. This can be done by using the (experimental) `zarr.CacheStore` in combination with the `parcels.open_raw_zarr()` function. This will make Parcels only load the chunks that are needed for the particles, and cache these chunks in memory for future use.
+If your Dataset is too large to fit into memory, but your particles are only distributed over a small part of the domain, it could be efficient to use cached zarr files. This can be done by using the (experimental) `zarr.CacheStore` in combination with the {py:func}`parcels.open_raw_zarr()` function. This will make Parcels only load the chunks that are needed for the particles, and cache these chunks in memory for future use.
 
 ```{code-block} python
 source_store = zarr.storage.LocalStore(filenames)
@@ -71,7 +71,7 @@ _Uses Parcels Backend: WindowedArray_
 
 **Best for: large Datasets (more than a few GB) and particles distributed over the entire domain**
 
-If your Dataset is so large that it doesn't fit into memory, you can use the `fieldset.to_windowed_arrays()` method to make Parcels only hold two timeslices in memory. Note that this only works if the two timeslices still fit into memory.
+If your Dataset is so large that it doesn't fit into memory, you can use the {py:func}`parcels.FieldSet.to_windowed_arrays()` method to make Parcels only hold two timeslices in memory. Note that this only works if the two timeslices still fit into memory.
 
 The two timeslices (the current and the next) are fully loaded into memory, so this method is especially useful if your particles are distributed over the entire domain, as all data will then have to be accessed anyway.
 
@@ -110,3 +110,26 @@ The long-term plan for Parcels development is to make this Option 4 work well fo
 If you have ideas for how to make Parcels faster, we'd love to hear from you!
 Feel free to [open an issue](https://github.com/Parcels-code/Parcels/issues) or reach out to us on [Zulip](https://clam-community.github.io).
 ```
+
+## Option 5: use ChunkCachedArrays
+
+_Uses Parcels Backend: ChunkCachedArray_
+
+**Best for: large Datasets (more than a few GB) and particles distributed over the entire domain**
+
+If your Dataset is so large that it doesn't fit into memory, you can use the {py:func}`parcels.FieldSet.to_chunk_cached_arrays()`.
+This constructs a cache where individual (dask) chunks of data are stored.
+During a simulation, Parcels fetches data from the chunk cache and, only if the data is not loaded in the cache, retrieves data from disk to use and store in the cache.
+
+This results in a smaller memory footprint than the windowed array approach (especially if the particles aren't distributed over the spatial domain).
+
+```{code-block} python
+fieldset.to_chunkcached_arrays()
+```
+
+### Advantages and disadvantages
+
+| Advantages                                                                                            | Disadvantages                                                                                                                                 |
+| ----------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------------------------------------- |
+| Parcels will only hold accessed chunks of data in memory, which is much less than the entire Dataset. | With many particles that cover the entire domain, the caching layer (and finding which particles are in which chunks) can have more overhead. |
+| Hydrodynamic files do not have to be reformatted and stored.                                          |                                                                                                                                               |

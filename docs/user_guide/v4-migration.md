@@ -88,10 +88,18 @@ How to migrate
 <div class="migration-chat">
 
 <div class="migration-bubble migration-change">
+The Kernel API has had some major changes (see also below)
+</div>
+<div class="migration-bubble migration-how">
+Add the <code>@parcels.validate_kernel</code> decorator above your Kernel function definition to check for errors and warnings.
+</div>
+<hr class="migration-divider" />
+
+<div class="migration-bubble migration-change">
 The Kernel loop is 'vectorized': the input of a Kernel is a collection of particles
 </div>
 <div class="migration-bubble migration-how">
-Replace <code>if</code>-statements with <code>numpy.where</code> statements or <a href="examples/tutorial_Argofloats">boolean indexing</a>
+Replace <code>if</code>-statements with <code>numpy.where</code> statements or <a href="examples/tutorial_Argofloats.html">boolean indexing</a>
 </div>
 <hr class="migration-divider" />
 
@@ -147,7 +155,7 @@ Change the argument name in your Kernel signature to <code>particles</code>
 <code>particle.delete()</code> is no longer valid
 </div>
 <div class="migration-bubble migration-how">
-Use <code>particle.state = StatusCode.Delete</code>
+Use <code>StatusCode.Delete</code> in combination with boolean indexing - as detailed <a href="examples/tutorial_statuscodes.html">here</a>
 </div>
 <hr class="migration-divider" />
 
@@ -163,7 +171,7 @@ Use fieldset.context or particle data to share information between kernels
 The <code>InteractionKernel</code> class is removed as normal Kernels now have access to <em>all</em> particles
 </div>
 <div class="migration-bubble migration-how">
-Particle-particle interaction can be <a href="examples/tutorial_interaction">performed within normal Kernels</a>
+Particle-particle interaction can be <a href="examples/tutorial_interaction.html">performed within normal Kernels</a>
 </div>
 <hr class="migration-divider" />
 
@@ -176,7 +184,7 @@ Explicitly use <code>convert_z_to_sigma_croco</code> in sampling kernels (such a
 <hr class="migration-divider" />
 
 <div class="migration-bubble migration-change">
-The default advection scheme is changed from RK4 to RK2 as it is <a href="examples/tutorial_dt_integrators">faster while the accuracy is comparable for most applications</a>
+The default advection scheme is changed from RK4 to RK2 as it is <a href="examples/tutorial_dt_integrators.html">faster while the accuracy is comparable for most applications</a>
 </div>
 <div class="migration-bubble migration-how">
 Use <code>pset.execute(parcels.AdvectionRK2)</code> for advection
@@ -253,7 +261,7 @@ Simply pass the function(s) as a list to <code>pset.execute()</code>
 <code>repeatdt</code> is removed
 </div>
 <div class="migration-bubble migration-how">
-See the <a href="examples/tutorial_delaystart.ipynb#release-particles-repeatedly">Delayed starts tutorial</a> for how to implement repeated releases of particles
+See the <a href="examples/tutorial_delaystart.html#release-particles-repeatedly">Delayed starts tutorial</a> for how to implement repeated releases of particles
 </div>
 <hr class="migration-divider" />
 
@@ -277,7 +285,7 @@ Update <code>runtime</code> and <code>endtime</code> to use <code>numpy.datetime
 <code>ParticleSet.from_field()</code>, <code>ParticleSet.from_line()</code>, <code>ParticleSet.from_list()</code> are removed
 </div>
 <div class="migration-bubble migration-how">
-Use the <a href="examples/tutorial_delaystart"><code>ParticleSet</code> constructor</a> directly
+Use the <a href="examples/tutorial_delaystart.html"><code>ParticleSet</code> constructor</a> directly
 </div>
 <hr class="migration-divider" />
 
@@ -288,7 +296,7 @@ Use the <a href="examples/tutorial_delaystart"><code>ParticleSet</code> construc
 <div class="migration-chat">
 
 <div class="migration-bubble migration-change">
-ParticleFiles output is in <a href="getting_started/tutorial_output">parquet format</a>
+ParticleFiles output is in <a href="getting_started/tutorial_output.html">parquet format</a>
 </div>
 <div class="migration-bubble migration-how">
 Read the output with <code>polars.read_parquet()</code> or (to automatically handle cftime) <code>parcels.read_particlefile()</code>. For compatility with old postprocessing codes, convert the new Parquet output to v3-style zarr output using <code>parcels.particlefile_to_v3_zarr()</code>
@@ -347,7 +355,7 @@ Remove the <code>to_write</code> argument from your code
 Particles are not written when they are deleted
 </div>
 <div class="migration-bubble migration-how">
-Call <code>ParticleFile.write()</code> <a href="examples/tutorial_write_in_kernel.ipynb#writing-on-particle-deletion">inside a kernel to write out</a> deleted particles
+Call <code>ParticleFile.write()</code> <a href="examples/tutorial_write_in_kernel.html#writing-on-particle-deletion">inside a kernel to write out</a> deleted particles
 </div>
 <hr class="migration-divider" />
 
@@ -377,7 +385,7 @@ Use <code>Field.eval()</code> as before, but expect an array of floats instead o
 The <code>NestedField</code> class is removed
 </div>
 <div class="migration-bubble migration-how">
-See the <a href="examples/tutorial_nestedgrids">Nested Grids tutorial</a> for how to set up Nested Grids in v4
+See the <a href="examples/tutorial_nestedgrids.html">Nested Grids tutorial</a> for how to set up Nested Grids in v4
 </div>
 <hr class="migration-divider" />
 

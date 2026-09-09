@@ -3,19 +3,20 @@ from __future__ import annotations
 import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Hashable, Sequence
-from typing import Any, Self
+from typing import TYPE_CHECKING, Any, Self
 
 import cf_xarray  # noqa: F401
-import uxarray as ux
 import xarray as xr
 import zarr
 from dask import is_dask_collection
 
 import parcels._sgrid as sgrid
 import parcels._typing as ptyping
+from parcels._chunk_cached_array import wrap_dataset
 from parcels._core._windowed_array import maybe_windowed
 from parcels._core.basegrid import BaseGrid
 from parcels._core.field import Field, VectorField
+from parcels._core.mesh import FlatMesh, SphericalMesh
 from parcels._core.utils.time import TimeInterval
 from parcels._core.uxgrid import UxGrid
 from parcels._core.xgrid import (
@@ -37,12 +38,19 @@ from parcels.interpolators import (
 )
 from parcels.interpolators._base import ScalarInterpolator, VectorInterpolator
 
+if TYPE_CHECKING:
+    import uxarray as ux
+
 
 class ModelData(ABC):
     data: Any
     grid: BaseGrid
     field_to_interpolator: dict[str, ScalarInterpolator | VectorInterpolator]
     vector_field_components: ptyping.VectorFields
+
+    @property
+    def mesh(self) -> FlatMesh | SphericalMesh:
+        return self.grid._mesh
 
     @abstractmethod
     def construct_fields(self) -> list[Field | VectorField]: ...
@@ -110,6 +118,29 @@ class ModelData(ABC):
         for name in self.scalar_field_names:
             current = windowed.get(name, self.data[name])
             windowed[name] = maybe_windowed(current, max_levels=max_levels)
+        return self
+
+    def to_chunk_cached_arrays(self, *, max_cache_bytes: int = 600_000_000) -> Self:
+        """Wrap dask-backed field data in chunk-level LRU caches.
+
+        Opt-in optimization that replaces each dask-backed data variable's
+        internal storage with a :class:`~parcels._chunk_cached_array.ChunkCachedArray`.
+        Repeated vectorized ``.isel()`` calls then hit an in-memory LRU cache
+        keyed by chunk coordinates instead of recomputing dask task graphs.
+
+        Coordinate variables are loaded eagerly into memory (they are small 1D
+        arrays) to avoid dask task-graph construction overhead on every
+        ``.isel()`` call.
+
+        Idempotent: re-invoking is safe — ``wrap_dataset`` skips variables
+        whose storage is already a ``ChunkCachedArray``.
+
+        Parameters
+        ----------
+        max_cache_bytes : int, optional
+            Maximum cache size in bytes, per variable. Defaults to 600 MB.
+        """
+        self.data = wrap_dataset(self.data, max_cache_bytes=max_cache_bytes)
         return self
 
     @property
@@ -289,8 +320,10 @@ def assert_vector_field_components_in_dataset(ds: xr.Dataset, vector_fields: pty
     return
 
 
-CONSTANT_FIELD_MODELS = {
-    mesh: StructuredModelData.from_sgrid_conventions(
+def create_empty_constant_field_model(mesh: SphericalMesh | FlatMesh) -> StructuredModelData:
+    """Create a empty model for constant fields with the given mesh type."""
+    mesh_: ptyping.TMesh = "flat" if isinstance(mesh, FlatMesh) else mesh
+    return StructuredModelData.from_sgrid_conventions(
         xr.Dataset(
             {},
             coords={
@@ -311,15 +344,15 @@ CONSTANT_FIELD_MODELS = {
                 ),
             ),
         ),
-        mesh=mesh,  # type:ignore
+        mesh=mesh_,
         vector_fields={},
     )
-    for mesh in ["flat", "spherical"]
-}
 
 
 class UnstructuredModelData(ModelData):
     def __init__(self, data: ux.UxDataset, grid: UxGrid, vector_field_components: ptyping.VectorFields):
+        import uxarray as ux
+
         if not isinstance(data, ux.UxDataset):
             raise ValueError(f"Expected `data` to be an uxarray.UxDataset . Got {type(data)}")
 

@@ -182,7 +182,7 @@ def maybe_convert_python_timedelta_to_numpy(dt: timedelta | np.timedelta64) -> n
                 dts.append(np.timedelta64(value, np_unit))
 
         if dts:
-            return sum(dts)
+            return np.sum(dts)
         else:
             return np.timedelta64(0, "s")
     except Exception as e:

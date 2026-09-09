@@ -74,8 +74,8 @@ class SGrid2DMetadata(_AttrsSerializable):
         topology_dimension: Literal[2],
         node_dimensions: tuple[Dim, Dim],
         face_dimensions: tuple[FaceNodePadding, FaceNodePadding],
-        node_coordinates: None | tuple[Dim, Dim] = None,
-        vertical_dimensions: None | tuple[FaceNodePadding] = None,
+        node_coordinates: tuple[Dim, Dim] | None = None,
+        vertical_dimensions: tuple[FaceNodePadding] | None = None,
     ):
         if cf_role != "grid_topology":
             raise ValueError(f"cf_role must be 'grid_topology', got {cf_role!r}")
@@ -196,7 +196,7 @@ class SGrid3DMetadata(_AttrsSerializable):
         topology_dimension: Literal[3],
         node_dimensions: tuple[Dim, Dim, Dim],
         volume_dimensions: tuple[FaceNodePadding, FaceNodePadding, FaceNodePadding],
-        node_coordinates: None | tuple[Dim, Dim, Dim] = None,
+        node_coordinates: tuple[Dim, Dim, Dim] | None = None,
     ):
         if cf_role != "grid_topology":
             raise ValueError(f"cf_role must be 'grid_topology', got {cf_role!r}")

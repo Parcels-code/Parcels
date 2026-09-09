@@ -3,7 +3,7 @@ from typing import Literal
 
 import numpy as np
 
-EARTH_RADIUS = 6366707.019493707
+EARTH_RADIUS = 6_366_707.019493707  # m
 
 
 class BaseMesh(ABC):

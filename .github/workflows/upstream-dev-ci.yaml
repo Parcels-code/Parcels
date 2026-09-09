@@ -1,0 +1,162 @@
+name: CI Upstream
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+    types: [opened, reopened, synchronize, labeled]
+  schedule:
+    - cron: "0 0 * * 1,4" # At 00:00 UTC on Monday and Wednesday.
+  workflow_dispatch: # allows you to trigger the workflow run manually
+
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+permissions: {}
+
+env:
+  FORCE_COLOR: 3
+
+jobs:
+  detect-ci-trigger:
+    name: detect upstream-dev ci trigger
+    runs-on: ubuntu-slim
+    if: |
+      github.repository == 'Parcels-code/Parcels'
+      && (github.event_name == 'push' || github.event_name == 'pull_request')
+      && !contains(github.event.pull_request.labels.*.name, 'skip-ci')
+    outputs:
+      triggered: ${{ steps.detect-trigger.outputs.trigger-found }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 2
+          persist-credentials: false
+      - uses: xarray-contrib/ci-trigger@74ddc46fc6ca7509549ac7b660d7a185948c1e74 # v1.2
+        id: detect-trigger
+        with:
+          keyword: "[test-upstream]"
+
+  cache-pixi-lock:
+    name: cache pixi.lock
+    runs-on: ubuntu-latest
+    needs: detect-ci-trigger
+    if: |
+      always()
+      && github.repository == 'Parcels-code/Parcels'
+      && (
+        (github.event_name == 'schedule' || github.event_name == 'workflow_dispatch')
+        || (
+          github.event_name == 'pull_request'
+          && (
+            needs.detect-ci-trigger.outputs.triggered == 'true'
+            || contains( github.event.pull_request.labels.*.name, 'run-upstream')
+          )
+        )
+      )
+
+    env:
+      MANIFEST_PATH: ci/nightly/pixi.toml
+      LOCK_PATH: ci/nightly/pixi.lock
+
+    outputs:
+      cache-key: ${{ steps.pixi-lock.outputs.cache-key }}
+      pixi-version: ${{ steps.pixi-lock.outputs.pixi-version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          persist-credentials: false
+      - uses: xarray-contrib/pixi-lock/create-and-cache@1fab4c17af8243f6ca1321bc941cf2325f46c05d # v0.1.1
+        id: pixi-lock
+        with:
+          manifest-path: ${{ env.MANIFEST_PATH }}
+          hash-files: |
+            ${{ env.MANIFEST_PATH }}
+            pyproject.toml
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: pixi-lock
+          path: ${{ env.LOCK_PATH }}
+
+  upstream-dev:
+    name: upstream-dev
+    runs-on: ubuntu-latest
+    needs: cache-pixi-lock
+    if: |
+      always() && needs.cache-pixi-lock.result == 'success'
+
+    defaults:
+      run:
+        shell: bash -l {0}
+
+    env:
+      MANIFEST_PATH: ci/nightly/pixi.toml
+
+    outputs:
+      log-file: ${{ steps.determine-log-path.outputs.log-file }}
+
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0 # Fetch all history for all branches and tags.
+          persist-credentials: false
+      - name: Determine log path
+        id: determine-log-path
+        run: |
+          echo "log-file=output-upstream-dev-log.jsonl" >> $GITHUB_OUTPUT;
+      - name: Restore cached pixi lockfile
+        uses: xarray-contrib/pixi-lock/restore@1fab4c17af8243f6ca1321bc941cf2325f46c05d # v0.1.1
+        with:
+          manifest-path: ${{ env.MANIFEST_PATH }}
+          cache-key: ${{ needs.cache-pixi-lock.outputs.cache-key }}
+      - uses: prefix-dev/setup-pixi@f00437f565399d418b0acc85936d12c1fb668347 # v0.10.1
+        with:
+          pixi-version: ${{ needs.cache-pixi-lock.outputs.pixi-version }}
+          cache: true
+          manifest-path: ${{ env.MANIFEST_PATH }}
+          cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
+      - name: Import parcels
+        run: |
+          pixi run --manifest-path "$MANIFEST_PATH" -- python -c 'import parcels'
+      - name: Run Tests
+        if: success()
+        id: status
+        env:
+          LOG_PATH: ${{ steps.determine-log-path.outputs.log-file }}
+        run: |
+          pixi run \
+            --manifest-path "$MANIFEST_PATH" \
+            tests-nightly --timeout=60 -rf --report-log "$LOG_PATH"
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        if: failure()
+        with:
+          name: log file
+          path: ${{ steps.determine-log-path.outputs.log-file }}
+
+  create-issue:
+    name: report failing upstream-dev runs
+    needs: upstream-dev
+    runs-on: ubuntu-slim
+    if: |
+      always()
+      && needs.upstream-dev.result == 'failure'
+      && github.event_name == 'schedule'
+      && github.repository_owner == 'Parcels-code'
+
+    permissions:
+      issues: write # open or edit an issue for failed CI runs
+
+    steps:
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          name: log file
+          path: logs/
+      - name: Generate and publish the report
+        uses: scientific-python/issue-from-pytest-log-action@35b4e0a9e06f8e7e261778289cf4b968b722662d # v1.6.2
+        with:
+          log-path: logs/${{ needs.upstream-dev.outputs.log-file }}
+          assignees: VeckoTheGecko,erikvansebille
+          issue-label: automated

@@ -5,6 +5,7 @@ from operator import attrgetter
 import numpy as np
 import pytest
 import xarray as xr
+from re_assert import Matches
 
 from parcels import (
     FieldSet,
@@ -33,6 +34,10 @@ def test_create_empty_pset(fieldset):
 
     pset.execute(DoNothing, endtime=1.0, dt=1.0)
     assert pset.size == 0
+
+
+def test_particleset_repr(fieldset):
+    Matches(r"\<.*ParticleSet object at.*\>").assert_matches(repr(ParticleSet(fieldset, pclass=Particle)))
 
 
 @pytest.mark.parametrize("offset", [0, 1, 200])
@@ -88,9 +93,11 @@ def test_pset_custominit_on_pclass(fieldset, pset_override):
     [
         (np.timedelta64(0, "ns"), does_not_raise()),
         (np.datetime64("2000-01-02T00:00:00"), does_not_raise()),
+        (datetime(2000, 1, 1, 0, 0, 0), does_not_raise()),
+        (datetime(2000, 1, 1, 0, 0, 0).date(), does_not_raise()),
+        (timedelta(seconds=0), does_not_raise()),
         (0.0, pytest.raises(TypeError)),
-        (timedelta(seconds=0), pytest.raises(TypeError)),
-        (datetime(2023, 1, 1, 0, 0, 0), pytest.raises(TypeError)),
+        ("invalid_time_string", pytest.raises(TypeError)),
     ],
 )
 def test_particleset_init_time_type(fieldset, time, expectation):

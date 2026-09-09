@@ -91,7 +91,7 @@ def radial_rotation_dataset(xdim=200, ydim=200):  # Define 2D flat, square field
     )
 
 
-def moving_eddy_dataset(xdim=2, ydim=2):  # TODO check if this also works with xdim=1, ydim=1
+def moving_eddy_dataset(xdim=2, ydim=2):
     """Create a dataset with an eddy moving in time. Note that there is no spatial variation in the flow."""
     f, u_0, u_g = 1.0e-4, 0.3, 0.04  # Some constants
 

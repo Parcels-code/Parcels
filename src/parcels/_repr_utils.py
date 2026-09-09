@@ -11,6 +11,7 @@ import xarray as xr
 import zarr
 from dask.base import is_dask_collection
 
+from parcels._chunk_cached_array.core import ChunkCachedArray
 from parcels._core._windowed_array import WindowedArray
 from parcels._python import isinstance_noimport
 
@@ -44,7 +45,6 @@ def fieldset_repr(fieldset: FieldSet) -> str:
     return textwrap.dedent(out).strip()
 
 
-# TODO add land_value here after HG #2451 is merged
 def field_repr(field: Field, level: int = 0) -> str:
     """Return a pretty repr for Field"""
     with xr.set_options(display_expand_data=False):
@@ -138,8 +138,7 @@ def particlefile_repr(pfile: Any) -> str:
     out = f"""<{type(pfile).__name__}>
     path                : {pfile.path}
     outputdt            : {pfile.outputdt!r}
-    metadata            :
-{_format_list_items_multiline(pfile.metadata, level=2, with_brackets=False)}
+    metadata            : {_format_list_items_multiline(pfile.metadata, level=2, with_brackets=False)}
 """
     return textwrap.dedent(out).strip()
 
@@ -225,6 +224,8 @@ def _field_backend(field: Field | VectorField) -> str | None:
             return "WindowedArray"
         elif is_dask_collection(field.data.data):
             return "Dask"
+        elif isinstance(field.data.variable._data, ChunkCachedArray):
+            return "ChunkCachedArray"
         elif isinstance(field.data.variable._data, zarr.Array):
             return "Zarr"
         elif isinstance(field.data.data, np.ndarray):

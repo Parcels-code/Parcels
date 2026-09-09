@@ -331,7 +331,7 @@ def test_dont_run_particles_outside_starttime(fieldset):
     endtime = fieldset.time_interval.left + np.timedelta64(8, "s")
 
     def AddLon(particles, fieldset):  # pragma: no cover
-        particles.x += 1
+        particles.dx += 1
 
     pset = ParticleSet(fieldset, x=np.zeros(len(start_times)), y=np.zeros(len(start_times)), t=start_times)
     pset.execute(AddLon, dt=np.timedelta64(1, "s"), endtime=endtime)
@@ -459,7 +459,7 @@ def test_execution_runtime(fieldset, starttime_flt, runtime_flt, dt, npart):
 
 def test_changing_dt_in_kernel(fieldset):
     def KernelCounter(particles, fieldset):  # pragma: no cover
-        particles.x += 1
+        particles.dx = 1
 
     pset = ParticleSet(fieldset, x=np.zeros(1), y=np.zeros(1))
     pset.execute(KernelCounter, dt=np.timedelta64(2, "s"), runtime=np.timedelta64(5, "s"))

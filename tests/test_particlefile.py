@@ -9,11 +9,13 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 import xarray as xr
+from re_assert import Matches
 
 import parcels.tutorial
 from parcels import (
     Field,
     FieldSet,
+    Particle,
     ParticleFile,
     ParticleSet,
     ParticleSetWarning,
@@ -21,13 +23,24 @@ from parcels import (
     Variable,
     convert,
 )
-from parcels._core.particle import Particle, get_default_particle
+from parcels._core.particle import get_default_particle
 from parcels._core.particlefile import get_schema
 from parcels._core.utils.time import TimeInterval, timedelta_to_float
 from parcels._datasets.structured.generated import peninsula_dataset
 from parcels.interpolators import XLinear
 from parcels.kernels import AdvectionRK4
 from tests.common_kernels import DoNothing
+
+
+def test_particlefile_repr(tmp_parquet):
+    pfile_repr = repr(ParticleFile(tmp_parquet, outputdt=np.timedelta64(1, "s")))
+    match = Matches(
+        r"""\<ParticleFile\>
+    path                : .*
+    outputdt            : 1.0
+    metadata            : .*""",
+    )
+    match.assert_matches(pfile_repr)
 
 
 def test_metadata(fieldset, tmp_parquet):
@@ -359,14 +372,18 @@ def test_subsecond_outputdt(fieldset, dt, tmp_parquet):
     np.testing.assert_allclose(df["x"], np.arange(0, 1 + 1e-6, dt / 1000.0), atol=1e-6)
     expected_t = np.arange(0, 1001, dt).astype("timedelta64[ms]")
     elapsed_t = (df["t"] - df["t"].min()).to_numpy().astype("timedelta64[ms]")
-    np.testing.assert_allclose(elapsed_t, expected_t, atol=1)
+    np.testing.assert_allclose(
+        elapsed_t.astype("timedelta64[ms]").astype("int"),
+        expected_t.astype("timedelta64[ms]").astype("int"),
+        atol=1,
+    )
 
 
 def test_correct_misaligned_outputdt_dt(fieldset, tmp_parquet):
     """Testing that outputdt does not need to be a multiple of dt."""
 
     def Update_lon(particles, fieldset):  # pragma: no cover
-        particles.x += particles.dt
+        particles.dx = particles.dt
 
     particle = get_default_particle(np.float64)
     pset = ParticleSet(fieldset, pclass=particle, x=[0], y=[0])

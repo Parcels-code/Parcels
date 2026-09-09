@@ -60,7 +60,7 @@ def _validate_against_pure_literal(value, typing_literal):
 
     Can't be used with ``Literal[...] | None`` etc. as its not a pure literal.
     """
-    # TODO remove once https://github.com/pydata/xarray/issues/11209 is resolved - Xarray objects don't work normally in `in` statements
+    # Xarray objects don't work normally in `in` statements - see https://github.com/pydata/xarray/issues/11209 (this is unlikely to be resolved anytime soon)
     if _is_xarray_object(value):
         raise ValueError(f"Invalid input type {type(value)}")
 
