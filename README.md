@@ -20,7 +20,7 @@
 
 ![CopernicusParticles](https://github.com/Parcels-code/Parcels/blob/main/docs/_static/homepage.gif?raw=true)
 
-_Animation of virtual particles carried by ocean surface flow in the global oceans. The particles are advected with Parcels in data from the [Copernicus Marine Service](https://marine.copernicus.eu). See [here](https://docs.parcels-code.org/en/stable/user_guide/examples/tutorial_homepage_animation.html) for the script to create this animation yourself._
+_Animation of virtual particles carried by ocean surface flow in the global oceans. The particles are advected with Parcels in data from the [Copernicus Marine Service](https://marine.copernicus.eu). See [here](https://docs.parcels-code.org/en/latest/user_guide/examples/tutorial_homepage_animation.html) for the script to create this animation yourself._
 
 ### Parcels manuscript and code
 
@@ -38,7 +38,7 @@ _Kehl, C, PD Nooteboom, MLA Kaandorp and E van Sebille (2023) Efficiently simula
 
 ### Further information
 
-See [parcels-code.org](http://parcels-code.org/) for further information about [installing](https://docs.parcels-code.org/en/stable/user_guide/getting_started/installation.html) and [running](https://docs.parcels-code.org/en/stable/user_guide/index.html) the Parcels code, as well as extended [API reference](https://docs.parcels-code.org/en/stable/reference/parcels/index.html) of the methods and classes.
+See [parcels-code.org](http://parcels-code.org/) for further information about [installing](https://docs.parcels-code.org/en/latest/user_guide/getting_started/installation.html) and [running](https://docs.parcels-code.org/en/latest/user_guide/index.html) the Parcels code, as well as extended [API reference](https://docs.parcels-code.org/en/latest/reference/parcels/index.html) of the methods and classes.
 
 ### Contributors
 
@@ -46,5 +46,5 @@ See [parcels-code.org](http://parcels-code.org/) for further information about [
   <img src="https://contrib.rocks/image?repo=parcels-code/parcels" />
 </a>
 
-**All contributions are welcome! See the [development page](https://docs.parcels-code.org/en/stable/development/index.html) in our documentation to see how to get involved.**
+**All contributions are welcome! See the [development page](https://docs.parcels-code.org/en/latest/development/index.html) in our documentation to see how to get involved.**
 Image made with [contrib.rocks](https://contrib.rocks).
