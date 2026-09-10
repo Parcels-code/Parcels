@@ -1,0 +1,39 @@
+extends: substitution
+message: "Use British English: '%s' -> '%s'."
+level: error
+scope: text
+ignorecase: true
+swap:
+  analyze: analyse
+  analyzed: analysed
+  analyzing: analysing
+  behavior: behaviour
+  behaviors: behaviours
+  behavioral: behavioural
+  center: centre
+  centers: centres
+  centered: centred
+  centering: centring
+  color: colour
+  colors: colours
+  colored: coloured
+  coloring: colouring
+  customize: customise
+  customized: customised
+  customizing: customising
+  customization: customisation
+  labeled: labelled
+  labeling: labelling
+  modeler: modeller
+  modelers: modellers
+  modeling: modelling
+  normalize: normalise
+  normalized: normalised
+  normalizing: normalising
+  normalization: normalisation
+  optimize: optimise
+  optimized: optimised
+  optimizing: optimising
+  optimization: optimisation
+  organization: organisation
+  organizations: organisations

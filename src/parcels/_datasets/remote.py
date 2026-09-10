@@ -56,6 +56,9 @@ _ODIE_REGISTRY_FILES: list[str] = (
     #     "data/DecayingMovingEddy_data/decaying_moving_eddyV.nc",
     # ]
     + [
+        "data/Delft3D_data/Rotterdam_tiny.nc",
+    ]
+    + [
         "data/FESOM_periodic_channel/fesom_channel.nc",
         "data/FESOM_periodic_channel/u.fesom_channel.nc",
         "data/FESOM_periodic_channel/v.fesom_channel.nc",
@@ -141,7 +144,7 @@ class _V3Dataset(_ParcelsDataset):
 
         # Function to apply to the dataset before the decoding the CF variables
         self.pup = pup
-        self.pre_decode_cf_callable: None | Callable[[xr.Dataset], xr.Dataset] = pre_decode_cf_callable
+        self.pre_decode_cf_callable: Callable[[xr.Dataset], xr.Dataset] | None = pre_decode_cf_callable
 
         first, second, *_ = path_relative_to_pup.split("/")
         self.v3_dataset_name = f"{first}/{second}"  # e.g., data/my_dataset
@@ -221,6 +224,7 @@ _DATASET_KEYS_AND_CONFIGS: dict[str, tuple[_ParcelsDataset, _Purpose]] = dict([
     # ("Peninsula_data/T", (_V3Dataset(_ODIE,"data/Peninsula_data/peninsulaT.nc"), _Purpose.TUTORIAL)),
     # ("GlobCurrent_example_data/data", (_V3Dataset(_ODIE,"data/GlobCurrent_example_data/*000000-GLOBCURRENT-L4-CUReul_hs-ALT_SUM-v02.0-fv01.0.nc", pre_decode_cf_callable=patch_dataset_v4_compat), _Purpose.TUTORIAL)),
     ("CopernicusMarine_data_for_Argo_tutorial/data", (_V3Dataset(_ODIE,"data/CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-*.nc"), _Purpose.TUTORIAL)),
+    ("Delft3D_data/Rotterdam_tiny", (_V3Dataset(_ODIE,"data/Delft3D_data/Rotterdam_tiny.nc"), _Purpose.TUTORIAL)),
     ("CopernicusMarine_data_for_stuck_particles_tutorial/data", (_V3Dataset(_ODIE,"data/CopernicusMarine_data_for_stuck_particles_tutorial/cmems_mod_glo_phy_my_0.083deg_P1D-m_NL.nc"), _Purpose.TUTORIAL)),
     # ("DecayingMovingEddy_data/U", (_V3Dataset(_ODIE,"data/DecayingMovingEddy_data/decaying_moving_eddyU.nc"), _Purpose.TUTORIAL)),
     # ("DecayingMovingEddy_data/V", (_V3Dataset(_ODIE,"data/DecayingMovingEddy_data/decaying_moving_eddyV.nc"), _Purpose.TUTORIAL)),

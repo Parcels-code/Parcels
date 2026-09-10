@@ -8,7 +8,7 @@ import numpy as np
 from parcels._compat import _attrgetter_helper
 from parcels._core.statuscodes import StatusCode
 from parcels._core.utils.string import _assert_str_and_python_varname
-from parcels._reprs import particleclass_repr, variable_repr
+from parcels._repr_utils import particleclass_repr, variable_repr
 
 __all__ = ["Particle", "ParticleClass", "Variable"]
 _TO_WRITE_OPTIONS = [True, False]

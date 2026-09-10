@@ -9,7 +9,6 @@ from .core import (
     get_n_faces,
     get_n_nodes,
     load_mappings,
-    xgcm_parse_sgrid,
 )
 
 __all__ = [
@@ -23,5 +22,4 @@ __all__ = [
     "get_n_faces",
     "get_n_nodes",
     "load_mappings",
-    "xgcm_parse_sgrid",
 ]

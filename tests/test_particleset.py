@@ -5,13 +5,16 @@ from operator import attrgetter
 import numpy as np
 import pytest
 import xarray as xr
+from re_assert import Matches
 
 from parcels import (
+    FieldSet,
     Particle,
     ParticleSet,
     ParticleSetWarning,
     Variable,
 )
+from parcels._datasets.structured.generated import simple_UV_dataset
 from tests.common_kernels import DoNothing
 from tests.utils import round_and_hash_float_array
 
@@ -31,6 +34,10 @@ def test_create_empty_pset(fieldset):
 
     pset.execute(DoNothing, endtime=1.0, dt=1.0)
     assert pset.size == 0
+
+
+def test_particleset_repr(fieldset):
+    Matches(r"\<.*ParticleSet object at.*\>").assert_matches(repr(ParticleSet(fieldset, pclass=Particle)))
 
 
 @pytest.mark.parametrize("offset", [0, 1, 200])
@@ -86,9 +93,11 @@ def test_pset_custominit_on_pclass(fieldset, pset_override):
     [
         (np.timedelta64(0, "ns"), does_not_raise()),
         (np.datetime64("2000-01-02T00:00:00"), does_not_raise()),
+        (datetime(2000, 1, 1, 0, 0, 0), does_not_raise()),
+        (datetime(2000, 1, 1, 0, 0, 0).date(), does_not_raise()),
+        (timedelta(seconds=0), does_not_raise()),
         (0.0, pytest.raises(TypeError)),
-        (timedelta(seconds=0), pytest.raises(TypeError)),
-        (datetime(2023, 1, 1, 0, 0, 0), pytest.raises(TypeError)),
+        ("invalid_time_string", pytest.raises(TypeError)),
     ],
 )
 def test_particleset_init_time_type(fieldset, time, expectation):
@@ -174,3 +183,57 @@ def test_pset_iterator(fieldset):
     for i, particle in enumerate(pset):
         assert particle.particle_id == i
     assert i == npart - 1
+
+
+@pytest.mark.parametrize(
+    "depths",
+    [
+        pytest.param(np.linspace(1, 10, 10), id="all_depths_positive"),
+        pytest.param(np.linspace(-10, -1, 10), id="all_depths_negative"),
+    ],
+)
+def test_pset_default_z_is_in_domain(depths):
+    ds = simple_UV_dataset(dims=(1, len(depths), 10, 10), mesh="flat")
+    ds = ds.assign_coords(depth=depths)
+    fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
+
+    pset = ParticleSet(fieldset, x=[0], y=[0])
+    expected_z = depths[np.argmin(np.abs(depths))]
+    assert np.isclose(pset.z[0], expected_z)
+
+
+@pytest.mark.parametrize(
+    "depths",
+    [
+        pytest.param(np.concatenate([np.linspace(-15, -1, 5), np.linspace(0, 2, 5)]), id="depths_include_zero"),
+        pytest.param(np.concatenate([np.linspace(-9, -3, 3), np.linspace(2, 8, 3)]), id="closest_depth_is_positive"),
+        pytest.param(np.concatenate([np.linspace(-8, -2, 3), np.linspace(3, 9, 3)]), id="closest_depth_is_negative"),
+    ],
+)
+def test_pset_default_z_closest_to_zero(depths):
+    ds = simple_UV_dataset(dims=(1, len(depths), 10, 10), mesh="flat")
+    ds = ds.assign_coords(depth=depths)
+    fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
+
+    pset = ParticleSet(fieldset, x=[0], y=[0])
+    expected_z = depths[np.argmin(np.abs(depths))]
+    assert np.isclose(pset.z[0], expected_z)
+
+
+@pytest.mark.parametrize("npart", [1, 10])
+@pytest.mark.parametrize("witht", [True, False])
+def test_sampling_pset(fieldset, npart, witht):
+    # Test that inital value of a field gets sampled
+    fieldset.U.data[:] = 2.0
+
+    x = np.zeros(npart)
+    y = np.zeros(npart)
+    if witht:
+        t = npart * [np.timedelta64(0, "s")]
+        pset = ParticleSet(fieldset, x=x, y=y, t=t)
+        pset.sample, _ = fieldset.UV[pset]
+        np.testing.assert_allclose(pset.sample, 2.0, rtol=1e-12)
+    else:
+        with pytest.raises(ValueError, match="Time values for particles with indices .* cannot be NaN."):
+            pset = ParticleSet(fieldset, x=x, y=y)
+            pset.sample, _ = fieldset.UV[pset]

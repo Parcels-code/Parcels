@@ -9,11 +9,12 @@ import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
 import xarray as xr
+from re_assert import Matches
 
 import parcels.tutorial
 from parcels import (
-    Field,
     FieldSet,
+    Particle,
     ParticleFile,
     ParticleSet,
     ParticleSetWarning,
@@ -21,13 +22,23 @@ from parcels import (
     Variable,
     convert,
 )
-from parcels._core.particle import Particle, get_default_particle
-from parcels._core.particlefile import _get_schema
+from parcels._core.particle import get_default_particle
+from parcels._core.particlefile import get_schema
 from parcels._core.utils.time import TimeInterval, timedelta_to_float
 from parcels._datasets.structured.generated import peninsula_dataset
-from parcels.interpolators import XLinear
 from parcels.kernels import AdvectionRK4
 from tests.common_kernels import DoNothing
+
+
+def test_particlefile_repr(tmp_parquet):
+    pfile_repr = repr(ParticleFile(tmp_parquet, outputdt=np.timedelta64(1, "s")))
+    match = Matches(
+        r"""\<ParticleFile\>
+    path                : .*
+    outputdt            : 1.0
+    metadata            : .*""",
+    )
+    match.assert_matches(pfile_repr)
 
 
 def test_metadata(fieldset, tmp_parquet):
@@ -215,68 +226,8 @@ def test_write_timebackward(fieldset, tmp_parquet):
     df = pd.read_parquet(tmp_parquet)
 
     assert df["particle_id"].dtype == "int64"
-    assert bool(
-        df.groupby("particle_id")
-        .apply(
-            lambda x: (np.diff(x["t"]) < 0).all()  # for each particle - set True if it has decreasing time
-        )
-        .all()  # ensure for all particles
-    )
-
-
-@pytest.mark.xfail
-@pytest.mark.v4alpha
-def test_write_xiyi(fieldset, tmp_parquet):
-    fieldset.U.data[:] = 1  # set a non-zero zonal velocity
-    fieldset.add_field(
-        Field(name="P", data=np.zeros((3, 20)), lon=np.linspace(0, 1, 20), lat=[-2, 0, 2], interp_method=XLinear)
-    )
-    dt = np.timedelta64(3600, "s")
-
-    particle = get_default_particle(np.float64)
-    XiYiParticle = particle.add_variable(
-        [
-            Variable("pxi0", dtype=np.int32, initial=0.0),
-            Variable("pxi1", dtype=np.int32, initial=0.0),
-            Variable("pyi", dtype=np.int32, initial=0.0),
-        ]
-    )
-
-    def Get_XiYi(particles, fieldset):  # pragma: no cover
-        """Kernel to sample the grid indices of the particle.
-        Note that this sampling should be done _before_ the advection kernel
-        and that the first outputted value is zero.
-        Be careful when using multiple grids, as the index may be different for the grids.
-        """
-        particles.pxi0 = fieldset.U.unravel_index(particles.ei)[2]
-        particles.pxi1 = fieldset.P.unravel_index(particles.ei)[2]
-        particles.pyi = fieldset.U.unravel_index(particles.ei)[1]
-
-    def SampleP(particles, fieldset):  # pragma: no cover
-        if np.any(particles.t > 5 * 3600):
-            _ = fieldset.P[particles]  # To trigger sampling of the P field
-
-    pset = ParticleSet(fieldset, pclass=XiYiParticle, x=[0, 0.2], y=[0.2, 1])
-    pfile = ParticleFile(tmp_parquet, outputdt=dt)
-    pset.execute([SampleP, Get_XiYi, AdvectionRK4], endtime=10 * dt, dt=dt, output_file=pfile)
-
-    ds = xr.open_zarr(tmp_parquet)
-    pxi0 = ds["pxi0"][:].values.astype(np.int32)
-    pxi1 = ds["pxi1"][:].values.astype(np.int32)
-    lons = ds["lon"][:].values
-    pyi = ds["pyi"][:].values.astype(np.int32)
-    lats = ds["lat"][:].values
-
-    for p in range(pyi.shape[0]):
-        assert (pxi0[p, 0] == 0) and (pxi0[p, -1] == pset[p].pxi0)  # check that particle has moved
-        assert np.all(pxi1[p, :6] == 0)  # check that particle has not been sampled on grid 1 until time 6
-        assert np.all(pxi1[p, 6:] > 0)  # check that particle has not been sampled on grid 1 after time 6
-        for xi, lon in zip(pxi0[p, 1:], lons[p, 1:], strict=True):
-            assert fieldset.U.grid.lon[xi] <= lon < fieldset.U.grid.lon[xi + 1]
-        for xi, lon in zip(pxi1[p, 6:], lons[p, 6:], strict=True):
-            assert fieldset.P.grid.lon[xi] <= lon < fieldset.P.grid.lon[xi + 1]
-        for yi, lat in zip(pyi[p, 1:], lats[p, 1:], strict=True):
-            assert fieldset.U.grid.lat[yi] <= lat < fieldset.U.grid.lat[yi + 1]
+    dt_per_particle = df.groupby("particle_id")["t"].diff().dropna()
+    assert (dt_per_particle < 0).all()
 
 
 @pytest.mark.parametrize("outputdt", [np.timedelta64(1, "s"), np.timedelta64(2, "s"), np.timedelta64(3, "s")])
@@ -293,7 +244,13 @@ def test_time_is_age(fieldset, tmp_parquet, outputdt):
     pset = ParticleSet(fieldset, pclass=AgeParticle, x=npart * [0], y=npart * [0], t=time)
     ofile = ParticleFile(tmp_parquet, outputdt=outputdt)
 
-    pset.execute(IncreaseAge, runtime=np.timedelta64(npart * 2, "s"), dt=np.timedelta64(1, "s"), output_file=ofile)
+    if outputdt > np.timedelta64(1, "s"):
+        warning_ctx = pytest.warns(ParticleSetWarning, match="Some of the particles have a start time difference.*")
+    else:
+        warning_ctx = does_not_raise()
+
+    with warning_ctx:
+        pset.execute(IncreaseAge, runtime=np.timedelta64(npart * 2, "s"), dt=np.timedelta64(1, "s"), output_file=ofile)
 
     df = parcels.read_particlefile(tmp_parquet)
 
@@ -302,6 +259,29 @@ def test_time_is_age(fieldset, tmp_parquet, outputdt):
         release_time = pd.Timestamp(time[i]).to_pydatetime()
         traj_time = (df_traj["t"] - release_time).dt.total_seconds()
         assert (df_traj["age"] == traj_time).all()
+
+
+@pytest.mark.parametrize("npart", [1, 10])
+def test_sampling_initial_value(fieldset, npart, tmp_parquet):
+    # Test that inital value of a field gets sampled
+
+    SampleParticle = get_default_particle(np.float64).add_variable(Variable("sample", initial=np.nan))
+
+    def SampleKernel(particles, fieldset):  # pragma: no cover
+        particles.sample, _ = fieldset.UV[particles]
+
+    x = np.zeros(npart)
+    y = np.zeros(npart)
+    t = np.zeros(npart, dtype="timedelta64[s]")
+
+    pset = ParticleSet(fieldset, pclass=SampleParticle, x=x, y=y, t=t)
+    pset.sample, _ = fieldset.UV[pset]  # Sample initial value
+
+    ofile = ParticleFile(tmp_parquet, outputdt=np.timedelta64(1, "s"))
+    pset.execute(SampleKernel, runtime=np.timedelta64(2, "s"), dt=np.timedelta64(1, "s"), output_file=ofile)
+
+    df = parcels.read_particlefile(tmp_parquet)
+    np.testing.assert_allclose(df["sample"].is_finite().all(), True)
 
 
 def test_reset_dt(fieldset, tmp_parquet):
@@ -320,11 +300,33 @@ def test_reset_dt(fieldset, tmp_parquet):
     assert np.allclose(pset.x, 0.6)
 
 
+@pytest.mark.parametrize("dt", [100, 200])
+def test_subsecond_outputdt(fieldset, dt, tmp_parquet):
+    """Test that outputdt can be subsecond and that the output times are correct."""
+
+    def Update_lon(particles, fieldset):  # pragma: no cover
+        particles.dx += dt / 1000.0  # Move at a rate of 1 unit per second
+
+    pset = ParticleSet(fieldset, x=[0], y=[0])
+    ofile = ParticleFile(tmp_parquet, outputdt=np.timedelta64(dt, "ms"))
+    pset.execute(Update_lon, runtime=np.timedelta64(1, "s"), dt=np.timedelta64(dt, "ms"), output_file=ofile)
+
+    df = parcels.read_particlefile(tmp_parquet)
+    np.testing.assert_allclose(df["x"], np.arange(0, 1 + 1e-6, dt / 1000.0), atol=1e-6)
+    expected_t = np.arange(0, 1001, dt).astype("timedelta64[ms]")
+    elapsed_t = (df["t"] - df["t"].min()).to_numpy().astype("timedelta64[ms]")
+    np.testing.assert_allclose(
+        elapsed_t.astype("timedelta64[ms]").astype("int"),
+        expected_t.astype("timedelta64[ms]").astype("int"),
+        atol=1,
+    )
+
+
 def test_correct_misaligned_outputdt_dt(fieldset, tmp_parquet):
     """Testing that outputdt does not need to be a multiple of dt."""
 
     def Update_lon(particles, fieldset):  # pragma: no cover
-        particles.x += particles.dt
+        particles.dx = particles.dt
 
     particle = get_default_particle(np.float64)
     pset = ParticleSet(fieldset, pclass=particle, x=[0], y=[0])
@@ -536,7 +538,7 @@ def test_pfile_set_towrite_False(fieldset, tmp_parquet):
     ],
 )
 def test_particle_schema(particle):
-    s = _get_schema(particle, {}, TimeInterval(datetime(2023, 1, 1, 12, 0), datetime(2023, 1, 2, 12, 0)))
+    s = get_schema(particle, {}, TimeInterval(datetime(2023, 1, 1, 12, 0), datetime(2023, 1, 2, 12, 0)))
 
     written_variables = [v for v in particle.variables if v.to_write]
 

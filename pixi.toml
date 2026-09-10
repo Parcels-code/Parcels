@@ -6,12 +6,15 @@ channels = ["conda-forge"]
 platforms = ["win-64", "linux-64", "osx-64", "osx-arm64"]
 requires-pixi = ">=0.72.0"
 
+[exclude-newer]
+pixi-build-python = "0d"
+
 [package]
 name = "parcels"
 version = "dynamic" # dynamic versioning needs better support in pixi https://github.com/prefix-dev/pixi/issues/2923#issuecomment-2598460666 . Putting `version = "dynamic"` here for now until pixi recommends something else.
 
 [package.build]
-backend = { name = "pixi-build-python", version = "0.7.*" }
+backend = { name = "pixi-build-python", version = "0.*" }
 
 [package.host-dependencies]
 setuptools = "*"
@@ -20,22 +23,21 @@ setuptools_scm = "*"
 
 [package.run-dependencies] # keep section in sync with pyproject.toml dependencies
 python = ">=3.11"
-netcdf4 = ">=1.6.0"
-numpy = ">=2.1.0"
-tqdm = ">=4.50.0"
-xarray = ">=2024.5.0"
-pandas = ">=2.2"
-pyarrow = ">=20.0.0"
-holoviews = ">=1.22.0" # https://github.com/prefix-dev/rattler-build/issues/2326
-uxarray = ">=2026.04.1"
-dask = ">=2024.5.1"
-zarr = ">=3"
-xgcm = { git = "https://github.com/xgcm/xgcm", rev = "master" } # TODO: Switch to release version after release is cut
-cf_xarray = ">=0.8.6"
+cf_xarray = ">=0.10.0"
 cftime = ">=1.6.3"
+dask = ">=2025.7.0"
+holoviews = ">=1.22.0" # https://github.com/prefix-dev/rattler-build/issues/2326
+netcdf4 = ">=1.6.0"
+numpy = ">=2.2.0"
+pandas = ">=2.3"
+polars = ">=1.32.0"
 pooch = ">=1.8.0"
-polars = ">=1.31.0"
-tabulate = ">=0.10.0"
+pyarrow = ">=21.0.0"
+tabulate = ">=0.9.0"
+tqdm = ">=4.67.0"
+uxarray = ">=2026.04.1"
+xarray = ">=2025.8.0"
+zarr = ">=3.1"
 
 
 [dependencies]
@@ -52,20 +54,20 @@ build-parcels = { cmd = "rattler-build build --recipe .github/ci/recipe.yaml", d
 
 [feature.minimum.dependencies]
 python = "3.11.*"
-netcdf4 = "1.6.*"
-numpy = "2.1.*"
-tqdm = "4.50.*"
-xarray = "2025.8.*"
-pandas = "2.2.*"
-pyarrow = "20.0.*"
-uxarray = "==2026.04.1"
-dask = "2024.6.*"
-zarr = "3.0.*"
-xgcm = { git = "https://github.com/xgcm/xgcm", rev = "master" } # TODO: Switch to release version after release is cut
 cf_xarray = "0.10.*"
 cftime = "1.6.*"
+dask = "2025.7.*"
+netcdf4 = "1.6.*"
+numpy = "2.2.*"
+pandas = "2.3.*"
+polars = "1.32.*"
 pooch = "1.8.*"
-polars = "1.31.*"
+pyarrow = "21.0.*"
+tabulate = "0.9.*"
+tqdm = "4.67.*"
+uxarray = "2026.04.*"
+xarray = "2025.8.*"
+zarr = "3.1.*"
 
 [feature.py311.dependencies]
 python = "3.11.*"
@@ -79,11 +81,16 @@ pytest = "*"
 hypothesis = "*"
 pytest-html = "*"
 pytest-cov = "*"
+pytest-reportlog = "*"
+pytest-timeout = "*"
+
+[feature.test.pypi-dependencies]
+re-assert = "*"
 
 [feature.test.tasks]
 tests = { cmd = "pytest", description = "Run the test suite." }
-tests-flaky = { cmd = "pytest -m 'flaky'", description = "Run flaky tests." }
-tests-validation = { cmd = "pytest -m 'validation'", description = "Run validation tests." }
+tests-flaky = { cmd = "pytest -m 'flaky' --run-flaky-tests", description = "Run only flaky tests." }
+tests-validation = { cmd = "pytest -m 'validation' --run-validation-tests", description = "Run only validation tests." }
 tests-notebooks = { cmd = "pytest --nbval-lax docs/user_guide/examples", description = "Run the user guide example notebooks as tests." }
 
 
@@ -93,6 +100,7 @@ trajan = "*"
 matplotlib-base = ">=2.0.2"
 gsw = "*"
 py-triangle = "*"
+cmocean = ">=4.0.3,<5"
 
 [feature.devtools.dependencies]
 pdbpp = "*"
@@ -121,13 +129,14 @@ parcels = { path = "." }
 numpydoc = "*"
 myst-nb = "*"
 ipython = "*"
-sphinx = "*"
+sphinx = ">=9.0.0"
 pandoc = "*"
 pydata-sphinx-theme = "*"
 sphinx-autobuild = "*"
 sphinxcontrib-mermaid = "*"
 sphinx-design = "*"
 sphinx-autoapi = "*"
+vale = "*"
 
 [feature.docs.tasks]
 docs-only-clean = { cmd = "make clean", cwd = "docs", description = "Cleans the documentation folder of build artifacts." }
@@ -140,6 +149,10 @@ docs-watch = { cmd = "make livehtml", cwd = "docs", description = "Build and aut
   "docs-only-clean",
 ] }
 docs-linkcheck = { cmd = "make linkcheck", cwd = "docs", description = "Verify all links in documentation don't 404." }
+docs-spelling = { cmd = "python tools/lint_british_english.py docs/user_guide/examples/tutorial*.ipynb docs/user_guide/examples/tutorial*.md docs/user_guide/getting_started/tutorial*.ipynb docs/user_guide/getting_started/tutorial*.md", description = "Check tutorial prose uses British English." }
+more-qaqc = { depends-on = [
+  "docs-spelling",
+], description = "Additional QAQC tooling separate to pre-commit hooks" }
 
 [feature.pre-commit.dependencies]
 pre_commit = "*"
@@ -158,6 +171,7 @@ mypy = "*"
 lxml = "*" # in CI
 types-tqdm = "*"
 pandas-stubs = "*"
+pyarrow-stubs = "*"
 
 [feature.typing.tasks]
 typing = { cmd = "mypy src/parcels --install-types", description = "Run static type checking with mypy." }

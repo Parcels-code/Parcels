@@ -1,7 +1,6 @@
 # Generic Python helpers
 import enum
-import inspect
-from collections.abc import Callable, Mapping
+from collections.abc import Mapping
 from typing import TypeVar
 
 K = TypeVar("K")
@@ -26,27 +25,6 @@ def repr_from_dunder_dict(obj: object) -> str:
     """Dataclass-like __repr__ implementation based on __dict__."""
     parts = [f"{k}={v!r}" for k, v in obj.__dict__.items()]
     return f"{obj.__class__.__qualname__}(" + ", ".join(parts) + ")"
-
-
-def assert_same_function_signature(f: Callable, *, ref: Callable, context: str) -> None:
-    """Ensures a function `f` has the same signature as the reference function `ref`."""
-    sig_ref = inspect.signature(ref)
-    sig = inspect.signature(f)
-
-    if len(sig_ref.parameters) != len(sig.parameters):
-        raise ValueError(
-            f"{context} function must have {len(sig_ref.parameters)} parameters, got {len(sig.parameters)}"
-        )
-
-    for param1, param2 in zip(sig_ref.parameters.values(), sig.parameters.values(), strict=False):
-        if param1.kind != param2.kind:
-            raise ValueError(
-                f"Parameter '{param2.name}' has incorrect parameter kind. Expected {param1.kind}, got {param2.kind}"
-            )
-        if param1.name != param2.name:
-            raise ValueError(
-                f"Parameter '{param2.name}' has incorrect name. Expected '{param1.name}', got '{param2.name}'"
-            )
 
 
 def invert_non_unique_mapping(d: Mapping[K, V]) -> Mapping[V, list[K]]:

@@ -11,6 +11,7 @@ import xarray as xr
 import zarr
 from dask.base import is_dask_collection
 
+from parcels._chunk_cached_array.core import ChunkCachedArray
 from parcels._core._windowed_array import WindowedArray
 from parcels._python import isinstance_noimport
 
@@ -18,6 +19,7 @@ if TYPE_CHECKING:
     from parcels import Field, FieldSet, ParticleSet
     from parcels._core.field import VectorField
     from parcels._core.model import ModelData
+    from parcels._core.spatialhash import SpatialHash
     from parcels._core.utils.time import TimeInterval
 
 
@@ -43,7 +45,6 @@ def fieldset_repr(fieldset: FieldSet) -> str:
     return textwrap.dedent(out).strip()
 
 
-# TODO add land_value here after HG #2451 is merged
 def field_repr(field: Field, level: int = 0) -> str:
     """Return a pretty repr for Field"""
     with xr.set_options(display_expand_data=False):
@@ -79,8 +80,8 @@ def xgrid_repr(grid: Any) -> str:
     Parcels attributes:
         mesh                  : {grid._mesh}
         spatialhash           : {grid._spatialhash}
-    xgcm Grid:
-{textwrap.indent(repr(grid.xgcm_grid), 8 * " ")}
+    SGRID Metadata:
+{textwrap.indent(repr(grid.sgrid_metadata), 8 * " ")}
 """
     return textwrap.dedent(out).strip()
 
@@ -137,8 +138,7 @@ def particlefile_repr(pfile: Any) -> str:
     out = f"""<{type(pfile).__name__}>
     path                : {pfile.path}
     outputdt            : {pfile.outputdt!r}
-    metadata            :
-{_format_list_items_multiline(pfile.metadata, level=2, with_brackets=False)}
+    metadata            : {_format_list_items_multiline(pfile.metadata, level=2, with_brackets=False)}
 """
     return textwrap.dedent(out).strip()
 
@@ -224,6 +224,8 @@ def _field_backend(field: Field | VectorField) -> str | None:
             return "WindowedArray"
         elif is_dask_collection(field.data.data):
             return "Dask"
+        elif isinstance(field.data.variable._data, ChunkCachedArray):
+            return "ChunkCachedArray"
         elif isinstance(field.data.variable._data, zarr.Array):
             return "Zarr"
         elif isinstance(field.data.data, np.ndarray):
@@ -278,6 +280,38 @@ mesh: {fieldset.models[0].grid._mesh}
 time interval: {_print_time_interval(fieldset.time_interval)}
 """
     )
+
+
+def spatialhash_describe(spatialhash: SpatialHash) -> str:
+    grid = spatialhash._source_grid
+    hash_table = spatialhash._hash_table
+    counts = hash_table["counts"]
+
+    n_faces = int(np.size(spatialhash._xlow))
+    n_valid_faces = int(np.unique(hash_table["faces"]).size)
+    n_entries = int(hash_table["faces"].size)
+    n_occupied_cells = int(hash_table["keys"].size)
+    n_total_cells = (spatialhash._bitwidth + 1) ** 3
+
+    rows = {
+        "Grid type": type(grid).__name__,
+        "Mesh": grid._mesh,
+        "Total mesh faces": f"{n_faces:,d}",
+        "Valid (non-NaN) mesh faces": f"{n_valid_faces:,d}",
+        "Bitwidth (current / max)": f"{spatialhash._bitwidth} / 1023  (higher = finer resolution hash grid)",
+        "Total hash cells": f"{n_total_cells:,d}",
+        "Occupied hash cells": f"{n_occupied_cells:,d}, {n_occupied_cells / n_total_cells * 100:.4f}%",
+        "Total (hash cell --> grid face) entries": f"{n_entries:,d}",
+        "Entries per occupied hash cell (avg)": f"{n_entries / n_occupied_cells:.2f}" if n_occupied_cells else "-",
+        "Entries per face (avg)": f"{n_entries / n_faces:.2f}" if n_faces else "-",
+        "Faces per occupied hash cell (min / mean / max)": (
+            f"{counts.min():,d} / {counts.mean():.2f} / {counts.max():,d}" if n_occupied_cells else "-"
+        ),
+    }
+    key_width = max(len(k) for k in rows)
+    table = "\n".join(f"{k.ljust(key_width)} : {v}" for k, v in rows.items())
+
+    return "Spatial Hash Grid Statistics" + "\n" + table + "\n"
 
 
 def _get_parent_model(field: Field | VectorField) -> ModelData:
