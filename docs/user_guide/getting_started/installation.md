@@ -15,17 +15,17 @@ The steps below are the installation instructions for Linux, macOS and Windows.
 **Step 2:** Start a terminal (Linux / macOS) or the Anaconda prompt (Windows). Activate the `base` environment of your Miniconda and create an environment containing Parcels, all its essential dependencies, `trajan` (a trajectory plotting dependency used in the notebooks) and the nice-to-have cartopy and jupyter packages:
 
 ```bash
-conda create -n parcelsv4-env -c conda-forge parcels trajan cartopy jupyter
+conda create -n parcelsv4 -c conda-forge parcels trajan cartopy jupyter
 ```
 
 **Step 3:** Activate the newly created Parcels environment:
 
 ```bash
-conda activate parcelsv4-env
+conda activate parcelsv4
 ```
 
 ```{note}
-The next time you start a terminal and want to work with Parcels, activate the environment with `conda activate parcelsv4-env`.
+The next time you start a terminal and want to work with Parcels, activate the environment with `conda activate parcelsv4`.
 ```
 
 **Step 4:** Create a Jupyter Notebook or Python script to set up your first Parcels simulation! The [quickstart tutorial](tutorial_quickstart.md) is a great way to get started immediately. You can also first read about the core [Parcels concepts](explanation_concepts.md) to familiarize yourself with the classes and methods you will use.
