@@ -30,18 +30,6 @@ The next time you start a terminal and want to work with Parcels, activate the e
 
 **Step 4:** Create a Jupyter Notebook or Python script to set up your first Parcels simulation! The [quickstart tutorial](tutorial_quickstart.md) is a great way to get started immediately. You can also first read about the core [Parcels concepts](explanation_concepts.md) to familiarize yourself with the classes and methods you will use.
 
-## Nightly builds
-
-Parcels v4 is in active development. A pre-release version of Parcels (i.e., the latest version on `main`) can be installed via conda using the following instructions (which creates an environment `parcelsv4-nightly`, activates it, installs Parcels from a custom pre-release channel that we're using, and installs some additional helper packages).
-
-```bash
-conda config --add channels conda-forge
-conda create -n parcelsv4-nightly python
-conda activate parcelsv4-nightly
-conda install -c https://prefix.dev/parcels parcels
-conda install trajan cartopy jupyter
-```
-
 ## Installation for developers
 
 See the [development section in our contributing guide](../../development/index.md#development) for development instructions.
