@@ -49,7 +49,7 @@ During a simulation, Parcels fetches data from the chunk cache and, only if the 
 This results in a smaller memory footprint than the windowed array approach (especially if the particles aren't distributed over the spatial domain).
 
 ```{code-block} python
-fieldset.to_chunkcached_arrays()
+fieldset.to_chunk_cached_arrays()
 ```
 
 ### Advantages and disadvantages
