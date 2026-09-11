@@ -140,6 +140,11 @@ class ChunkCachedArray(ExplicitlyIndexedNDArrayMixin):
 
     def _vindex_get(self, indexer: VectorizedIndexer):
         key = indexer.tuple
+        # The chunk-cache fast path requires a fancy integer array per dimension.
+        # Some dims (e.g. unindexed extra dims) may come through as a bare slice
+        # instead, so fall back to dask's own vectorized indexing in that case.
+        if any(isinstance(k, slice) for k in key):
+            return self.array.vindex[key].compute()
         return self._raw_vindex(*key)
 
     def _oindex_get(self, indexer: OuterIndexer):
