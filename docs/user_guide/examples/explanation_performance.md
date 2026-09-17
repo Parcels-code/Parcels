@@ -40,7 +40,7 @@ This will make Parcels use `numpy` functions in the interpolation routines, whic
 
 _Uses Parcels Backend: ChunkCachedArray_
 
-**Best for: large Datasets (more than a few GB) and particles distributed over the entire domain**
+**Best for: large Datasets (more than a few GB) and particles in only a small region of the domain**
 
 If your Dataset is so large that it doesn't fit into memory, you can use the {py:func}`parcels.FieldSet.to_chunk_cached_arrays()`.
 This constructs a cache where individual (dask) chunks of data are stored.
@@ -129,7 +129,7 @@ If your Dataset is so large that it doesn't fit into memory, and you have very f
 | Works out-of-the-box | Only performs well for very small ParticleSets |
 
 ```{note}
-The long-term plan for Parcels development is to make this Option 4 work well for all cases. However, this will require significant work on Dask indexing.
+The long-term plan for Parcels development is to make this last option (using Dask) work well for all cases. However, this will require significant work on Dask indexing.
 If you have ideas for how to make Parcels faster, we'd love to hear from you!
 Feel free to [open an issue](https://github.com/Parcels-code/Parcels/issues) or reach out to us on [Zulip](https://clam-community.github.io).
 ```
