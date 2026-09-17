@@ -31,7 +31,7 @@ a table showing the latest notebook execution:
 - **Prefer `import parcels` over `from parcels import class` in tutorials and how-to guides** so its obvious in later
   code cells which classes and methods are part of Parcels.
 - [**Avoid too much Repitition In Documentation**](https://www.writethedocs.org/guide/writing/docs-principles/#arid):
-  tutorials and how-to guides notebooks will often have repetition of the general **Parcels** steps, (e.g., imports ) -
+  tutorials and how-to guides notebooks will often have repetition of the general Parcels steps, (e.g., imports ) -
   this is needed so that users have complete examples that they can copy and experiment with.`. We try to limit each page
   in the documentation to a small number of examples.
 - Introduce links and cross-references to maximize discoverability of documentation. This also reduces the necessity for
@@ -41,4 +41,5 @@ a table showing the latest notebook execution:
   by any developer or user, so the documentation teaches all of us how to do something with Parcels. Sometimes it can be
   more natural to take on the tone of a teacher, writing to a student/learner, in which case it is okay to use "you".
   Please refrain from using impersonal subjects such as "the user".
+- Use British English in tutorial prose. This is validated by a spellchecker that is run in CI.
 - We recommend hard wrapping prose in markdown so that reading it becomes easier in any editor.

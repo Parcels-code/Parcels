@@ -29,4 +29,4 @@
   - Parcels development status
   - Check feature tiles
 - (once package is available on conda) Re-build the Binder
-- Ask for the shared parcels environment on [Lorenz](https://github.com/IMAU-oceans/Lorenz) to be updated
+- Ask for the shared Parcels environment on [Lorenz](https://github.com/IMAU-oceans/Lorenz) to be updated

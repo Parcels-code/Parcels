@@ -14,9 +14,13 @@ Assumptions / current limits:
 
 from __future__ import annotations
 
+import warnings
+
 import numpy as np
 import xarray as xr
-from dask import is_dask_collection
+from dask.base import is_dask_collection
+
+from parcels._core.warnings import FieldSetWarning
 
 # xarray / uxarray ``isel`` keyword arguments that are NOT dimension indexers.
 _NON_INDEXER_KWARGS = frozenset({"drop", "missing_dims", "ignore_grid"})
@@ -30,8 +34,12 @@ class WindowedArray:
             raise ValueError(f"WindowedArray expects {time_dim!r} as the leading dimension, got {data.dims}")
         self._data = data
         self._tdim = time_dim
-        self._cache: dict[int, np.ndarray] = {}  # time index -> NumPy slab (remaining dims)
         self._max = max_levels
+        self._cache: xr.DataArray = xr.DataArray(
+            np.empty((0, *data.shape[1:]), dtype=data.dtype),
+            dims=data.dims,
+            coords={time_dim: np.empty(0, dtype=np.intp)},
+        )
         # diagnostics
         self.loads = 0
         self.bytes_read = 0
@@ -44,7 +52,7 @@ class WindowedArray:
 
     def __repr__(self):
         return (
-            f"WindowedArray(time_dim={self._tdim!r}, cached_levels={sorted(self._cache)}, "
+            f"WindowedArray(time_dim={self._tdim!r}, cached_levels={self._cache[self._tdim].values.tolist()}, "
             f"loads={self.loads})\n{self._data!r}"
         )
 
@@ -54,47 +62,88 @@ class WindowedArray:
         return np.asarray(self._data.isel({self._tdim: int(lvl)}).values)
 
     def _ensure(self, levels: np.ndarray) -> None:
+        if self._max is not None and levels.size > self._max:
+            # If isel requests more levels to be loaded than self._max, then the
+            # request must be granted. Otherwise an indexing error will occur when
+            # isel attempts to index into the cache. This can cause large memory
+            # overhead, potentially beyond the cap set by self._max.
+            # The most likely reason for this to occur is non-synchronous particle clocks.
+            warnings.warn(
+                f"The windowed array cache is attempting to hold {levels.size} time levels "
+                f"which exceeds max_level={self._max}; the cache will hold {levels.size} to maintain "
+                f"simulation accuracy. This may cause significant memory usage or an OOM error. "
+                f"This most likely occured due to non-synchronous particle clockes. Raise max "
+                f"levels or narrow the spread of particle times.",
+                FieldSetWarning,
+                stacklevel=3,
+            )
+
+        lo, hi = int(np.min(levels)), int(np.max(levels))
+        coord = self._cache[self._tdim].values
+        keep = (coord >= lo) & (coord <= hi)
+
+        if self._max is not None:
+            cached_in_span = np.flatnonzero(keep)
+            non_required = np.array([i for i in cached_in_span if coord[i] not in levels], dtype=int)
+
+            spare = max(self._max - levels.size, 0)
+            n_drop = max(non_required.size - spare, 0)
+
+            keep[non_required[:n_drop]] = False
+
+        keep_idxs = np.flatnonzero(keep)
+        if keep_idxs.size < coord.size:
+            self._cache = self._cache.isel({self._tdim: keep_idxs})
+
         for lvl in levels:
             lvl = int(lvl)
-            if lvl not in self._cache:
-                self._cache[lvl] = self._read_level(lvl)
-                self.loads += 1
-                self.bytes_read += self._slab_bytes
-        # retire cached levels outside the span this call requested. Direction never
-        # enters here: a forward (dt > 0) or backward (dt < 0) clock both shed their
-        # trailing edge. Consecutive brackets overlap on one endpoint (inside [lo, hi]),
-        # so it is retained and each level is still read at most once per pass.
-        lo, hi = int(np.min(levels)), int(np.max(levels))
-        for old in [k for k in self._cache if k < lo or k > hi]:
-            del self._cache[old]
-        if self._max is not None and len(self._cache) > self._max:
-            for old in sorted(self._cache)[: len(self._cache) - self._max]:
-                del self._cache[old]
+            if lvl in self._cache[self._tdim].values:
+                continue
+
+            slab = self._read_level(lvl)
+            self.loads += 1
+            self.bytes_read += self._slab_bytes
+            slab_as_xr = xr.DataArray(slab[None], dims=self._data.dims, coords={self._tdim: [lvl]})
+
+            # The cache is ordered based on time index
+            coord = self._cache[self._tdim].values
+            pos = int(np.searchsorted(coord, lvl))
+
+            self._cache = xr.concat(
+                [
+                    self._cache.isel({self._tdim: slice(0, pos)}),
+                    slab_as_xr,
+                    self._cache.isel({self._tdim: slice(pos, None)}),
+                ],
+                dim=self._tdim,
+            )
 
     # -- intercepted indexing -------------------------------------------------
     def isel(self, indexers: dict | None = None, **kwargs):
         sel = dict(indexers) if indexers is not None else {}
         sel.update({k: v for k, v in kwargs.items() if k not in _NON_INDEXER_KWARGS})
 
-        # no time selection -> nothing to window; preserve control kwargs
+        # no time selection, therefore there is no interaction with the cache
         if self._tdim not in sel:
             return self._data.isel(indexers, **kwargs)
 
         t_ind = sel[self._tdim]
         t_vals = np.asarray(t_ind.values if isinstance(t_ind, xr.DataArray) else t_ind)
         levels = np.unique(t_vals)
+
         if levels.size == 0:
             # empty selection (e.g. a kernel evaluating an empty particle subset):
-            # nothing to load or evict; gather from an empty NumPy block below
-            block = np.empty((0, *self._data.shape[1:]), dtype=self._data.dtype)
+            # trim the time dimension since a sized zero slice was selected
+            return self._cache.isel(sel).drop_vars(self._tdim)
         else:
             self._ensure(levels)
-            # stack the resident levels into one small NumPy block; remap to local indices
-            block = np.stack([self._cache[int(lvl)] for lvl in levels])  # (nlevels, *rest)
-        nda = xr.DataArray(block, dims=self._data.dims)  # NumPy-backed, original dim order
-        local = np.searchsorted(levels, t_vals)
-        sel[self._tdim] = xr.DataArray(local, dims=getattr(t_ind, "dims", ()))
-        return nda.isel(sel)  # plain vectorised gather in NumPy (no ignore_grid needed)
+
+            # re-assign the time indices requested to the cache indices
+            cached_lvls = self._cache[self._tdim].values
+            cache_indxs = np.searchsorted(cached_lvls, t_vals)
+            sel[self._tdim] = xr.DataArray(cache_indxs, dims=getattr(t_ind, "dims", ()))
+
+            return self._cache.isel(sel)  # return the requested isel directly from the cached DataArray
 
 
 def maybe_windowed(data: xr.DataArray, max_levels: int | None = None):

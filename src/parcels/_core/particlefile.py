@@ -18,7 +18,7 @@ from parcels._core.mesh import BaseMesh
 from parcels._core.particle import ParticleClass
 from parcels._core.particlesetview import ParticleSetView
 from parcels._core.utils.time import timedelta_to_float
-from parcels._reprs import particlefile_repr
+from parcels._repr_utils import particlefile_repr
 from parcels._typing import PathLike
 
 if TYPE_CHECKING:
@@ -29,7 +29,7 @@ if TYPE_CHECKING:
 __all__ = ["ParticleFile"]
 
 
-def _get_schema(
+def get_schema(
     particle: parcels.ParticleClass, file_metadata: dict[Any, Any], fset_time_interval: TimeInterval | None
 ) -> pa.Schema:
 
@@ -163,7 +163,7 @@ class ParticleFile:
             assert not self.path.exists(), "If the file exists, the writer should already be set"
             self._writer = pq.ParquetWriter(
                 self.path,
-                _get_schema(pclass, self.metadata, fieldset.time_interval),
+                get_schema(pclass, self.metadata, fieldset.time_interval),
                 compression=self._compression,
             )
 
@@ -275,7 +275,7 @@ def read_particlefile(path: PathLike, decode_times: bool = True) -> pd.DataFrame
 
     values = table.column("t").to_numpy()
     var = xr.Variable(("t",), values, attrs)
-    values = xr.coders.CFDatetimeCoder(time_unit="s").decode(var).values
+    values = xr.coders.CFDatetimeCoder(time_unit="ns").decode(var).values
     if "since" in attrs["units"]:
         values = values.astype("datetime64[ns]")
         df = df.with_columns(pl.Series("t", values, dtype=pl.Datetime("ns")))

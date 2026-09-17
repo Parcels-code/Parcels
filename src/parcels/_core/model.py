@@ -1,19 +1,22 @@
 from __future__ import annotations
 
+import warnings
 from abc import ABC, abstractmethod
 from collections.abc import Hashable, Sequence
-from typing import Any, Self
+from typing import TYPE_CHECKING, Any, Self
 
 import cf_xarray  # noqa: F401
-import uxarray as ux
 import xarray as xr
+import zarr
 from dask import is_dask_collection
 
 import parcels._sgrid as sgrid
 import parcels._typing as ptyping
+from parcels._chunk_cached_array import wrap_dataset
 from parcels._core._windowed_array import maybe_windowed
 from parcels._core.basegrid import BaseGrid
 from parcels._core.field import Field, VectorField
+from parcels._core.mesh import FlatMesh, SphericalMesh
 from parcels._core.utils.time import TimeInterval
 from parcels._core.uxgrid import UxGrid
 from parcels._core.xgrid import (
@@ -23,7 +26,6 @@ from parcels._core.xgrid import (
 )
 from parcels._logger import logger
 from parcels._python import NOTSET, NotSetType
-from parcels.convert import _ds_rename_using_standard_names
 from parcels.interpolators import (
     CGrid_Velocity,
     Ux_Velocity,
@@ -36,12 +38,19 @@ from parcels.interpolators import (
 )
 from parcels.interpolators._base import ScalarInterpolator, VectorInterpolator
 
+if TYPE_CHECKING:
+    import uxarray as ux
+
 
 class ModelData(ABC):
     data: Any
     grid: BaseGrid
     field_to_interpolator: dict[str, ScalarInterpolator | VectorInterpolator]
     vector_field_components: ptyping.VectorFields
+
+    @property
+    def mesh(self) -> FlatMesh | SphericalMesh:
+        return self.grid._mesh
 
     @abstractmethod
     def construct_fields(self) -> list[Field | VectorField]: ...
@@ -111,6 +120,29 @@ class ModelData(ABC):
             windowed[name] = maybe_windowed(current, max_levels=max_levels)
         return self
 
+    def to_chunk_cached_arrays(self, *, max_cache_bytes: int = 600_000_000) -> Self:
+        """Wrap dask-backed field data in chunk-level LRU caches.
+
+        Opt-in optimization that replaces each dask-backed data variable's
+        internal storage with a :class:`~parcels._chunk_cached_array.ChunkCachedArray`.
+        Repeated vectorized ``.isel()`` calls then hit an in-memory LRU cache
+        keyed by chunk coordinates instead of recomputing dask task graphs.
+
+        Coordinate variables are loaded eagerly into memory (they are small 1D
+        arrays) to avoid dask task-graph construction overhead on every
+        ``.isel()`` call.
+
+        Idempotent: re-invoking is safe — ``wrap_dataset`` skips variables
+        whose storage is already a ``ChunkCachedArray``.
+
+        Parameters
+        ----------
+        max_cache_bytes : int, optional
+            Maximum cache size in bytes, per variable. Defaults to 600 MB.
+        """
+        self.data = wrap_dataset(self.data, max_cache_bytes=max_cache_bytes)
+        return self
+
     @property
     def time_interval(self) -> TimeInterval | None:
         try:
@@ -131,6 +163,17 @@ def preprocess_sgrid_model_data(ds: xr.Dataset) -> xr.Dataset:
     return ds
 
 
+def validate_field_data(ds: xr.Dataset) -> xr.Dataset:
+    if any(isinstance(da.variable._data, zarr.Array) for da in ds.data_vars.values()):
+        warnings.warn(
+            "Changing a Zarr-backed dataset. This may convert the Parcels backend to NumPy. "
+            "If you want to keep the Zarr backend, please use `skip_field_data_validation=True` when creating the FieldSet.",
+            UserWarning,
+            stacklevel=2,
+        )
+    return ds.fillna(0)
+
+
 class StructuredModelData(ModelData):
     def __init__(
         self,
@@ -144,7 +187,7 @@ class StructuredModelData(ModelData):
 
         data = preprocess_sgrid_model_data(data)
         if not skip_field_data_validation:
-            data = data.fillna(0)
+            data = validate_field_data(data)
         grid = XGrid(data, mesh)
 
         self.data = data
@@ -191,6 +234,7 @@ class StructuredModelData(ModelData):
     def from_sgrid_conventions(
         cls,
         ds: xr.Dataset,
+        *,
         mesh: ptyping.TMesh | None,
         vector_fields: ptyping.VectorFields | NotSetType,
         skip_field_data_validation: bool = False,
@@ -276,8 +320,10 @@ def assert_vector_field_components_in_dataset(ds: xr.Dataset, vector_fields: pty
     return
 
 
-CONSTANT_FIELD_MODELS = {
-    mesh: StructuredModelData.from_sgrid_conventions(
+def create_empty_constant_field_model(mesh: SphericalMesh | FlatMesh) -> StructuredModelData:
+    """Create a empty model for constant fields with the given mesh type."""
+    mesh_: ptyping.TMesh = "flat" if isinstance(mesh, FlatMesh) else mesh
+    return StructuredModelData.from_sgrid_conventions(
         xr.Dataset(
             {},
             coords={
@@ -298,20 +344,20 @@ CONSTANT_FIELD_MODELS = {
                 ),
             ),
         ),
-        mesh=mesh,  # type:ignore
+        mesh=mesh_,
         vector_fields={},
     )
-    for mesh in ["flat", "spherical"]
-}
 
 
 class UnstructuredModelData(ModelData):
     def __init__(self, data: ux.UxDataset, grid: UxGrid, vector_field_components: ptyping.VectorFields):
+        import uxarray as ux
+
         if not isinstance(data, ux.UxDataset):
             raise ValueError(f"Expected `data` to be an uxarray.UxDataset . Got {type(data)}")
 
         if not isinstance(grid, UxGrid):
-            raise ValueError(f"Expected `grid` to be a parcels UxGrid object. Got {type(grid)}.")
+            raise ValueError(f"Expected `grid` to be a Parcels UxGrid object. Got {type(grid)}.")
 
         self.data = data
         self.grid = grid
@@ -346,7 +392,7 @@ class UnstructuredModelData(ModelData):
 
     @classmethod
     def from_ugrid_conventions(
-        cls, ds: ux.UxDataset, mesh: ptyping.TMesh, vector_fields: ptyping.VectorFields | NotSetType
+        cls, ds: ux.UxDataset, *, mesh: ptyping.TMesh, vector_fields: ptyping.VectorFields | NotSetType
     ):
         ds_dims = list(ds.dims)
         if not all(dim in ds_dims for dim in ["time", "zf", "zc"]):
@@ -418,7 +464,7 @@ def _discover_ux_U_and_V(ds: ux.UxDataset) -> ux.UxDataset:
     if "W" not in ds:
         for common_W in common_ux_W:
             if common_W in ds:
-                ds = _ds_rename_using_standard_names(ds, {common_W: "W"})
+                ds = ds.rename({common_W: "W"})
                 break
 
     if "U" in ds and "V" in ds:
@@ -437,7 +483,7 @@ def _discover_ux_U_and_V(ds: ux.UxDataset) -> ux.UxDataset:
                     "Please rename the appropriate variables in your dataset to have both 'U' and 'V' for Parcels simulation."
                 )
             else:
-                ds = _ds_rename_using_standard_names(ds, {common_U: "U", common_V: "V"})
+                ds = ds.rename({common_U: "U", common_V: "V"})
                 break
 
         else:

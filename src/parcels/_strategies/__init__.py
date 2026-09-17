@@ -8,6 +8,7 @@ except ImportError as err:
     )
     raise err
 
-from . import sgrid, time
+from . import sgrid, time, particle
+from ._core import particlefile_output
 
-__all__ = ["sgrid", "time"]
+__all__ = ["particle", "particlefile_output", "sgrid", "time"]

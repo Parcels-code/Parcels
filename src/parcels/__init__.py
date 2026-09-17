@@ -7,12 +7,11 @@ except Exception:
     # Local copy or not installed with setuptools.
     __version__ = "unknown"
 
-import warnings as _stdlib_warnings
-
 from parcels._core.fieldset import FieldSet
 from parcels._xarray import open_raw_zarr
 from parcels._core.particleset import ParticleSet
 from parcels._core.particlefile import ParticleFile, read_particlefile
+from parcels._compat_v3 import particlefile_to_v3_zarr
 from parcels._core.particle import (
     Variable,
     Particle,
@@ -38,8 +37,12 @@ from parcels._core.warnings import (
     FileWarning,
     KernelWarning,
     ParticleSetWarning,
+    FieldEvalWarning,
 )
+from parcels._core.utils.kernel_linting import validate_kernel, KernelValidationError
 from parcels._logger import logger
+from . import convert
+from . import kernels
 
 __all__ = [  # noqa: RUF022
     # Core classes
@@ -73,10 +76,11 @@ __all__ = [  # noqa: RUF022
     # Utilities
     "logger",
     "read_particlefile",
+    "particlefile_to_v3_zarr",
+    "convert",
+    # kernels
+    "kernels",
+    # Kernel validation
+    "validate_kernel",
+    "KernelValidationError",
 ]
-
-_stdlib_warnings.warn(
-    "This is an alpha version of Parcels v4. The API is not stable and may change without deprecation warnings.",
-    UserWarning,
-    stacklevel=2,
-)

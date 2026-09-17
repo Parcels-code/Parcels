@@ -44,7 +44,8 @@ class ParticleSet:
     y :
         List of initial y (latitude) values for particles
     z :
-        Optional list of initial z values for particles. Default is 0m
+        Optional list of initial z values for particles. Default is vertical grid position closest to the surface (z=0)
+        that covers all fields in the fieldset. If none of the fields in the fieldset have a vertical grid, z=0 is used.
     t :
         Optional list of initial t (time) values for particles. Default is fieldset.U.grid.time[0]
     repeatdt : datetime.timedelta or float, optional
@@ -59,6 +60,7 @@ class ParticleSet:
         self,
         fieldset,
         pclass=Particle,
+        *,
         t=None,
         z=None,
         y=None,
@@ -78,11 +80,15 @@ class ParticleSet:
             particle_ids = np.arange(x.size)
 
         if z is None:
-            minz = 0
+            minz = None
             for field in self.fieldset.fields.values():
-                if field.grid.depth is not None:
-                    minz = min(minz, field.grid.depth[0])
-            z = np.ones(x.size) * minz
+                for depth in field.grid.depth:
+                    if minz is None or np.abs(depth) < np.abs(minz):
+                        minz = depth
+            if minz is not None:
+                z = np.ones(x.size) * minz
+            else:
+                z = np.zeros(x.size)
         else:
             z = np.array(z).flatten()
         assert x.size == y.size and x.size == z.size, "x, y, z don't all have the same lengths"
@@ -90,9 +96,10 @@ class ParticleSet:
         if t is None or len(t) == 0:
             # do not set a time yet (because sign_dt not known)
             t = np.array(np.nan)
-        elif isinstance(t[0], np.datetime64) and self.fieldset.time_interval:
-            t = timedelta_to_float(t - self.fieldset.time_interval.left)
-        elif isinstance(t[0], np.timedelta64):
+        elif isinstance(t[0], (np.datetime64, datetime.datetime, datetime.date)) and self.fieldset.time_interval:
+            t_dt64 = t.astype("datetime64[ns]") if not isinstance(t[0], np.datetime64) else t
+            t = timedelta_to_float(t_dt64 - self.fieldset.time_interval.left)
+        elif isinstance(t[0], (np.timedelta64, datetime.timedelta)):
             t = timedelta_to_float(t)
         else:
             raise TypeError("particle t must be a datetime, timedelta, or date object")
@@ -390,6 +397,7 @@ class ParticleSet:
 
         if isinstance(kernels, types.FunctionType):
             kernels = [kernels]
+
         self._kernel = Kernel(kernels, self)
 
         if output_file is not None:

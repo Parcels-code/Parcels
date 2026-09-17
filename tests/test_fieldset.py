@@ -7,16 +7,17 @@ import numpy as np
 import pandas as pd
 import pytest
 import xarray as xr
+from re_assert import Matches
 
 import parcels.tutorial
-from parcels import Field, ParticleFile, ParticleSet, XGrid, convert, open_raw_zarr
-from parcels._core.fieldset import FieldSet, _datetime_to_msg
+import tests
+from parcels import ParticleFile, ParticleSet, convert, open_raw_zarr
+from parcels._core.fieldset import FieldSet, IncompatibleMeshesException, _datetime_to_msg
+from parcels._core.mesh import SphericalMesh
 from parcels._core.model import _default_vector_field_components
 from parcels._datasets.structured.generic import datasets as datasets_structured
 from parcels._datasets.structured.generic import datasets_sgrid
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
-from parcels.interpolators import XLinear
-from tests import utils
 
 ds = datasets_structured["ds_2d_left"]
 
@@ -32,13 +33,17 @@ def fieldset_two_models():
     fset2 = FieldSet.from_sgrid_conventions(ds2, mesh="flat", vector_fields={"UV_wind": ("U_wind", "V_wind")})
     fset2.add_context("my_value", 2.0)
     fset2.add_context("my_list", [1, 2, "hello"])
-    fset2.add_constant_field("constant_field", 3.0, mesh="flat")
+    fset2.add_constant_field("constant_field", 3.0)
     return fset1 + fset2
 
 
 def test_fieldset_init_wrong_types():
     with pytest.raises(ValueError, match="Expected `model` to be a ModelData object. Got .*"):
         FieldSet([1.0, 2.0, 3.0])
+
+
+def test_fieldset_repr(fieldset):
+    Matches(r"\<.*FieldSet object at.*\>").assert_matches(repr(fieldset))
 
 
 def test_fieldset_add_context(fieldset):
@@ -69,7 +74,7 @@ def test_fieldset_add_context_invalid_name(fieldset, name):
 
 
 def test_fieldset_add_constant_field(fieldset):
-    fieldset.add_constant_field("test_constant_field", 1.0, mesh="flat")
+    fieldset.add_constant_field("test_constant_field", 1.0)
 
     # Get a point in the domain
     time = ds["time"].mean()
@@ -86,7 +91,7 @@ def test_fieldset_gridset(fieldset):
     assert fieldset.fields["UV"].grid in fieldset.gridset
     assert len(fieldset.gridset) == 1
 
-    fieldset.add_constant_field("constant_field", 1.0, mesh="flat")
+    fieldset.add_constant_field("constant_field", 1.0)
     assert len(fieldset.gridset) == 2
 
 
@@ -110,7 +115,7 @@ def test_fieldset_from_structured_generic_datasets(ds):
 
     assert len(fieldset.fields) == len(ds.data_vars) - 1  # `-1` for the SGRID metadata
     for field in fieldset.fields.values():
-        utils.assert_valid_field_data(field.data, field.grid)
+        tests.utils.assert_valid_field_data(field.data, field.grid)
 
     assert len(fieldset.gridset) == 1
 
@@ -221,29 +226,42 @@ def test_default_vector_field_components(data_vars, expected):
     assert got == expected
 
 
-# TODO restructure: use adding of fieldset notation to test this
-@pytest.mark.skip("Needs updating after refactoring from https://github.com/Parcels-code/Parcels/pull/2646")
-def test_fieldset_time_interval():
-    grid1 = XGrid.from_dataset(ds, mesh="flat")
-    field1 = Field("field1", ds["U_A_grid"], grid1, interp_method=XLinear)
+def test_multi_model_time_interval():
+    ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]]
+    fieldset = FieldSet.from_sgrid_conventions(ds1, mesh="flat")
 
-    ds2 = ds.copy()
+    ds2 = ds1.copy().rename({"U_A_grid": "U2", "V_A_grid": "V2"})
     ds2["time"] = (ds2["time"].dims, ds2["time"].data + np.timedelta64(timedelta(days=1)), ds2["time"].attrs)
-    grid2 = XGrid.from_dataset(ds2, mesh="flat")
-    field2 = Field("field2", ds2["U_A_grid"], grid2, interp_method=XLinear)
+    fieldset += FieldSet.from_sgrid_conventions(ds2, mesh="flat")
 
-    fieldset = FieldSet([field1, field2])
-    fieldset.add_constant_field("constant_field", 1.0, mesh="flat")
+    ds3 = ds1.copy().rename({"U_A_grid": "U3", "V_A_grid": "V3"})
+    ds3["time"] = (ds3["time"].dims, ds3["time"].data + np.timedelta64(timedelta(days=2)), ds3["time"].attrs)
+    fieldset += FieldSet.from_sgrid_conventions(ds3, mesh="flat")
 
-    assert fieldset.time_interval.left == np.datetime64("2000-01-02")
+    fieldset.add_constant_field("constant_field", 1.0)
+
+    assert len(fieldset.models) == 3
+    assert fieldset.constant_model is not None
+    assert fieldset.time_interval.left == np.datetime64("2000-01-03")
     assert fieldset.time_interval.right == np.datetime64("2001-01-01")
 
 
-def test_fieldset_time_interval_constant_fields():
-    fieldset = FieldSet([])
-    fieldset.add_constant_field("constant_field", 1.0)
-    fieldset.add_constant_field("constant_field2", 2.0)
+def test_multi_model_nonoverlapping_time_interval():
+    ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]]
+    fieldset = FieldSet.from_sgrid_conventions(ds1, mesh="flat")
 
+    ds2 = ds1.copy().rename({"U_A_grid": "U2", "V_A_grid": "V2"})
+    ds2["time"] = (ds2["time"].dims, ds2["time"].data + np.timedelta64(timedelta(days=1000)), ds2["time"].attrs)
+    fieldset += FieldSet.from_sgrid_conventions(ds2, mesh="flat")
+
+    ds3 = ds1.copy().rename({"U_A_grid": "U3", "V_A_grid": "V3"})
+    ds3["time"] = (ds3["time"].dims, ds3["time"].data + np.timedelta64(timedelta(days=2000)), ds3["time"].attrs)
+    fieldset += FieldSet.from_sgrid_conventions(ds3, mesh="flat")
+
+    fieldset.add_constant_field("constant_field", 1.0)
+
+    assert len(fieldset.models) == 3
+    assert fieldset.constant_model is not None
     assert fieldset.time_interval is None
 
 
@@ -282,11 +300,6 @@ def test_fieldset_grid_deduplication():
     When grid deduplication is actually implemented, this might need to be refactored
     into multiple tests (/more might be needed).
     """
-    ...
-
-
-def test_fieldset_add_field_after_pset():
-    # ? Should it be allowed to add fields (normal or vector) after a ParticleSet has been initialized?
     ...
 
 
@@ -371,6 +384,26 @@ def test_fieldset_add():
     assert set(fields_before) == set(fset.fields.keys())
 
 
+def test_fieldset_add_different_meshes():
+    ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]].rename({"U_A_grid": "U", "V_A_grid": "V"})
+    ds2 = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]].rename(
+        {"U_A_grid": "U_wind", "V_A_grid": "V_wind"}
+    )
+
+    fset1 = FieldSet.from_sgrid_conventions(
+        ds1,
+        mesh=SphericalMesh(71_492_000),  # Jupiter
+    )
+    fset2 = FieldSet.from_sgrid_conventions(
+        ds2,
+        mesh="spherical",  # earth
+        vector_fields={"UV_wind": ("U_wind", "V_wind")},
+    )
+
+    with pytest.raises(IncompatibleMeshesException, match="All ModelData objects must have the same meshes."):
+        _ = fset1 + fset2
+
+
 def test_vectorfields_without_time():
     """Test that vector fields without a time dimension can be evaluated."""
     ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]].rename({"U_A_grid": "U", "V_A_grid": "V"})
@@ -397,6 +430,22 @@ def test_fieldset_add_error_on_duplicate_context_values():
         fset1 + fset2
 
 
+@tests.mark.zarr_filterwarning_consolidated_metadata
+@pytest.mark.parametrize("skip", [True, False])
+def test_zarr_warning_on_fieldset_creation(skip, tmp_path):
+    """Test that creating a FieldSet from a Zarr-backed dataset raises a warning about potential backend changes."""
+    ds = parcels.tutorial.open_dataset("CopernicusMarine_data_for_Argo_tutorial/data")
+    ds = convert.copernicusmarine_to_sgrid(fields={"U": ds["uo"], "V": ds["vo"]})
+    path = tmp_path / "ds.zarr"
+    ds.to_zarr(path)
+    ds_zarr = open_raw_zarr(path)
+    if not skip:
+        with pytest.warns(UserWarning, match="Changing a Zarr-backed dataset"):
+            FieldSet.from_sgrid_conventions(ds_zarr, skip_field_data_validation=skip)
+    else:
+        FieldSet.from_sgrid_conventions(ds_zarr, skip_field_data_validation=skip)
+
+
 def test_fieldset_add_context_values():
     """Test that context values from both FieldSets are present in the combined FieldSet."""
     ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "grid"]].rename({"U_A_grid": "U1"})
@@ -414,14 +463,10 @@ def test_fieldset_add_context_values():
     assert fset.context["c2"] == 2.0
 
 
-@pytest.mark.xfail(
-    reason="There's test pollution occuring between test_fieldKh_Brownian and this test due to how constant fields are handled. We should remove this global state."
-)
 def test_fieldset_describe(fieldset_two_models: FieldSet):
     fieldset = fieldset_two_models
     io = StringIO()
     expected = """\
-| Name           | Type        | Grid number   | Interp method / value   | Backend   |
 | Name           | Type        | Grid number   | Interp method / value   | Parcels backend   |
 |:---------------|:------------|:--------------|:------------------------|:------------------|
 | my_list        | Context     | -             | [1, 2, 'hello']         | -                 |
@@ -434,7 +479,7 @@ def test_fieldset_describe(fieldset_two_models: FieldSet):
 | UV_wind        | VectorField | 1             | XLinear_Velocity(...)   | -                 |
 | constant_field | Field       | 2             | XConstantField(...)     | NumPy             |
 
-mesh: flat
+mesh: FlatMesh()
 time interval: (np.datetime64('2000-01-01T00:00:00.000000000'), np.datetime64('2001-01-01T00:00:00.000000000'))
 """
     fieldset.describe(io)
@@ -442,6 +487,7 @@ time interval: (np.datetime64('2000-01-01T00:00:00.000000000'), np.datetime64('2
     assert actual == expected
 
 
+@tests.mark.zarr_filterwarning_consolidated_metadata
 def test_fieldset_describe_backends(tmp_path):
     ds_u = parcels.tutorial.open_dataset("NemoNorthSeaORCA025-N006_data/U")
     ds_v = parcels.tutorial.open_dataset("NemoNorthSeaORCA025-N006_data/V")
@@ -494,15 +540,15 @@ time interval: (np.datetime64('2000-01-02T12:00:00.000000000'), np.datetime64('2
     path = tmp_path / "ds.zarr"
     ds_fset.to_zarr(path)
     ds_zarr = open_raw_zarr(path)
-    fieldset = FieldSet.from_sgrid_conventions(ds_zarr)
+    fieldset = FieldSet.from_sgrid_conventions(ds_zarr, skip_field_data_validation=True)
 
     io = StringIO()
     expected = """\
 | Name   | Type        |   Grid number | Interp method / value   | Parcels backend   |
 |:-------|:------------|--------------:|:------------------------|:------------------|
-| U      | Field       |             0 | XLinear(...)            | NumPy             |
-| V      | Field       |             0 | XLinear(...)            | NumPy             |
-| W      | Field       |             0 | XLinear(...)            | NumPy             |
+| U      | Field       |             0 | XLinear(...)            | Zarr              |
+| V      | Field       |             0 | XLinear(...)            | Zarr              |
+| W      | Field       |             0 | XLinear(...)            | Zarr              |
 | UV     | VectorField |             0 | CGrid_Velocity(...)     | -                 |
 | UVW    | VectorField |             0 | CGrid_Velocity(...)     | -                 |
 
@@ -512,3 +558,5 @@ time interval: (np.datetime64('2000-01-02T12:00:00.000000000'), np.datetime64('2
     fieldset.describe(io)
     actual = io.getvalue()
     assert actual == expected
+
+    # TODO: Add test for the ChunkedArray backend (can also refactor this test at the same time)

@@ -3,7 +3,7 @@ from typing import Literal
 
 import numpy as np
 
-EARTH_RADIUS = 6366707.019493707
+EARTH_RADIUS = 6_366_707.019493707  # m
 
 
 class BaseMesh(ABC):
@@ -11,6 +11,12 @@ class BaseMesh(ABC):
 
     @abstractmethod
     def is_spherical(self) -> bool: ...
+
+    def __eq__(self, other):
+        return self.is_spherical() == other.is_spherical() and self.radius == other.radius
+
+    def __hash__(self):
+        return hash((self.is_spherical(), self.radius))
 
 
 class SphericalMesh(BaseMesh):

@@ -13,6 +13,7 @@ import xarray as xr
 
 import parcels
 from parcels import FieldSet, Particle, Variable
+from parcels._core.index_search import _latlon_rad_to_xyz
 from parcels._core.xgrid import _FIELD_DATA_ORDERING, XGrid, get_axis_from_dim_name
 from parcels._datasets.structured.generated import simple_UV_dataset
 
@@ -134,7 +135,7 @@ def assert_valid_field_data(data: xr.DataArray, grid: XGrid):
     assert len(data.shape) == 4, f"Field data should have 4 dimensions (time, depth, lat, lon), got dims {data.dims}"
 
     for ax_expected, dim in zip(_FIELD_DATA_ORDERING, data.dims, strict=True):
-        ax_actual = get_axis_from_dim_name(grid.xgcm_grid.axes, dim)
+        ax_actual = get_axis_from_dim_name(grid.sgrid_metadata, dim)
         if ax_actual is None:
             continue  # None is ok
         assert ax_actual == ax_expected, f"Expected axis {ax_expected} for dimension '{dim}', got {ax_actual}"
@@ -166,3 +167,114 @@ def assert_cftime_like_particlefile(parquet_path: Path) -> None:
         "CF-time values in Parquet did not get properly decoded. Are the attributes correct?"
     )
     return
+
+
+def create_uxgrid_from_triangulation(node_lon, node_lat, faces, mesh="spherical", z=(0.0, 1.0)):
+    """Wrap a bare triangulation (node lon/lat in degrees, triangles) in a parcels UxGrid."""
+    import uxarray as ux
+
+    from parcels._core.uxgrid import UxGrid
+
+    uxgrid = ux.Grid.from_topology(
+        node_lon=np.asarray(node_lon, dtype=np.float64),
+        node_lat=np.asarray(node_lat, dtype=np.float64),
+        face_node_connectivity=np.asarray(faces, dtype=np.int64),
+    )
+    zc = ux.UxDataArray(np.asarray(z, dtype=np.float64), dims="zf", uxgrid=uxgrid)
+    return UxGrid(uxgrid, zc, mesh=mesh)
+
+
+def create_lonlat_grid(grid_type, face_deg, centre=(0.0, 0.0), n=8, mesh="spherical"):
+    """Regular ``n`` x ``n`` lon/lat patch of ``face_deg`` faces, wrapped in a parcels grid.
+
+    ``grid_type`` picks how the patch is cut and wrapped: ``"xgrid"`` keeps each quad
+    whole and hands the node lattice to a structured grid, while ``"uxgrid"`` splits each
+    quad along its sw-ne diagonal into two triangles and hands the triangulation to an
+    unstructured grid. The velocities are zero; only the geometry matters.
+
+    ``centre`` matters on spherical meshes: the Cartesian coordinate functions have
+    stationary points at lon in {0, +-90, 180} on the equator and at the poles, and a
+    face straddling one varies quadratically rather than linearly there.
+
+    Returns ``(grid, nodes, faces)``, with nodes as (lon, lat) degrees and faces indexing
+    into them. Cell ``(j, i)`` of an XGrid is face ``j * n + i``.
+    """
+    if grid_type not in ("uxgrid", "xgrid"):
+        raise ValueError(f"grid_type must be 'uxgrid' or 'xgrid', got {grid_type!r}")
+
+    half = 0.5 * face_deg * n
+    if abs(centre[1]) + half > 90.0:
+        raise ValueError(
+            f"patch of {n} x {face_deg} deg faces centred at lat {centre[1]} runs past the pole; reduce n or face_deg"
+        )
+    lons = np.linspace(centre[0] - half, centre[0] + half, n + 1)
+    lats = np.linspace(centre[1] - half, centre[1] + half, n + 1)
+    grid_lon, grid_lat = np.meshgrid(lons, lats)
+    nodes = np.column_stack((grid_lon.ravel(), grid_lat.ravel()))
+
+    faces = []
+    for j in range(n):
+        for i in range(n):
+            sw = j * (n + 1) + i
+            se = sw + 1
+            nw = sw + n + 1
+            ne = nw + 1
+            if grid_type == "xgrid":
+                faces.append([sw, se, ne, nw])
+            else:
+                faces.append([sw, se, ne])
+                faces.append([sw, ne, nw])
+    faces = np.asarray(faces, dtype=np.int64)
+
+    if grid_type == "uxgrid":
+        grid = create_uxgrid_from_triangulation(nodes[:, 0], nodes[:, 1], faces, mesh=mesh)
+    else:
+        ds = simple_UV_dataset(dims=(2, 2, n + 1, n + 1), mesh=mesh).assign_coords(
+            lon=(("YG", "XG"), grid_lon), lat=(("YG", "XG"), grid_lat)
+        )
+        grid = FieldSet.from_sgrid_conventions(ds, mesh=mesh).U.grid
+    return grid, nodes, faces
+
+
+def sample_points_inside_faces(nodes, faces, weights=None, n_samples=6, seed=0, mesh="spherical"):
+    """Sample points strictly inside each face, with the containing face known exactly.
+
+    Each point is a weighted combination of the face's nodes using strictly positive
+    weights that sum to 1, which places it inside the face however many nodes that face
+    has. What counts as inside depends on the mesh, so the combination is taken to
+    match: a flat mesh's faces are straight-sided in lon/lat, so its nodes are combined
+    directly, while a spherical mesh's nodes are combined as unit vectors and the result
+    renormalized back onto the sphere (a gnomonic projection), placing the point inside
+    the face's true geodesic boundary.
+
+    By default ``n_samples`` sets of weights are drawn at random, which needs no
+    knowledge of how many nodes a face has. Pass ``weights`` to place samples at
+    chosen positions instead.
+
+    Returns ``(lon, lat, expected_face)``.
+    """
+    faces = np.asarray(faces)
+    if weights is None:
+        weights = np.random.default_rng(seed).dirichlet(np.ones(faces.shape[1]), size=n_samples)
+    weights = np.asarray(weights, dtype=np.float64)
+    assert np.all(weights > 0.0), "weights must be strictly positive to lie inside the face"
+    assert np.allclose(weights.sum(axis=1), 1.0), "weights must sum to 1"
+    assert weights.shape[1] == faces.shape[1], "each face node needs a weight"
+
+    node_lonlat = np.asarray(nodes, dtype=np.float64)
+    if mesh == "flat":
+        verts = node_lonlat[faces]  # (n_face, nodes_per_face, 2)
+        pts = np.einsum("wk,fkc->fwc", weights, verts)  # (n_face, n_weights, 2)
+        lon, lat = pts[..., 0], pts[..., 1]
+    elif mesh == "spherical":
+        vx, vy, vz = _latlon_rad_to_xyz(np.deg2rad(node_lonlat[:, 1]), np.deg2rad(node_lonlat[:, 0]))
+        verts = np.stack([vx, vy, vz], axis=-1)[faces]  # (n_face, nodes_per_face, 3)
+        pts = np.einsum("wk,fkc->fwc", weights, verts)  # (n_face, n_weights, 3)
+        pts /= np.linalg.norm(pts, axis=-1, keepdims=True)
+        lon = np.degrees(np.arctan2(pts[..., 1], pts[..., 0]))
+        lat = np.degrees(np.arcsin(np.clip(pts[..., 2], -1.0, 1.0)))
+    else:
+        raise ValueError(f"mesh must be 'flat' or 'spherical', got {mesh!r}")
+
+    expected_face = np.repeat(np.arange(len(faces)), len(weights))
+    return lon.ravel(), lat.ravel(), expected_face

@@ -18,14 +18,14 @@ In order to make sure that the displacements of a particle in the different Kern
 
 ## Basic implementation
 
-Below is a structured overview of how the Kernel loop is implemented. Note that this is for `time` and `x` only, but the process for `y` and `z` is also applied to `y` and `z`.
+Below is a structured overview of how the Kernel loop is implemented. Note that this is for `t` and `x` only, but the process for `y` and `z` is also applied to `y` and `z`.
 
 1. Initialise an extra Variable `particles.dx=0`
 
 2. Within the Kernel loop, for each particle:
    1. Update `particles.x += particles.dx`
 
-   2. Update `particles.time += particles.dt` (except for on the first iteration of the Kernel loop)<br>
+   2. Update `particles.t += particles.dt` (except for on the first iteration of the Kernel loop)<br>
 
    3. Set variable `particles.dx = 0`
 
@@ -34,9 +34,9 @@ Below is a structured overview of how the Kernel loop is implemented. Note that 
 
       2. Update `particles.dx` by adding the change in x, if needed
 
-   5. If `outputdt` is a multiple of `particles.time`, write `particles.x` and `particles.time` to zarr output file
+   5. If `outputdt` is a multiple of `particles.t`, write `particles.x` and `particles.t` to zarr output file
 
-Besides having commutable Kernels, the main advantage of this implementation is that, when using Field Sampling with e.g. `particles.temp = fieldset.Temp[particles.time, particles.z, particles.y, particles.x]`, the particle location stays the same throughout the entire Kernel loop. Additionally, this implementation ensures that the particle location is the same as the location of the sampled field in the output file.
+Besides having commutable Kernels, the main advantage of this implementation is that, when using Field Sampling with e.g. `particles.var = fieldset.Var[particles.t, particles.z, particles.y, particles.x]`, the particle location stays the same throughout the entire Kernel loop. Additionally, this implementation ensures that the particle location is the same as the location of the sampled field in the output file.
 
 ## Example with currents and winds
 
@@ -103,11 +103,10 @@ First run a simulation where we apply Kernels as `[AdvectionRK2, wind_kernel]`
 ```{code-cell}
 :tags: [hide-output]
 npart = 10
-z = np.repeat(ds_fields.depth[0].values, npart)
 lons = np.repeat(32.2, npart)
 lats = np.linspace(-32.5, -30.5, npart)
 
-pset = parcels.ParticleSet(fieldset, pclass=parcels.Particle, z=z, y=lats, x=lons)
+pset = parcels.ParticleSet(fieldset, pclass=parcels.Particle, y=lats, x=lons)
 output_file = parcels.ParticleFile(
     path="advection_then_wind.parquet", outputdt=np.timedelta64(6,'h')
 )
@@ -124,7 +123,7 @@ Then also run a simulation where we apply the Kernels in the reverse order as `[
 ```{code-cell}
 :tags: [hide-output]
 pset_reverse = parcels.ParticleSet(
-    fieldset, pclass=parcels.Particle, z=z, y=lats, x=lons
+    fieldset, pclass=parcels.Particle, y=lats, x=lons
 )
 output_file_reverse = parcels.ParticleFile(
     path="wind_then_advection.parquet", outputdt=np.timedelta64(6,"h")

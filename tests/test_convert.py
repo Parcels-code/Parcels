@@ -159,6 +159,17 @@ def test_convert_copernicusmarine_no_currents(caplog):
     assert caplog.text == ""
 
 
+@pytest.mark.filterwarnings("ignore:The delft3d_to_sgrid function is experimental")
+def test_convert_structured_delft3d():
+    ds = open_remote_dataset("Delft3D_data/Rotterdam_tiny")
+    coords = ds[["XZETA", "YZETA", "SIGMA_C"]]
+    ds_fset = convert.delft3d_to_sgrid(fields={"U": ds["VELU"], "V": ds["VELV"]}, coords=coords)
+    fieldset = FieldSet.from_sgrid_conventions(ds_fset)
+    assert "U" in fieldset.fields
+    assert "V" in fieldset.fields
+    assert "UV" in fieldset.fields
+
+
 @pytest.mark.parametrize("ds", _COPERNICUS_DATASETS)
 def test_convert_copernicusmarine_no_logs(ds, caplog):
     ds = ds.copy()

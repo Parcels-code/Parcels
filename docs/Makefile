@@ -2,7 +2,7 @@
 #
 
 # You can set these variables from the command line.
-SPHINXOPTS    =
+SPHINXOPTS    = --show-traceback --fail-on-warning --keep-going --jobs auto
 SPHINXBUILD   = sphinx-build
 SPHINXATUOBUILD = sphinx-autobuild
 PAPER         =
@@ -54,6 +54,7 @@ clean:
 	rm -rf $(BUILDDIR)/*
 	rm -rf .jupyter_cache
 	find . -name "*.parquet" -delete
+	find . -name "*.zarr" -type d -exec rm -rf {} +
 
 html:
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html

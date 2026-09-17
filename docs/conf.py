@@ -1,5 +1,5 @@
 """autoSphinx configuration file for Parcels documentation."""
-# parcels documentation build configuration file, created by
+# Parcels documentation build configuration file, created by
 # sphinx-quickstart on Tue Oct 20 09:58:20 2015.
 #
 # This file is execfile()d with the current directory set to its
@@ -121,7 +121,6 @@ exclude_patterns = [
     "_build",
     "jupyter_execute",
     "**.ipynb_checkpoints",
-    "user_guide/examples_v3",
     ".jupyter_cache",
 ]
 
@@ -204,7 +203,7 @@ html_theme_options = {
             "type": "fontawesome",
         }
     ],
-    "announcement": "WARNING: This documentation is built for v4 of Parcels, which is unreleased and in active development. Use the version switcher in the bottom right to select your version of Parcels, or see <a href='https://docs.parcels-code.org/'>stable docs</a>.",
+    "announcement": "Parcels v4 has been released! 🎉 See <a href='https://parcels-code.org/blog/parcels-v4'>our release blog post</a> for more info",
     "header_links_before_dropdown": 8,
     "navbar_align": "left",
 }
@@ -522,6 +521,12 @@ nb_execution_mode = "cache"
 nb_execution_excludepatterns = ["jupyter_execute", ".jupyter_cache"]
 nb_execution_raise_on_error = True
 nb_execution_timeout = 75
+suppress_warnings = ["mystnb.unknown_mime_type"]
+nitpicky = True
+nitpick_ignore_regex = [
+    (r"py:class", r".*"),
+    (r"py:mod", r".*"),
+]
 
 # -- Options for autoapi --------------------------------------------------
 autoapi_dirs = ["../src/parcels"]

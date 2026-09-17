@@ -1,35 +1,34 @@
 from __future__ import annotations
 
-import functools
 import sys
-import warnings
 from collections.abc import Iterable
 from typing import IO, TYPE_CHECKING
 
 import cf_xarray  # noqa: F401
 import numpy as np
-import uxarray as ux
 import xarray as xr
 
 import parcels._typing as ptyping
 from parcels._core.field import Field, VectorField
+from parcels._core.mesh import FlatMesh, SphericalMesh
 from parcels._core.model import (
-    CONSTANT_FIELD_MODELS,
     ModelData,
     StructuredModelData,
     UnstructuredModelData,
+    create_empty_constant_field_model,
 )
 from parcels._core.utils.string import _assert_str_and_python_varname
 from parcels._core.utils.time import get_datetime_type_calendar
 from parcels._core.utils.time import is_compatible as datetime_is_compatible
-from parcels._core.warnings import FieldSetWarning
 from parcels._python import NOTSET, NotSetType
-from parcels._reprs import fieldset_describe
+from parcels._repr_utils import fieldset_describe
 from parcels.interpolators import (
     XConstantField,
 )
 
 if TYPE_CHECKING:
+    import uxarray as ux
+
     from parcels._core.basegrid import BaseGrid
     from parcels._typing import TimeLike
 __all__ = ["FieldSet"]
@@ -66,16 +65,23 @@ class FieldSet:
     """
 
     def __init__(self, models: list[ModelData]):
+        if models == []:
+            raise ValueError("List of models can't be empty.")
         for model in models:
             if not isinstance(model, ModelData):
                 raise ValueError(f"Expected `model` to be a ModelData object. Got {model}")
         # assert_compatible_calendars(fields)
 
-        self.models = list(models)
+        self.models = models
+        self.constant_model: StructuredModelData | None = None
         self._fields: dict[str, Field | VectorField] | None = None
         self.reconstruct_fields()
         self.context: dict[str, float] = {}
-        _warn_if_fields_use_different_meshes(self.fields.values())
+        assert_models_have_same_mesh(self.models)
+
+    @property
+    def mesh(self) -> FlatMesh | SphericalMesh:
+        return self.models[0].mesh
 
     def __setattr__(self, name, value):
         """Set field attribute by name. If context exists and name in context, raise error to prevent overwriting context variable."""
@@ -97,6 +103,8 @@ class FieldSet:
         fields = []
         for model in self.models:
             fields += model.construct_fields()
+        if self.constant_model is not None:
+            fields += self.constant_model.construct_fields()
         self._fields = {f.name: f for f in fields}
 
     def __getattr__(self, name):
@@ -114,6 +122,16 @@ class FieldSet:
         assert_compatible_fieldsets(self, other)
         combined = FieldSet(self.models + other.models)
         combined.context = {**self.context, **other.context}
+        # Carry over constant model
+        if self.constant_model is not None and other.constant_model is not None:
+            # Merge data variables from both constant models into one
+            combined.constant_model = self.constant_model
+            for name in other.constant_model.scalar_field_names:
+                combined.constant_model.data[name] = other.constant_model.data[name]
+        elif self.constant_model is not None or other.constant_model is not None:
+            combined.constant_model = self.constant_model or other.constant_model
+
+        combined.reconstruct_fields()
         return combined
 
     # def __repr__(self):
@@ -122,7 +140,7 @@ class FieldSet:
     @property
     def time_interval(self):
         """Returns the valid executable time interval of the FieldSet,
-        which is the intersection of the time intervals of all fields
+        which is the overlap of the time intervals of all fields
         in the FieldSet.
         """
         time_intervals = (m.time_interval for m in self.models)
@@ -131,30 +149,14 @@ class FieldSet:
         time_intervals = [t for t in time_intervals if t is not None]
         if len(time_intervals) == 0:  # All fields are constant fields
             return None
-        return functools.reduce(lambda x, y: x.intersection(y), time_intervals)
 
-    def add_field(self, field: Field, name: str | None = None):
-        """Add a :class:`parcels.field.Field` object to the FieldSet.
+        overlap = time_intervals[0]
+        for time_interval in time_intervals[1:]:
+            if overlap is None:
+                return None
+            overlap = overlap.intersection(time_interval)
 
-        Parameters
-        ----------
-        field : parcels.field.Field
-            Field object to be added
-        name : str
-            Name of the :class:`parcels.field.Field` object to be added. Defaults
-            to name in Field object.
-        """
-        if not isinstance(field, (Field, VectorField)):
-            raise ValueError(f"Expected `field` to be a Field or VectorField object. Got {type(field)}")
-        assert_compatible_calendars((*self.fields.values(), field))
-
-        name = field.name if name is None else name
-
-        if name in self.fields:
-            raise ValueError(f"FieldSet already has a Field with name '{name}'")
-
-        self.fields[name] = field
-        _warn_if_fields_use_different_meshes(self.fields.values())
+        return overlap
 
     def to_windowed_arrays(self, *, max_levels: int | None = None):
         """Wrap dask-backed field data in rolling time-window caches.
@@ -189,7 +191,31 @@ class FieldSet:
             model.to_windowed_arrays(max_levels=max_levels)
         return self
 
-    def add_constant_field(self, name: str, value, mesh: ptyping.TMesh = "spherical"):
+    def to_chunk_cached_arrays(self, *, max_cache_bytes: int = 600_000_000):
+        """Wrap dask-backed field data in chunk-level LRU caches.
+
+        Opt-in optimization that replaces each dask-backed data variable's
+        internal storage with a :class:`~parcels._chunk_cached_array.ChunkCachedArray`.
+        Delegates to each underlying model; repeated vectorized ``.isel()``
+        calls then hit an in-memory LRU cache instead of recomputing dask task
+        graphs. NumPy-backed (eager) fields are left unchanged, and re-invoking
+        is idempotent.
+
+        Parameters
+        ----------
+        max_cache_bytes : int, optional
+            Maximum cache size in bytes, per variable. Defaults to 600 MB.
+
+        Returns
+        -------
+        FieldSet
+            ``self``, to allow chaining.
+        """
+        for model in self.models:
+            model.to_chunk_cached_arrays(max_cache_bytes=max_cache_bytes)
+        return self
+
+    def add_constant_field(self, name: str, value):
         """Wrapper function to add a Field that is constant in space,
            useful e.g. when using constant horizontal diffusivity
 
@@ -199,27 +225,16 @@ class FieldSet:
             Name of the :class:`parcels.field.Field` object to be added
         value :
             Value of the constant field
-        mesh : str
-            String indicating the type of mesh coordinates,
-
-            1. spherical (default): Lat and lon in degree, with a
-               correction for zonal velocity U near the poles.
-            2. flat: No conversion, lat/lon are assumed to be in m.
         """
-        try:
-            model = CONSTANT_FIELD_MODELS[mesh]
-        except KeyError as e:
-            raise ValueError(f"mesh must be one of ['flat', 'spherical']. Got {mesh!r}.") from e
+        if self.constant_model is None:
+            self.constant_model = create_empty_constant_field_model(self.mesh)
 
-        model.data[name] = (["time", "depth", "lat", "lon"], np.full((1, 1, 1, 1), value))
-
-        if model not in self.models:
-            self.models.append(model)
+        self.constant_model.data[name] = (["time", "depth", "lat", "lon"], np.full((1, 1, 1, 1), value))
 
         self.reconstruct_fields()
         field = getattr(self, name)
         field.interp_method = XConstantField()
-        _warn_if_fields_use_different_meshes(self.fields.values())
+        assert_models_have_same_mesh(self.models)
 
     def add_context(self, name, value):
         """Add context variable to the FieldSet.
@@ -280,7 +295,7 @@ class FieldSet:
         -----
         See https://ugrid-conventions.github.io/ugrid-conventions/ for more information on the UGRID conventions.
         """
-        model = UnstructuredModelData.from_ugrid_conventions(ds, mesh, vector_fields)
+        model = UnstructuredModelData.from_ugrid_conventions(ds, mesh=mesh, vector_fields=vector_fields)
         return cls([model])
 
     @classmethod
@@ -325,7 +340,7 @@ class FieldSet:
         See https://sgrid.github.io/sgrid/ for more information on the SGRID conventions.
         """
         model = StructuredModelData.from_sgrid_conventions(
-            ds, mesh, vector_fields, skip_field_data_validation=skip_field_data_validation
+            ds, mesh=mesh, vector_fields=vector_fields, skip_field_data_validation=skip_field_data_validation
         )
         return cls([model])
 
@@ -372,29 +387,26 @@ def assert_compatible_fieldsets(left: FieldSet, right: FieldSet) -> None:
         )
 
 
-def _warn_if_fields_use_different_meshes(fields: Iterable[Field | VectorField]):
-    """Warn if multiple fields use different meshes on the underlying grids.
-
-    Parameters
-    ----------
-    fields : Iterable[Field | VectorField]
-        The fields to check for conflicting meshes.
-
-    Warns
-    -----
-    FieldSetWarning
-        If the fields have different meshes on the underlying grids.
-    """
-    meshes = {field.grid._mesh for field in fields}
-    if len(meshes) > 1:
-        warnings.warn(
-            f"FieldSet has multiple different meshes: {meshes}. This may lead to unexpected behavior during execution.",
-            category=FieldSetWarning,
-            stacklevel=3,
-        )
+class IncompatibleMeshesException(Exception): ...
 
 
-class CalendarError(Exception):  # TODO: Move to a parcels errors module
+def assert_models_have_same_mesh(models: list[ModelData]):
+    if models == []:
+        return
+
+    first_mesh = None
+    for i, model in enumerate(models):
+        if first_mesh is None:
+            first_mesh = model.mesh
+            continue
+
+        if model.mesh != first_mesh:
+            raise IncompatibleMeshesException(
+                f"All ModelData objects must have the same meshes. ModelData at index 0 has a mesh of {first_mesh!r} while ModelData at index {i} has mesh {model.mesh!r} "
+            )
+
+
+class CalendarError(Exception):  # TODO: Move to a Parcels errors module
     """Exception raised when the calendar of a field is not compatible with the rest of the Fields. The user should ensure that they only add fields to a FieldSet that have compatible CFtime calendars."""
 
 

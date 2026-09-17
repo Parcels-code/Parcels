@@ -8,6 +8,7 @@ from typing import TYPE_CHECKING
 import numpy as np
 
 from parcels._core.index_search import GRID_SEARCH_ERROR, LEFT_OUT_OF_BOUNDS, RIGHT_OUT_OF_BOUNDS, _search_time_index
+from parcels._core.particleset import ParticleSet
 from parcels._core.particlesetview import ParticleSetView
 from parcels._core.statuscodes import (
     AllParcelsErrorCodes,
@@ -89,7 +90,7 @@ class Field:
         # TODO PR: Enable isinstance check once ModelData is moved to abc.ModelData
         # if not isinstance(model, "ModelData"):
         #     raise ValueError(
-        #         f"Expected `model` to be a parcels ModelData object. Got {type(model)}."
+        #         f"Expected `model` to be a Parcels ModelData object. Got {type(model)}."
         #     )
 
         _assert_str_and_python_varname(name)
@@ -115,7 +116,7 @@ class Field:
         return self.model.time_interval
 
     def __repr__(self):
-        return f"Field(name={self.name}, model={self.model})"
+        return f"Field(name={self.name!r}, model={self.model})"
 
     @property
     def interp_method(self):
@@ -186,7 +187,7 @@ class Field:
     def __getitem__(self, key):
         self._check_velocitysampling()
         try:
-            if isinstance(key, ParticleSetView):
+            if isinstance(key, (ParticleSetView, ParticleSet)):
                 return self.eval(key.t, key.z, key.y, key.x, key)
             else:
                 return self.eval(*key)
@@ -295,7 +296,7 @@ class VectorField:
 
     def __getitem__(self, key):
         try:
-            if isinstance(key, ParticleSetView):
+            if isinstance(key, (ParticleSetView, ParticleSet)):
                 return self.eval(key.t, key.z, key.y, key.x, key)
             else:
                 return self.eval(*key)
@@ -392,6 +393,9 @@ def _assert_same_time_interval(fields: Sequence[Field]) -> None:
 
 def _get_positions(field: Field, t, z, y, x, particles, _ei) -> tuple[dict, dict]:
     """Initialize and populate particle_positions and grid_positions dictionaries"""
+    if np.any(np.isnan(t)):
+        nan_indices = np.where(np.isnan(t))[0]
+        raise ValueError(f"Time values for particles with indices {nan_indices} cannot be NaN.")
     particle_positions = {"t": t, "z": z, "y": y, "x": x}
     grid_positions = {}
     grid_positions.update(_search_time_index(field, t))

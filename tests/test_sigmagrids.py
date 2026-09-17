@@ -3,7 +3,7 @@ import numpy as np
 import parcels
 import parcels.tutorial
 from parcels import Particle, ParticleSet, Variable
-from parcels.kernels import AdvectionRK2_3D_CROCO, SampleOmegaCroco, convert_z_to_sigma_croco
+from parcels.kernels import AdvectionRK2, AdvectionRK2_3D_CROCO, SampleOmegaCroco, convert_z_to_sigma_croco
 
 
 def test_conversion_3DCROCO():
@@ -42,6 +42,28 @@ def test_conversion_3DCROCO():
     sigma = convert_z_to_sigma_croco(fieldset, time, z_xroms, lat, lon, None)
 
     np.testing.assert_allclose(sigma, s_xroms, atol=1e-3)
+
+
+def test_advection_2DCROCO():
+    ds_fields = parcels.tutorial.open_dataset("CROCOidealized_data/data")
+
+    fields = {
+        "U": ds_fields["u"],
+        "V": ds_fields["v"],
+    }
+    ds_fset = parcels.convert.croco_to_sgrid(fields=fields, coords=ds_fields)
+    fieldset = parcels.FieldSet.from_sgrid_conventions(ds_fset)
+    fieldset = fieldset.to_windowed_arrays()
+
+    runtime = 10_000
+    X = np.array([40e3, 80e3, 120e3])
+    Y = np.ones(X.size) * 100e3
+    Z = np.zeros(X.size)
+    pset = ParticleSet(fieldset=fieldset, x=X, y=Y, z=Z)
+
+    pset.execute([AdvectionRK2], runtime=runtime, dt=100)
+    assert np.allclose(pset.z, Z.flatten(), atol=1e-3)
+    assert np.allclose(pset.x, [x + runtime for x in X], atol=1e-3)
 
 
 def test_advection_3DCROCO():
