@@ -222,7 +222,7 @@ def _field_backend(field: Field | VectorField) -> str | None:
     if hasattr(field, "data"):
         if isinstance(field.data, WindowedArray):
             return "WindowedArray"
-        elif is_dask_collection(field.data.data):
+        elif is_dask_collection(field.data.variable._data):
             return "Dask"
         elif isinstance(field.data.variable._data, ChunkCachedArray):
             return "ChunkCachedArray"
