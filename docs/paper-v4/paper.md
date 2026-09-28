@@ -1,5 +1,5 @@
 ---
-title: "Parcels v4: An Xarray-aligned, flexible lagrangian simulation framework for geoscience"
+title: "Parcels v4: An Xarray-aligned, flexible Lagrangian simulation framework for geoscience"
 tags:
   - Python
   - Lagrangian modelling
