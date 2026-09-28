@@ -1,7 +1,6 @@
 # Unstructured Grid Search: Spatial Hashing with Morton Encoding
 
-This page documents the algorithm used in Parcels to locate which grid cell a particle occupies on both curvilinear (`XGrid`) and unstructured (`UxGrid`) grids. 
-
+This page documents the algorithm used in Parcels to locate which grid cell a particle occupies on both curvilinear (`XGrid`) and unstructured (`UxGrid`) grids.
 
 On a rectilinear grid, finding which cell contains a particle is a trivial O(1) operation. We can compute an index from the coordinate directly. For example, a rectilinear grid has $x$ and $y$ coordinates
 
@@ -9,21 +8,24 @@ On a rectilinear grid, finding which cell contains a particle is a trivial O(1) 
 x_i = x_0 + i*dx
 y_i = y_0 + j*dy
 ```
+
 where `dx` and `dy` are the constant grid spacing in the $x$ and $y$ directions, $(x_0,y_0)$ is the coordinate of the lower left corner of the domain, and $(i,j)$ are the zero-based indices corresponding to the lower left corner of a face in the grid. Note that a **face** in Parcels (also referred to as an **element**) is defined by its four corner vertices; here, face $(i,j)$ has corner nodes $(x_{i+m},y_{j+n})|_{(m,n)=[0,1]}$. Given a particle at position $(x_p,y_p)$, computing the corresponding face indices is a quick calculation
+
 ```
-i = floor( (x_p - x_0)/dx ) 
-j = floor( (y_p - y_0)/dy ) 
+i = floor( (x_p - x_0)/dx )
+j = floor( (y_p - y_0)/dy )
 ```
 
-On curvilinear and unstructured grids, no such shortcut exists; each cell has an arbitrary shape and position. A naive approach for particle search in these cases is to pick an element, perform a particle-in-cell check, and iterate until the particle is found. In this naive approach, the search cost scales with the size of the grid; for N elements the naive search is O(N). The particle-in-cell check is unavoidable for gauranteeing that a particle is indeed within a face. Thus, particle search algorithms for curvilinear and unstructured grids is focused on reducing the number of candidate elements to search within. Commonly used KD-trees, BVH trees, and quad-trees use hierachical descriptions for a mesh that reduce the search to O( log N ) complexity. 
+On curvilinear and unstructured grids, no such shortcut exists; each cell has an arbitrary shape and position. A naive approach for particle search in these cases is to pick an element, perform a particle-in-cell check, and iterate until the particle is found. In this naive approach, the search cost scales with the size of the grid; for N elements the naive search is O(N). The particle-in-cell check is unavoidable for gauranteeing that a particle is indeed within a face. Thus, particle search algorithms for curvilinear and unstructured grids is focused on reducing the number of candidate elements to search within. Commonly used KD-trees, BVH trees, and quad-trees use hierachical descriptions for a mesh that reduce the search to O( log N ) complexity.
 
 In Parcels, we opt for **spatial hashing**, which relates the elements of a curvilinear grid or unstructured grid to the elements of an underlying rectilinear "hash grid". To search for a particle on these more complex grids, we first compute the particle indices on the hash grid. In turn, those indices can be used to quickly look up a short list of candidate elements to perform and particle-in-cell check on. The lookup table that relates the hash grid indices to the candidate elements in the parent grid is called the "hash table".
 
 Within Parcels, we have made strategic choices that define
-* the resolution and extents of the underlying hash grid as a function of the parent curvilinear or unstructured grid
-* the relationship between candidate parent grid elements and the hash grid elements (the hash table),
-* the data structures used to store and lookup entries in the hash table, and
-* the particle-in-cell methods used for determinig whether a particle is in or out of a curvilinear or unstructured grid.
+
+- the resolution and extents of the underlying hash grid as a function of the parent curvilinear or unstructured grid
+- the relationship between candidate parent grid elements and the hash grid elements (the hash table),
+- the data structures used to store and lookup entries in the hash table, and
+- the particle-in-cell methods used for determinig whether a particle is in or out of a curvilinear or unstructured grid.
 
 In the implementation that exists in v4, we have made numerous refinements to optimize initialization speed and memory consumption and query speed. This documentation provides details for developers and enthusiastic Parcels users that dive into the specifics of the hash table construction, morton encoding, the particle search (query) method, and particle-in-cell checks. The aim here is to convey clearly what the code is designed to do and why.
 
@@ -33,6 +35,7 @@ For reference, the implementation in code lives in two files:
 - `src/parcels/_core/index_search.py` — point-in-cell tests and the high-level search dispatch
 
 ---
+
 ## Algorithm
 
 The spatial hash is used in two phases. The **construction** phase runs once per grid, the first time a particle search is requested on it; `get_spatial_hash()` builds the `SpatialHash` lazily and caches it on the grid object, so all subsequent searches reuse the same hash table. The **query** phase runs every time a set of particles must be located, which in practice means every time a field is interpolated onto particle positions during `pset.execute`. Because queries vastly outnumber constructions, we are willing to spend some effort during construction if it makes queries cheaper, as long as the memory required to build and hold the hash table stays bounded.
@@ -53,12 +56,12 @@ Steps 1 and 2 are where curvilinear and unstructured grids differ, and where fla
 
 The hash grid is always three dimensional, regardless of the parent grid. The coordinates used for each combination of grid and mesh type are
 
-| Parent grid | Mesh type | Hash grid coordinates                          |
-| ----------- | --------- | ---------------------------------------------- |
-| `XGrid`     | flat      | $(x, y, z) = (\text{lon}, \text{lat}, 0)$      |
-| `XGrid`     | spherical | Cartesian $(x, y, z)$ on the unit sphere       |
-| `UxGrid`    | flat      | $(x, y, z) = (\text{lon}, \text{lat}, 0)$      |
-| `UxGrid`    | spherical | Cartesian $(x, y, z)$ on the unit sphere       |
+| Parent grid | Mesh type | Hash grid coordinates                     |
+| ----------- | --------- | ----------------------------------------- |
+| `XGrid`     | flat      | $(x, y, z) = (\text{lon}, \text{lat}, 0)$ |
+| `XGrid`     | spherical | Cartesian $(x, y, z)$ on the unit sphere  |
+| `UxGrid`    | flat      | $(x, y, z) = (\text{lon}, \text{lat}, 0)$ |
+| `UxGrid`    | spherical | Cartesian $(x, y, z)$ on the unit sphere  |
 
 On spherical meshes, node longitudes and latitudes are converted from degrees to radians and then to Cartesian coordinates on the unit sphere with `_latlon_rad_to_xyz`
 
@@ -89,6 +92,7 @@ As with curvilinear grids, on a **flat** mesh the bounding box of a face is the 
 Unstructured grids have a single face index rather than a $(j,i)$ pair. So that the rest of the construction and query code can treat both grid types the same way, the bounding box arrays for a `UxGrid` are reshaped to `(1, nfaces)` with `np.atleast_2d`. Every face then has $j=0$ and $i$ equal to its face index. There is currently no degenerate face detection for unstructured grids.
 
 (face-bounds-on-the-sphere)=
+
 #### Face bounds on the sphere
 
 **Function:** `parcels._core.spatialhash._spherical_face_bounds`
@@ -117,7 +121,7 @@ budget = max(_HASH_ENTRIES_PER_FACE * nfaces, _HASH_ENTRY_BUDGET_MIN)
 
 with `_HASH_ENTRIES_PER_FACE = 16` and `_HASH_ENTRY_BUDGET_MIN = 2**22`. The per-face target of 16 is chosen to keep the number of particle-in-cell checks per query small, while keeping the memory footprint of the construction manageable. The floor of $2^{22}$ entries keeps small grids from being forced onto an unnecessarily coarse hash grid, since the memory for a table of that size is negligible.
 
-The construction starts at `bitwidth = 1023`. `_total_hash_entries(bitwidth)` computes how many entries the hash table *would* have at a given resolution by quantizing the corners of every face's bounding box and summing $n_x n_y n_z$ over all faces, without generating any of the entries. If the table at `bitwidth = 1023` fits within the budget, that resolution is kept. Otherwise, we binary search for the largest `bitwidth` in $[1, 1023]$ whose table fits within the budget. The number of entries is not perfectly monotone in `bitwidth` (because of where cell boundaries happen to fall relative to face bounds), so the search may land marginally below the true largest `bitwidth` that fits. This is fine, since any `bitwidth` that fits the budget is valid. The search always terminates at a valid resolution: at `bitwidth = 1` each face overlaps at most two hash cells per axis, so the table holds at most `8 * nfaces` entries, which is always within the budget.
+The construction starts at `bitwidth = 1023`. `_total_hash_entries(bitwidth)` computes how many entries the hash table _would_ have at a given resolution by quantizing the corners of every face's bounding box and summing $n_x n_y n_z$ over all faces, without generating any of the entries. If the table at `bitwidth = 1023` fits within the budget, that resolution is kept. Otherwise, we binary search for the largest `bitwidth` in $[1, 1023]$ whose table fits within the budget. The number of entries is not perfectly monotone in `bitwidth` (because of where cell boundaries happen to fall relative to face bounds), so the search may land marginally below the true largest `bitwidth` that fits. This is fine, since any `bitwidth` that fits the budget is valid. The search always terminates at a valid resolution: at `bitwidth = 1` each face overlaps at most two hash cells per axis, so the table holds at most `8 * nfaces` entries, which is always within the budget.
 
 Faces with a `NaN` anywhere in their bounding box (a node with a missing coordinate) are excluded from the hash table. They contribute zero entries to the budget and are never registered in any hash cell.
 
@@ -137,13 +141,13 @@ Quantization maps a coordinate onto the index of the hash cell that contains it.
 xq = floor( clip( (x - xmin)/(xmax - xmin) * bitwidth, 0, bitwidth ) )
 ```
 
-and similarly for $y$ and $z$. This is the same calculation as finding a face on the rectilinear grid in the introduction; the hash grid *is* a rectilinear grid, with lower left corner $(x_{min}, y_{min}, z_{min})$ and spacing $(x_{max} - x_{min})/\text{bitwidth}$.
+and similarly for $y$ and $z$. This is the same calculation as finding a face on the rectilinear grid in the introduction; the hash grid _is_ a rectilinear grid, with lower left corner $(x_{min}, y_{min}, z_{min})$ and spacing $(x_{max} - x_{min})/\text{bitwidth}$.
 
 There are two details worth noting here. First, clipping happens in floating point, before the cast to `uint32`. A particle outside of a regional domain has a negative normalized coordinate, which would wrap around to a very large integer if it were cast to `uint32` first. With the clip, a particle outside of the domain is assigned to a hash cell on the boundary of the hash grid, and the particle-in-cell checks on that cell's candidates correctly report that it is not found. Second, when an axis has zero extent (e.g. $z$ on a flat mesh, where $z_{min} = z_{max} = 0$), the normalized coordinate is set to zero rather than dividing by zero.
 
 ![Quantized coordinates](xiyizi.png)
 
-*The quantized coordinates $x_q$, $y_q$, and $z_q$ are stored as `uint32`, but are guaranteed to lie in $[0, 1023]$, so only their lowest 10 bits are used.*
+_The quantized coordinates $x_q$, $y_q$, and $z_q$ are stored as `uint32`, but are guaranteed to lie in $[0, 1023]$, so only their lowest 10 bits are used._
 
 #### Bit dilation
 
@@ -188,11 +192,11 @@ which uses 30 of the 32 bits in a `uint32`; the two most significant bits are al
 
 ![Dilation and bit shift](dilate_bitshift.png)
 
-*$x_q$ is dilated, while $y_q$ and $z_q$ are dilated and then shifted by one and two bits, so that their bits do not overlap.*
+_$x_q$ is dilated, while $y_q$ and $z_q$ are dilated and then shifted by one and two bits, so that their bits do not overlap._
 
 ![Morton code](mi.png)
 
-*The Morton code is constructed by interleaving the bits of $x_q$, $y_q$, and $z_q$. Only 30 bits are used, so the remaining two bits of the code are zero.*
+_The Morton code is constructed by interleaving the bits of $x_q$, $y_q$, and $z_q$. Only 30 bits are used, so the remaining two bits of the code are zero._
 
 `_encode_morton3d` chains all three steps (quantize, dilate, interleave) together, and is the function used to encode particle positions during queries. During construction, the quantized coordinates of each hash cell are already known, so `_encode_quantized_morton3d` is called on them directly.
 
@@ -250,7 +254,7 @@ Given arrays of particle latitudes `y` and longitudes `x` (in degrees), a query 
 
 2. **Encode.** The Morton code of each particle is computed with `_encode_morton3d`, using the same extents and `bitwidth` that were used to build the hash table.
 
-3. **Look up.** Since `keys` is sorted, the row of each particle's Morton code is found with a binary search, `np.searchsorted(keys, query_codes)`. `searchsorted` returns the position where a code *would* be inserted, so a particle only has candidates if the key at that position exactly matches its Morton code, and if its coordinates are finite. Particles in a hash cell with no registered faces have no candidates.
+3. **Look up.** Since `keys` is sorted, the row of each particle's Morton code is found with a binary search, `np.searchsorted(keys, query_codes)`. `searchsorted` returns the position where a code _would_ be inserted, so a particle only has candidates if the key at that position exactly matches its Morton code, and if its coordinates are finite. Particles in a hash cell with no registered faces have no candidates.
 
 4. **Gather candidates.** For each particle with a match, its candidate faces are `faces[starts[pos] : starts[pos] + counts[pos]]`. These slices are gathered for all particles at once using `np.repeat` and cumulative sums over `counts`, giving flat arrays of (particle, candidate face) pairs. The gathered face ids are then unravelled to $(j, i)$ with `np.unravel_index`. For unstructured grids, whose bounding boxes were reshaped to `(1, nfaces)`, this gives $j = 0$ and $i$ equal to the face index.
 
@@ -281,15 +285,15 @@ The bilinear inverse assumes that the face has straight edges. On a **flat** mes
 
 On a **spherical** mesh, the edges are great-circle arcs, so the inverse cannot be solved in (lon, lat) without mis-measuring particles near the edges of a face. It would also suffer from the same antimeridian and pole problems we avoided when building the hash table. Instead, `_bilinear_inverse_tangent_plane` uses `_spherical_project_cell_and_query` to project the four corners of the face and the particle onto a plane tangent to the sphere at the centre of the face:
 
-* The normal of the plane is the normalized sum of the four corner positions in Cartesian coordinates.
-* The in-plane basis vectors are built from the face itself: $e_u$ points from the midpoint of the left edge to the midpoint of the right edge (along $\xi$), and $e_v$ points from the midpoint of the bottom edge to the midpoint of the top edge (along $\eta$), made orthogonal to $e_u$ with Gram-Schmidt so the inverse is well conditioned on skewed faces.
-* Each point is projected **gnomonically**, that is, scaled along the ray from the centre of the sphere until it meets the plane.
+- The normal of the plane is the normalized sum of the four corner positions in Cartesian coordinates.
+- The in-plane basis vectors are built from the face itself: $e_u$ points from the midpoint of the left edge to the midpoint of the right edge (along $\xi$), and $e_v$ points from the midpoint of the bottom edge to the midpoint of the top edge (along $\eta$), made orthogonal to $e_u$ with Gram-Schmidt so the inverse is well conditioned on skewed faces.
+- Each point is projected **gnomonically**, that is, scaled along the ray from the centre of the sphere until it meets the plane.
 
 A gnomonic projection maps great circles to straight lines. The projected face is therefore a straight-sided quadrilateral, and a particle is on the same side of each projected edge as it was of the original great-circle edge. This allows the bilinear inverse to measure the particle against the face's true boundary, regardless of the size of the face. A ray from the centre of the sphere meets the plane at most once, so only points on the hemisphere facing the plane can be projected. Points on the far hemisphere are mapped to `NaN` and fail the $0 \le \xi, \eta \le 1$ check.
 
 ![Gnomonic vs. orthogonal projection](gnomonic.png)
 
-*A spherical face (blue, with great-circle edges) and the chord plane through its corners (dashed red). A particle on a great-circle edge, projected gnomonically (green, along the ray to the sphere's centre), lands exactly on the chord edge. Projected orthogonally (orange), it lands off the edge. The inset magnifies the neighbourhood of the particle nine times.*
+_A spherical face (blue, with great-circle edges) and the chord plane through its corners (dashed red). A particle on a great-circle edge, projected gnomonically (green, along the ray to the sphere's centre), lands exactly on the chord edge. Projected orthogonally (orange), it lands off the edge. The inset magnifies the neighbourhood of the particle nine times._
 
 #### Unstructured grids
 
@@ -311,7 +315,6 @@ On a **spherical** mesh, the particle $p$ and the face's three vertices are conv
 
 This is the gnomonic projection of the curvilinear check, without drawing the plane. Dividing $p = \sum_i w_i v_i$ by $\sum_i w_i$ gives a point that lies both on the ray from the centre of the sphere through $p$, and on the chord plane through the three vertices. The normalized weights are therefore the ordinary, flat barycentric coordinates of the particle's gnomonic projection onto the chord plane, exactly as in the figure above. Asking whether every $w_i \ge 0$ is the same as asking whether the particle is on the inner side of each plane through the centre of the sphere and an edge of the face.
 
-
 ### Using the search during particle advection
 
 The spatial hash is not the first thing tried when locating a particle. Between time steps, most particles move a small distance and remain in the face they were in at the previous step. Each particle carries the index of the face it was last found in, and this is used as a first guess.
@@ -330,7 +333,7 @@ This two-stage approach means that, after particles are located the first time, 
 
 **Degenerate faces.** Degenerate face detection only runs for spherical curvilinear grids. There is no equivalent check for flat curvilinear grids or for unstructured grids.
 
-**Periodic boundaries.** The spatial hash does not support queries on periodic domains; there is no wrapping or remapping of particle positions. A particle that crosses a periodic boundary is not folded back into the domain by the search. On spherical meshes the antimeridian is handled *implicitly*, by hashing and checking particles in Cartesian coordinates, not by treating the domain as periodic.
+**Periodic boundaries.** The spatial hash does not support queries on periodic domains; there is no wrapping or remapping of particle positions. A particle that crosses a periodic boundary is not folded back into the domain by the search. On spherical meshes the antimeridian is handled _implicitly_, by hashing and checking particles in Cartesian coordinates, not by treating the domain as periodic.
 
 **Initial guesses.** The first-guess check is gated on `np.any(xi)`, so it is skipped when every guessed index is zero. In that case all particles are passed to the spatial hash, which gives the correct result at a higher cost.
 
