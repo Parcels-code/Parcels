@@ -65,7 +65,7 @@ However, none of these packages come with the flexibility in terms of structured
 # Software design
 
 When working with output from a single circulation model, version 4 of Parcels assumes data (i.e., the field data and mesh data) is all contained in a single Xarray Dataset object that has appropriate metadata.
-This required metadata includes certain CF-convention metadata, providing information about important variables/coordinates and their units, as well SGRID or UGRID metadata, providing grid geometry information for structured grid data and unstructured grid data respectively.
+This required metadata includes certain CF-convention metadata [@Eaton2020], providing information about important variables/coordinates and their units, as well [SGRID](https://sgrid.github.io/sgrid/) or [UGRID](https://ugrid-conventions.github.io/ugrid-conventions/) metadata, providing grid geometry information for structured grid data and unstructured grid data respectively.
 This metadata rich object can either be opened directly from disk/a data store, or is constructed by the user.
 Parcels provides "converter" functions for various circulation models which understand model-specific conventions, that then attach this metadata appropriately.
 This overall approach allows the internals of Parcels to assume a certain dataset structure and metadata richness, while still allowing the software to transparently facilitate users who come with metadata-poor model data.
