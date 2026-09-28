@@ -83,7 +83,7 @@ Parcels version 4 adds custom interpolators, allowing users to also have control
 Users can use a range of pre-packaged interpolators, or write their own, and set them on a field-by-field basis overriding the default linear interpolators.
 
 Version 4 of Parcels also improves generalisability to other domains, such as atmospheric or cryospheric particle tracking.
-It allows the encoding of various input datasets, relaxes domain specific requirements, replaces domain specific terminology, and updates our overall branding.
+It allows the encoding of various input datasets, relaxes domain specific requirements, replaces domain specific terminology, and updates the branding surrounding the software.
 
 Parcels version 4 also changes the output format from Zarr to Parquet, aligning better with the tabular nature of particle trajectory output.
 
