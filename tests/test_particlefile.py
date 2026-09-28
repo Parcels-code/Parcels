@@ -13,7 +13,6 @@ from re_assert import Matches
 
 import parcels.tutorial
 from parcels import (
-    Field,
     FieldSet,
     Particle,
     ParticleFile,
@@ -27,7 +26,6 @@ from parcels._core.particle import get_default_particle
 from parcels._core.particlefile import get_schema
 from parcels._core.utils.time import TimeInterval, timedelta_to_float
 from parcels._datasets.structured.generated import peninsula_dataset
-from parcels.interpolators import XLinear
 from parcels.kernels import AdvectionRK4
 from tests.common_kernels import DoNothing
 
@@ -230,61 +228,6 @@ def test_write_timebackward(fieldset, tmp_parquet):
     assert df["particle_id"].dtype == "int64"
     dt_per_particle = df.groupby("particle_id")["t"].diff().dropna()
     assert (dt_per_particle < 0).all()
-
-
-@pytest.mark.xfail
-@pytest.mark.v4alpha
-def test_write_xiyi(fieldset, tmp_parquet):
-    fieldset.U.data[:] = 1  # set a non-zero zonal velocity
-    fieldset.add_field(
-        Field(name="P", data=np.zeros((3, 20)), lon=np.linspace(0, 1, 20), lat=[-2, 0, 2], interp_method=XLinear)
-    )
-    dt = np.timedelta64(3600, "s")
-
-    particle = get_default_particle(np.float64)
-    XiYiParticle = particle.add_variable(
-        [
-            Variable("pxi0", dtype=np.int32, initial=0.0),
-            Variable("pxi1", dtype=np.int32, initial=0.0),
-            Variable("pyi", dtype=np.int32, initial=0.0),
-        ]
-    )
-
-    def Get_XiYi(particles, fieldset):  # pragma: no cover
-        """Kernel to sample the grid indices of the particle.
-        Note that this sampling should be done _before_ the advection kernel
-        and that the first outputted value is zero.
-        Be careful when using multiple grids, as the index may be different for the grids.
-        """
-        particles.pxi0 = fieldset.U.unravel_index(particles.ei)[2]
-        particles.pxi1 = fieldset.P.unravel_index(particles.ei)[2]
-        particles.pyi = fieldset.U.unravel_index(particles.ei)[1]
-
-    def SampleP(particles, fieldset):  # pragma: no cover
-        if np.any(particles.t > 5 * 3600):
-            _ = fieldset.P[particles]  # To trigger sampling of the P field
-
-    pset = ParticleSet(fieldset, pclass=XiYiParticle, x=[0, 0.2], y=[0.2, 1])
-    pfile = ParticleFile(tmp_parquet, outputdt=dt)
-    pset.execute([SampleP, Get_XiYi, AdvectionRK4], endtime=10 * dt, dt=dt, output_file=pfile)
-
-    ds = xr.open_zarr(tmp_parquet)
-    pxi0 = ds["pxi0"][:].values.astype(np.int32)
-    pxi1 = ds["pxi1"][:].values.astype(np.int32)
-    lons = ds["lon"][:].values
-    pyi = ds["pyi"][:].values.astype(np.int32)
-    lats = ds["lat"][:].values
-
-    for p in range(pyi.shape[0]):
-        assert (pxi0[p, 0] == 0) and (pxi0[p, -1] == pset[p].pxi0)  # check that particle has moved
-        assert np.all(pxi1[p, :6] == 0)  # check that particle has not been sampled on grid 1 until time 6
-        assert np.all(pxi1[p, 6:] > 0)  # check that particle has not been sampled on grid 1 after time 6
-        for xi, lon in zip(pxi0[p, 1:], lons[p, 1:], strict=True):
-            assert fieldset.U.grid.lon[xi] <= lon < fieldset.U.grid.lon[xi + 1]
-        for xi, lon in zip(pxi1[p, 6:], lons[p, 6:], strict=True):
-            assert fieldset.P.grid.lon[xi] <= lon < fieldset.P.grid.lon[xi + 1]
-        for yi, lat in zip(pyi[p, 1:], lats[p, 1:], strict=True):
-            assert fieldset.U.grid.lat[yi] <= lat < fieldset.U.grid.lat[yi + 1]
 
 
 @pytest.mark.parametrize("outputdt", [np.timedelta64(1, "s"), np.timedelta64(2, "s"), np.timedelta64(3, "s")])

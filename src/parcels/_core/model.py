@@ -12,6 +12,7 @@ from dask import is_dask_collection
 
 import parcels._sgrid as sgrid
 import parcels._typing as ptyping
+from parcels._chunk_cached_array import wrap_dataset
 from parcels._core._windowed_array import maybe_windowed
 from parcels._core.basegrid import BaseGrid
 from parcels._core.field import Field, VectorField
@@ -117,6 +118,29 @@ class ModelData(ABC):
         for name in self.scalar_field_names:
             current = windowed.get(name, self.data[name])
             windowed[name] = maybe_windowed(current, max_levels=max_levels)
+        return self
+
+    def to_chunk_cached_arrays(self, *, max_cache_bytes: int = 600_000_000) -> Self:
+        """Wrap dask-backed field data in chunk-level LRU caches.
+
+        Opt-in optimization that replaces each dask-backed data variable's
+        internal storage with a :class:`~parcels._chunk_cached_array.ChunkCachedArray`.
+        Repeated vectorized ``.isel()`` calls then hit an in-memory LRU cache
+        keyed by chunk coordinates instead of recomputing dask task graphs.
+
+        Coordinate variables are loaded eagerly into memory (they are small 1D
+        arrays) to avoid dask task-graph construction overhead on every
+        ``.isel()`` call.
+
+        Idempotent: re-invoking is safe — ``wrap_dataset`` skips variables
+        whose storage is already a ``ChunkCachedArray``.
+
+        Parameters
+        ----------
+        max_cache_bytes : int, optional
+            Maximum cache size in bytes, per variable. Defaults to 600 MB.
+        """
+        self.data = wrap_dataset(self.data, max_cache_bytes=max_cache_bytes)
         return self
 
     @property

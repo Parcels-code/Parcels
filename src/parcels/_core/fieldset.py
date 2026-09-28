@@ -191,6 +191,30 @@ class FieldSet:
             model.to_windowed_arrays(max_levels=max_levels)
         return self
 
+    def to_chunk_cached_arrays(self, *, max_cache_bytes: int = 600_000_000):
+        """Wrap dask-backed field data in chunk-level LRU caches.
+
+        Opt-in optimization that replaces each dask-backed data variable's
+        internal storage with a :class:`~parcels._chunk_cached_array.ChunkCachedArray`.
+        Delegates to each underlying model; repeated vectorized ``.isel()``
+        calls then hit an in-memory LRU cache instead of recomputing dask task
+        graphs. NumPy-backed (eager) fields are left unchanged, and re-invoking
+        is idempotent.
+
+        Parameters
+        ----------
+        max_cache_bytes : int, optional
+            Maximum cache size in bytes, per variable. Defaults to 600 MB.
+
+        Returns
+        -------
+        FieldSet
+            ``self``, to allow chaining.
+        """
+        for model in self.models:
+            model.to_chunk_cached_arrays(max_cache_bytes=max_cache_bytes)
+        return self
+
     def add_constant_field(self, name: str, value):
         """Wrapper function to add a Field that is constant in space,
            useful e.g. when using constant horizontal diffusivity

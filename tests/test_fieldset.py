@@ -558,3 +558,5 @@ time interval: (np.datetime64('2000-01-02T12:00:00.000000000'), np.datetime64('2
     fieldset.describe(io)
     actual = io.getvalue()
     assert actual == expected
+
+    # TODO: Add test for the ChunkedArray backend (can also refactor this test at the same time)
