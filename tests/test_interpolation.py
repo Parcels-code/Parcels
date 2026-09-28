@@ -13,6 +13,7 @@ from parcels import (
     VectorField,
     particlefile_to_v3_zarr,
 )
+from parcels._chunk_cached_array import ChunkCachedArray
 from parcels._core.index_search import _search_time_index
 from parcels._core.mesh import get_mesh
 from parcels._datasets.structured.generated import simple_UV_dataset
@@ -116,6 +117,17 @@ def test_raw_2d_interpolation(field, interpolator, t, z, y, x, expected):
 
     value = interpolator.interp(particle_positions, grid_positions, field)
     np.testing.assert_equal(value, expected)
+
+
+def test_linear_interpolation_with_chunk_cached_data(field):
+    field.model.data = field.model.data.chunk({"time": 1, "depth": 1, "lat": 2, "lon": 2})
+    field.model.to_chunk_cached_arrays(max_cache_bytes=1024)
+    assert isinstance(field.data.variable._data, ChunkCachedArray)
+    particle_positions = {"time": [0, 1], "z": [0, 0], "lat": [0.49, 0.49], "lon": [0.51, 0.51]}
+    grid_positions = field.grid.search(particle_positions["z"], particle_positions["lat"], particle_positions["lon"])
+    grid_positions.update(_search_time_index(field, particle_positions["time"]))
+
+    np.testing.assert_allclose(field.interp_method.interp(particle_positions, grid_positions, field), [1.49, 6.49])
 
 
 @pytest.mark.parametrize("mesh", ["flat", "spherical"])

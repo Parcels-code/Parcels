@@ -74,7 +74,7 @@ class ChunkCachedArray(ExplicitlyIndexedNDArrayMixin):
             self._boundaries.append(np.concatenate(([0], np.cumsum(dim_chunks))))
 
     def get_duck_array(self):
-        return self.array.compute()
+        return self.array
 
     def _raw_vindex(self, *indices: np.ndarray) -> np.ndarray:
         """Vectorized indexing with chunk caching.
