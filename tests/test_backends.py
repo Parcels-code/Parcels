@@ -82,8 +82,8 @@ def run_simulation(ds: xr.Dataset, output_path: Path, backend: BackendT) -> Path
     pfile = parcels.ParticleFile(output_path, outputdt=np.timedelta64(6, "h"))
     pset.execute(
         [AdvectionRK4, delete_particle],
-        runtime=np.timedelta64(3, "D"),
-        dt=np.timedelta64(5, "m"),
+        runtime=np.timedelta64(1, "D"),
+        dt=np.timedelta64(1, "h"),
         output_file=pfile,
     )
 
