@@ -105,7 +105,7 @@ Parcels has been cited in over 330 peer reviewed scientific papers so far mostly
 
 # AI usage disclosure
 
-Large Language Models (Claude Opus 4.6, ChatGPT ... ) have been used in a guided manner for code generation, documentation, refactoring, and testing.
+Large Language Models (Claude Opus 4.6, ChatGPT , GitHub Copilot) have been used in a guided manner for code generation, documentation, refactoring, and testing.
 All LLM written code and documentation has been verified by the authors.
 This manuscript was fully written by humans.
 
