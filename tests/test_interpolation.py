@@ -1,3 +1,4 @@
+import dask.array as da
 import numpy as np
 import pytest
 import xarray as xr
@@ -13,6 +14,7 @@ from parcels import (
     VectorField,
     particlefile_to_v3_zarr,
 )
+from parcels._chunk_cached_array import ChunkCachedArray, wrap_dataset
 from parcels._core.index_search import _search_time_index
 from parcels._core.mesh import get_mesh
 from parcels._datasets.structured.generated import simple_UV_dataset
@@ -275,6 +277,39 @@ def test_corner_gather_keeps_axes_missing_from_the_mapping():
     assert out.shape == (2, 1, 2, 2, npart)
     for p in range(npart):
         assert out[0, 0, 0, 0, p] == data.values[ti[p], 0, yi[p], xi[p]]
+
+
+def test_get_corner_data_Agrid_chunk_cached_singleton_mockz():
+    """Singleton unindexed depth must gather through the chunk cache.
+
+    A Delft3D surface field has shape ``(time, mockZ, N, M)`` with ``mockZ``
+    size 1 and ``axis_dim`` mapping only ``Y`` and ``X``. Corner gathering then
+    leaves ``mockZ`` as ``slice(None)`` inside a vectorized index. Before the
+    cache indexed only integer arrays, that slice raised ``TypeError``. The
+    cached corners must match NumPy-backed data with shape
+    ``(lenT, lenZ, 2, 2, npart)``.
+    """
+    shape = (6, 1, 8, 7)
+    values = np.arange(np.prod(shape), dtype=np.float64).reshape(shape)
+    dims = ("time", "mockZ", "N", "M")
+    lazy = xr.DataArray(da.from_array(values, chunks=(2, 1, 3, 3)), dims=dims, name="U")
+    wrapped = wrap_dataset(lazy.to_dataset(), max_cache_bytes=int(values.nbytes))
+    cached = wrapped["U"]
+    reference = xr.DataArray(values, dims=dims, name="U")
+    assert isinstance(cached.variable._data, ChunkCachedArray)
+
+    npart = 5
+    lenZ = 1
+    ti = np.array([0, 2, 4, 3, 1], dtype=np.int32)
+    zi = np.zeros(npart, dtype=np.int32)
+    yi = np.array([0, 7, -3, 4, 6], dtype=np.int32)
+    xi = np.array([6, 0, -1, 3, 2], dtype=np.int32)
+    axis_dim = {"Y": "N", "X": "M"}
+    for lenT in (1, 2):
+        got = _get_corner_data_Agrid(cached, ti, zi, yi, xi, lenT, lenZ, npart, axis_dim)
+        ref = _get_corner_data_Agrid(reference, ti, zi, yi, xi, lenT, lenZ, npart, axis_dim)
+        assert got.shape == (lenT, lenZ, 2, 2, npart)
+        np.testing.assert_array_equal(got, ref)
 
 
 class XNearest_Velocity(VectorInterpolator):  # noqa:  N801
