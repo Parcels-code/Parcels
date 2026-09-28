@@ -42,7 +42,8 @@ A significant portion of the geospatial science community has shifted from creat
 Major benefits of Xarray in particular include (a) providing a single in-memory, metadata-rich representation of a full NetCDF-like dataset, (b) its flexibility to manipulate datasets in other data-formats (e.g., Zarr, HDF5), and (c) its abstractions that facilitate easy data ingestion from network data sources.
 
 Writing software that natively works from Xarray datasets provides a powerful abstraction layer allowing downstream developers to create software that works across data formats and data ingestion paradigms.
-This is particularly important as climate datasets are continually increasing in resolution and size, preventing local file based storage, and datasets are increasingly being stored in modern data formats such as Zarr.
+This is particularly important as climate datasets are continually increasing in resolution and size, affecting how the data is stored.
+Datasets are increasingly being stored in the cloud using more modern data formats, such as Zarr.
 
 Another interesting change is that climate modellers are increasingly providing model output on different grid geometries, which have attractive features compared to conventional structured grids.
 Running natively on these grid geometries, which can be represented as unstructured grids, without re-interpolation allows researchers to run simulations that fully capture the details from the original dataset.
