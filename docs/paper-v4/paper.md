@@ -75,7 +75,7 @@ If a user wants to run a simulation with fields from different models, they load
 
 <!-- Writers note: The source for this image is at `data-ingestion.excalidraw`. Install the VScode Excalidraw Extension (https://marketplace.visualstudio.com/items?itemName=pomdtr.excalidraw-editor ) to easily edit it. -->
 
-![Code path for the new FieldSet ingestion in v4 of Parcels](./data-ingestion.png)
+![Code path for FieldSet ingestion in v4 of Parcels](./data-ingestion.png)
 
 A strength of earlier Parcels versions has been the ability for users to write custom "kernels" which encode particle actions over the course of a simulation.
 This flexibility has enabled users to model a wide range of physical phenomena, from plastic pollution to plankton and fish larvae.
@@ -85,11 +85,11 @@ Users can use a range of pre-packaged interpolators, or write their own, and set
 Version 4 of Parcels also improves generalisability to other domains, such as atmospheric or cryospheric particle tracking.
 It allows the encoding of various input datasets, relaxes domain specific requirements, replaces domain specific terminology, and updates our overall branding.
 
-Parcels version 4 also changes the output format from Zarr to Parquet, aligning better with that tabular nature of particle trajectory output.
+Parcels version 4 also changes the output format from Zarr to Parquet, aligning better with the tabular nature of particle trajectory output.
 
 # Example use-case
 
-A key use-case of the Parcels version 4 is the combining of various model data which not only have different sources, but also very different grid geometries.
+A key use-case of the Parcels version 4 is the combining of various model data which not only have different sources, but also have very different grid geometries.
 In this section we present an example simulation focused on the Dutch coast.
 
 We combine flow data from Deltares’ 3D DCSM-FM model, SWAN Wave model data from KNMI, and wind model data from Copernicusmarine.
