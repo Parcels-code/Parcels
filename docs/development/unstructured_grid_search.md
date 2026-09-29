@@ -27,7 +27,7 @@ Within Parcels, we have made strategic choices that define
 - the data structures used to store and lookup entries in the hash table, and
 - the particle-in-cell methods used for determinig whether a particle is in or out of a curvilinear or unstructured grid.
 
-In the implementation that exists in v4, we have made numerous refinements to optimize initialization speed and memory consumption and query speed. This documentation provides details for developers and enthusiastic Parcels users that dive into the specifics of the hash table construction, morton encoding, the particle search (query) method, and particle-in-cell checks. The aim here is to convey clearly what the code is designed to do and why.
+In the implementation that exists in v4, we have made numerous refinements to optimize initialization speed, memory consumption, and query speed. This documentation provides details for developers and enthusiastic Parcels users that dive into the specifics of the hash table construction, morton encoding, the particle search (query) method, and particle-in-cell checks. The aim here is to convey clearly what the code is designed to do and why.
 
 For reference, the implementation in code lives in two files:
 
