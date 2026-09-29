@@ -1,4 +1,4 @@
-# Unstructured Grid Search: Spatial Hashing with Morton Encoding
+# Unstructured and Curvilinear Grid Search
 
 This page documents the algorithm used in Parcels to locate which grid cell a particle occupies on both curvilinear (`XGrid`) and unstructured (`UxGrid`) grids.
 
@@ -25,7 +25,7 @@ Within Parcels, we have made strategic choices that define
 - the resolution and extents of the underlying hash grid as a function of the parent curvilinear or unstructured grid
 - the relationship between candidate parent grid elements and the hash grid elements (the hash table),
 - the data structures used to store and lookup entries in the hash table, and
-- the particle-in-cell methods used for determinig whether a particle is in or out of a curvilinear or unstructured grid.
+- the particle-in-cell methods used for determining whether a particle is in or out of a curvilinear or unstructured grid element.
 
 In the implementation that exists in v4, we have made numerous refinements to optimize initialization speed, memory consumption, and query speed. This documentation provides details for developers and enthusiastic Parcels users that dive into the specifics of the hash table construction, morton encoding, the particle search (query) method, and particle-in-cell checks. The aim here is to convey clearly what the code is designed to do and why.
 
