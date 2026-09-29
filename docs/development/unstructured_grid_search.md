@@ -91,7 +91,6 @@ As with curvilinear grids, on a **flat** mesh the bounding box of a face is the 
 
 Unstructured grids have a single face index rather than a $(j,i)$ pair. So that the rest of the construction and query code can treat both grid types the same way, the bounding box arrays for a `UxGrid` are reshaped to `(1, nfaces)` with `np.atleast_2d`. Every face then has $j=0$ and $i$ equal to its face index. There is currently no degenerate face detection for unstructured grids.
 
-(face-bounds-on-the-sphere)=
 
 #### Face bounds on the sphere
 
