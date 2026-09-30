@@ -14,6 +14,10 @@ def _expected_vindex(cca: ChunkCachedArray, indexer: VectorizedIndexer) -> np.nd
     return NumpyIndexingAdapter(cca.array.compute()).vindex[indexer]
 
 
+def _has_slice(indexer: VectorizedIndexer) -> bool:
+    return any(isinstance(k, slice) for k in indexer.tuple)
+
+
 @st.composite
 def cca_and_vectorized_indexer(draw, **kwargs) -> tuple[ChunkCachedArray, VectorizedIndexer]:
     cca = draw(ccast.chunk_cached_array())
@@ -49,6 +53,16 @@ def test_vectorized_indexer_strategy_is_valid_for_numpy(args):
     NumpyIndexingAdapter(arr).vindex[indexer]  # shouldn't error
 
 
+@given(
+    ccast.numpy_array().flatmap(lambda arr: st.tuples(st.just(arr), ccast.out_of_bounds_vectorized_indexer(arr.shape)))
+)
+@no_deadline
+def test_out_of_bounds_vectorized_indexer_strategy_raises_for_numpy(args):
+    arr, indexer = args
+    with pytest.raises(IndexError):
+        NumpyIndexingAdapter(arr).vindex[indexer]
+
+
 # --- Vectorized indexing ---
 
 
@@ -71,7 +85,6 @@ def test_vindex_repeated_indexing_uses_cache_consistently(args):
 
 
 @given(cca_and_vectorized_indexer(allow_slices=False, max_index_dims=1, max_index_side=0))
-@pytest.mark.xfail(reason="ChunkCachedArray does not support empty index arrays", strict=True)
 @no_deadline
 def test_vindex_empty_integer_arrays(args):
     cca, indexer = args
@@ -79,7 +92,6 @@ def test_vindex_empty_integer_arrays(args):
 
 
 @given(cca_and_vectorized_indexer(allow_slices=False, max_index_dims=1, min_index_side=1))
-@pytest.mark.xfail(reason="ChunkCachedArray does not broadcast index arrays against each other", strict=True)
 @no_deadline
 def test_vindex_1d_integer_arrays_broadcasting(args):
     cca, indexer = args
@@ -87,26 +99,41 @@ def test_vindex_1d_integer_arrays_broadcasting(args):
 
 
 @given(cca_and_vectorized_indexer(allow_slices=False, allow_broadcasting=False, min_index_dims=2, min_index_side=1))
-@pytest.mark.xfail(
-    reason="ChunkCachedArray only supports 1D index arrays (returns wrong shape or errors otherwise)", strict=True
-)
 @no_deadline
 def test_vindex_nd_integer_arrays(args):
     cca, indexer = args
     np.testing.assert_array_equal(cca.vindex[indexer], _expected_vindex(cca, indexer))
 
 
-@given(cca_and_vectorized_indexer(allow_broadcasting=False, max_index_dims=1, min_index_side=1))
-@pytest.mark.xfail(reason="ChunkCachedArray does not support slices in vectorized indexers", strict=True)
+@given(cca_and_vectorized_indexer().filter(lambda args: _has_slice(args[1])))
 @no_deadline
-def test_vindex_integer_arrays_and_slices(args):
+def test_vindex_slices_not_implemented(args):
     cca, indexer = args
-    np.testing.assert_array_equal(cca.vindex[indexer], _expected_vindex(cca, indexer))
+    with pytest.raises(NotImplementedError, match="slices"):
+        cca.vindex[indexer]
 
 
 @given(cca_and_vectorized_indexer())
-@pytest.mark.xfail(reason="ChunkCachedArray only supports equal-length 1D integer arrays", strict=True)
 @no_deadline
 def test_vindex_any_vectorized_indexer(args):
     cca, indexer = args
-    np.testing.assert_array_equal(cca.vindex[indexer], _expected_vindex(cca, indexer))
+    if _has_slice(indexer):
+        with pytest.raises(NotImplementedError, match="slices"):
+            cca.vindex[indexer]
+    else:
+        np.testing.assert_array_equal(cca.vindex[indexer], _expected_vindex(cca, indexer))
+
+
+@st.composite
+def cca_and_out_of_bounds_vectorized_indexer(draw, **kwargs) -> tuple[ChunkCachedArray, VectorizedIndexer]:
+    cca = draw(ccast.chunk_cached_array())
+    indexer = draw(ccast.out_of_bounds_vectorized_indexer(cca.shape, **kwargs))
+    return cca, indexer
+
+
+@given(cca_and_out_of_bounds_vectorized_indexer(allow_slices=False))
+@no_deadline
+def test_vindex_out_of_bounds_raises_index_error(args):
+    cca, indexer = args
+    with pytest.raises(IndexError):
+        cca.vindex[indexer]

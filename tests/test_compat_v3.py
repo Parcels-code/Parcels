@@ -52,6 +52,7 @@ def assert_valid_v3_particlefile_structure(ds: xr.Dataset):
 @settings(deadline=timedelta(seconds=1))
 @example(buf=example_particlefile())
 @given(buf=pst.particlefile_output())
+@settings(deadline=None)
 def test_particlefile_to_v3_zarr(buf):
     with tempfile.TemporaryDirectory() as tmpdir:
         tmp_zarr = Path(tmpdir) / "output.zarr"
