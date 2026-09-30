@@ -10,7 +10,7 @@ The steps below are the installation instructions for Linux, macOS and Windows.
 
 (step-1-above)=
 
-**Step 1:** Install Anaconda's Miniconda following the steps at https://docs.anaconda.com/miniconda/. If you're on Linux or macOS, the following assumes that you installed Miniconda to your home directory.
+**Step 1:** Install Anaconda's Miniconda following the steps at https://docs.anaconda.com/miniconda/. Note that you will need at least version 4.2 of conda, [so make sure to update Conda if needed](https://docs.conda.io/projects/conda/en/latest/user-guide/tasks/manage-conda.html#updating-conda-to-the-current-version). If you're on Linux or macOS, the following assumes that you installed Miniconda to your home directory.
 
 **Step 2:** Start a terminal (Linux / macOS) or the Anaconda prompt (Windows). Activate the `base` environment of your Miniconda and create an environment containing Parcels, all its essential dependencies, `trajan` (a trajectory plotting dependency used in the notebooks) and the nice-to-have cartopy and jupyter packages:
 
