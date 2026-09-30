@@ -74,7 +74,11 @@ class ChunkCachedArray(ExplicitlyIndexedNDArrayMixin):
             self._boundaries.append(np.concatenate(([0], np.cumsum(dim_chunks))))
 
     def get_duck_array(self):
-        return self.array.compute()
+        raise NotImplementedError(
+            "Full materialisation of the ChunkCachedArray is not supported, as it has serious (negative) "
+            "performance implications. See discussion in https://github.com/Parcels-code/Parcels/issues/2910. "
+            "Feel free to continue that discussion if you're running into this error message in your simulations."
+        )
 
     def _raw_vindex(self, *indices: np.ndarray) -> np.ndarray:
         """Vectorized indexing with chunk caching.
