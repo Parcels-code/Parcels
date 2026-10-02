@@ -122,6 +122,7 @@ exclude_patterns = [
     "jupyter_execute",
     "**.ipynb_checkpoints",
     ".jupyter_cache",
+    "paper-v4/*",
 ]
 
 # The reST default role (used for this markup: `text`) to use for all
