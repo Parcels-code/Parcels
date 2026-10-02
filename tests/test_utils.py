@@ -31,7 +31,11 @@ def test_assert_cftime_like_particlefile(tmp_path, cal):
     table = pa.table({"t": pa.array([-20.0, 1.0])}, schema=schema)
     pq.write_table(table, path)
 
-    utils.assert_cftime_like_particlefile(path)
+    if cal == "proleptic_gregorian":
+        utils.assert_cftime_like_particlefile(path)
+    else:
+        with pytest.raises(NotImplementedError, match=cal):
+            utils.assert_cftime_like_particlefile(path)
 
 
 def test_assert_cftime_like_particlefile_broken_parquet(tmp_path):

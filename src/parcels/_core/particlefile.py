@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
 import numpy as np
-import pandas as pd
 import polars as pl
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -221,31 +220,29 @@ def _to_write_particles(particle_data, t):
     )[0]
 
 
-def read_particlefile(path: PathLike, decode_times: bool = True) -> pd.DataFrame:
-    """Read a Parcels particlefile (Parquet format) into a pandas DataFrame.
+def read_particlefile(path: PathLike, decode_times: bool = True) -> pl.DataFrame:
+    """Read a Parcels particlefile (Parquet format) into a Polars DataFrame.
 
     Parameters
     ----------
     path : PathLike
         Path to the ``.parquet`` particlefile.
     decode_times : bool, optional
-        If ``True`` (default), use Xarray to decode the numeric ``t`` column from CF
-        conventions into ``datetime`` or ``cftime.datetime`` values using the units stored in
-        the column metadata.  If ``False``, the raw numeric values are
-        returned unchanged.
+        If ``True`` (default), decode the numeric ``t`` column using its CF units.
+        Absolute times use nanosecond-resolution datetimes. Elapsed times use durations.
+        If ``False``, return the raw numeric values unchanged.
 
     Returns
     -------
-    pd.DataFrame
-        DataFrame containing the particle data.  When *decode_times* is
-        ``True``, the ``t`` column contains datetime-like values;
-        otherwise it contains the original numeric representation.
+    pl.DataFrame
+        DataFrame containing the particle data and decoded or raw time values.
 
-    Notes
-    -----
-    For larger datasets, consider using `Polars <https://docs.pola.rs/>`_ directly,
-    e.g. ``polars.read_parquet(path)``, which offers better performance and lower
-    memory usage than pandas for large Parquet files.
+    Raises
+    ------
+    NotImplementedError
+        If decoding absolute times with a ``360_day``, ``noleap``, ``365_day``,
+        ``all_leap``, ``366_day``, or ``julian`` calendar. Use ``decode_times=False``
+        to read the raw numeric values instead.
     """
     path = Path(path)
 
@@ -272,6 +269,19 @@ def read_particlefile(path: PathLike, decode_times: bool = True) -> pd.DataFrame
     df = pl.read_parquet(path)
     if not decode_times:
         return df
+
+    calendar = attrs.get("calendar", "standard")
+    if "since" in attrs["units"] and calendar.lower() in {
+        "360_day",
+        "noleap",
+        "365_day",
+        "all_leap",
+        "366_day",
+        "julian",
+    }:
+        raise NotImplementedError(
+            f"Calendar {calendar!r} is not supported by read_particlefile. Use decode_times=False to read raw time values."
+        )
 
     values = table.column("t").to_numpy()
     var = xr.Variable(("t",), values, attrs)
