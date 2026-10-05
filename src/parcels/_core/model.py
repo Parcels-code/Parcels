@@ -359,6 +359,9 @@ class UnstructuredModelData(ModelData):
         if not isinstance(grid, UxGrid):
             raise ValueError(f"Expected `grid` to be a Parcels UxGrid object. Got {type(grid)}.")
 
+        if grid.z.ndim == 3 and not grid.z["time"].equals(data["time"]):
+            raise ValueError("A time-varying (3D) z must have the same time coordinate as `data`.")
+
         self.data = data
         self.grid = grid
         self.vector_field_components = vector_field_components

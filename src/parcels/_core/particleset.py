@@ -19,6 +19,7 @@ from parcels._core.utils.time import (
     float_to_datelike,
     timedelta_to_float,
 )
+from parcels._core.uxgrid import UxGrid
 from parcels._core.warnings import ParticleSetWarning
 from parcels._logger import logger
 
@@ -82,6 +83,11 @@ class ParticleSet:
         if z is None:
             minz = None
             for field in self.fieldset.fields.values():
+                if isinstance(field.grid, UxGrid) and field.grid.z.ndim == 3:
+                    raise ValueError(
+                        f"Field {field.name!r} has a time-varying (3D) vertical grid, so there is no default "
+                        "particle depth. Pass the particle depths explicitly with `z`."
+                    )
                 for depth in field.grid.depth:
                     if minz is None or np.abs(depth) < np.abs(minz):
                         minz = depth

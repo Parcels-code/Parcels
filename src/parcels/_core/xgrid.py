@@ -313,7 +313,7 @@ class XGrid(BaseGrid):
             else:
                 return GridType.CurvilinearSGrid
 
-    def search(self, z, y, x, ei=None):
+    def search(self, z, y, x, ei=None, ti=None):
         ds = self._ds
 
         if "Z" in self.axes:

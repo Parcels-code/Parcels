@@ -1,6 +1,8 @@
+import numpy as np
 import pytest
 
 from parcels import UxGrid
+from parcels._datasets.unstructured.generated import sigma_coordinate_lattice_dataset
 from parcels._datasets.unstructured.generic import datasets as uxdatasets
 
 GENERIC_Z_COORDS = ["nz", "zf", "depth_2"]
@@ -32,3 +34,11 @@ def test_xgrid_get_axis_dim(uxds):
 
     assert grid.get_axis_dim("FACE") == 721
     assert grid.get_axis_dim("Z") == 2
+
+
+def test_uxgrid_search_3d_z_requires_ti():
+    ds = sigma_coordinate_lattice_dataset(5, (0.0, 4e3), (0.0, 4e3), 4, np.full((5, 5), 50.0))
+    grid = UxGrid(ds.uxgrid, z=ds.coords["zf"], mesh="flat")
+
+    with pytest.raises(ValueError, match="requires the time index ti"):
+        grid.search(np.array([10.0]), np.array([2e3]), np.array([2e3]))

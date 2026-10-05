@@ -8,11 +8,15 @@ import parcels._datasets.remote as _parcels_remote
 import parcels.tutorial
 from parcels import (
     FieldSet,
+    UxGrid,
     convert,
 )
+from parcels._core.model import UnstructuredModelData
+from parcels._datasets.unstructured.generated import sigma_coordinate_lattice_dataset
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
 from parcels.interpolators import (
     UxConstantFaceConstantZC,
+    UxConstantFaceLinearZF,
     UxLinearNodeLinearZF,
 )
 from tests.utils import create_uxgrid_from_triangulation
@@ -204,3 +208,82 @@ def test_nestedgrids_triangulation_spherical_search():
         f"grid search failed for {n_lost} of {len(x)} particles; e.g. (lon, lat)="
         f"{np.column_stack((x, y))[face < 0][:3].tolist()}"
     )
+
+
+SLOPING_BOTTOM_DEPTH = np.broadcast_to(np.linspace(20.0, 60.0, 5)[:, np.newaxis], (5, 5))
+RISING_ETA = np.broadcast_to(np.linspace(-1.0, 1.0, 3)[:, np.newaxis, np.newaxis], (3, 5, 5))
+
+
+@pytest.mark.parametrize(
+    "eta, expected_n_snapshots",
+    [
+        pytest.param(None, 1, id="single_snapshot_3d_z"),
+        pytest.param(RISING_ETA, 3, id="time_varying_3d_z"),
+    ],
+)
+def test_fieldset_from_sigma_coordinate_dataset(eta, expected_n_snapshots):
+    nz = 4
+    ds = sigma_coordinate_lattice_dataset(5, (0.0, 4e3), (0.0, 4e3), nz, SLOPING_BOTTOM_DEPTH, eta=eta)
+    fieldset = FieldSet.from_ugrid_conventions(ds, mesh="flat")
+
+    assert fieldset.U.grid.z.dims == ("time", "zf", "n_node")
+    assert fieldset.U.grid.z.sizes["time"] == expected_n_snapshots
+    assert fieldset.U.grid.get_axis_dim("Z") == nz
+    for field in (fieldset.U, fieldset.V, fieldset.W):
+        assert isinstance(field.interp_method, UxLinearNodeLinearZF)
+
+
+@pytest.mark.parametrize(
+    "horizontal_dim, expected_interpolator",
+    [
+        pytest.param("n_node", UxLinearNodeLinearZF, id="node_registered"),
+        pytest.param("n_face", UxConstantFaceLinearZF, id="face_registered"),
+    ],
+)
+def test_sigma_linear_field_is_exact_on_moving_sigma_grid(horizontal_dim, expected_interpolator):
+    """A field equal to a + b * sigma on every interface must evaluate to exactly a + b * sigma at any particle.
+
+    Bottom depth and eta are linear in x and y, so barycentric interpolation of the node columns is exact and a
+    particle placed at sigma = s has a known depth.
+    """
+    nx, nz = 11, 8
+    n_snapshots = 5
+    a, b = 0.3, 1.7
+
+    def bottom_depth(x, y):
+        return 20.0 + 4e-3 * x + 2e-3 * y
+
+    def eta(snapshot, x, y):
+        return 0.3 * snapshot + (-1.0) ** snapshot * 1e-4 * x + 5e-5 * y
+
+    x_nodes, y_nodes = np.meshgrid(np.linspace(0.0, 10e3, nx), np.linspace(0.0, 10e3, nx), indexing="ij")
+    eta_nodes = np.stack([eta(snapshot, x_nodes, y_nodes) for snapshot in range(n_snapshots)])
+    ds = sigma_coordinate_lattice_dataset(nx, (0.0, 10e3), (0.0, 10e3), nz, bottom_depth(x_nodes, y_nodes), eta_nodes)
+    field_on_interfaces = a + b * np.linspace(0.0, 1.0, nz)
+    field_shape = (n_snapshots, nz, getattr(ds.uxgrid, horizontal_dim))
+    ds["F"] = (("time", "zf", horizontal_dim), np.broadcast_to(field_on_interfaces[None, :, None], field_shape).copy())
+    fieldset = FieldSet.from_ugrid_conventions(ds, mesh="flat")
+    assert isinstance(fieldset.F.interp_method, expected_interpolator)
+
+    rng = np.random.default_rng(0)
+    n_particles = 100
+    x = rng.uniform(1.0, 10e3 - 1.0, n_particles)
+    y = rng.uniform(1.0, 10e3 - 1.0, n_particles)
+    t = np.concatenate([[0.0, 3600.0, 7200.0], rng.uniform(0.0, (n_snapshots - 1) * 3600.0, n_particles - 3)])
+    snapshot = np.maximum(np.ceil(t / 3600.0).astype(int) - 1, 0)
+    sigma = rng.uniform(0.02, 0.98, n_particles)
+    eta_particles = eta(snapshot, x, y)
+    z = -eta_particles + sigma * (bottom_depth(x, y) + eta_particles)
+
+    np.testing.assert_allclose(fieldset.F.eval(t, z, y, x), a + b * sigma, rtol=1e-6)
+
+
+def test_unstructured_model_data_rejects_z_with_different_time_coordinate():
+    ds = sigma_coordinate_lattice_dataset(5, (0.0, 4e3), (0.0, 4e3), 4, SLOPING_BOTTOM_DEPTH, RISING_ETA)
+    ds_one_day_later = sigma_coordinate_lattice_dataset(
+        5, (0.0, 4e3), (0.0, 4e3), 4, SLOPING_BOTTOM_DEPTH, RISING_ETA, start_time="2000-01-02"
+    )
+    grid_with_later_z = UxGrid(ds.uxgrid, z=ds_one_day_later.coords["zf"], mesh="flat")
+
+    with pytest.raises(ValueError, match="same time coordinate"):
+        UnstructuredModelData(ds, grid_with_later_z, {})
