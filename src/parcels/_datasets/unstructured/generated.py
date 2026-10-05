@@ -377,10 +377,10 @@ def sigma_coordinate_lattice_dataset(nx, x_range, y_range, nz, bottom_depth, eta
 
     if eta is None:
         if np.ndim(bottom_depth) == 0:
-            zf = sigma*bottom_depth # (nz,)
-        elif np.ndim(bottom_depth)== 2:
-            zf = (sigma*(bottom_depth.T.ravel()[:, np.newaxis])).T # (nz, n_node)
-            zf = zf[np.newaxis, :, :] # (1, nz, n_node)
+            zf = sigma * bottom_depth  # (nz,)
+        elif np.ndim(bottom_depth) == 2:
+            zf = (sigma * (bottom_depth.T.ravel()[:, np.newaxis])).T  # (nz, n_node)
+            zf = zf[np.newaxis, :, :]  # (1, nz, n_node)
     else:
         total_depth = np.swapaxes(bottom_depth + eta, 1, 2).reshape(eta.shape[0], -1)
         eta_nodes = np.swapaxes(eta, 1, 2).reshape(eta.shape[0], -1)
@@ -401,10 +401,3 @@ def sigma_coordinate_lattice_dataset(nx, x_range, y_range, nz, bottom_depth, eta
     velocities = {name: (velocity_dims, np.zeros(velocity_shape), velocity_attrs) for name in ("U", "V", "W")}
 
     return ux.UxDataset(xr.Dataset(velocities, coords={"time": time, **vertical_coords}), uxgrid=uxgrid)
-
-
-
-
-
-
-
