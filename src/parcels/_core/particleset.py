@@ -328,7 +328,7 @@ class ParticleSet:
         indices
             Indices of error particles.
         """
-        return self.data_indices("state", [StatusCode.Success, StatusCode.Evaluate], invert=True)
+        return np.where(self._data["state"] != StatusCode.Success)[0]
 
     @property
     def _num_error_particles(self):
@@ -339,7 +339,7 @@ class ParticleSet:
         int
             Number of error particles.
         """
-        return np.sum(np.isin(self._data["state"], [StatusCode.Success, StatusCode.Evaluate], invert=True))
+        return int(np.sum(self._data["state"] != StatusCode.Success))
 
     def set_variable_write_status(self, var, write_status):
         """Method to set the write status of a Variable.

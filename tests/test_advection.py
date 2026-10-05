@@ -173,7 +173,7 @@ def test_advection_3D_outofbounds(direction, resubmerge_particle):
         particles[inds].dy = v * particles.dt
         particles[inds].dz = 0.0
         particles[inds].z = 0
-        particles[inds].state = StatusCode.Evaluate
+        particles[inds].state = StatusCode.Success
 
     kernels = [AdvectionRK4_3D]
     if resubmerge_particle:

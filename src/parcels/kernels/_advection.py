@@ -143,7 +143,7 @@ def AdvectionRK45(particles, fieldset):  # pragma: no cover
         fieldset.RK45_max_dt * sign_dt,
         particles.next_dt,
     )
-    particles.state = np.where(good_particles, StatusCode.Evaluate, particles.state)
+    particles.state = np.where(good_particles, StatusCode.Success, particles.state)
 
     repeat_particles = np.invert(good_particles)
     particles.dt = np.where(repeat_particles, particles.dt / 2, particles.dt)
