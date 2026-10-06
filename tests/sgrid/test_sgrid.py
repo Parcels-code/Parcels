@@ -1,3 +1,4 @@
+import io
 import itertools
 
 import hypothesis.strategies as st
@@ -483,8 +484,9 @@ def test_rename_errors():
     ],
 )
 def test_grid_describe(metadata, expected):
-    actual = metadata.describe()
-    assert actual == expected
+    buf = io.StringIO()
+    metadata.describe(buf)
+    assert buf.getvalue() == expected
 
 
 @pytest.mark.parametrize(
