@@ -20,6 +20,7 @@
 ## Release checklist
 
 Main workflow:
+
 - Run the validation test suite (`pixi run tests-validation`)
 - Go to GitHub, draft new release. Enter name of version and "create new tag" if it doesn't already exist. Click "Generate Release Notes". Currate release notes as needed. Look at a previous version release to match the format (title, header, section organisation etc.)
 - (optional - for fast conda releases) Go to [conda-forge/parcels-feedstock](https://github.com/conda-forge/parcels-feedstock), create a new issue (select the "Bot Commands" issue from the menu) with title `@conda-forge-admin, please update version`
@@ -27,6 +28,7 @@ Main workflow:
 - Check ["publish to PyPI" workflow](https://github.com/Parcels-code/Parcels/actions/workflows/pypi-release.yml) succeeded
 
 Added considerations:
+
 - Update version, DOI, and release date in `CITATION.cff` file (use [Parcels Zenodo entry](https://zenodo.org/records/14001000) as reference)
 - Update parcels-code.org
   - Parcels development status
