@@ -14,10 +14,6 @@ def _expected_vindex(cca: ChunkCachedArray, indexer: VectorizedIndexer) -> np.nd
     return NumpyIndexingAdapter(cca.array.compute()).vindex[indexer]
 
 
-def _has_slice(indexer: VectorizedIndexer) -> bool:
-    return any(isinstance(k, slice) for k in indexer.tuple)
-
-
 @st.composite
 def cca_and_vectorized_indexer(draw, **kwargs) -> tuple[ChunkCachedArray, VectorizedIndexer]:
     cca = draw(ccast.chunk_cached_array())
@@ -105,23 +101,18 @@ def test_vindex_nd_integer_arrays(args):
     np.testing.assert_array_equal(cca.vindex[indexer], _expected_vindex(cca, indexer))
 
 
-@given(cca_and_vectorized_indexer().filter(lambda args: _has_slice(args[1])))
+@given(cca_and_vectorized_indexer().filter(lambda args: any(isinstance(k, slice) for k in args[1].tuple)))
 @no_deadline
-def test_vindex_slices_not_implemented(args):
+def test_vindex_integer_arrays_and_slices(args):
     cca, indexer = args
-    with pytest.raises(NotImplementedError, match="slices"):
-        cca.vindex[indexer]
+    np.testing.assert_array_equal(cca.vindex[indexer], _expected_vindex(cca, indexer))
 
 
 @given(cca_and_vectorized_indexer())
 @no_deadline
 def test_vindex_any_vectorized_indexer(args):
     cca, indexer = args
-    if _has_slice(indexer):
-        with pytest.raises(NotImplementedError, match="slices"):
-            cca.vindex[indexer]
-    else:
-        np.testing.assert_array_equal(cca.vindex[indexer], _expected_vindex(cca, indexer))
+    np.testing.assert_array_equal(cca.vindex[indexer], _expected_vindex(cca, indexer))
 
 
 @st.composite

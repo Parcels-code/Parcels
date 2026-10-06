@@ -158,13 +158,17 @@ class ChunkCachedArray(ExplicitlyIndexedNDArrayMixin):
     # --- ExplicitlyIndexed protocol ---
 
     def _vindex_get(self, indexer: VectorizedIndexer):
+        # Dimensions not given an indexer in ``.isel()`` (e.g. a size-1 ``mockZ``)
+        # arrive as slices. Under vectorized indexing semantics the output has the
+        # broadcast dims of the array indexers first, then one dim per slice. Expand
+        # each slice to an index array over its own trailing dim to match.
         key = indexer.tuple
-        if any(isinstance(k, slice) for k in key):
-            raise NotImplementedError(
-                "ChunkCachedArray does not support slices in vectorized indexers. "
-                "Use integer arrays for every dimension instead."
-            )
-        return self._raw_vindex(*key)
+        slices = [np.arange(n)[k] for k, n in zip(key, self.array.shape, strict=True) if isinstance(k, slice)]
+        slice_grids = iter(np.meshgrid(*slices, indexing="ij", sparse=True))
+        trailing = (np.newaxis,) * len(slices)
+        return self._raw_vindex(
+            *(next(slice_grids) if isinstance(k, slice) else np.asarray(k)[(..., *trailing)] for k in key)
+        )
 
     def _oindex_get(self, indexer: OuterIndexer):
         # Delegate to dask for orthogonal indexing
