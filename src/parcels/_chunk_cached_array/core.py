@@ -86,21 +86,36 @@ class ChunkCachedArray(ExplicitlyIndexedNDArrayMixin):
         Parameters
         ----------
         *indices : np.ndarray
-            One 1D integer index array per dimension. All must have the same length N.
+            One integer index array per dimension. The arrays are broadcast against each other.
 
         Returns
         -------
         np.ndarray
-            1D array of length N with the selected values.
+            Array with the broadcast shape of ``indices`` holding the selected values.
         """
         ndim = len(self.array.chunks)
         assert len(indices) == ndim
-        n_points = len(indices[0])
+
+        # Step 0: Broadcast the index arrays and flatten them into a list of points,
+        # restoring the broadcast shape at the end.
+        broadcast = np.broadcast_arrays(*indices)
+        out_shape = broadcast[0].shape
+        indices = tuple(idx.ravel() for idx in broadcast)
+        n_points = int(np.prod(out_shape))
+        if n_points == 0:
+            return np.empty(out_shape, dtype=self.array.dtype)
 
         # Step 1: Map global indices to chunk coords and local indices.
         # Normalize negative indices (e.g. -1 → last element) to positive,
         # matching standard numpy fancy-indexing semantics.
-        indices = tuple(np.where(idx < 0, idx + self.array.shape[d], idx) for d, idx in enumerate(indices))
+        normalized = []
+        for d, idx in enumerate(indices):
+            size = self.array.shape[d]
+            out_of_bounds = (idx < -size) | (idx >= size)
+            if out_of_bounds.any():
+                raise IndexError(f"index {idx[out_of_bounds][0]} is out of bounds for axis {d} with size {size}")
+            normalized.append(np.where(idx < 0, idx + size, idx))
+        indices = tuple(normalized)
         chunk_ids = np.empty((ndim, n_points), dtype=np.intp)
         local_indices = np.empty((ndim, n_points), dtype=np.intp)
         for d in range(ndim):
@@ -138,12 +153,17 @@ class ChunkCachedArray(ExplicitlyIndexedNDArrayMixin):
             local_idx = tuple(local_indices[d, grp_indices] for d in range(ndim))
             out[grp_indices] = chunk_data[local_idx]
 
-        return out
+        return out.reshape(out_shape)
 
     # --- ExplicitlyIndexed protocol ---
 
     def _vindex_get(self, indexer: VectorizedIndexer):
         key = indexer.tuple
+        if any(isinstance(k, slice) for k in key):
+            raise NotImplementedError(
+                "ChunkCachedArray does not support slices in vectorized indexers. "
+                "Use integer arrays for every dimension instead."
+            )
         return self._raw_vindex(*key)
 
     def _oindex_get(self, indexer: OuterIndexer):
