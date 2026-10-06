@@ -202,7 +202,7 @@ def AdvectionRK2(particles, fieldset):  # pragma: no cover
     outside_stokes = (us2 == 0) | (vs2 == 0)
     us2[outside_stokes] = 0.0
     vs2[outside_stokes] = 0.0
-    particles.state[outside_stokes] = parcels.StatusCode.Evaluate
+    particles.state[outside_stokes] = parcels.StatusCode.Success
     particles.outside_stokes[outside_stokes] = 1
     particles.outside_stokes[~outside_stokes] = 0
 
