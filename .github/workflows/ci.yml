@@ -238,59 +238,11 @@ jobs:
         with:
           name: Validation test report ubuntu-test
           path: ${{ env.COVERAGE_REPORT }}
-
-  integration-test:
-    name: "Integration: ${{ matrix.os }} | pixi run -e ${{ matrix.pixi-environment }} tests-notebooks"
-    runs-on: ${{ matrix.os }}-latest
-    needs: [cache-pixi-lock]
-    permissions:
-      contents: read
-    # TODO v4: Re-enable the workflow once development has stabilized and we want to run integration tests again
-    if: false
-    env:
-      COVERAGE_REPORT: "${{ matrix.os }}_${{ matrix.pixi-environment }}_integration_test_report.html"
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu] #, mac, windows] # TODO v4: Re-enable windows and mac
-        python-version: ["3.12"]
-        include:
-          - os: ubuntu
-            python-version: "3.11"
-    steps:
-      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
-        with:
-          persist-credentials: false
-      - name: Restore cached pixi lockfile
-        uses: xarray-contrib/pixi-lock/restore@1fab4c17af8243f6ca1321bc941cf2325f46c05d # v0.1.1
-        with:
-          cache-key: ${{ needs.cache-pixi-lock.outputs.cache-key }}
-      - uses: prefix-dev/setup-pixi@f00437f565399d418b0acc85936d12c1fb668347 # v0.10.1
-        with:
-          pixi-version: ${{ needs.cache-pixi-lock.outputs.pixi-version }}
-          cache: true
-          cache-write: ${{ github.event_name == 'push' && github.ref_name == 'main' }}
-      - name: Integration test
-        run: |
-          pixi run test-notebooks -v -s --html="${COVERAGE_REPORT}" --self-contained-html --cov=parcels --cov-report=xml
-      - name: Codecov
-        uses: codecov/codecov-action@303a32d7a59b442fa8d48b6a1cc6825c09c847a5 # v7.1.1
-        env:
-          CODECOV_TOKEN: ${{ secrets.CODECOV_TOKEN }} # zizmor: ignore[secrets-outside-env]
-        with:
-          flags: integration-tests
-      - name: Upload test results
-        if: ${{ always() }} # Always run this step, even if tests fail
-        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
-        with:
-          name: Integration test report ${{ matrix.os }}-${{ matrix.pixi-environment }}
-          path: ${{ env.COVERAGE_REPORT }}
   merge-test-artifacts:
     runs-on: ubuntu-latest
     permissions: {}
     needs:
       - unit-test
-      - integration-test
       - typechecking
     steps:
       - name: Merge Artifacts
