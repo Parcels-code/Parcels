@@ -149,8 +149,8 @@ class XGrid(BaseGrid):
     @property
     def lon(self):
         """
-        Note
-        ----
+        Notes
+        -----
         Included for compatibility with v3 codebase. May be removed in future.
         TODO v4: Evaluate
         """
@@ -164,8 +164,8 @@ class XGrid(BaseGrid):
     @property
     def lat(self):
         """
-        Note
-        ----
+        Notes
+        -----
         Included for compatibility with v3 codebase. May be removed in future.
         TODO v4: Evaluate
         """
@@ -179,8 +179,8 @@ class XGrid(BaseGrid):
     @property
     def depth(self):
         """
-        Note
-        ----
+        Notes
+        -----
         Included for compatibility with v3 codebase. May be removed in future.
         TODO v4: Evaluate
         """
@@ -283,8 +283,8 @@ class XGrid(BaseGrid):
     @property
     def _z4d(self) -> Literal[0, 1]:
         """
-        Note
-        ----
+        Notes
+        -----
         Included for compatibility with v3 codebase. May be removed in future.
         TODO v4: Evaluate
         """

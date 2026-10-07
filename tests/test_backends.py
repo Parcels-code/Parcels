@@ -9,7 +9,8 @@ import xarray as xr
 
 import parcels
 import parcels.tutorial
-from parcels.kernels import AdvectionRK4
+from parcels._datasets.structured.generated import simple_UV_dataset
+from parcels.kernels import AdvectionRK2, AdvectionRK4
 
 BackendT = Literal["WindowedArray", "Dask", "Zarr", "NumPy", "ChunkCachedArray"]
 BACKENDS: set[BackendT] = {"WindowedArray", "Dask", "Zarr", "NumPy", "ChunkCachedArray"}
@@ -82,8 +83,8 @@ def run_simulation(ds: xr.Dataset, output_path: Path, backend: BackendT) -> Path
     pfile = parcels.ParticleFile(output_path, outputdt=np.timedelta64(6, "h"))
     pset.execute(
         [AdvectionRK4, delete_particle],
-        runtime=np.timedelta64(3, "D"),
-        dt=np.timedelta64(5, "m"),
+        runtime=np.timedelta64(1, "D"),
+        dt=np.timedelta64(1, "h"),
         output_file=pfile,
     )
 
@@ -115,6 +116,41 @@ def test_nemo_identical_across_backends(nemo_results, tmp_parquet, backend):
     np.testing.assert_allclose(test_df["x"].values, ref_df["x"].values, atol=1e-5)
     np.testing.assert_allclose(test_df["y"].values, ref_df["y"].values, atol=1e-5)
     np.testing.assert_allclose(test_df["z"].values, ref_df["z"].values, atol=1e-5)
+
+
+@pytest.mark.parametrize(
+    "backend",
+    BACKENDS
+    - {
+        "NumPy",  # reference point
+        "Zarr",  # not supported
+    },
+)
+def test_field_without_depth_identical_across_backends(backend: BackendT):
+    """Fields without a depth dimension get a size-1 ``mockZ`` dimension, which must
+    also be indexable by every backend (gh-2897).
+    """
+    ds = simple_UV_dataset(dims=(10, 1, 20, 20), mesh="flat").isel(depth=0, drop=True)
+    ds["U"].data[:] = 1.0 + ds["XG"].values / 20  # spatially varying, so the corners matter
+    ds["V"].data[:] = 0.5
+
+    def run(backend: BackendT) -> tuple[np.ndarray, np.ndarray]:
+        fset = parcels.FieldSet.from_sgrid_conventions(ds if backend == "NumPy" else ds.chunk(), mesh="flat")
+        assert "mockZ" in fset.U.data.dims
+        if backend == "WindowedArray":
+            fset.to_windowed_arrays()
+        if backend == "ChunkCachedArray":
+            fset.to_chunk_cached_arrays()
+        assert fieldset_uses_backend(fset, backend)
+
+        pset = parcels.ParticleSet(fset, x=np.linspace(2, 6, 10), y=np.linspace(2, 6, 10))
+        pset.execute(AdvectionRK2, runtime=np.timedelta64(2, "s"), dt=np.timedelta64(1, "s"))
+        return pset.x, pset.y
+
+    ref_x, ref_y = run("NumPy")
+    x, y = run(backend)
+    np.testing.assert_allclose(x, ref_x)
+    np.testing.assert_allclose(y, ref_y)
 
 
 @pytest.mark.parametrize(

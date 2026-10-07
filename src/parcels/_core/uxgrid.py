@@ -59,8 +59,8 @@ class UxGrid(BaseGrid):
     @property
     def depth(self):
         """
-        Note
-        ----
+        Notes
+        -----
         Included for compatibility with v3 codebase. May be removed in future.
         TODO v4: Evaluate
         """
