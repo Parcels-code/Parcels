@@ -18,6 +18,23 @@ conda activate parcels-v4
 
 **Step 4:** Get started with the [quickstart tutorial](tutorial_quickstart.md), or first read about the core [Parcels concepts](explanation_concepts.md).
 
+## Installation of unreleased Parcels versions
+
+To work with unreleased Parcels versions, we recommend using [Pixi](https://pixi.prefix.dev/latest/) or [uv](https://docs.astral.sh/uv/), which both allow installing packages from Git repositories.
+
+Here we show instructions for Pixi. `cd` into an empty folder:
+
+```bash
+pixi init
+
+pixi workspace preview add pixi-build
+pixi add --git 'https://github.com/Parcels-code/Parcels' --rev main parcels
+
+# activate the environment
+pixi shell
+```
+
 ## Installation for developers
 
+We also use Pixi for our normal development.
 To install the latest development version, see the [development section in our contributing guide](../../development/index.md#development).
