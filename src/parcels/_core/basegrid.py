@@ -29,7 +29,9 @@ class BaseGrid(ABC):
     _mesh: FlatMesh | SphericalMesh
 
     @abstractmethod
-    def search(self, z: float, y: float, x: float, ei=None, ti=None, tau=None) -> dict[str, tuple[int, float | np.ndarray]]:
+    def search(
+        self, z: float, y: float, x: float, ei=None, ti=None, tau=None
+    ) -> dict[str, tuple[int, float | np.ndarray]]:
         """
         Perform a spatial (and optionally vertical) search to locate the grid element
         that contains a given point (x, y, z).

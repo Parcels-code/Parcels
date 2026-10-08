@@ -146,7 +146,9 @@ class UxGrid(BaseGrid):
         found = fi >= 0
         if self.z.ndim == 3:
             if ti is None or tau is None:
-                raise ValueError("Searching a UxGrid with a time-varying (3D) z requires the time index ti and barycentric coordinate tau")
+                raise ValueError(
+                    "Searching a UxGrid with a time-varying (3D) z requires the time index ti and barycentric coordinate tau"
+                )
 
             cols_ti = self.z.isel(
                 time=xr.DataArray(np.broadcast_to(ti, fi.shape)[found], dims="points"),
@@ -159,7 +161,9 @@ class UxGrid(BaseGrid):
             else:
                 cols_tnext = self.z.isel(
                     time=xr.DataArray(np.broadcast_to(ti + 1, fi.shape)[found], dims="points"),
-                    n_node=xr.DataArray(self.uxgrid.face_node_connectivity[fi[found], :].values, dims=("points", "nodes")),
+                    n_node=xr.DataArray(
+                        self.uxgrid.face_node_connectivity[fi[found], :].values, dims=("points", "nodes")
+                    ),
                     ignore_grid=True,
                 ).compute()
 
