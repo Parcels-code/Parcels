@@ -43,7 +43,7 @@ zarr = ">=3.1"
 [dependencies]
 parcels = { path = "." }
 
-[feature.minimum.dependencies]
+[feature.min-versions.dependencies]
 python = "3.11.*"
 cf_xarray = "0.10.*"
 cftime = "1.6.*"
@@ -178,7 +178,7 @@ default = { features = [
   "devtools",
 ], solve-group = "main" }
 test = { features = ["test"], solve-group = "main" }
-test-min-versions = { features = ["test", "minimum"] }
+test-min-versions = { features = ["test", "min-versions"] }
 test-py311 = { features = ["test", "py311"] }
 test-py313 = { features = ["test", "py313"] }
 test-notebooks = { features = ["test", "notebooks"], solve-group = "main" }
