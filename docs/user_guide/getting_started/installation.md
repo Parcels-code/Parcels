@@ -16,7 +16,7 @@ conda create -n parcels-v4 -c conda-forge parcels cartopy jupyter
 conda activate parcels-v4
 ```
 
-**Step 4:** Get started with the [quickstart tutorial](tutorial_quickstart.md), or first read about the core [Parcels concepts](explanation_concepts.md).
+**Step 4:** Get started with the [quickstart tutorial](tutorial_quickstart.md), or first read about the most important [Parcels concepts](explanation_concepts.md).
 
 ## Installation of unreleased Parcels versions
 
