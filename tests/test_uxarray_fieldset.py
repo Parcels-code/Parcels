@@ -243,8 +243,9 @@ def test_fieldset_from_sigma_coordinate_dataset(eta, expected_n_snapshots):
 def test_sigma_linear_field_is_exact_on_moving_sigma_grid(horizontal_dim, expected_interpolator):
     """A field equal to a + b * sigma on every interface must evaluate to exactly a + b * sigma at any particle.
 
-    Bottom depth and eta are linear in x and y, so barycentric interpolation of the node columns is exact and a
-    particle placed at sigma = s has a known depth.
+    Bottom depth and eta are linear in x and y, and each interface depth is affine in eta, so barycentric
+    interpolation of the node columns and linear interpolation of the columns between snapshots are both exact. A
+    particle placed at sigma = s therefore has a known depth.
     """
     nx, nz = 11, 8
     n_snapshots = 5
@@ -270,9 +271,10 @@ def test_sigma_linear_field_is_exact_on_moving_sigma_grid(horizontal_dim, expect
     x = rng.uniform(1.0, 10e3 - 1.0, n_particles)
     y = rng.uniform(1.0, 10e3 - 1.0, n_particles)
     t = np.concatenate([[0.0, 3600.0, 7200.0], rng.uniform(0.0, (n_snapshots - 1) * 3600.0, n_particles - 3)])
-    snapshot = np.maximum(np.ceil(t / 3600.0).astype(int) - 1, 0)
     sigma = rng.uniform(0.02, 0.98, n_particles)
-    eta_particles = eta(snapshot, x, y)
+    snapshot = (t // 3600.0).astype(int)
+    tau = t / 3600.0 - snapshot
+    eta_particles = (1 - tau) * eta(snapshot, x, y) + tau * eta(snapshot + 1, x, y)
     z = -eta_particles + sigma * (bottom_depth(x, y) + eta_particles)
 
     np.testing.assert_allclose(fieldset.F.eval(t, z, y, x), a + b * sigma, rtol=1e-6)
