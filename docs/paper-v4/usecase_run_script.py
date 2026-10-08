@@ -175,6 +175,7 @@ def DeleteAnyError(particles, fieldset):
     particles[any_error].state = parcels.StatusCode.Delete
 
 
+@parcels.validate_kernel
 def AdvectionRK2(particles, fieldset):  # pragma: no cover
     """Advection of particles using second-order Runge-Kutta integration."""
     (u1, v1) = fieldset.UV[particles]
