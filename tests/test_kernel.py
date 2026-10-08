@@ -2,15 +2,21 @@ import numpy as np
 import pytest
 
 from parcels import (
+    FieldSet,
+    KernelWarning,
+    Particle,
     ParticleSet,
+    Variable,
 )
 from parcels._core.kernel import Kernel
+from parcels._datasets.structured.generated import simple_UV_dataset
 from parcels.kernels import AdvectionRK4, AdvectionRK45
-from tests.common_kernels import MoveEast, MoveNorth
+from tests.common_kernels import DoNothing, MoveEast, MoveNorth
+from tests.mark import ignore_kernel_warnings
 
 
 def test_unknown_var_in_kernel(fieldset):
-    pset = ParticleSet(fieldset, lon=[0.5], lat=[0.5])
+    pset = ParticleSet(fieldset, x=[0.5], y=[0.5])
 
     def ErrorKernel(particles, fieldset):  # pragma: no cover
         particles.unknown_varname += 0.2
@@ -19,13 +25,42 @@ def test_unknown_var_in_kernel(fieldset):
         pset.execute(ErrorKernel, runtime=np.timedelta64(2, "s"), dt=np.timedelta64(1, "s"))
 
 
+@ignore_kernel_warnings
+def test_context_in_kernel(fieldset):
+    pset = ParticleSet(fieldset, x=[0.5], y=[0.5])
+
+    fieldset.add_context("fix_lon", -0.5)
+
+    def ContextKernel(particles, fieldset):
+        particles.x = fieldset.fix_lon
+
+    pset.execute(ContextKernel, runtime=np.timedelta64(2, "s"), dt=np.timedelta64(1, "s"))
+    assert pset.x == -0.5
+
+
+@ignore_kernel_warnings
+def test_func_context_in_kernel(fieldset):
+    pset = ParticleSet(fieldset, x=[0.5], y=[0.5])
+
+    def ContextFunc(x):
+        return 2 * x
+
+    fieldset.add_context("func", ContextFunc)
+
+    def FuncContextKernel(particles, fieldset):
+        particles.x = fieldset.func(particles.x)
+
+    pset.execute(FuncContextKernel, runtime=np.timedelta64(2, "s"), dt=np.timedelta64(1, "s"))
+    assert pset.x == 2.0
+
+
 def test_kernel_init(fieldset):
-    pset = ParticleSet(fieldset, lon=[0.5], lat=[0.5])
+    pset = ParticleSet(fieldset, x=[0.5], y=[0.5])
     Kernel(kernels=[AdvectionRK4], pset=pset)
 
 
 def test_kernel_merging(fieldset):
-    pset = ParticleSet(fieldset, lon=[0.5], lat=[0.5])
+    pset = ParticleSet(fieldset, x=[0.5], y=[0.5])
     merged_kernel = Kernel(kernels=[AdvectionRK4, MoveEast, MoveNorth], pset=pset)
     assert merged_kernel.funcname == "AdvectionRK4MoveEastMoveNorth"
     assert len(merged_kernel._kernels) == 3
@@ -44,7 +79,7 @@ def test_kernel_from_list(fieldset):
     Tests that a Kernel can be created from a list functions, or a list of
     mixed functions and kernel objects.
     """
-    pset = ParticleSet(fieldset, lon=[0.5], lat=[0.5])
+    pset = ParticleSet(fieldset, x=[0.5], y=[0.5])
     kernels_single = Kernel(kernels=[AdvectionRK4], pset=pset)
     kernels_functions = Kernel(kernels=[AdvectionRK4, MoveEast, MoveNorth], pset=pset)
 
@@ -59,7 +94,7 @@ def test_kernel_from_list_error_checking(fieldset):
 
     Tests that various error cases raise appropriate messages.
     """
-    pset = ParticleSet(fieldset, lon=[0.5], lat=[0.5])
+    pset = ParticleSet(fieldset, x=[0.5], y=[0.5])
 
     with pytest.raises(ValueError, match="List of `kernels` should have at least one function."):
         Kernel(kernels=[], pset=pset)
@@ -74,47 +109,82 @@ def test_kernel_from_list_error_checking(fieldset):
 
 def test_RK45Kernel_error_no_next_dt(fieldset):
     """Tests that kernel throws error if Particle class does not have next_dt for RK45"""
-    pset = ParticleSet(fieldset, lon=[0.5], lat=[0.5])
+    pset = ParticleSet(fieldset, x=[0.5], y=[0.5])
 
     with pytest.raises(ValueError, match='ParticleClass requires a "next_dt" for AdvectionRK45 Kernel.'):
         Kernel(kernels=[AdvectionRK45], pset=pset)
 
 
-def test_kernel_signature(fieldset):
-    pset = ParticleSet(fieldset, lon=[0.5], lat=[0.5])
+def test_rk45_kernel_warnings(fieldset):
+    pset = ParticleSet(
+        fieldset=fieldset,
+        pclass=Particle.add_variable(Variable("next_dt", dtype=np.float32, initial=1)),
+        x=[0],
+        y=[0],
+        next_dt=1,
+    )
+    with pytest.warns(KernelWarning):
+        pset.execute(AdvectionRK45, runtime=1, dt=1)
 
-    def good_kernel(particles, fieldset):
-        pass
 
-    def version_3_kernel(particle, fieldset, time):
-        pass
+@ignore_kernel_warnings
+@pytest.mark.parametrize("kernel_type", ["update_lon", "update_dlon"])
+def test_execution_order(kernel_type):
+    ds = simple_UV_dataset(dims=(1, 1, 2, 2), mesh="flat")
+    ds["U"].data[:, :] = [[0, 1], [2, 3]]
+    ds["lon"].data = [0, 2]
+    fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
 
-    def version_3_kernel_without_time(particle, fieldset):
-        pass
+    def MoveLon_Update_X(particles, fieldset):  # pragma: no cover
+        particles.x += 0.2
 
-    def kernel_switched_args(fieldset, particle):
-        pass
+    def MoveLon_Update_DX(particles, fieldset):  # pragma: no cover
+        particles.dx += 0.2
 
-    def kernel_with_forced_kwarg(particles, *, fieldset=0):
-        pass
+    def SampleP(particles, fieldset):  # pragma: no cover
+        particles.p, _ = fieldset.UV[particles]
 
-    Kernel(kernels=[good_kernel], pset=pset)
+    SampleParticle = Particle.add_variable(Variable("p", dtype=np.float32, initial=0.0))
 
-    with pytest.raises(ValueError, match="Kernel function must have 2 parameters, got 3"):
-        Kernel(kernels=[version_3_kernel], pset=pset)
+    MoveLon = MoveLon_Update_DX if kernel_type == "update_dlon" else MoveLon_Update_X
 
-    with pytest.raises(
-        ValueError, match="Parameter 'particle' has incorrect name. Expected 'particles', got 'particle'"
-    ):
-        Kernel(kernels=[version_3_kernel_without_time], pset=pset)
+    kernels = [MoveLon, SampleP]
+    lons = []
+    ps = []
+    for dir in [1, -1]:
+        pset = ParticleSet(fieldset, pclass=SampleParticle, x=0, y=0)
+        pset.execute(kernels[::dir], runtime=1, dt=1)
+        lons.append(pset.x)
+        ps.append(pset.p)
 
-    with pytest.raises(
-        ValueError, match="Parameter 'fieldset' has incorrect name. Expected 'particles', got 'fieldset'"
-    ):
-        Kernel(kernels=[kernel_switched_args], pset=pset)
+    if kernel_type == "update_dlon":
+        assert np.isclose(lons[0], lons[1])
+        assert np.isclose(ps[0], ps[1])
+        assert np.allclose(lons[0], 0.2)
+    else:
+        assert np.isclose(ps[0] - ps[1], 0.1)
+        assert np.allclose(lons[0], 0.2)
 
-    with pytest.raises(
-        ValueError,
-        match="Parameter 'fieldset' has incorrect parameter kind. Expected POSITIONAL_OR_KEYWORD, got KEYWORD_ONLY",
-    ):
-        Kernel(kernels=[kernel_with_forced_kwarg], pset=pset)
+
+@pytest.mark.xfail(reason="Modifying dt in a kernel doesn't work GH2765")
+def test_dt_modify_in_kernel(fieldset):
+    TestParticle = Particle.add_variable(Variable("age", dtype=np.float32, initial=0))
+    pset = ParticleSet(fieldset, pclass=TestParticle, x=[0.5], y=[0])
+
+    def ModifyDt(particles, fieldset):  # pragma: no cover
+        particles.age += particles.dt
+        particles.dt = 2
+
+    runtime = 10
+    expected_age = 1 + 2 * (runtime - 2)  # 1 for the first step; 2 for the remaining steps (except last)
+    pset.execute(ModifyDt, runtime=runtime, dt=1.0)
+    np.testing.assert_allclose(pset.t[0], runtime)
+    np.testing.assert_allclose(pset.age[0], expected_age)
+
+
+@pytest.mark.parametrize("dt", [1e-2, 1e-5, 1e-6, 1e-9])
+def test_small_dt(fieldset, dt):
+    pset = ParticleSet(fieldset, x=[0], y=[0])
+
+    pset.execute(DoNothing, dt=dt, runtime=dt * 100)
+    assert np.allclose([p.t for p in pset], dt * 100)

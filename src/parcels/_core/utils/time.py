@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Literal, TypeVar, cast
 import cftime
 import numpy as np
 
-from parcels._reprs import timeinterval_repr
+from parcels._repr_utils import timeinterval_repr
 
 if TYPE_CHECKING:
     from parcels._typing import TimeLike
@@ -182,7 +182,7 @@ def maybe_convert_python_timedelta_to_numpy(dt: timedelta | np.timedelta64) -> n
                 dts.append(np.timedelta64(value, np_unit))
 
         if dts:
-            return sum(dts)
+            return np.sum(dts)
         else:
             return np.timedelta64(0, "s")
     except Exception as e:

@@ -14,8 +14,8 @@ def DeleteParticle(particles, fieldset):  # pragma: no cover
 
 
 def MoveEast(particles, fieldset):  # pragma: no cover
-    particles.dlon += 0.1
+    particles.dx += 0.1
 
 
 def MoveNorth(particles, fieldset):  # pragma: no cover
-    particles.dlat += 0.1
+    particles.dy += 0.1

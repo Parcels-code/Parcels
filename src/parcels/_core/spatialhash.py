@@ -1,4 +1,6 @@
+import sys
 import warnings
+from typing import IO
 
 import numpy as np
 
@@ -10,6 +12,18 @@ from parcels._core.index_search import (
 )
 from parcels._core.warnings import FieldSetWarning
 from parcels._python import isinstance_noimport
+from parcels._repr_utils import spatialhash_describe
+
+# Budget on the total number of (face, hash cell) pairs in the hash table:
+# max(_HASH_ENTRIES_PER_FACE * nfaces, _HASH_ENTRY_BUDGET_MIN).
+# When the hash grid cell size, set by the bitwidth, would result in too many
+# hash entries per face, the hash grid is coarsened by lowering the bitwidth
+# The target value for the number of hash entries per face is chosen to keep
+# the number of particle in cell checks as small as possible, while also
+# minimizing the hash table construction memory footprint.
+_HASH_ENTRIES_PER_FACE = 16
+_HASH_ENTRY_BUDGET_MIN = 2**22
+_HASH_MAX_BITWIDTH = 1023
 
 
 class SpatialHash:
@@ -23,15 +37,14 @@ class SpatialHash:
     grid : parcels.XGrid
         Source grid used to construct the hash grid and hash table
 
-    Note
-    ----
+    Notes
+    -----
     Does not currently support queries on periodic elements.
     """
 
     def __init__(
         self,
         grid,
-        bitwidth=1023,
     ):
         if isinstance_noimport(grid, "XGrid"):
             self._point_in_cell = curvilinear_point_in_cell
@@ -41,55 +54,43 @@ class SpatialHash:
             raise ValueError("Expected `grid` to be a parcels.XGrid or parcels.UxGrid")
 
         self._source_grid = grid
-        self._bitwidth = bitwidth  # Max integer to use per coordinate in quantization (10 bits = 0..1023)
+        self._bitwidth = _HASH_MAX_BITWIDTH  # Max integer to use per coordinate in quantization (10 bits = 0..1023)
 
         if isinstance_noimport(grid, "XGrid"):
             self._coord_dim = 2  # Number of computational coordinates is 2 (bilinear interpolation)
-            if self._source_grid._mesh == "spherical":
-                # Boundaries of the hash grid are the unit cube
-                self._xmin = -1.0
-                self._ymin = -1.0
-                self._zmin = -1.0
-                self._xmax = 1.0
-                self._ymax = 1.0
-                self._zmax = 1.0  # Compute the cell centers of the source grid (for now, assuming Xgrid)
+            if self._source_grid._mesh.is_spherical():
                 lon = np.deg2rad(self._source_grid.lon)
                 lat = np.deg2rad(self._source_grid.lat)
                 x, y, z = _latlon_rad_to_xyz(lat, lon)
-                _xbound = np.stack(
+
+                # The 4 nodes of each face, wound around it
+                nodes = np.stack((x, y, z), axis=-1)
+                verts = np.stack(
                     (
-                        x[:-1, :-1],
-                        x[:-1, 1:],
-                        x[1:, 1:],
-                        x[1:, :-1],
+                        nodes[:-1, :-1],
+                        nodes[:-1, 1:],
+                        nodes[1:, 1:],
+                        nodes[1:, :-1],
                     ),
-                    axis=-1,
+                    axis=-2,
                 )
-                _ybound = np.stack(
-                    (
-                        y[:-1, :-1],
-                        y[:-1, 1:],
-                        y[1:, 1:],
-                        y[1:, :-1],
-                    ),
-                    axis=-1,
+
+                # Compute the exact bounding box of each face. A face's edges are
+                # great-circle arcs, so its true x/y/z extent is often not spanned by
+                # its node coordinates alone.
+                self._xlow, self._xhigh, self._ylow, self._yhigh, self._zlow, self._zhigh = _spherical_face_bounds(
+                    verts
                 )
-                _zbound = np.stack(
-                    (
-                        z[:-1, :-1],
-                        z[:-1, 1:],
-                        z[1:, 1:],
-                        z[1:, :-1],
-                    ),
-                    axis=-1,
-                )
-                # Compute centroid locations of each cells
-                self._xlow = np.min(_xbound, axis=-1)
-                self._xhigh = np.max(_xbound, axis=-1)
-                self._ylow = np.min(_ybound, axis=-1)
-                self._yhigh = np.max(_ybound, axis=-1)
-                self._zlow = np.min(_zbound, axis=-1)
-                self._zhigh = np.max(_zbound, axis=-1)
+
+                # Boundaries of the hash grid are the Cartesian bounding box of the
+                # transformed grid, so that regional domains retain full quantization
+                # resolution instead of spreading it over the whole unit cube
+                self._xmin = np.nanmin(self._xlow)
+                self._xmax = np.nanmax(self._xhigh)
+                self._ymin = np.nanmin(self._ylow)
+                self._ymax = np.nanmax(self._yhigh)
+                self._zmin = np.nanmin(self._zlow)
+                self._zmax = np.nanmax(self._zhigh)
 
                 degenerate_mask = _find_degenerate_xgrid_faces(x, y, z)
                 degeneracy_count = np.sum(degenerate_mask)
@@ -110,10 +111,10 @@ class SpatialHash:
 
             else:
                 # Boundaries of the hash grid are the bounding box of the source grid
-                self._xmin = self._source_grid.lon.min()
-                self._xmax = self._source_grid.lon.max()
-                self._ymin = self._source_grid.lat.min()
-                self._ymax = self._source_grid.lat.max()
+                self._xmin = np.nanmin(self._source_grid.lon)
+                self._xmax = np.nanmax(self._source_grid.lon)
+                self._ymin = np.nanmin(self._source_grid.lat)
+                self._ymax = np.nanmax(self._source_grid.lat)
                 # setting min and max below is needed for mesh="flat"
                 self._zmin = 0.0
                 self._zmax = 0.0
@@ -148,28 +149,34 @@ class SpatialHash:
 
         elif isinstance_noimport(grid, "UxGrid"):
             self._coord_dim = grid.uxgrid.n_max_face_nodes  # Number of barycentric coordinates
-            if self._source_grid._mesh == "spherical":
-                # Boundaries of the hash grid are the unit cube
-                self._xmin = -1.0
-                self._ymin = -1.0
-                self._zmin = -1.0
-                self._xmax = 1.0
-                self._ymax = 1.0
-                self._zmax = 1.0  # Compute the cell centers of the source grid (for now, assuming Xgrid)
+            if self._source_grid._mesh.is_spherical():
                 # Reshape node coordinates to (nfaces, nnodes_per_face)
                 nids = self._source_grid.uxgrid.face_node_connectivity.values
                 lon = self._source_grid.uxgrid.node_lon.values[nids]
                 lat = self._source_grid.uxgrid.node_lat.values[nids]
-                x, y, z = _latlon_rad_to_xyz(np.deg2rad(lat), np.deg2rad(lon))
-                _xbound, _ybound, _zbound = _latlon_rad_to_xyz(np.deg2rad(lat), np.deg2rad(lon))
+                vx, vy, vz = _latlon_rad_to_xyz(np.deg2rad(lat), np.deg2rad(lon))
+                verts = np.stack([vx, vy, vz], axis=-1)  # (nfaces, 3 nodes, 3)
 
-                # Compute bounding box of each face
-                self._xlow = np.atleast_2d(np.min(_xbound, axis=-1))
-                self._xhigh = np.atleast_2d(np.max(_xbound, axis=-1))
-                self._ylow = np.atleast_2d(np.min(_ybound, axis=-1))
-                self._yhigh = np.atleast_2d(np.max(_ybound, axis=-1))
-                self._zlow = np.atleast_2d(np.min(_zbound, axis=-1))
-                self._zhigh = np.atleast_2d(np.max(_zbound, axis=-1))
+                self._xlow, self._xhigh, self._ylow, self._yhigh, self._zlow, self._zhigh = _spherical_face_bounds(
+                    verts
+                )
+
+                # Boundaries of the hash grid are the Cartesian bounding box of the
+                # transformed grid, so that regional domains retain full quantization
+                # resolution instead of spreading it over the whole unit cube
+                self._xmin = self._xlow.min()
+                self._xmax = self._xhigh.max()
+                self._ymin = self._ylow.min()
+                self._ymax = self._yhigh.max()
+                self._zmin = self._zlow.min()
+                self._zmax = self._zhigh.max()
+
+                self._xlow = np.atleast_2d(self._xlow)
+                self._xhigh = np.atleast_2d(self._xhigh)
+                self._ylow = np.atleast_2d(self._ylow)
+                self._yhigh = np.atleast_2d(self._yhigh)
+                self._zlow = np.atleast_2d(self._zlow)
+                self._zhigh = np.atleast_2d(self._zhigh)
 
             else:
                 # Boundaries of the hash grid are the bounding box of the source grid
@@ -193,8 +200,62 @@ class SpatialHash:
                 self._zlow = np.zeros_like(self._xlow)
                 self._zhigh = np.zeros_like(self._xlow)
 
+        # Cap the quantization resolution so the hash table stays within a fixed entry
+        # budget.
+        budget = max(_HASH_ENTRIES_PER_FACE * np.size(self._xlow), _HASH_ENTRY_BUDGET_MIN)
+        if self._total_hash_entries(self._bitwidth) > budget:
+            # Binary search for the largest bitwidth whose table fits the budget. The
+            # entry count is not perfectly monotone in bitwidth (cell-boundary flooring
+            # effects), so the result may sit marginally below the true maximum; any
+            # in-budget bitwidth is valid. At bitwidth 1 the count equals nfaces, which
+            # is always within budget, so the search cannot fail.
+            lo, hi = 1, self._bitwidth
+            while lo < hi:
+                mid = (lo + hi + 1) // 2
+                if self._total_hash_entries(mid) <= budget:
+                    lo = mid
+                else:
+                    hi = mid - 1
+            self._bitwidth = lo
+
         # Generate the mapping from the hash indices to unstructured grid elements
         self._hash_table = self._initialize_hash_table()
+
+    def _total_hash_entries(self, bitwidth):
+        """Total number of (face, hash cell) pairs the hash table would hold at a given
+        quantization resolution, i.e. the summed hash-cell count of all face bounding boxes.
+        """
+        xqlow, yqlow, zqlow = quantize_coordinates(
+            self._xlow,
+            self._ylow,
+            self._zlow,
+            self._xmin,
+            self._xmax,
+            self._ymin,
+            self._ymax,
+            self._zmin,
+            self._zmax,
+            bitwidth,
+        )
+        xqhigh, yqhigh, zqhigh = quantize_coordinates(
+            self._xhigh,
+            self._yhigh,
+            self._zhigh,
+            self._xmin,
+            self._xmax,
+            self._ymin,
+            self._ymax,
+            self._zmin,
+            self._zmax,
+            bitwidth,
+        )
+        nx = xqhigh.astype(np.int64) - xqlow + 1
+        ny = yqhigh.astype(np.int64) - yqlow + 1
+        nz = zqhigh.astype(np.int64) - zqlow + 1
+        # NaN values are not allowed in the SpatialHash table, so faces with a NaN
+        # bounding box do not contribute to the entry count
+        valid_face = _generate_valid_mask(self._xlow, self._xhigh, self._ylow, self._yhigh, self._zlow, self._zhigh)
+        return int(np.where(valid_face, nx * ny * nz, 0).sum())
 
     def _initialize_hash_table(self):
         """Create a mapping that relates unstructured grid faces to hash indices by determining
@@ -235,85 +296,84 @@ class SpatialHash:
         nx = (xqhigh - xqlow + 1).astype(np.int32, copy=False)
         ny = (yqhigh - yqlow + 1).astype(np.int32, copy=False)
         nz = (zqhigh - zqlow + 1).astype(np.int32, copy=False)
-        num_hash_per_face = (nx * ny * nz).astype(
+
+        # prevent NaN values from entering the SpatialHash table by setting their
+        # num_hash_per_face equal to 0
+        valid_face = _generate_valid_mask(self._xlow, self._xhigh, self._ylow, self._yhigh, self._zlow, self._zhigh)
+        num_hash_per_face = np.where(valid_face.ravel(), nx * ny * nz, 0).astype(
             np.int32, copy=False
         )  # Since nx, ny, nz are in the 10-bit range, their product fits in int32
-        total_hash_entries = int(num_hash_per_face.sum())
+        # Sums over faces can exceed int32, so accumulate in int64
+        total_hash_entries = int(num_hash_per_face.sum(dtype=np.int64))
+        # Entry indices fit in int32 for all but extreme cases; fall back to int64 when needed
+        idx_dtype = np.int64 if total_hash_entries > np.iinfo(np.int32).max else np.int32
 
-        # Preallocate output arrays
-        morton_codes = np.zeros(total_hash_entries, dtype=np.uint32)
-
-        # Compute the j, i indices corresponding to each hash entry
+        # Every face overlaps at least one hash cell (nx, ny, nz >= 1 since quantization
+        # is monotone), and contributes one hash entry per cell of its quantized bounding
+        # box. Entries are generated in face-major order: face_ids maps each entry to its
+        # face, and intra enumerates the cells of that face's box (0..num_hash_per_face-1).
         nface = np.size(self._xlow)
-        face_ids = np.repeat(np.arange(nface, dtype=np.int32), num_hash_per_face)
-        offsets = np.concatenate(([0], np.cumsum(num_hash_per_face))).astype(np.int32)[:-1]
+        face_ids = np.repeat(np.arange(nface, dtype=np.uint32), num_hash_per_face)
+        face_starts = np.concatenate(([0], np.cumsum(num_hash_per_face, dtype=np.int64)))[:-1]
+        intra = np.arange(total_hash_entries, dtype=idx_dtype) - np.repeat(
+            face_starts.astype(idx_dtype, copy=False), num_hash_per_face
+        )
 
-        valid = num_hash_per_face != 0
-        if not np.any(valid):
-            # nothing to do
-            pass
-        else:
-            # Grab only valid faces to avoid empty arrays
-            nx_v = np.asarray(nx[valid], dtype=np.int32)
-            ny_v = np.asarray(ny[valid], dtype=np.int32)
-            nz_v = np.asarray(nz[valid], dtype=np.int32)
-            xlow_v = np.asarray(xqlow[valid], dtype=np.int32)
-            ylow_v = np.asarray(yqlow[valid], dtype=np.int32)
-            zlow_v = np.asarray(zqlow[valid], dtype=np.int32)
-            starts_v = np.asarray(offsets[valid], dtype=np.int32)
+        # Derive (xi, yi, zi) cell offsets within each face's box from intra,
+        # then shift by the per-face low corner to get quantized cell coordinates
+        ny_nz = np.repeat(ny * nz, num_hash_per_face)
+        nz_rep = np.repeat(nz, num_hash_per_face)
 
-            # Count of elements per valid face (should match num_hash_per_face[valid])
-            counts = (nx_v * ny_v * nz_v).astype(np.int32)
-            total = int(counts.sum())
+        xi = intra // ny_nz
+        rem = intra % ny_nz
+        yi = rem // nz_rep
+        zi = rem % nz_rep
 
-            # Map each global element to its face and output position
-            start_for_elem = np.repeat(starts_v, counts)  # shape (total,)
+        xq = np.repeat(xqlow, num_hash_per_face) + xi
+        yq = np.repeat(yqlow, num_hash_per_face) + yi
+        zq = np.repeat(zqlow, num_hash_per_face) + zi
 
-            # Intra-face linear index for each element (0..counts_i-1)
-            # Offsets per face within the concatenation of valid faces:
-            face_starts_local = np.cumsum(np.r_[0, counts[:-1]])
-            intra = np.arange(total, dtype=np.int32) - np.repeat(face_starts_local, counts)
+        # Vectorized morton encode for all entries at once, already in face-major order
+        morton_codes = _encode_quantized_morton3d(xq, yq, zq)
+        del intra, rem, xi, yi, zi, ny_nz, nz_rep, xq, yq, zq
 
-            # Derive (zi, yi, xi) from intra using per-face sizes
-            ny_nz = np.repeat(ny_v * nz_v, counts)
-            nz_rep = np.repeat(nz_v, counts)
+        # Sort entries by morton code. Each (code, face) pair is fused into one uint64
+        # with the code in the high 32 bits and the face id in the low 32 bits: unsigned
+        # comparison then orders by code, with ties broken by ascending face id. Sorting
+        # the fused array in place avoids the argsort permutation array and the gather
+        # copies it would imply. Pairs are unique, so the ordering is deterministic.
+        packed = morton_codes.astype(np.uint64)
+        del morton_codes
+        packed <<= np.uint64(32)
+        np.bitwise_or(packed, face_ids, out=packed)
+        del face_ids
+        # Perform a single sort on the packed (morton_code | face_id ) list
+        packed.sort()
+        # Trunctating back to a uint32 keeps the lower 32 bits (the face_id's)
+        face_sorted = packed.astype(np.uint32)
+        # Purge the face ids from the packed list to retain only the morton codes
+        packed >>= np.uint64(32)
+        # Cast the morton codes back to uint32
+        morton_codes_sorted = packed.astype(np.uint32)
+        del packed
 
-            xi = intra // ny_nz
-            rem = intra % ny_nz
-            yi = rem // nz_rep
-            zi = rem % nz_rep
+        # Get a list of unique morton codes and their corresponding starts and counts (CSR format).
+        # The codes are already sorted at this point, first by morton code, then by face_id
+        # Starting indices of the matrix rows are located by finding indices where the morton codes differ
+        starts = np.concatenate(([0], np.flatnonzero(morton_codes_sorted[1:] != morton_codes_sorted[:-1]) + 1))
+        # The unique keys for the hash table are the unique morton codes
+        keys = morton_codes_sorted[starts]
+        # The number of faces per hash keys (morton codes) is easily calculated as the difference betwee the start values
+        counts = np.diff(np.concatenate((starts, [morton_codes_sorted.size])))
 
-            # Add per-face lows
-            x0 = np.repeat(xlow_v, counts)
-            y0 = np.repeat(ylow_v, counts)
-            z0 = np.repeat(zlow_v, counts)
-
-            xq = x0 + xi
-            yq = y0 + yi
-            zq = z0 + zi
-
-            # Vectorized morton encode for all elements at once
-            codes_all = _encode_quantized_morton3d(xq, yq, zq)
-
-            # Scatter into the preallocated output using computed absolute indices
-            out_idx = start_for_elem + intra
-            morton_codes[out_idx] = codes_all
-
-        # Sort face indices by morton code
-        order = np.argsort(morton_codes)
-        morton_codes_sorted = morton_codes[order]
-        face_sorted = face_ids[order]
-        j_sorted, i_sorted = np.unravel_index(face_sorted, self._xlow.shape)
-
-        # Get a list of unique morton codes and their corresponding starts and counts (CSR format)
-        keys, starts, counts = np.unique(morton_codes_sorted, return_index=True, return_counts=True)
-
+        # The flat face id is stored (4 bytes per entry); query() unravels the gathered
+        # candidates to (j, i) on demand, instead of holding two precomputed int64
+        # index arrays (16 bytes per entry) for the lifetime of the grid.
         hash_table = {
             "keys": keys,
             "starts": starts,
             "counts": counts,
-            "i": i_sorted,
-            "j": j_sorted,
+            "faces": face_sorted,
         }
         return hash_table
 
@@ -341,12 +401,11 @@ class SpatialHash:
         keys = self._hash_table["keys"]
         starts = self._hash_table["starts"]
         counts = self._hash_table["counts"]
-        i = self._hash_table["i"]
-        j = self._hash_table["j"]
+        faces = self._hash_table["faces"]
 
         y = np.asarray(y)
         x = np.asarray(x)
-        if self._source_grid._mesh == "spherical":
+        if self._source_grid._mesh.is_spherical():
             # Convert coords to Cartesian coordinates (x, y, z)
             lat = np.deg2rad(y)
             lon = np.deg2rad(x)
@@ -358,7 +417,16 @@ class SpatialHash:
             qz = np.zeros_like(qx)
 
         query_codes = _encode_morton3d(
-            qx, qy, qz, self._xmin, self._xmax, self._ymin, self._ymax, self._zmin, self._zmax
+            qx,
+            qy,
+            qz,
+            self._xmin,
+            self._xmax,
+            self._ymin,
+            self._ymax,
+            self._zmin,
+            self._zmax,
+            bitwidth=self._bitwidth,
         ).ravel()
         num_queries = query_codes.size
 
@@ -418,9 +486,10 @@ class SpatialHash:
         # use to quickly gather the (i,j) pairs for each query
         source_idx = starts[hash_positions].astype(np.int32) + intra
 
-        # Gather all candidate (j,i) pairs in one shot
-        j_all = j[source_idx]
-        i_all = i[source_idx]
+        # Gather all candidate face ids in one shot and unravel them to (j, i) pairs;
+        # only the gathered candidates are unraveled, not the whole table
+        face_all = faces[source_idx]
+        j_all, i_all = np.unravel_index(face_all, self._xlow.shape)
 
         # Now we need to construct arrays that repeats the y and x coordinates for each candidate
         # to enable vectorized point-in-cell checks
@@ -455,6 +524,22 @@ class SpatialHash:
             i_best.reshape(query_codes.shape),
             coords_best.reshape((num_queries, coordinates.shape[1])),
         )
+
+    def describe(self, buf: IO | None = None) -> None:
+        """
+        Summary of the SpatialHash's hash-table statistics (resolution, occupancy,
+        entry counts).
+
+        Parameters
+        ----------
+        buf : file-like, default: sys.stdout
+            writable buffer
+        """
+        if buf is None:
+            buf = sys.stdout
+        assert buf is not None
+
+        buf.write(spatialhash_describe(self))
 
 
 def _dilate_bits(n):
@@ -550,6 +635,125 @@ def _find_degenerate_xgrid_faces(x, y, z, threshold_factor=10):
     return max_chord > threshold
 
 
+# The 6 points where x, y, or z reaches its absolute max/min over the whole unit
+# sphere: the poles (+-z) and the equator/prime-meridian crossings (+-x, +-y).
+_AXIS_POINTS = np.array(
+    [
+        [1.0, 0.0, 0.0],
+        [-1.0, 0.0, 0.0],
+        [0.0, 1.0, 0.0],
+        [0.0, -1.0, 0.0],
+        [0.0, 0.0, 1.0],
+        [0.0, 0.0, -1.0],
+    ]
+)
+
+
+def _spherical_face_bounds(verts):
+    """Exact per-face x/y/z bounding box for convex faces on the unit sphere,
+    computed in closed form (no sampling).
+
+    A face's edges are great-circle arcs, so the true min/max of x, y, or z
+    reached anywhere on a face is often not one of its node coordinates. The
+    surface can bulge past every node along an edge, or, for a face containing a
+    pole or an equator/prime-meridian crossing, reach its extreme at a single
+    interior point. The spatial hash grid must include these points. They are
+    computed based on the assumption that a face's extrema sit at one of the following:
+
+      1. The nodes themselves.
+      2. Any of the 6 points in `_AXIS_POINTS` that could lie inside the face. If this
+         is the case then that particular face's extrema is +-1 for that particular bound.
+      3. For each edge, the point(s) along that great-circle arc where x, y, or z
+         is extremized. This extreme does not fall on a node when a cos representing
+         the point in space hits a min/max.
+
+    Parameters
+    ----------
+    verts : ndarray, shape (nfaces, nodes_per_face, 3)
+        Unit-sphere xyz coordinates of each face's nodes, in winding order.
+        The last axis is (x, y, z).
+
+    Returns
+    -------
+    xlow, xhigh, ylow, yhigh, zlow, zhigh : ndarray, shape (nfaces,)
+    """
+    # --- Step 1: Calculate the bounds from the nodes themselves ----
+    nodes_per_face = verts.shape[-2]
+
+    low = np.min(verts, axis=-2)  # (..., 3), so low[..., 0] holds every face's x bound
+    high = np.max(verts, axis=-2)
+
+    # --- Step 2: Check which faces the global extrema fall into (using a gnomonic projection) ---
+    # A point is inside a triangle of nodes when it can be written as a combination of
+    # the three node vectors using no negative weights. Solving for those weights needs
+    # exactly three nodes, so a face with more nodes is split into a fan of triangles
+    # sharing its first node, and a point inside any one of those triangles is inside
+    # the face.
+    inside = np.zeros(verts.shape[:-2] + (len(_AXIS_POINTS),), dtype=bool)  # (..., 6)
+    for node in range(1, nodes_per_face - 1):
+        M = np.stack([verts[..., 0, :], verts[..., node, :], verts[..., node + 1, :]], axis=-1)
+
+        # A triangle with no area encloses nothing. Rather
+        # than let np.linalg.solve raise on it, conver those faces' weights to NaN.
+        weights = np.full(M.shape[:-1] + (len(_AXIS_POINTS),), np.nan)
+        has_area = np.abs(np.linalg.det(M)) > 1e-14
+        if has_area.any():
+            weights[has_area] = np.linalg.solve(M[has_area], _AXIS_POINTS.T)
+
+        # An axis point is in the triangle if its weights are >=0 (1e-12 accounts for
+        # machine precision).
+        inside |= np.all(weights >= -1e-12, axis=-2)
+
+    # For faces that contain a global extreme point, override the bound to use that point (which
+    # will be either 1 or -1 on the unit sphere). _AXIS_POINTS alternates between the two
+    # ends of an axis, so the even entries are the +1 ends and the odd ones the -1 ends.
+    high = np.where(inside[..., 0::2], 1.0, high)
+    low = np.where(inside[..., 1::2], -1.0, low)
+
+    # --- Step 3: per-edge extrema ------------------------------------------------
+    # Loop on the pairs of adjacent nodes that make up each face's edges, wrapping
+    # from the last node back to the first.
+    for node in range(nodes_per_face):
+        a = verts[..., node, :]
+        b = verts[..., (node + 1) % nodes_per_face, :]
+        # Compute the total angular length of the arc created by points a and b
+        cos_delta = np.clip(np.sum(a * b, axis=-1), -1.0, 1.0)  # (...)
+        delta = np.arccos(cos_delta)  # (...)
+
+        # Construct a unit vector perpendicular to a that points towards b. (a, u) then
+        # forms an orthonormal basis for that plane, so any point on the arc created
+        # by the vertices (a,b) is in that plane, and can be computed as cos(theta)*a + sin(theta)*u
+        # for theta in [0, delta]. theta=0 recovers a and theta=delta recovers b.
+        u = b - cos_delta[..., None] * a
+        edge_length = np.linalg.norm(u, axis=-1)
+        # An edge between two identical nodes has no direction to normalize; dividing
+        # the resulting zero vector by 1 keeps it zero rather than making it NaN.
+        u = u / np.where(edge_length == 0.0, 1.0, edge_length)[..., None]
+
+        # Using the identity Acos(theta) + Bsin(theta) = Rcos(theta - phi) where
+        # R is an amplitude R = sqrt(A^2 + B^2) and phi = arctan2(B, A). The edge's
+        # max or min are then given by the location where theta=0, pi, plus the phase
+        # shift of phi.
+        amp = np.hypot(a, u)  # (..., 3): wave amplitude R, per coordinate
+        phase = np.arctan2(u, a)  # (..., 3): wave phase phi, per coordinate
+
+        # Compute the values of theta that result in a bounding box extremum.
+        theta_max = phase % (2 * np.pi)  # (..., 3)
+        theta_min = (phase + np.pi) % (2 * np.pi)  # (..., 3)
+
+        # Calculate whether or not an extremum-generating theta falls into the
+        # arc constructed by each edge.
+        valid_max = theta_max <= delta[..., None]  # (..., 3)
+        valid_min = theta_min <= delta[..., None]  # (..., 3)
+
+        # For theta that fall on the arc of each edge, keep whichever is more extreme:
+        # the currently computed bound, or this edge's candidate for that coordinate.
+        high = np.maximum(high, np.where(valid_max, amp, -np.inf))
+        low = np.minimum(low, np.where(valid_min, -amp, np.inf))
+
+    return low[..., 0], high[..., 0], low[..., 1], high[..., 1], low[..., 2], high[..., 2]
+
+
 def quantize_coordinates(x, y, z, xmin, xmax, ymin, ymax, zmin, zmax, bitwidth=1023):
     """
     Normalize (x, y, z) to [0, 1] over their bounding box, then quantize to 10 bits each (0..1023).
@@ -588,10 +792,15 @@ def quantize_coordinates(x, y, z, xmin, xmax, ymin, ymax, zmin, zmax, bitwidth=1
         zn = np.where(dz != 0, (z - zmin) / dz, 0.0)
 
     # --- 2) Quantize to (0..bitwidth). ---
-    # Multiply by bitwidth, round down, and clip to be safe against slight overshoot.
-    xq = np.clip((xn * bitwidth).astype(np.uint32), 0, bitwidth)
-    yq = np.clip((yn * bitwidth).astype(np.uint32), 0, bitwidth)
-    zq = np.clip((zn * bitwidth).astype(np.uint32), 0, bitwidth)
+    # Multiply by bitwidth, round down, and clip to be safe against overshoot.
+    # Clip in float space before casting: out-of-range queries (e.g., points outside
+    # a regional domain) would otherwise wrap around when a negative float is cast to uint32.
+    # NaN queries produce arbitrary codes here; they are discarded downstream by the
+    # finite-coordinate mask in SpatialHash.query.
+    with np.errstate(invalid="ignore"):
+        xq = np.clip(xn * bitwidth, 0, bitwidth).astype(np.uint32)
+        yq = np.clip(yn * bitwidth, 0, bitwidth).astype(np.uint32)
+        zq = np.clip(zn * bitwidth, 0, bitwidth).astype(np.uint32)
 
     return xq, yq, zq
 
@@ -664,3 +873,30 @@ def _encode_morton3d(x, y, z, xmin, xmax, ymin, ymax, zmin, zmax, bitwidth=1023)
 
     # Since our compact type fits in 30 bits, uint32 is enough.
     return code.astype(np.uint32)
+
+
+def _generate_valid_mask(xlow, xhigh, ylow, yhigh, zlow, zhigh):
+    """
+    Flag faces whose bounding box is fully defined, i.e. none of their 6 bounds
+    is NaN (a NaN indicates a corner node with a missing/masked coordinate).
+
+    Parameters
+    ----------
+    xlow, xhigh : array_like
+        Per-face bounding box in x.
+    ylow, yhigh : array_like
+        Per-face bounding box in y.
+    zlow, zhigh : array_like
+        Per-face bounding box in z.
+
+    Returns
+    -------
+    valid_face : ndarray of bool
+        Same shape as the inputs; True where the face's bounding box is finite,
+        False where it contains a NaN.
+    """
+    invalid_face = (
+        np.isnan(xlow) | np.isnan(xhigh) | np.isnan(ylow) | np.isnan(yhigh) | np.isnan(zlow) | np.isnan(zhigh)
+    )
+
+    return ~invalid_face

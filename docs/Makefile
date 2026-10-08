@@ -2,8 +2,9 @@
 #
 
 # You can set these variables from the command line.
-SPHINXOPTS    =
+SPHINXOPTS    = --show-traceback --fail-on-warning --keep-going --jobs auto
 SPHINXBUILD   = sphinx-build
+SPHINXATUOBUILD = sphinx-autobuild
 PAPER         =
 BUILDDIR      = _build
 
@@ -24,6 +25,7 @@ I18NSPHINXOPTS  = $(PAPEROPT_$(PAPER)) $(SPHINXOPTS) .
 help:
 	@echo "Please use \`make <target>' where <target> is one of"
 	@echo "  html       to make standalone HTML files"
+	@echo "  livehtml   to make HTML files and serve with rebuilding on a server"
 	@echo "  dirhtml    to make HTML files named index.html in directories"
 	@echo "  singlehtml to make a single large HTML file"
 	@echo "  pickle     to make pickle files"
@@ -51,6 +53,8 @@ help:
 clean:
 	rm -rf $(BUILDDIR)/*
 	rm -rf .jupyter_cache
+	find . -name "*.parquet" -delete
+	find . -name "*.zarr" -type d -exec rm -rf {} +
 
 html:
 	$(SPHINXBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html
@@ -191,3 +195,7 @@ pseudoxml:
 	$(SPHINXBUILD) -b pseudoxml $(ALLSPHINXOPTS) $(BUILDDIR)/pseudoxml
 	@echo
 	@echo "Build finished. The pseudo-XML files are in $(BUILDDIR)/pseudoxml."
+
+livehtml:
+	@echo "$(SPHINXATUOBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html"
+	$(SPHINXATUOBUILD) -b html $(ALLSPHINXOPTS) $(BUILDDIR)/html

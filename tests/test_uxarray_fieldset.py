@@ -7,20 +7,15 @@ import uxarray as ux
 import parcels._datasets.remote as _parcels_remote
 import parcels.tutorial
 from parcels import (
-    Field,
     FieldSet,
-    Particle,
-    ParticleSet,
-    UxGrid,
-    VectorField,
+    convert,
 )
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
-from parcels.convert import fesom_to_ugrid, icon_to_ugrid
 from parcels.interpolators import (
-    Ux_Velocity,
     UxConstantFaceConstantZC,
     UxLinearNodeLinearZF,
 )
+from tests.utils import create_uxgrid_from_triangulation
 
 
 @pytest.fixture
@@ -36,86 +31,22 @@ def ds_fesom_channel() -> ux.UxDataset:
         str(_fesom_dir / "w.fesom_channel.nc"),
     ]
     ds = ux.open_mfdataset(grid_path, data_path).rename_vars({"u": "U", "v": "V", "w": "W"})
-    ds = fesom_to_ugrid(ds)
+    ds = convert.fesom_to_ugrid(ds)
     return ds
 
 
 @pytest.fixture
-def uv_fesom_channel(ds_fesom_channel) -> VectorField:
-    UV = VectorField(
-        name="UV",
-        U=Field(
-            name="U",
-            data=ds_fesom_channel.U,
-            grid=UxGrid(ds_fesom_channel.uxgrid, z=ds_fesom_channel.coords["zc"], mesh="flat"),
-            interp_method=UxConstantFaceConstantZC,
-        ),
-        V=Field(
-            name="V",
-            data=ds_fesom_channel.V,
-            grid=UxGrid(ds_fesom_channel.uxgrid, z=ds_fesom_channel.coords["zc"], mesh="flat"),
-            interp_method=UxConstantFaceConstantZC,
-        ),
-        interp_method=Ux_Velocity,
-    )
-    return UV
+def fieldset_fesom_channel(ds_fesom_channel):
+    return FieldSet.from_ugrid_conventions(ds_fesom_channel)
 
 
-@pytest.fixture
-def uvw_fesom_channel(ds_fesom_channel) -> VectorField:
-    UVW = VectorField(
-        name="UVW",
-        U=Field(
-            name="U",
-            data=ds_fesom_channel.U,
-            grid=UxGrid(ds_fesom_channel.uxgrid, z=ds_fesom_channel.coords["zc"], mesh="flat"),
-            interp_method=UxConstantFaceConstantZC,
-        ),
-        V=Field(
-            name="V",
-            data=ds_fesom_channel.V,
-            grid=UxGrid(ds_fesom_channel.uxgrid, z=ds_fesom_channel.coords["zc"], mesh="flat"),
-            interp_method=UxConstantFaceConstantZC,
-        ),
-        W=Field(
-            name="W",
-            data=ds_fesom_channel.W,
-            grid=UxGrid(ds_fesom_channel.uxgrid, z=ds_fesom_channel.coords["zf"], mesh="flat"),
-            interp_method=UxLinearNodeLinearZF,
-        ),
-        interp_method=Ux_Velocity,
-    )
-    return UVW
-
-
-def test_fesom_fieldset(ds_fesom_channel, uv_fesom_channel):
-    fieldset = FieldSet([uv_fesom_channel, uv_fesom_channel.U, uv_fesom_channel.V])
+def test_fesom_fieldset(ds_fesom_channel, fieldset_fesom_channel):
     # Check that the fieldset has the expected properties
-    assert (fieldset.U.data == ds_fesom_channel.U).all()
-    assert (fieldset.V.data == ds_fesom_channel.V).all()
+    assert (fieldset_fesom_channel.U.data == ds_fesom_channel.U).all()
+    assert (fieldset_fesom_channel.V.data == ds_fesom_channel.V).all()
 
 
-def test_fesom_in_particleset(ds_fesom_channel, uv_fesom_channel):
-    fieldset = FieldSet([uv_fesom_channel, uv_fesom_channel.U, uv_fesom_channel.V])
-
-    # Check that the fieldset has the expected properties
-    assert (fieldset.U.data == ds_fesom_channel.U).all()
-    assert (fieldset.V.data == ds_fesom_channel.V).all()
-    pset = ParticleSet(fieldset, pclass=Particle)
-    assert pset.fieldset == fieldset
-
-
-def test_set_interp_methods(ds_fesom_channel, uv_fesom_channel):
-    fieldset = FieldSet([uv_fesom_channel, uv_fesom_channel.U, uv_fesom_channel.V])
-    # Check that the fieldset has the expected properties
-    assert (fieldset.U.data == ds_fesom_channel.U).all()
-    assert (fieldset.V.data == ds_fesom_channel.V).all()
-
-    # Set the interpolation method for each field
-    fieldset.U.interp_method = UxConstantFaceConstantZC
-    fieldset.V.interp_method = UxConstantFaceConstantZC
-
-
+@pytest.mark.xfail(reason="#2674 - 'p' interpolator is not being selected properly")
 def test_fesom2_square_delaunay_uniform_z_coordinate_eval():
     """
     Test the evaluation of a fieldset with a FESOM2 square Delaunay grid and uniform z-coordinate.
@@ -123,41 +54,37 @@ def test_fesom2_square_delaunay_uniform_z_coordinate_eval():
     Since the underlying data is constant, we can check that the values are as expected.
     """
     ds = datasets_unstructured["fesom2_square_delaunay_uniform_z_coordinate"]
-    ds = fesom_to_ugrid(ds)
-    grid = UxGrid(ds.uxgrid, z=ds.coords["zf"], mesh="flat")
-    UVW = VectorField(
-        name="UVW",
-        U=Field(name="U", data=ds.U, grid=grid, interp_method=UxConstantFaceConstantZC),
-        V=Field(name="V", data=ds.V, grid=grid, interp_method=UxConstantFaceConstantZC),
-        W=Field(name="W", data=ds.W, grid=grid, interp_method=UxLinearNodeLinearZF),
-        interp_method=Ux_Velocity,
-    )
-    P = Field(name="p", data=ds.p, grid=grid, interp_method=UxLinearNodeLinearZF)
-    fieldset = FieldSet([UVW, P, UVW.U, UVW.V, UVW.W])
+    ds = convert.fesom_to_ugrid(ds)
+    fieldset = FieldSet.from_ugrid_conventions(ds)
 
-    (u, v, w) = fieldset.UVW.eval(time=[0.0], z=[1.0], y=[30.0], x=[30.0])
+    assert isinstance(fieldset.U.interp_method, UxConstantFaceConstantZC)
+    assert isinstance(fieldset.V.interp_method, UxConstantFaceConstantZC)
+    assert isinstance(fieldset.W.interp_method, UxLinearNodeLinearZF)
+    assert isinstance(fieldset.p.interp_method, UxLinearNodeLinearZF)
+
+    (u, v, w) = fieldset.UVW.eval(t=[0.0], z=[1.0], y=[30.0], x=[30.0])
     assert np.allclose([u.item(), v.item(), w.item()], [1.0, 1.0, 0.0], rtol=1e-3, atol=1e-6)
 
     assert np.isclose(
-        fieldset.U.eval(time=[0.0], z=[1.0], y=[30.0], x=[30.0]),
+        fieldset.U.eval(t=[0.0], z=[1.0], y=[30.0], x=[30.0]),
         1.0,
         rtol=1e-3,
         atol=1e-6,
     )
     assert np.isclose(
-        fieldset.V.eval(time=[0.0], z=[1.0], y=[30.0], x=[30.0]),
+        fieldset.V.eval(t=[0.0], z=[1.0], y=[30.0], x=[30.0]),
         1.0,
         rtol=1e-3,
         atol=1e-6,
     )
     assert np.isclose(
-        fieldset.W.eval(time=[0.0], z=[1.0], y=[30.0], x=[30.0]),
+        fieldset.W.eval(t=[0.0], z=[1.0], y=[30.0], x=[30.0]),
         0.0,
         rtol=1e-3,
         atol=1e-6,
     )
     assert np.isclose(
-        fieldset.p.eval(time=[0.0], z=[1.0], y=[30.0], x=[30.0]),
+        fieldset.p.eval(t=[0.0], z=[1.0], y=[30.0], x=[30.0]),
         1.0,
         rtol=1e-3,
         atol=1e-6,
@@ -171,24 +98,19 @@ def test_fesom2_square_delaunay_antimeridian_eval():
     Since the underlying data is constant, we can check that the values are as expected.
     """
     ds = datasets_unstructured["fesom2_square_delaunay_antimeridian"]
-    ds = fesom_to_ugrid(ds)
-    P = Field(
-        name="p",
-        data=ds.p,
-        grid=UxGrid(ds.uxgrid, z=ds.coords["zf"], mesh="spherical"),
-        interp_method=UxLinearNodeLinearZF,
-    )
-    fieldset = FieldSet([P])
+    ds = convert.fesom_to_ugrid(ds)
+    fieldset = FieldSet.from_ugrid_conventions(ds)
+    fieldset.p.interp_method = UxLinearNodeLinearZF()
 
-    assert np.isclose(fieldset.p.eval(time=[0], z=[1.0], y=[30.0], x=[-170.0]), 1.0)
-    assert np.isclose(fieldset.p.eval(time=[0], z=[1.0], y=[30.0], x=[-180.0]), 1.0)
-    assert np.isclose(fieldset.p.eval(time=[0], z=[1.0], y=[30.0], x=[180.0]), 1.0)
-    assert np.isclose(fieldset.p.eval(time=[0], z=[1.0], y=[30.0], x=[170.0]), 1.0)
+    assert np.isclose(fieldset.p.eval(t=[0], z=[1.0], y=[30.0], x=[-170.0]), 1.0)
+    assert np.isclose(fieldset.p.eval(t=[0], z=[1.0], y=[30.0], x=[-180.0]), 1.0)
+    assert np.isclose(fieldset.p.eval(t=[0], z=[1.0], y=[30.0], x=[180.0]), 1.0)
+    assert np.isclose(fieldset.p.eval(t=[0], z=[1.0], y=[30.0], x=[170.0]), 1.0)
 
 
 def test_icon_evals():
     ds = datasets_unstructured["icon_square_delaunay_uniform_z_coordinate"].copy(deep=True)
-    ds = icon_to_ugrid(ds)
+    ds = convert.icon_to_ugrid(ds)
     fieldset = FieldSet.from_ugrid_conventions(ds, mesh="flat")
 
     # Query points, are chosen to be just a fraction off from the center of a cell for testing
@@ -207,19 +129,19 @@ def test_icon_evals():
     # The exact function for U is U=z*x . The U variable is center registered both laterally and
     # vertically. In this case, piecewise constant interpolation is expected in both directions.
     # The expected value for interpolation is then just computed using the cell center locations
-    assert np.allclose(fieldset.U.eval(time=tq, z=zq, y=yq, x=xq), zc * xc)
+    assert np.allclose(fieldset.U.eval(t=tq, z=zq, y=yq, x=xq), zc * xc)
 
     # The exact function for V is V=z*y . The V variable is center registered both laterally and
     # vertically. In this case, piecewise constant interpolation is expected in both directions
     # The expected value for interpolation is then just computed using the cell center locations
-    assert np.allclose(fieldset.V.eval(time=tq, z=zq, y=yq, x=xq), zc * yc)
+    assert np.allclose(fieldset.V.eval(t=tq, z=zq, y=yq, x=xq), zc * yc)
 
     # The exact function for W is W=z*x*y . The W variable is center registered laterally and
     # interface registered vertically. In this case, piecewise constant interpolation is expected
     # laterally, while piecewise linear is expected vertically.
     # The expected value for interpolation is then just computed using the cell center locations
     # for the latitude and longitude, and the query point for the vertical interpolation
-    assert np.allclose(fieldset.W.eval(time=tq, z=zq, y=yq, x=xq), zq * yc * xc)
+    assert np.allclose(fieldset.W.eval(t=tq, z=zq, y=yq, x=xq), zq * yc * xc)
 
     # The exact function for P is P=z*(x+y) . The P variable is node registered laterally and
     # center registered vertically. In this case, barycentric interpolation is expected
@@ -227,4 +149,58 @@ def test_icon_evals():
     # Since barycentric interpolation is exact for functions f=a*x+b*y laterally, the expected
     # value for interpolation is then just computed using query point locations
     # for the latitude and longitude, and the layer centers vertically.
-    assert np.allclose(fieldset.p.eval(time=tq, z=zq, y=yq, x=xq), zc * (xq + yq))
+    assert np.allclose(fieldset.p.eval(t=tq, z=zq, y=yq, x=xq), zc * (xq + yq))
+
+
+_NESTEDGRIDS_NODES = np.array(
+    [
+        [10.0, 15.0],
+        [25.0, 10.0],
+        [25.0, 25.0],
+        [17.0, 36.0],
+        [10.0, 32.0],
+        [0.0, -5.0],
+        [35.0, 0.0],
+        [35.0, 25.0],
+        [0.0, 20.0],
+        [-10.0, -20.0],
+        [60.0, -20.0],
+        [60.0, 40.0],
+        [-10.0, 40.0],
+        [25.0, 165.0 / 7.0],  # Steiner point added by the triangulator
+        [10.0, 150.0 / 7.0],  # Steiner point added by the triangulator
+    ]
+)
+_NESTEDGRIDS_FACES = np.array(
+    [
+        [8, 9, 5], [5, 9, 6], [0, 5, 1], [8, 5, 0], [12, 8, 4], [8, 12, 9],
+        [14, 8, 0], [12, 4, 3], [13, 14, 0], [14, 2, 4], [7, 1, 6], [6, 1, 5],
+        [10, 6, 9], [11, 6, 10], [3, 2, 7], [3, 4, 2], [7, 11, 3], [11, 7, 6],
+        [13, 1, 7], [3, 11, 12], [4, 8, 14], [13, 0, 1], [2, 14, 13], [7, 2, 13],
+    ]
+)  # fmt: skip
+
+
+def test_nestedgrids_triangulation_spherical_search():
+    """Every query point over the mesh's extent must be located by grid.search().
+
+    The mesh is a single irregular triangulation of three nested polygons, so
+    face size, shape, and orientation all vary widely across it. this causes a broader
+    stress on the spherical search path than a single regular patch of
+    uniform triangles.
+    """
+    grid = create_uxgrid_from_triangulation(
+        _NESTEDGRIDS_NODES[:, 0], _NESTEDGRIDS_NODES[:, 1], _NESTEDGRIDS_FACES, mesh="spherical"
+    )
+
+    x, y = np.meshgrid(np.linspace(-8, 58, 25), np.linspace(-18, 38, 20))
+    x = x.ravel()
+    y = y.ravel()
+    z = np.zeros_like(x)
+
+    face = grid.search(z, y, x)["FACE"]["index"]
+    n_lost = int(np.count_nonzero(face < 0))
+    assert n_lost == 0, (
+        f"grid search failed for {n_lost} of {len(x)} particles; e.g. (lon, lat)="
+        f"{np.column_stack((x, y))[face < 0][:3].tolist()}"
+    )

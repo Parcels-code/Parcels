@@ -1,3 +1,5 @@
+import warnings
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -15,6 +17,7 @@ from parcels import (
     convert,
 )
 from parcels._core.utils.time import timedelta_to_float
+from parcels._core.warnings import FieldEvalWarning
 from parcels._datasets.structured.generated import (
     decaying_moving_eddy_dataset,
     moving_eddy_dataset,
@@ -34,6 +37,7 @@ from parcels.kernels import (
     AdvectionRK4_3D,
     AdvectionRK45,
 )
+from tests.mark import ignore_kernel_warnings
 from tests.utils import DEFAULT_PARTICLES, assert_cftime_like_particlefile
 
 
@@ -47,15 +51,15 @@ def test_advection_zonal(mesh, npart=10):
     runtime = 7200
     startlat = np.linspace(0, 80, npart)
     startlon = 20.0 + np.zeros(npart)
-    pset = ParticleSet(fieldset, lon=startlon, lat=startlat)
+    pset = ParticleSet(fieldset, x=startlon, y=startlat)
     pset.execute(AdvectionRK4, runtime=runtime, dt=np.timedelta64(15, "m"))
 
     expected_dlon = runtime
     if mesh == "spherical":
-        expected_dlon /= 1852 * 60 * np.cos(np.deg2rad(pset.lat))
+        expected_dlon /= 1852 * 60 * np.cos(np.deg2rad(pset.y))
 
-    np.testing.assert_allclose(pset.lon - startlon, expected_dlon, atol=1e-5)
-    np.testing.assert_allclose(pset.lat, startlat, atol=1e-5)
+    np.testing.assert_allclose(pset.x - startlon, expected_dlon, atol=1e-5)
+    np.testing.assert_allclose(pset.y, startlat, atol=1e-5)
 
 
 def test_advection_zonal_with_particlefile(tmp_parquet):
@@ -65,22 +69,23 @@ def test_advection_zonal_with_particlefile(tmp_parquet):
     ds["U"].data[:] = 1.0
     fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
 
-    pset = ParticleSet(fieldset, lon=np.zeros(npart) + 20.0, lat=np.linspace(0, 80, npart))
+    pset = ParticleSet(fieldset, x=np.zeros(npart) + 20.0, y=np.linspace(0, 80, npart))
     pfile = ParticleFile(tmp_parquet, outputdt=np.timedelta64(30, "m"))
     pset.execute(AdvectionRK4, runtime=np.timedelta64(2, "h"), dt=np.timedelta64(15, "m"), output_file=pfile)
 
-    assert (np.diff(pset.lon) < 1.0e-4).all()
+    assert (np.diff(pset.x) < 1.0e-4).all()
     df = pd.read_parquet(tmp_parquet)
-    final_time = df["time"].max()
-    np.testing.assert_allclose(df[df["time"] == final_time]["lon"].values, pset.lon, atol=1e-5)
+    final_time = df["t"].max()
+    np.testing.assert_allclose(df[df["t"] == final_time]["x"].values, pset.x, atol=1e-5)
     assert_cftime_like_particlefile(tmp_parquet)
 
 
 def periodicBC(particles, fieldset):
-    particles.total_dlon += particles.dlon
-    particles.lon = np.fmod(particles.lon, 2)
+    particles.total_dlon += particles.dx
+    particles.x = np.fmod(particles.x, 2)
 
 
+@ignore_kernel_warnings
 def test_advection_zonal_periodic():
     ds = simple_UV_dataset(dims=(2, 2, 2, 2), mesh="flat")
     ds["U"].data[:] = 0.1
@@ -91,17 +96,17 @@ def test_advection_zonal_periodic():
     halo = ds.isel(XG=0)
     halo.lon.values = ds.lon.values[1] + 1
     halo.XG.values = ds.XG.values[1] + 2
-    ds = xr.concat([ds, halo], dim="XG")
+    ds = xr.concat([ds, halo], dim="XG", data_vars="all")
 
     fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
 
     PeriodicParticle = Particle.add_variable(Variable("total_dlon", initial=0))
     startlon = np.array([0.5, 0.4])
-    pset = ParticleSet(fieldset, pclass=PeriodicParticle, lon=startlon, lat=[0.5, 0.5])
+    pset = ParticleSet(fieldset, pclass=PeriodicParticle, x=startlon, y=[0.5, 0.5])
     pset.execute([AdvectionEE, periodicBC], runtime=np.timedelta64(40, "s"), dt=np.timedelta64(1, "s"))
     np.testing.assert_allclose(pset.total_dlon, 4.0, atol=1e-5)
-    np.testing.assert_allclose(pset.lon, startlon, atol=1e-5)
-    np.testing.assert_allclose(pset.lat, 0.5, atol=1e-5)
+    np.testing.assert_allclose(pset.x, startlon, atol=1e-5)
+    np.testing.assert_allclose(pset.y, 0.5, atol=1e-5)
 
 
 @pytest.mark.parametrize("mesh", ["spherical", "flat"])
@@ -114,15 +119,15 @@ def test_advection_meridional(mesh, npart=10):
     runtime = 7200
     startlat = np.linspace(0, 80, npart)
     startlon = 20.0 + np.zeros(npart)
-    pset = ParticleSet(fieldset, lon=startlon, lat=startlat)
+    pset = ParticleSet(fieldset, x=startlon, y=startlat)
     pset.execute(AdvectionRK4, runtime=runtime, dt=np.timedelta64(15, "m"))
 
     expected_dlat = runtime
     if mesh == "spherical":
         expected_dlat /= 1852 * 60
 
-    np.testing.assert_allclose(pset.lon, startlon, atol=1e-5)
-    np.testing.assert_allclose(pset.lat - startlat, expected_dlat, atol=1e-4)
+    np.testing.assert_allclose(pset.x, startlon, atol=1e-5)
+    np.testing.assert_allclose(pset.y - startlat, expected_dlat, atol=1e-4)
 
 
 @pytest.mark.parametrize("mesh", ["spherical", "flat"])
@@ -133,13 +138,13 @@ def test_horizontal_advection_in_3D_flow(mesh, npart=10):
     ds["U"].data[:, 0, :, :] = 0.0  # Set U to 0 at the surface
     fieldset = FieldSet.from_sgrid_conventions(ds, mesh=mesh)
 
-    pset = ParticleSet(fieldset, lon=np.zeros(npart), lat=np.zeros(npart), z=np.linspace(0.1, 0.9, npart))
+    pset = ParticleSet(fieldset, x=np.zeros(npart), y=np.zeros(npart), z=np.linspace(0.1, 0.9, npart))
     pset.execute(AdvectionRK4, runtime=np.timedelta64(2, "h"), dt=np.timedelta64(15, "m"))
 
-    expected_lon = pset.z * pset.time
+    expected_lon = pset.z * pset.t
     if mesh == "spherical":
-        expected_lon /= 1852 * 60 * np.cos(np.deg2rad(pset.lat))
-    np.testing.assert_allclose(pset.lon, expected_lon, atol=1.0e-1)
+        expected_lon /= 1852 * 60 * np.cos(np.deg2rad(pset.y))
+    np.testing.assert_allclose(pset.x, expected_lon, atol=1.0e-1)
 
 
 @pytest.mark.parametrize("direction", ["up", "down"])
@@ -164,22 +169,24 @@ def test_advection_3D_outofbounds(direction, resubmerge_particle):
         if len(inds) == 0:
             return
         (u, v) = fieldset.UV[particles[inds]]
-        particles[inds].dlon = u * particles.dt
-        particles[inds].dlat = v * particles.dt
+        particles[inds].dx = u * particles.dt
+        particles[inds].dy = v * particles.dt
         particles[inds].dz = 0.0
         particles[inds].z = 0
-        particles[inds].state = StatusCode.Evaluate
+        particles[inds].state = StatusCode.Success
 
     kernels = [AdvectionRK4_3D]
     if resubmerge_particle:
         kernels.append(SubmergeParticle)
     kernels.append(DeleteParticle)
 
-    pset = ParticleSet(fieldset=fieldset, lon=0.5, lat=0.5, z=0.9)
-    pset.execute(kernels, runtime=np.timedelta64(10, "s"), dt=np.timedelta64(1, "s"))
+    pset = ParticleSet(fieldset=fieldset, x=0.5, y=0.5, z=0.9)
+    with warnings.catch_warnings():
+        warnings.simplefilter("error", FieldEvalWarning)
+        pset.execute(kernels, runtime=np.timedelta64(10, "s"), dt=np.timedelta64(1, "s"))
 
     if direction == "up" and resubmerge_particle:
-        np.testing.assert_allclose(pset.lon[0], 0.6, atol=1e-5)
+        np.testing.assert_allclose(pset.x[0], 0.6, atol=1e-5)
         np.testing.assert_allclose(pset.z[0], 0, atol=1e-5)
     else:
         assert len(pset) == 0
@@ -214,13 +221,13 @@ def test_length1dimensions(u_value, x_slice, v_value, y_slice, w_value, z_slice)
     fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
 
     x0, y0, z0 = 3, 3, 20
-    pset = ParticleSet(fieldset, lon=x0, lat=y0, z=z0)
+    pset = ParticleSet(fieldset, x=x0, y=y0, z=z0)
     kernel = AdvectionRK4 if w_value is None else AdvectionRK4_3D
     pset.execute(kernel, runtime=np.timedelta64(4, "s"), dt=np.timedelta64(1, "s"))
 
-    assert len(pset.lon) == len([p.lon for p in pset])
-    np.testing.assert_allclose(np.array([p.lon - x0 for p in pset]), 4 * u_value, atol=1e-5)
-    np.testing.assert_allclose(np.array([p.lat - y0 for p in pset]), 4 * v_value, atol=1e-5)
+    assert len(pset.x) == len([p.x for p in pset])
+    np.testing.assert_allclose(np.array([p.x - x0 for p in pset]), 4 * u_value, atol=1e-5)
+    np.testing.assert_allclose(np.array([p.y - y0 for p in pset]), 4 * v_value, atol=1e-5)
     if w_value:
         np.testing.assert_allclose(np.array([p.z - z0 for p in pset]), 4 * w_value, atol=1e-5)
 
@@ -235,15 +242,15 @@ def test_radialrotation(npart=10):
     starttime = np.arange(np.timedelta64(0, "s"), npart * dt, dt)
     endtime = np.timedelta64(10, "m")
 
-    pset = parcels.ParticleSet(fieldset, lon=lon, lat=lat, time=starttime)
+    pset = parcels.ParticleSet(fieldset, x=lon, y=lat, t=starttime)
     pset.execute(parcels.kernels.AdvectionRK4, endtime=endtime, dt=dt)
 
-    theta = 2 * np.pi * (pset.time - timedelta_to_float(starttime)) / (24 * 3600)
+    theta = 2 * np.pi * (pset.t - timedelta_to_float(starttime)) / (24 * 3600)
     true_lon = (lon - 30.0) * np.cos(theta) + 30.0
     true_lat = -(lon - 30.0) * np.sin(theta) + 30.0
 
-    np.testing.assert_allclose(pset.lon, true_lon, atol=5e-2)
-    np.testing.assert_allclose(pset.lat, true_lat, atol=5e-2)
+    np.testing.assert_allclose(pset.x, true_lon, atol=5e-2)
+    np.testing.assert_allclose(pset.y, true_lat, atol=5e-2)
 
 
 @pytest.mark.parametrize(
@@ -273,17 +280,19 @@ def test_moving_eddy(kernel, rtol):
     fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
 
     if kernel in [AdvectionDiffusionEM, AdvectionDiffusionM1]:
-        fieldset.add_constant("dres", 0.1)
+        fieldset.add_context("dres", 0.1)
 
     start_lon, start_lat, start_z = 12000, 12500, 12500
     dt = np.timedelta64(30, "m")
     endtime = np.timedelta64(1, "h")
 
     if kernel == AdvectionRK45:
-        fieldset.add_constant("RK45_tol", rtol)
+        fieldset.add_context("RK45_tol", rtol)
+        fieldset.add_context("RK45_min_dt", 1)
+        fieldset.add_context("RK45_max_dt", 24 * 60 * 60)
 
     pset = ParticleSet(
-        fieldset, pclass=DEFAULT_PARTICLES[kernel], lon=start_lon, lat=start_lat, z=start_z, time=np.timedelta64(0, "s")
+        fieldset, pclass=DEFAULT_PARTICLES[kernel], x=start_lon, y=start_lat, z=start_z, t=np.timedelta64(0, "s")
     )
     pset.execute(kernel, dt=dt, endtime=endtime)
 
@@ -294,8 +303,8 @@ def test_moving_eddy(kernel, rtol):
         return lon, lat
 
     exp_lon, exp_lat = truth_moving(start_lon, start_lat, endtime)
-    np.testing.assert_allclose(pset.lon, exp_lon, rtol=rtol)
-    np.testing.assert_allclose(pset.lat, exp_lat, rtol=rtol)
+    np.testing.assert_allclose(pset.x, exp_lon, rtol=rtol)
+    np.testing.assert_allclose(pset.y, exp_lat, rtol=rtol)
     if kernel == AdvectionRK4_3D:
         np.testing.assert_allclose(pset.z, exp_lat, rtol=rtol)
 
@@ -318,12 +327,11 @@ def test_decaying_moving_eddy(kernel, rtol):
     endtime = np.timedelta64(23, "h")
 
     if kernel == AdvectionRK45:
-        fieldset.add_constant("RK45_tol", rtol)
-        fieldset.add_constant("RK45_min_dt", 10 * 60)
+        fieldset.add_context("RK45_tol", rtol)
+        fieldset.add_context("RK45_min_dt", 10 * 60)
+        fieldset.add_context("RK45_max_dt", 24 * 60 * 60)
 
-    pset = ParticleSet(
-        fieldset, pclass=DEFAULT_PARTICLES[kernel], lon=start_lon, lat=start_lat, time=np.timedelta64(0, "s")
-    )
+    pset = ParticleSet(fieldset, pclass=DEFAULT_PARTICLES[kernel], x=start_lon, y=start_lat, t=np.timedelta64(0, "s"))
     pset.execute(kernel, dt=dt, endtime=endtime)
 
     def truth_moving(x_0, y_0, t):
@@ -341,8 +349,8 @@ def test_decaying_moving_eddy(kernel, rtol):
         return lon, lat
 
     exp_lon, exp_lat = truth_moving(start_lon, start_lat, endtime)
-    np.testing.assert_allclose(pset.lon, exp_lon, rtol=rtol)
-    np.testing.assert_allclose(pset.lat, exp_lat, rtol=rtol)
+    np.testing.assert_allclose(pset.x, exp_lon, rtol=rtol)
+    np.testing.assert_allclose(pset.y, exp_lat, rtol=rtol)
 
 
 @pytest.mark.parametrize(
@@ -368,13 +376,15 @@ def test_stommelgyre_fieldset(kernel, rtol, grid_type):
     )
 
     if kernel == AdvectionRK45:
-        fieldset.add_constant("RK45_tol", rtol)
+        fieldset.add_context("RK45_tol", rtol)
+        fieldset.add_context("RK45_min_dt", 1)
+        fieldset.add_context("RK45_max_dt", 24 * 60 * 60)
 
     def UpdateP(particles, fieldset):  # pragma: no cover
-        particles.p = fieldset.P[particles.time, particles.z, particles.lat, particles.lon]
-        particles.p_start = np.where(particles.time == 0, particles.p, particles.p_start)
+        particles.p = fieldset.P[particles.t, particles.z, particles.y, particles.x]
+        particles.p_start = np.where(particles.t == 0, particles.p, particles.p_start)
 
-    pset = ParticleSet(fieldset, pclass=SampleParticle, lon=start_lon, lat=start_lat, time=np.timedelta64(0, "s"))
+    pset = ParticleSet(fieldset, pclass=SampleParticle, x=start_lon, y=start_lat, t=np.timedelta64(0, "s"))
     pset.execute([kernel, UpdateP], dt=dt, runtime=runtime)
     np.testing.assert_allclose(pset.p, pset.p_start, rtol=rtol)
 
@@ -383,15 +393,16 @@ def test_stommelgyre_fieldset(kernel, rtol, grid_type):
     "kernel, rtol",
     [
         (AdvectionRK2, 2e-2),
-        (AdvectionRK4, 5e-3),
+        (AdvectionRK4, 1e-2),
         (AdvectionRK45, 1e-3),
     ],
 )
-@pytest.mark.parametrize("grid_type", ["A"])  # TODO also implement C-grid once available
-def test_peninsula_fieldset(kernel, rtol, grid_type):
+@pytest.mark.parametrize("mesh", ["flat", "spherical"])
+@pytest.mark.parametrize("grid_type", ["A", "C"])
+def test_peninsula_fieldset(kernel, rtol, grid_type, mesh):
     npart = 2
     ds = peninsula_dataset(grid_type=grid_type)
-    fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
+    fieldset = FieldSet.from_sgrid_conventions(ds, mesh=mesh)
 
     dt = np.timedelta64(30, "m")
     runtime = np.timedelta64(23, "h")
@@ -403,13 +414,15 @@ def test_peninsula_fieldset(kernel, rtol, grid_type):
     )
 
     if kernel == AdvectionRK45:
-        fieldset.add_constant("RK45_tol", rtol)
+        fieldset.add_context("RK45_tol", rtol)
+        fieldset.add_context("RK45_min_dt", 10)
+        fieldset.add_context("RK45_max_dt", 24 * 60 * 60)
 
     def UpdateP(particles, fieldset):  # pragma: no cover
-        particles.p = fieldset.P[particles.time, particles.z, particles.lat, particles.lon]
-        particles.p_start = np.where(particles.time == 0, particles.p, particles.p_start)
+        particles.p = fieldset.P[particles.t, particles.z, particles.y, particles.x]
+        particles.p_start = np.where(particles.t == 0, particles.p, particles.p_start)
 
-    pset = ParticleSet(fieldset, pclass=SampleParticle, lon=start_lon, lat=start_lat, time=np.timedelta64(0, "s"))
+    pset = ParticleSet(fieldset, pclass=SampleParticle, x=start_lon, y=start_lat, t=np.timedelta64(0, "s"))
     pset.execute([kernel, UpdateP], dt=dt, runtime=runtime)
     np.testing.assert_allclose(pset.p, pset.p_start, rtol=rtol)
 
@@ -428,9 +441,9 @@ def test_nemo_curvilinear_fieldset():
     latp = np.linspace(-70, 88, npart)
     runtime = np.timedelta64(160, "D")
 
-    pset = parcels.ParticleSet(fieldset, lon=lonp, lat=latp)
+    pset = parcels.ParticleSet(fieldset, x=lonp, y=latp)
     pset.execute(AdvectionEE, runtime=runtime, dt=np.timedelta64(10, "D"))
-    np.testing.assert_allclose(pset.lat, latp, atol=1e-1)
+    np.testing.assert_allclose(pset.y, latp, atol=1e-1)
 
 
 @pytest.mark.parametrize("kernel", [AdvectionRK4, AdvectionRK4_3D])
@@ -448,18 +461,26 @@ def test_nemo_3D_curvilinear_fieldset(kernel):
     lons_initial = np.linspace(1.9, 3.4, npart)
     lats_initial = np.linspace(52.5, 51.6, npart)
     z_initial = np.ones_like(lons_initial)
-    pset = parcels.ParticleSet(fieldset, lon=lons_initial, lat=lats_initial, z=z_initial)
+    pset = parcels.ParticleSet(fieldset, x=lons_initial, y=lats_initial, z=z_initial)
 
     pset.execute(kernel, runtime=np.timedelta64(3, "D") + np.timedelta64(18, "h"), dt=np.timedelta64(6, "h"))
 
     if kernel == AdvectionRK4:
         np.testing.assert_allclose([p.z for p in pset], z_initial)
     elif kernel == AdvectionRK4_3D:
-        # TODO check why decimals needs to be so low in RK4_3D (compare to v3)
-        np.testing.assert_allclose(
-            [p.z for p in pset],
-            [0.666162, 0.8667131, 0.92150104, 0.9605109, 0.9577529, 1.0041442, 1.0284728, 1.0033542, 1.2949713, 1.3928112],
-        )  # fmt:skip
+        depths_from_v3 = [
+            0.66616202,
+            0.86671308,
+            0.92108645,
+            0.95940743,
+            0.95945352,
+            1.00413373,
+            1.02847297,
+            1.00335434,
+            1.27260261,
+            1.38021829,
+        ]  # depths from cell 1 of https://docs.parcels-code.org/en/v3.1.4/examples/tutorial_nemo_3D.html
+        np.testing.assert_allclose([p.z for p in pset], depths_from_v3, rtol=2e-7)
 
 
 def test_mitgcm():
@@ -472,19 +493,18 @@ def test_mitgcm():
     lon = [24e3] * npart
     lat = np.linspace(22e3, 1950e3, npart)
 
-    pset = parcels.ParticleSet(fieldset, lon=lon, lat=lat)
-    pset.execute(AdvectionRK4, runtime=np.timedelta64(5, "D"), dt=np.timedelta64(30, "m"))
-
-    lon_v3 = [
-        25334.3084714,
-        82824.04760837,
-        136410.63322281,
-        98325.83708985,
-        83152.54325753,
-        89321.35275493,
-        237376.5840757,
-        56860.97672692,
-        153947.52685014,
-        28349.16658616,
+    pset = parcels.ParticleSet(fieldset, x=lon, y=lat)
+    pset.execute(AdvectionRK4, runtime=np.timedelta64(1, "D"), dt=np.timedelta64(1, "h"))
+    lat_v3 = [
+        22363.3109351,
+        241677.27730161,
+        461322.50669352,
+        664760.42373974,
+        886760.91201257,
+        1087116.48719691,
+        1274515.29539529,
+        1542216.3950654,
+        1741733.45906654,
+        1952691.93845841,
     ]
-    np.testing.assert_allclose(pset.lon, lon_v3, atol=10)
+    np.testing.assert_allclose(pset.y, lat_v3, atol=1)

@@ -8,7 +8,7 @@ import numpy as np
 from parcels._compat import _attrgetter_helper
 from parcels._core.statuscodes import StatusCode
 from parcels._core.utils.string import _assert_str_and_python_varname
-from parcels._reprs import particleclass_repr, variable_repr
+from parcels._repr_utils import particleclass_repr, variable_repr
 
 __all__ = ["Particle", "ParticleClass", "Variable"]
 _TO_WRITE_OPTIONS = [True, False]
@@ -127,25 +127,7 @@ def get_default_particle(spatial_dtype: type[np.float32] | type[np.float64]) -> 
     return ParticleClass(
         variables=[
             Variable(
-                "lon",
-                dtype=spatial_dtype,
-                attrs={"standard_name": "longitude", "units": "degrees_east", "axis": "X"},
-            ),
-            Variable(
-                "lat",
-                dtype=spatial_dtype,
-                attrs={"standard_name": "latitude", "units": "degrees_north", "axis": "Y"},
-            ),
-            Variable(
-                "z",
-                dtype=spatial_dtype,
-                attrs={"standard_name": "vertical coordinate", "units": "m", "positive": "down"},
-            ),
-            Variable("dlon", dtype=spatial_dtype, to_write=False),
-            Variable("dlat", dtype=spatial_dtype, to_write=False),
-            Variable("dz", dtype=spatial_dtype, to_write=False),
-            Variable(
-                "time",
+                "t",
                 dtype=np.float64,
                 attrs={
                     "standard_name": "time",
@@ -153,6 +135,32 @@ def get_default_particle(spatial_dtype: type[np.float32] | type[np.float64]) -> 
                     "axis": "T",
                 },  # "units" and "calendar" gets updated/set if working with cftime time domain
             ),
+            Variable(
+                "z",
+                dtype=spatial_dtype,
+                attrs={"standard_name": "vertical coordinate", "units": "m", "positive": "down"},
+            ),
+            Variable(
+                "y",
+                dtype=spatial_dtype,
+                attrs={
+                    "standard_name": "latitude",
+                    "units": "degrees_north",
+                    "axis": "Y",
+                },  # TODO v4: https://github.com/Parcels-code/Parcels/issues/2720
+            ),
+            Variable(
+                "x",
+                dtype=spatial_dtype,
+                attrs={
+                    "standard_name": "longitude",
+                    "units": "degrees_east",
+                    "axis": "X",
+                },  # TODO v4: https://github.com/Parcels-code/Parcels/issues/2720
+            ),
+            Variable("dz", dtype=spatial_dtype, to_write=False),
+            Variable("dy", dtype=spatial_dtype, to_write=False),
+            Variable("dx", dtype=spatial_dtype, to_write=False),
             Variable(
                 "particle_id",
                 dtype=np.int64,
@@ -162,7 +170,7 @@ def get_default_particle(spatial_dtype: type[np.float32] | type[np.float64]) -> 
                 },
             ),
             Variable("dt", dtype=np.float64, initial=1.0, to_write=False),
-            Variable("state", dtype=np.int32, initial=StatusCode.Evaluate, to_write=False),
+            Variable("state", dtype=np.int32, initial=StatusCode.Success, to_write=False),
         ]
     )
 

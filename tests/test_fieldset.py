@@ -1,4 +1,5 @@
 from datetime import timedelta
+from io import StringIO
 
 import cf_xarray  # noqa: F401
 import cftime
@@ -6,38 +7,70 @@ import numpy as np
 import pandas as pd
 import pytest
 import xarray as xr
+from re_assert import Matches
 
-from parcels import Field, ParticleFile, ParticleSet, XGrid, convert
-from parcels._core.fieldset import CalendarError, FieldSet, _datetime_to_msg
-from parcels._datasets.structured.generic import T as T_structured
+import parcels.tutorial
+import tests
+from parcels import ParticleFile, ParticleSet, convert, open_raw_zarr
+from parcels._core.fieldset import FieldSet, IncompatibleMeshesException, _datetime_to_msg
+from parcels._core.mesh import SphericalMesh
+from parcels._core.model import _default_vector_field_components
 from parcels._datasets.structured.generic import datasets as datasets_structured
 from parcels._datasets.structured.generic import datasets_sgrid
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
-from parcels.interpolators import XLinear
-from tests import utils
 
 ds = datasets_structured["ds_2d_left"]
 
 
+@pytest.fixture
+def fieldset_two_models():
+    ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]].rename({"U_A_grid": "U", "V_A_grid": "V"})
+    ds2 = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]].rename(
+        {"U_A_grid": "U_wind", "V_A_grid": "V_wind"}
+    )
+
+    fset1 = FieldSet.from_sgrid_conventions(ds1, mesh="flat")
+    fset2 = FieldSet.from_sgrid_conventions(ds2, mesh="flat", vector_fields={"UV_wind": ("U_wind", "V_wind")})
+    fset2.add_context("my_value", 2.0)
+    fset2.add_context("my_list", [1, 2, "hello"])
+    fset2.add_constant_field("constant_field", 3.0)
+    return fset1 + fset2
+
+
 def test_fieldset_init_wrong_types():
-    with pytest.raises(ValueError, match="Expected `field` to be a Field or VectorField object. Got .*"):
+    with pytest.raises(ValueError, match="Expected `model` to be a ModelData object. Got .*"):
         FieldSet([1.0, 2.0, 3.0])
 
 
-def test_fieldset_add_constant(fieldset):
-    fieldset.add_constant("test_constant", 1.0)
-    assert fieldset.test_constant == 1.0
+def test_fieldset_repr(fieldset):
+    Matches(r"\<.*FieldSet object at.*\>").assert_matches(repr(fieldset))
 
 
-def test_fieldset_add_constant_int_name(fieldset):
+def test_fieldset_add_context(fieldset):
+    fieldset.add_context("test_context", 1.0)
+    assert fieldset.test_context == 1.0
+
+
+def test_fieldset_add_context_int_name(fieldset):
     with pytest.raises(TypeError, match="Expected a string for variable name, got int instead."):
-        fieldset.add_constant(123, 1.0)
+        fieldset.add_context(123, 1.0)
+
+
+def test_fieldset_setattr_new(fieldset):
+    fieldset.context = {"new_field": 1.0}
+    assert fieldset.context == {"new_field": 1.0}
+
+
+def test_fieldset_setattr_context(fieldset):
+    fieldset.add_context("test_context", 1.0)
+    with pytest.raises(AttributeError, match=r"Cannot assign .* directly.*context"):
+        fieldset.test_context = 2.0
 
 
 @pytest.mark.parametrize("name", ["a b", "123", "while"])
-def test_fieldset_add_constant_invalid_name(fieldset, name):
+def test_fieldset_add_context_invalid_name(fieldset, name):
     with pytest.raises(ValueError, match=r"Received invalid Python variable name.*"):
-        fieldset.add_constant(name, 1.0)
+        fieldset.add_context(name, 1.0)
 
 
 def test_fieldset_add_constant_field(fieldset):
@@ -50,36 +83,6 @@ def test_fieldset_add_constant_field(fieldset):
     lon = ds["lon"].mean()
 
     assert fieldset.test_constant_field[time, z, lat, lon] == 1.0
-
-
-@pytest.mark.skip(
-    "Likely not relevant after refactoring from https://github.com/Parcels-code/Parcels/pull/2646"
-)  # TODO: Remove or replace
-def test_fieldset_add_field(fieldset):
-    grid = XGrid.from_dataset(ds, mesh="flat")
-    field = Field("test_field", ds["U_A_grid"], grid, interp_method=XLinear)
-    fieldset.add_field(field)
-    assert fieldset.test_field == field
-
-
-@pytest.mark.skip(
-    "Likely not relevant after refactoring from https://github.com/Parcels-code/Parcels/pull/2646"
-)  # TODO: Remove or replace
-def test_fieldset_add_field_wrong_type(fieldset):
-    not_a_field = 1.0
-    with pytest.raises(ValueError, match="Expected `field` to be a Field or VectorField object. Got .*"):
-        fieldset.add_field(not_a_field, "test_field")
-
-
-@pytest.mark.skip(
-    "Likely not relevant after refactoring from https://github.com/Parcels-code/Parcels/pull/2646"
-)  # TODO: Remove or replace
-def test_fieldset_add_field_already_exists(fieldset):
-    grid = XGrid.from_dataset(ds, mesh="flat")
-    field = Field("test_field", ds["U_A_grid"], grid, interp_method=XLinear)
-    fieldset.add_field(field, "test_field")
-    with pytest.raises(ValueError, match="FieldSet already has a Field with name 'test_field'"):
-        fieldset.add_field(field, "test_field")
 
 
 def test_fieldset_gridset(fieldset):
@@ -96,14 +99,14 @@ def test_fieldset_no_UV(tmp_parquet):
     fieldset = FieldSet.from_sgrid_conventions(ds[["U_A_grid", "grid"]].rename({"U_A_grid": "P"}), mesh="flat")
 
     def SampleP(particles, fieldset):
-        particles.dlon += fieldset.P[particles]
+        particles.dx += fieldset.P[particles]
 
-    pset = ParticleSet(fieldset, lon=0, lat=0)
+    pset = ParticleSet(fieldset, x=0, y=0)
     ofile = ParticleFile(tmp_parquet, outputdt=np.timedelta64(1, "s"))
     pset.execute(SampleP, runtime=np.timedelta64(1, "s"), dt=np.timedelta64(1, "s"), output_file=ofile)
 
     df = pd.read_parquet(tmp_parquet)
-    assert len(df["lon"]) == 2
+    assert len(df["x"]) == 2
 
 
 @pytest.mark.parametrize("ds", [pytest.param(ds, id=k) for k, ds in datasets_structured.items()])
@@ -112,96 +115,159 @@ def test_fieldset_from_structured_generic_datasets(ds):
 
     assert len(fieldset.fields) == len(ds.data_vars) - 1  # `-1` for the SGRID metadata
     for field in fieldset.fields.values():
-        utils.assert_valid_field_data(field.data, field.grid)
+        tests.utils.assert_valid_field_data(field.data, field.grid)
 
     assert len(fieldset.gridset) == 1
 
 
-def test_fieldset_gridset_multiple_grids(): ...
+@pytest.mark.parametrize(
+    "vector_fields,ctx",
+    [
+        pytest.param(
+            {"UV": ("U",)},
+            pytest.raises(ValueError, match="must have either 2 or 3 components"),
+            id="single-component",
+        ),
+        pytest.param(
+            {"UV": ("U", "missing")},
+            pytest.raises(ValueError, match="not present in the source dataset"),
+            id="component-not-in-dataset",
+        ),
+        pytest.param(
+            {"UV": ("U", "U", "U", "U")},
+            pytest.raises(ValueError, match="must have either 2 or 3 components"),
+            id="too-many-components",
+        ),
+        pytest.param(
+            None,
+            pytest.raises(ValueError, match="vector_fields must be a dictionary"),
+            id="None",
+        ),
+    ],
+)
+def test_fieldset_invalid_vector_fields(vector_fields, ctx):
+    ds = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]].rename({"U_A_grid": "U", "V_A_grid": "V"})
+
+    with ctx:
+        FieldSet.from_sgrid_conventions(ds, mesh="flat", vector_fields=vector_fields)
 
 
-@pytest.mark.skip(
-    "Needs updating after refactoring from https://github.com/Parcels-code/Parcels/pull/2646"
-)  # TODO: Remove or replace
-def test_fieldset_time_interval():
-    grid1 = XGrid.from_dataset(ds, mesh="flat")
-    field1 = Field("field1", ds["U_A_grid"], grid1, interp_method=XLinear)
+def test_fieldset_structured_vectorfield_default():
+    ds = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]].rename({"U_A_grid": "U", "V_A_grid": "V"})
 
-    ds2 = ds.copy()
+    fset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
+
+    assert "U" in fset.fields
+    assert "V" in fset.fields
+    assert "UV" in fset.fields
+
+
+def test_fieldset_structured_vectorfield_custom():
+    ds = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]].rename({"U_A_grid": "U", "V_A_grid": "V"})
+    ds = ds.rename({"U": "U_wind", "V": "V_wind"})
+
+    fset = FieldSet.from_sgrid_conventions(ds, mesh="flat", vector_fields={"UV_wind": ("U_wind", "V_wind")})
+
+    assert "U_wind" in fset.fields
+    assert "V_wind" in fset.fields
+    assert "UV_wind" in fset.fields
+
+
+def test_fieldset_structured_vectorfield_empty():
+    ds = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]].rename({"U_A_grid": "U", "V_A_grid": "V"})
+
+    fset = FieldSet.from_sgrid_conventions(ds, mesh="flat", vector_fields={})
+
+    assert "U" in fset.fields
+    assert "V" in fset.fields
+    assert "UV" not in fset.fields
+
+
+def test_fieldset_unstructured_vectorfield_default():
+    ds = datasets_unstructured["stommel_gyre_delaunay"]
+    fset = FieldSet.from_ugrid_conventions(ds, mesh="spherical")
+
+    assert "U" in fset.fields
+    assert "V" in fset.fields
+    assert "UV" in fset.fields
+
+
+def test_fieldset_unstructured_vectorfield_custom():
+    ds = datasets_unstructured["stommel_gyre_delaunay"]
+    ds = ds.rename({"U": "U_wind", "V": "V_wind"})
+
+    fset = FieldSet.from_ugrid_conventions(ds, mesh="spherical", vector_fields={"UV_wind": ("U_wind", "V_wind")})
+
+    assert "U_wind" in fset.fields
+    assert "V_wind" in fset.fields
+    assert "UV_wind" in fset.fields
+
+
+def test_fieldset_unstructured_vectorfield_empty():
+    ds = datasets_unstructured["stommel_gyre_delaunay"]
+
+    fset = FieldSet.from_ugrid_conventions(ds, mesh="spherical", vector_fields={})
+
+    assert "U" in fset.fields
+    assert "V" in fset.fields
+    assert "UV" not in fset.fields
+
+
+@pytest.mark.parametrize(
+    "data_vars,expected",
+    [
+        (["U", "V", "land_mask"], {"UV": ("U", "V")}),
+        (["U", "V", "W", "land_mask"], {"UV": ("U", "V"), "UVW": ("U", "V", "W")}),
+        (["field1", "field2", "field3"], {}),
+    ],
+)
+def test_default_vector_field_components(data_vars, expected):
+    got = _default_vector_field_components(data_vars)
+    assert got == expected
+
+
+def test_multi_model_time_interval():
+    ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]]
+    fieldset = FieldSet.from_sgrid_conventions(ds1, mesh="flat")
+
+    ds2 = ds1.copy().rename({"U_A_grid": "U2", "V_A_grid": "V2"})
     ds2["time"] = (ds2["time"].dims, ds2["time"].data + np.timedelta64(timedelta(days=1)), ds2["time"].attrs)
-    grid2 = XGrid.from_dataset(ds2, mesh="flat")
-    field2 = Field("field2", ds2["U_A_grid"], grid2, interp_method=XLinear)
+    fieldset += FieldSet.from_sgrid_conventions(ds2, mesh="flat")
 
-    fieldset = FieldSet([field1, field2])
+    ds3 = ds1.copy().rename({"U_A_grid": "U3", "V_A_grid": "V3"})
+    ds3["time"] = (ds3["time"].dims, ds3["time"].data + np.timedelta64(timedelta(days=2)), ds3["time"].attrs)
+    fieldset += FieldSet.from_sgrid_conventions(ds3, mesh="flat")
+
     fieldset.add_constant_field("constant_field", 1.0)
 
-    assert fieldset.time_interval.left == np.datetime64("2000-01-02")
+    assert len(fieldset.models) == 3
+    assert fieldset.constant_model is not None
+    assert fieldset.time_interval.left == np.datetime64("2000-01-03")
     assert fieldset.time_interval.right == np.datetime64("2001-01-01")
 
 
-def test_fieldset_time_interval_constant_fields():
-    fieldset = FieldSet([])
-    fieldset.add_constant_field("constant_field", 1.0)
-    fieldset.add_constant_field("constant_field2", 2.0)
+def test_multi_model_nonoverlapping_time_interval():
+    ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]]
+    fieldset = FieldSet.from_sgrid_conventions(ds1, mesh="flat")
 
+    ds2 = ds1.copy().rename({"U_A_grid": "U2", "V_A_grid": "V2"})
+    ds2["time"] = (ds2["time"].dims, ds2["time"].data + np.timedelta64(timedelta(days=1000)), ds2["time"].attrs)
+    fieldset += FieldSet.from_sgrid_conventions(ds2, mesh="flat")
+
+    ds3 = ds1.copy().rename({"U_A_grid": "U3", "V_A_grid": "V3"})
+    ds3["time"] = (ds3["time"].dims, ds3["time"].data + np.timedelta64(timedelta(days=2000)), ds3["time"].attrs)
+    fieldset += FieldSet.from_sgrid_conventions(ds3, mesh="flat")
+
+    fieldset.add_constant_field("constant_field", 1.0)
+
+    assert len(fieldset.models) == 3
+    assert fieldset.constant_model is not None
     assert fieldset.time_interval is None
 
 
-@pytest.mark.skip(
-    "Needs updating after refactoring from https://github.com/Parcels-code/Parcels/pull/2646"
-)  # TODO: Remove or replace
-def test_fieldset_init_incompatible_calendars():
-    ds1 = ds.copy()
-    ds1["time"] = (
-        ds1["time"].dims,
-        xr.date_range("2000", "2001", T_structured, calendar="365_day", use_cftime=True),
-        ds1["time"].attrs,
-    )
-
-    grid = XGrid.from_dataset(ds1, mesh="flat")
-    U = Field("U", ds1["U_A_grid"], grid, interp_method=XLinear)
-    V = Field("V", ds1["V_A_grid"], grid, interp_method=XLinear)
-
-    ds2 = ds.copy()
-    ds2["time"] = (
-        ds2["time"].dims,
-        xr.date_range("2000", "2001", T_structured, calendar="360_day", use_cftime=True),
-        ds2["time"].attrs,
-    )
-    grid2 = XGrid.from_dataset(ds2, mesh="flat")
-    incompatible_calendar = Field("test", ds2["data_g"], grid2, interp_method=XLinear)
-
-    with pytest.raises(CalendarError, match="Expected field '.*' to have calendar compatible with datetime object"):
-        FieldSet([U, V, incompatible_calendar])
-
-
-@pytest.mark.skip(
-    "Needs updating after refactoring from https://github.com/Parcels-code/Parcels/pull/2646"
-)  # TODO: Remove or replace
-def test_fieldset_add_field_incompatible_calendars(fieldset):
-    ds_test = ds.copy()
-    ds_test["time"] = (
-        ds_test["time"].dims,
-        xr.date_range("2000", "2001", T_structured, calendar="360_day", use_cftime=True),
-        ds_test["time"].attrs,
-    )
-    grid = XGrid.from_dataset(ds_test, mesh="flat")
-    field = Field("test_field", ds_test["data_g"], grid, interp_method=XLinear)
-
-    with pytest.raises(CalendarError, match="Expected field '.*' to have calendar compatible with datetime object"):
-        fieldset.add_field(field, "test_field")
-
-    ds_test = ds.copy()
-    ds_test["time"] = (
-        ds_test["time"].dims,
-        np.linspace(0, 100, T_structured, dtype="timedelta64[s]"),
-        ds_test["time"].attrs,
-    )
-    grid = XGrid.from_dataset(ds_test, mesh="flat")
-    field = Field("test_field", ds_test["data_g"], grid, interp_method=XLinear)
-
-    with pytest.raises(CalendarError, match="Expected field '.*' to have calendar compatible with datetime object"):
-        fieldset.add_field(field, "test_field")
+def test_fieldset_add_incompatible_calendars():
+    # tests the adding of fieldsets that have incompatible calendars
+    ...
 
 
 @pytest.mark.parametrize(
@@ -234,11 +300,6 @@ def test_fieldset_grid_deduplication():
     When grid deduplication is actually implemented, this might need to be refactored
     into multiple tests (/more might be needed).
     """
-    ...
-
-
-def test_fieldset_add_field_after_pset():
-    # ? Should it be allowed to add fields (normal or vector) after a ParticleSet has been initialized?
     ...
 
 
@@ -280,3 +341,222 @@ def test_fieldset_from_sgrid_conventions(ds_name):
     fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
     assert isinstance(fieldset, FieldSet)
     assert len(fieldset.fields) > 0
+
+
+def test_fieldset_skip_field_data_validation():
+    ds = datasets_structured["ds_2d_left"]
+    ds["U_A_grid"][:] = np.nan
+
+    fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
+    assert np.isfinite(fieldset.U_A_grid.data).all()
+    fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat", skip_field_data_validation=True)
+    assert np.isnan(fieldset.U_A_grid.data).all()
+
+
+def test_fieldset_add_error_on_duplicate_fields():
+    """Test that adding FieldSets with overlapping field names raises a ValueError."""
+    ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]].rename({"U_A_grid": "U", "V_A_grid": "V"})
+    ds2 = ds1.copy()
+
+    fset1 = FieldSet.from_sgrid_conventions(ds1, mesh="flat")
+    fset2 = FieldSet.from_sgrid_conventions(ds2, mesh="flat")
+
+    with pytest.raises(ValueError, match="field names in common.*'U'"):
+        fset1 + fset2
+
+
+def test_fieldset_add():
+    """Test that two FieldSets can be combined with + (fset1 + fset2)."""
+    ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]].rename({"U_A_grid": "U", "V_A_grid": "V"})
+    ds2 = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]].rename(
+        {"U_A_grid": "U_wind", "V_A_grid": "V_wind"}
+    )
+
+    fset1 = FieldSet.from_sgrid_conventions(ds1, mesh="flat")
+    fset2 = FieldSet.from_sgrid_conventions(ds2, mesh="flat", vector_fields={"UV_wind": ("U_wind", "V_wind")})
+
+    fset = fset1 + fset2
+
+    assert len(fset.models) == len(fset1.models) + len(fset2.models)
+
+    fields_before = list(fset1.fields.keys()) + list(fset2.fields.keys())
+    assert len(fields_before) == len(fset.fields)
+    assert set(fields_before) == set(fset.fields.keys())
+
+
+def test_fieldset_add_different_meshes():
+    ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]].rename({"U_A_grid": "U", "V_A_grid": "V"})
+    ds2 = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]].rename(
+        {"U_A_grid": "U_wind", "V_A_grid": "V_wind"}
+    )
+
+    fset1 = FieldSet.from_sgrid_conventions(
+        ds1,
+        mesh=SphericalMesh(71_492_000),  # Jupiter
+    )
+    fset2 = FieldSet.from_sgrid_conventions(
+        ds2,
+        mesh="spherical",  # earth
+        vector_fields={"UV_wind": ("U_wind", "V_wind")},
+    )
+
+    with pytest.raises(IncompatibleMeshesException, match="All ModelData objects must have the same meshes."):
+        _ = fset1 + fset2
+
+
+def test_vectorfields_without_time():
+    """Test that vector fields without a time dimension can be evaluated."""
+    ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]].rename({"U_A_grid": "U", "V_A_grid": "V"})
+    ds2 = ds1.isel(time=0).drop_vars("time").rename({"U": "U_const", "V": "V_const"})
+    ds = xr.merge([ds1, ds2])
+
+    fset = FieldSet.from_sgrid_conventions(ds, mesh="flat", vector_fields={"UV_const": ("U_const", "V_const")})
+    fset.UV_const.eval(t=0, z=0, y=0, x=0)
+    fset.U_const.eval(t=0, z=0, y=0, x=0)
+
+
+def test_fieldset_add_error_on_duplicate_context_values():
+    """Test that adding FieldSets with overlapping context value names raises a ValueError."""
+    ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "grid"]].rename({"U_A_grid": "U1"})
+    ds2 = datasets_structured["ds_2d_left"][["V_A_grid", "grid"]].rename({"V_A_grid": "V2"})
+
+    fset1 = FieldSet.from_sgrid_conventions(ds1, mesh="flat")
+    fset1.add_context("kh", 1.0)
+
+    fset2 = FieldSet.from_sgrid_conventions(ds2, mesh="flat")
+    fset2.add_context("kh", 2.0)
+
+    with pytest.raises(ValueError, match="context value names in common.*'kh'"):
+        fset1 + fset2
+
+
+@tests.mark.zarr_filterwarning_consolidated_metadata
+@pytest.mark.parametrize("skip", [True, False])
+def test_zarr_warning_on_fieldset_creation(skip, tmp_path):
+    """Test that creating a FieldSet from a Zarr-backed dataset raises a warning about potential backend changes."""
+    ds = parcels.tutorial.open_dataset("CopernicusMarine_data_for_Argo_tutorial/data")
+    ds = convert.copernicusmarine_to_sgrid(fields={"U": ds["uo"], "V": ds["vo"]})
+    path = tmp_path / "ds.zarr"
+    ds.to_zarr(path)
+    ds_zarr = open_raw_zarr(path)
+    if not skip:
+        with pytest.warns(UserWarning, match="Changing a Zarr-backed dataset"):
+            FieldSet.from_sgrid_conventions(ds_zarr, skip_field_data_validation=skip)
+    else:
+        FieldSet.from_sgrid_conventions(ds_zarr, skip_field_data_validation=skip)
+
+
+def test_fieldset_add_context_values():
+    """Test that context values from both FieldSets are present in the combined FieldSet."""
+    ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "grid"]].rename({"U_A_grid": "U1"})
+    ds2 = datasets_structured["ds_2d_left"][["V_A_grid", "grid"]].rename({"V_A_grid": "V2"})
+
+    fset1 = FieldSet.from_sgrid_conventions(ds1, mesh="flat")
+    fset1.add_context("c1", 1.0)
+
+    fset2 = FieldSet.from_sgrid_conventions(ds2, mesh="flat")
+    fset2.add_context("c2", 2.0)
+
+    fset = fset1 + fset2
+
+    assert fset.context["c1"] == 1.0
+    assert fset.context["c2"] == 2.0
+
+
+def test_fieldset_describe(fieldset_two_models: FieldSet):
+    fieldset = fieldset_two_models
+    io = StringIO()
+    expected = """\
+| Name           | Type        | Grid number   | Interp method / value   | Parcels backend   |
+|:---------------|:------------|:--------------|:------------------------|:------------------|
+| my_list        | Context     | -             | [1, 2, 'hello']         | -                 |
+| my_value       | Context     | -             | 2.0                     | -                 |
+| U              | Field       | 0             | XLinear(...)            | NumPy             |
+| V              | Field       | 0             | XLinear(...)            | NumPy             |
+| UV             | VectorField | 0             | XLinear_Velocity(...)   | -                 |
+| U_wind         | Field       | 1             | XLinear(...)            | NumPy             |
+| V_wind         | Field       | 1             | XLinear(...)            | NumPy             |
+| UV_wind        | VectorField | 1             | XLinear_Velocity(...)   | -                 |
+| constant_field | Field       | 2             | XConstantField(...)     | NumPy             |
+
+mesh: FlatMesh()
+time interval: (np.datetime64('2000-01-01T00:00:00.000000000'), np.datetime64('2001-01-01T00:00:00.000000000'))
+"""
+    fieldset.describe(io)
+    actual = io.getvalue()
+    assert actual == expected
+
+
+@tests.mark.zarr_filterwarning_consolidated_metadata
+def test_fieldset_describe_backends(tmp_path):
+    ds_u = parcels.tutorial.open_dataset("NemoNorthSeaORCA025-N006_data/U")
+    ds_v = parcels.tutorial.open_dataset("NemoNorthSeaORCA025-N006_data/V")
+    ds_w = parcels.tutorial.open_dataset("NemoNorthSeaORCA025-N006_data/W")
+    ds_coords = parcels.tutorial.open_dataset("NemoNorthSeaORCA025-N006_data/mesh_mask")[["glamf", "gphif"]]
+
+    ds_fset = convert.nemo_to_sgrid(
+        fields={"U": ds_u["uo"], "V": ds_v["vo"], "W": ds_w["wo"]},
+        coords=ds_coords,
+    )
+    fieldset = FieldSet.from_sgrid_conventions(ds_fset)
+
+    io = StringIO()
+    expected = """\
+| Name   | Type        |   Grid number | Interp method / value   | Parcels backend   |
+|:-------|:------------|--------------:|:------------------------|:------------------|
+| U      | Field       |             0 | XLinear(...)            | Dask              |
+| V      | Field       |             0 | XLinear(...)            | Dask              |
+| W      | Field       |             0 | XLinear(...)            | Dask              |
+| UV     | VectorField |             0 | CGrid_Velocity(...)     | -                 |
+| UVW    | VectorField |             0 | CGrid_Velocity(...)     | -                 |
+
+mesh: SphericalMesh(radius=6366707.019493707)
+time interval: (np.datetime64('2000-01-02T12:00:00.000000000'), np.datetime64('2000-01-12T12:00:00.000000000'))
+"""
+    fieldset.describe(io)
+    actual = io.getvalue()
+    assert actual == expected
+
+    # Also run with WindowedArray backend
+    fieldset = fieldset.to_windowed_arrays()
+
+    io = StringIO()
+    expected = """\
+| Name   | Type        |   Grid number | Interp method / value   | Parcels backend   |
+|:-------|:------------|--------------:|:------------------------|:------------------|
+| U      | Field       |             0 | XLinear(...)            | WindowedArray     |
+| V      | Field       |             0 | XLinear(...)            | WindowedArray     |
+| W      | Field       |             0 | XLinear(...)            | WindowedArray     |
+| UV     | VectorField |             0 | CGrid_Velocity(...)     | -                 |
+| UVW    | VectorField |             0 | CGrid_Velocity(...)     | -                 |
+
+mesh: SphericalMesh(radius=6366707.019493707)
+time interval: (np.datetime64('2000-01-02T12:00:00.000000000'), np.datetime64('2000-01-12T12:00:00.000000000'))
+"""
+    fieldset.describe(io)
+    actual = io.getvalue()
+    assert actual == expected
+
+    path = tmp_path / "ds.zarr"
+    ds_fset.to_zarr(path)
+    ds_zarr = open_raw_zarr(path)
+    fieldset = FieldSet.from_sgrid_conventions(ds_zarr, skip_field_data_validation=True)
+
+    io = StringIO()
+    expected = """\
+| Name   | Type        |   Grid number | Interp method / value   | Parcels backend   |
+|:-------|:------------|--------------:|:------------------------|:------------------|
+| U      | Field       |             0 | XLinear(...)            | Zarr              |
+| V      | Field       |             0 | XLinear(...)            | Zarr              |
+| W      | Field       |             0 | XLinear(...)            | Zarr              |
+| UV     | VectorField |             0 | CGrid_Velocity(...)     | -                 |
+| UVW    | VectorField |             0 | CGrid_Velocity(...)     | -                 |
+
+mesh: SphericalMesh(radius=6366707.019493707)
+time interval: (np.datetime64('2000-01-02T12:00:00.000000000'), np.datetime64('2000-01-12T12:00:00.000000000'))
+"""
+    fieldset.describe(io)
+    actual = io.getvalue()
+    assert actual == expected
+
+    # TODO: Add test for the ChunkedArray backend (can also refactor this test at the same time)

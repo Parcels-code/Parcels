@@ -15,7 +15,7 @@ If you are doing any kind of Lagrangian modelling and/or analysis check out the 
 
 ```{image} https://img.shields.io/badge/Zulip-50ADFF?style=for-the-badge&logo=Zulip&logoColor=white
 :width: 30%
-:target: https://clam-community.zulipchat.com/
+:target: https://clam-community.zulipchat.com/login/
 ```
 
 +++
@@ -51,7 +51,7 @@ Report a bug with an Issue
 ````{grid-item-card} Sharing user code
 :shadow: md
 
-Curious to see if someone has already written the custom `Kernel` you are thinking of or runs **Parcels** with the same hydrodynamic data? Check out the parcels_contributions repository and share examples with other users!
+Curious to see if someone has already written the custom `Kernel` you are thinking of or runs Parcels with the same hydrodynamic data? Check out the parcels_contributions repository and share examples with other users!
 
 ```{image} https://img.shields.io/badge/maintainer_needed-red
 :width: 40%

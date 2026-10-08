@@ -1,5 +1,5 @@
 """autoSphinx configuration file for Parcels documentation."""
-# parcels documentation build configuration file, created by
+# Parcels documentation build configuration file, created by
 # sphinx-quickstart on Tue Oct 20 09:58:20 2015.
 #
 # This file is execfile()d with the current directory set to its
@@ -121,8 +121,8 @@ exclude_patterns = [
     "_build",
     "jupyter_execute",
     "**.ipynb_checkpoints",
-    "user_guide/examples_v3",
     ".jupyter_cache",
+    "paper-v4/*",
 ]
 
 # The reST default role (used for this markup: `text`) to use for all
@@ -187,11 +187,12 @@ numpydoc_class_members_toctree = False  # https://stackoverflow.com/a/73294408
 # relative to this directory. They are copied after the builtin static files,
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
+html_css_files = ["custom.css"]
 html_theme_options = {
     "logo": {
         "alt_text": "Parcels - Home",
-        "image_light": "logo-horo-transparent.png",
-        "image_dark": "logo-horo-transparent-dark.png",
+        "image_light": "_static/logo-horo-transparent.png",
+        "image_dark": "_static/logo-horo-transparent-dark.png",
     },
     "use_edit_page_button": True,
     "github_url": "https://github.com/Parcels-code/parcels",
@@ -203,7 +204,7 @@ html_theme_options = {
             "type": "fontawesome",
         }
     ],
-    "announcement": "WARNING: This documentation is built for v4 of Parcels, which is unreleased and in active development. Use the version switcher in the bottom right to select your version of Parcels, or see <a href='https://docs.parcels-code.org/'>stable docs</a>.",
+    "announcement": "Parcels v4 has been released! 🎉 See <a href='https://parcels-code.org/blog/parcels-v4'>our release blog post</a> for more info",
     "header_links_before_dropdown": 8,
     "navbar_align": "left",
 }
@@ -512,7 +513,7 @@ epub_exclude_files = ["search.html"]
 # epub_use_index = True
 
 # -- Options for MyST parser ----------------------------------------------
-myst_heading_anchors = 3
+myst_heading_anchors = 4
 
 myst_enable_extensions = ["substitution", "amsmath", "dollarmath"]
 
@@ -521,6 +522,12 @@ nb_execution_mode = "cache"
 nb_execution_excludepatterns = ["jupyter_execute", ".jupyter_cache"]
 nb_execution_raise_on_error = True
 nb_execution_timeout = 75
+suppress_warnings = ["mystnb.unknown_mime_type"]
+nitpicky = True
+nitpick_ignore_regex = [
+    (r"py:class", r".*"),
+    (r"py:mod", r".*"),
+]
 
 # -- Options for autoapi --------------------------------------------------
 autoapi_dirs = ["../src/parcels"]

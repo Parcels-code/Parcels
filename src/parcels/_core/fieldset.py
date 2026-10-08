@@ -1,39 +1,34 @@
 from __future__ import annotations
 
-import functools
+import sys
 from collections.abc import Iterable
-from typing import TYPE_CHECKING
+from typing import IO, TYPE_CHECKING
 
 import cf_xarray  # noqa: F401
 import numpy as np
-import uxarray as ux
 import xarray as xr
-import xgcm
 
-import parcels._sgrid as sgrid
+import parcels._typing as ptyping
 from parcels._core.field import Field, VectorField
+from parcels._core.mesh import FlatMesh, SphericalMesh
+from parcels._core.model import (
+    ModelData,
+    StructuredModelData,
+    UnstructuredModelData,
+    create_empty_constant_field_model,
+)
 from parcels._core.utils.string import _assert_str_and_python_varname
 from parcels._core.utils.time import get_datetime_type_calendar
 from parcels._core.utils.time import is_compatible as datetime_is_compatible
-from parcels._core.uxgrid import UxGrid
-from parcels._core.xgrid import _DEFAULT_XGCM_KWARGS, XGrid
-from parcels._logger import logger
-from parcels._reprs import fieldset_repr
-from parcels._typing import Mesh
-from parcels.convert import _ds_rename_using_standard_names
+from parcels._python import NOTSET, NotSetType
+from parcels._repr_utils import fieldset_describe
 from parcels.interpolators import (
-    CGrid_Velocity,
-    Ux_Velocity,
-    UxConstantFaceConstantZC,
-    UxConstantFaceLinearZF,
-    UxLinearNodeConstantZC,
-    UxLinearNodeLinearZF,
     XConstantField,
-    XLinear,
-    XLinear_Velocity,
 )
 
 if TYPE_CHECKING:
+    import uxarray as ux
+
     from parcels._core.basegrid import BaseGrid
     from parcels._typing import TimeLike
 __all__ = ["FieldSet"]
@@ -69,64 +64,158 @@ class FieldSet:
 
     """
 
-    def __init__(self, fields: list[Field | VectorField]):
-        for field in fields:
-            if not isinstance(field, (Field, VectorField)):
-                raise ValueError(f"Expected `field` to be a Field or VectorField object. Got {field}")
-        assert_compatible_calendars(fields)
+    def __init__(self, models: list[ModelData]):
+        if models == []:
+            raise ValueError("List of models can't be empty.")
+        for model in models:
+            if not isinstance(model, ModelData):
+                raise ValueError(f"Expected `model` to be a ModelData object. Got {model}")
+        # assert_compatible_calendars(fields)
 
-        self.fields = {f.name: f for f in fields}
-        self.constants: dict[str, float] = {}
+        self.models = models
+        self.constant_model: StructuredModelData | None = None
+        self._fields: dict[str, Field | VectorField] | None = None
+        self.reconstruct_fields()
+        self.context: dict[str, float] = {}
+        assert_models_have_same_mesh(self.models)
+
+    @property
+    def mesh(self) -> FlatMesh | SphericalMesh:
+        return self.models[0].mesh
+
+    def __setattr__(self, name, value):
+        """Set field attribute by name. If context exists and name in context, raise error to prevent overwriting context variable."""
+        context = self.__dict__.get("context")
+
+        if context is not None and name in context:
+            raise AttributeError(f"Cannot assign '{name}' directly. Use fieldset.context['{name}'] instead.")
+        # Handle setting of attributes not in context per default
+        super().__setattr__(name, value)
+
+    @property
+    def fields(self):
+        if self._fields is None:
+            self.reconstruct_fields()
+        assert self._fields is not None
+        return self._fields
+
+    def reconstruct_fields(self):
+        fields = []
+        for model in self.models:
+            fields += model.construct_fields()
+        if self.constant_model is not None:
+            fields += self.constant_model.construct_fields()
+        self._fields = {f.name: f for f in fields}
 
     def __getattr__(self, name):
-        """Get the field by name. If the field is not found, check if it's a constant."""
-        if name in self.fields:
-            return self.fields[name]
-        elif name in self.constants:
-            return self.constants[name]
+        """Get the field by name. If the field is not found, check if it's a context variable."""
+        if name in self._fields:
+            return self._fields[name]
+        elif name in self.context:
+            return self.context[name]
         else:
             raise AttributeError(f"FieldSet has no attribute '{name}'")
 
-    def __repr__(self):
-        return fieldset_repr(self)
+    def __add__(self, other: FieldSet) -> FieldSet:
+        if not isinstance(other, FieldSet):
+            return NotImplemented
+        assert_compatible_fieldsets(self, other)
+        combined = FieldSet(self.models + other.models)
+        combined.context = {**self.context, **other.context}
+        # Carry over constant model
+        if self.constant_model is not None and other.constant_model is not None:
+            # Merge data variables from both constant models into one
+            combined.constant_model = self.constant_model
+            for name in other.constant_model.scalar_field_names:
+                combined.constant_model.data[name] = other.constant_model.data[name]
+        elif self.constant_model is not None or other.constant_model is not None:
+            combined.constant_model = self.constant_model or other.constant_model
+
+        combined.reconstruct_fields()
+        return combined
+
+    # def __repr__(self):
+    #     return fieldset_repr(self)
 
     @property
     def time_interval(self):
         """Returns the valid executable time interval of the FieldSet,
-        which is the intersection of the time intervals of all fields
+        which is the overlap of the time intervals of all fields
         in the FieldSet.
         """
-        time_intervals = (f.time_interval for f in self.fields.values())
+        time_intervals = (m.time_interval for m in self.models)
 
         # Filter out Nones from constant Fields
         time_intervals = [t for t in time_intervals if t is not None]
         if len(time_intervals) == 0:  # All fields are constant fields
             return None
-        return functools.reduce(lambda x, y: x.intersection(y), time_intervals)
 
-    def add_field(self, field: Field, name: str | None = None):
-        """Add a :class:`parcels.field.Field` object to the FieldSet.
+        overlap = time_intervals[0]
+        for time_interval in time_intervals[1:]:
+            if overlap is None:
+                return None
+            overlap = overlap.intersection(time_interval)
+
+        return overlap
+
+    def to_windowed_arrays(self, *, max_levels: int | None = None):
+        """Wrap dask-backed field data in rolling time-window caches.
+
+        Opt-in optimization for forward-marching simulations where all particles
+        share a single clock. Delegates to each underlying model; dask-backed,
+        time-leading fields are served through a resident NumPy window (each time
+        level loaded once and evicted as the clock advances) instead of re-reading
+        chunks on every kernel step. NumPy-backed (eager) and non-time-leading
+        fields are left unchanged, and re-invoking is idempotent, so this is safe
+        to call more than once.
 
         Parameters
         ----------
-        field : parcels.field.Field
-            Field object to be added
-        name : str
-            Name of the :class:`parcels.field.Field` object to be added. Defaults
-            to name in Field object.
+        max_levels : int, optional
+            Hard cap on the number of time levels kept resident per field.
+            With the default ``None``, each interpolation call decides what
+            stays resident: the cache keeps exactly the span of time indices
+            that call requests and evicts every level outside it. During time
+            integration particles bracket the current time between two
+            adjacent levels, so the default keeps at most two levels resident.
+            Only when a single call requests a wider time span (e.g. particles
+            spread across many time levels) does the window grow beyond that,
+            and ``max_levels`` then bounds its size.
+
+        Returns
+        -------
+        FieldSet
+            ``self``, to allow chaining.
         """
-        if not isinstance(field, (Field, VectorField)):
-            raise ValueError(f"Expected `field` to be a Field or VectorField object. Got {type(field)}")
-        assert_compatible_calendars((*self.fields.values(), field))
+        for model in self.models:
+            model.to_windowed_arrays(max_levels=max_levels)
+        return self
 
-        name = field.name if name is None else name
+    def to_chunk_cached_arrays(self, *, max_cache_bytes: int = 600_000_000):
+        """Wrap dask-backed field data in chunk-level LRU caches.
 
-        if name in self.fields:
-            raise ValueError(f"FieldSet already has a Field with name '{name}'")
+        Opt-in optimization that replaces each dask-backed data variable's
+        internal storage with a :class:`~parcels._chunk_cached_array.ChunkCachedArray`.
+        Delegates to each underlying model; repeated vectorized ``.isel()``
+        calls then hit an in-memory LRU cache instead of recomputing dask task
+        graphs. NumPy-backed (eager) fields are left unchanged, and re-invoking
+        is idempotent.
 
-        self.fields[name] = field
+        Parameters
+        ----------
+        max_cache_bytes : int, optional
+            Maximum cache size in bytes, per variable. Defaults to 600 MB.
 
-    def add_constant_field(self, name: str, value, mesh: Mesh = "spherical"):
+        Returns
+        -------
+        FieldSet
+            ``self``, to allow chaining.
+        """
+        for model in self.models:
+            model.to_chunk_cached_arrays(max_cache_bytes=max_cache_bytes)
+        return self
+
+    def add_constant_field(self, name: str, value):
         """Wrapper function to add a Field that is constant in space,
            useful e.g. when using constant horizontal diffusivity
 
@@ -136,41 +225,33 @@ class FieldSet:
             Name of the :class:`parcels.field.Field` object to be added
         value :
             Value of the constant field
-        mesh : str
-            String indicating the type of mesh coordinates,
-
-            1. spherical (default): Lat and lon in degree, with a
-               correction for zonal velocity U near the poles.
-            2. flat: No conversion, lat/lon are assumed to be in m.
         """
-        ds = xr.Dataset(
-            {name: (["lat", "lon"], np.full((1, 1), value))},
-            coords={"lat": (["lat"], [0], {"axis": "Y"}), "lon": (["lon"], [0], {"axis": "X"})},
-        )
-        xgrid = xgcm.Grid(
-            ds, coords={"X": {"left": "lon"}, "Y": {"left": "lat"}}, autoparse_metadata=False, **_DEFAULT_XGCM_KWARGS
-        )
-        grid = XGrid(xgrid, mesh=mesh)
-        self.add_field(Field(name, ds[name], grid, interp_method=XConstantField))
+        if self.constant_model is None:
+            self.constant_model = create_empty_constant_field_model(self.mesh)
 
-    def add_constant(self, name, value):
-        """Add a constant to the FieldSet.
+        self.constant_model.data[name] = (["time", "depth", "lat", "lon"], np.full((1, 1, 1, 1), value))
+
+        self.reconstruct_fields()
+        field = getattr(self, name)
+        field.interp_method = XConstantField()
+        assert_models_have_same_mesh(self.models)
+
+    def add_context(self, name, value):
+        """Add context variable to the FieldSet.
 
         Parameters
         ----------
         name : str
-            Name of the constant
+            Name of the context variable
         value :
-            Value of the constant
+            Value of the context variable
 
         """
         _assert_str_and_python_varname(name)
 
-        if name in self.constants:
-            raise ValueError(f"FieldSet already has a constant with name '{name}'")
-        if not isinstance(value, (float, np.floating, int, np.integer)):
-            raise ValueError(f"FieldSet constants have to be of type float or int, got a {type(value)}")
-        self.constants[name] = value
+        if name in self.context:
+            raise ValueError(f"FieldSet already has a context with name '{name}'")
+        self.context[name] = value
 
     @property
     def gridset(self) -> list[BaseGrid]:
@@ -181,7 +262,12 @@ class FieldSet:
         return grids
 
     @classmethod
-    def from_ugrid_conventions(cls, ds: ux.UxDataset, mesh: str = "spherical"):
+    def from_ugrid_conventions(
+        cls,
+        ds: ux.UxDataset,
+        mesh: str = "spherical",
+        vector_fields: ptyping.VectorFields | NotSetType = NOTSET,
+    ):
         """Create a FieldSet from a Parcels compliant uxarray.UxDataset.
 
         This is the primary ingestion method in Parcels for structured grid datasets.
@@ -195,39 +281,30 @@ class FieldSet:
         ----------
         ds : uxarray.UxDataset
             uxarray.UxDataset as obtained from the uxarray package but with appropriate named vertical dimensions
+        vector_fields : Mapping[str, tuple[str, ...]], optional
+            Mapping of vector field names to tuples of component variable names in the dataset.
+            For example, ``{"UV": ("U", "V"), "UVW": ("U", "V", "W")}``.
+            If omitted (default), vector fields are auto-discovered from standard variable names (``U``/``V``/``W``).
 
         Returns
         -------
         FieldSet
             FieldSet object containing the fields from the dataset that can be used for a Parcels simulation.
+
+        Notes
+        -----
+        See https://ugrid-conventions.github.io/ugrid-conventions/ for more information on the UGRID conventions.
         """
-        ds_dims = list(ds.dims)
-        if not all(dim in ds_dims for dim in ["time", "zf", "zc"]):
-            raise ValueError(
-                f"Dataset missing one of the required dimensions 'time', 'zf', or 'zc' for uxDataset. Found dimensions {ds_dims}"
-            )
-
-        grid = UxGrid(ds.uxgrid, z=ds.coords["zf"], mesh=mesh)
-        ds = _discover_ux_U_and_V(ds)
-
-        fields = {}
-        if "U" in ds.data_vars and "V" in ds.data_vars:
-            fields["U"] = Field("U", ds["U"], grid, _select_uxinterpolator(ds["U"]))
-            fields["V"] = Field("V", ds["V"], grid, _select_uxinterpolator(ds["V"]))
-            fields["UV"] = VectorField("UV", fields["U"], fields["V"], interp_method=Ux_Velocity)
-
-            if "W" in ds.data_vars:
-                fields["W"] = Field("W", ds["W"], grid, _select_uxinterpolator(ds["W"]))
-                fields["UVW"] = VectorField("UVW", fields["U"], fields["V"], fields["W"], interp_method=Ux_Velocity)
-
-        for varname in set(ds.data_vars) - set(fields.keys()):
-            fields[varname] = Field(str(varname), ds[varname], grid, _select_uxinterpolator(ds[varname]))
-
-        return cls(list(fields.values()))
+        model = UnstructuredModelData.from_ugrid_conventions(ds, mesh=mesh, vector_fields=vector_fields)
+        return cls([model])
 
     @classmethod
     def from_sgrid_conventions(
-        cls, ds: xr.Dataset, mesh: Mesh | None = None
+        cls,
+        ds: xr.Dataset,
+        mesh: ptyping.TMesh | None = None,
+        vector_fields: ptyping.VectorFields | NotSetType = NOTSET,
+        skip_field_data_validation: bool = False,
     ):  # TODO: Update mesh to be discovered from the dataset metadata
         """Create a FieldSet from a dataset using SGRID convention metadata.
 
@@ -242,6 +319,12 @@ class FieldSet:
         mesh : str
             String indicating the type of mesh coordinates used during
             velocity interpolation. Options are "spherical" or "flat".
+        vector_fields : Mapping[str, tuple[str, ...]], optional
+            Mapping of vector field names to tuples of component variable names in the dataset.
+            For example, ``{"UV": ("U", "V"), "UVW": ("U", "V", "W")}``.
+            If omitted (default), vector fields are auto-discovered from standard variable names (``U``/``V``/``W``).
+        skip_field_data_validation : bool, optional
+            If True, skip validation of the field data. This can be useful for performance reasons, but may lead to unexpected behavior if the field data is invalid. Default is False.
 
         Returns
         -------
@@ -254,73 +337,76 @@ class FieldSet:
         and create appropriate Fields for a Parcels simulation. The dataset should
         contain a variable with 'cf_role' attribute set to 'grid_topology'.
 
-        See https://sgrid.github.io/ for more information on the SGRID conventions.
+        See https://sgrid.github.io/sgrid/ for more information on the SGRID conventions.
         """
-        ds = ds.copy()
-        if mesh is None:
-            mesh = _get_mesh_type_from_sgrid_dataset(ds)
+        model = StructuredModelData.from_sgrid_conventions(
+            ds, mesh=mesh, vector_fields=vector_fields, skip_field_data_validation=skip_field_data_validation
+        )
+        return cls([model])
 
-        # Ensure time dimension has axis attribute if present
-        if "time" in ds.dims and "time" in ds.coords:
-            if "axis" not in ds["time"].attrs:
-                logger.debug(
-                    "Dataset contains 'time' dimension but no 'axis' attribute. Setting 'axis' attribute to 'T'."
-                )
-                ds["time"].attrs["axis"] = "T"
+    def describe(self, buf: IO | None = None) -> None:
+        """
+        Summary of a FieldSet including available Fields, associated
+        interpolators, and context values.
 
-        # Find time dimension based on axis attribute and rename to `time`
-        if (time_dims := ds.cf.axes.get("T")) is not None:
-            if len(time_dims) > 1:
-                raise ValueError("Multiple time coordinates found in dataset. This is not supported by Parcels.")
-            (time_dim,) = time_dims
-            if time_dim != "time":
-                logger.debug(f"Renaming time axis coordinate from {time_dim} to 'time'.")
-                ds = ds.rename({time_dim: "time"})
+        Parameters
+        ----------
+        buf : file-like, default: sys.stdout
+            writable buffer
+        """
+        if buf is None:
+            buf = sys.stdout
+        assert buf is not None
 
-        # Parse SGRID metadata and get xgcm kwargs
-        _, xgcm_kwargs = sgrid.xgcm_parse_sgrid(ds)
-
-        # Add time axis to xgcm_kwargs if present
-        if "time" in ds.dims:
-            if "T" not in xgcm_kwargs["coords"]:
-                xgcm_kwargs["coords"]["T"] = {"center": "time"}
-
-        if "lon" not in ds.coords or "lat" not in ds.coords:
-            node_dimensions = sgrid.load_mappings(ds.grid.node_dimensions)
-            ds["lon"] = ds[node_dimensions[0]]
-            ds["lat"] = ds[node_dimensions[1]]
-
-        # Create xgcm Grid object
-        xgcm_grid = xgcm.Grid(ds, autoparse_metadata=False, **xgcm_kwargs, **_DEFAULT_XGCM_KWARGS)
-
-        # Wrap in XGrid
-        grid = XGrid(xgcm_grid, mesh=mesh)
-
-        # Create fields from data variables, skipping grid metadata variables
-        # Skip variables that are SGRID metadata (have cf_role='grid_topology')
-        skip_vars = set()
-        for var in ds.data_vars:
-            if ds[var].attrs.get("cf_role") == "grid_topology":
-                skip_vars.add(var)
-
-        fields = {}
-        if "U" in ds.data_vars and "V" in ds.data_vars:
-            interp_method = XLinear_Velocity if _is_agrid(ds) else CGrid_Velocity
-            fields["U"] = Field("U", ds["U"], grid, XLinear)
-            fields["V"] = Field("V", ds["V"], grid, XLinear)
-            fields["UV"] = VectorField("UV", fields["U"], fields["V"], interp_method=interp_method)
-
-            if "W" in ds.data_vars:
-                fields["W"] = Field("W", ds["W"], grid, XLinear)
-                fields["UVW"] = VectorField("UVW", fields["U"], fields["V"], fields["W"], interp_method=interp_method)
-
-        for varname in set(ds.data_vars) - set(fields.keys()) - skip_vars:
-            fields[varname] = Field(str(varname), ds[varname], grid, XLinear)
-
-        return cls(list(fields.values()))
+        buf.write(fieldset_describe(self))
 
 
-class CalendarError(Exception):  # TODO: Move to a parcels errors module
+def assert_compatible_fieldsets(left: FieldSet, right: FieldSet) -> None:
+    """Assert that two FieldSets can be combined without name conflicts.
+
+    Parameters
+    ----------
+    left, right : FieldSet
+        The two FieldSets to check.
+
+    Raises
+    ------
+    ValueError
+        If the FieldSets share field names or constant names.
+    """
+    common_fields = set(left.fields) & set(right.fields)
+    if common_fields:
+        raise ValueError(
+            f"Cannot add FieldSets that have field names in common. Duplicate field names are: {sorted(common_fields)}"
+        )
+
+    common_context = set(left.context) & set(right.context)
+    if common_context:
+        raise ValueError(
+            f"Cannot add FieldSets that have context value names in common. Duplicate context value names are: {sorted(common_context)}"
+        )
+
+
+class IncompatibleMeshesException(Exception): ...
+
+
+def assert_models_have_same_mesh(models: list[ModelData]):
+    if models == []:
+        return
+
+    first_mesh = None
+    for i, model in enumerate(models):
+        if first_mesh is None:
+            first_mesh = model.mesh
+            continue
+
+        if model.mesh != first_mesh:
+            raise IncompatibleMeshesException(
+                f"All ModelData objects must have the same meshes. ModelData at index 0 has a mesh of {first_mesh!r} while ModelData at index {i} has mesh {model.mesh!r} "
+            )
+
+
+class CalendarError(Exception):  # TODO: Move to a Parcels errors module
     """Exception raised when the calendar of a field is not compatible with the rest of the Fields. The user should ensure that they only add fields to a FieldSet that have compatible CFtime calendars."""
 
 
@@ -354,10 +440,10 @@ def _format_calendar_error_message(field: Field | VectorField, reference_datetim
 
 
 _COPERNICUS_MARINE_AXIS_VARNAMES = {
-    "X": "lon",
-    "Y": "lat",
-    "Z": "depth",
     "T": "time",
+    "Z": "depth",
+    "Y": "lat",
+    "X": "lon",
 }
 
 
@@ -387,117 +473,3 @@ _COPERNICUS_MARINE_CF_STANDARD_NAME_FALLBACKS = {
     ],
     "W": ["upward_sea_water_velocity", "vertical_sea_water_velocity"],
 }
-
-
-def _discover_ux_U_and_V(ds: ux.UxDataset) -> ux.UxDataset:
-    # Common variable names for U and V found in UxDatasets
-    common_ux_UV = [("unod", "vnod"), ("u", "v")]
-    common_ux_W = ["w"]
-
-    if "W" not in ds:
-        for common_W in common_ux_W:
-            if common_W in ds:
-                ds = _ds_rename_using_standard_names(ds, {common_W: "W"})
-                break
-
-    if "U" in ds and "V" in ds:
-        return ds  # U and V already present
-    elif "U" in ds or "V" in ds:
-        raise ValueError(
-            "Dataset has only one of the two variables 'U' and 'V'. Please rename the appropriate variable in your dataset to have both 'U' and 'V' for Parcels simulation."
-        )
-
-    for common_U, common_V in common_ux_UV:
-        if common_U in ds:
-            if common_V not in ds:
-                raise ValueError(
-                    f"Dataset has variable with standard name {common_U!r}, "
-                    f"but not the matching variable with standard name {common_V!r}. "
-                    "Please rename the appropriate variables in your dataset to have both 'U' and 'V' for Parcels simulation."
-                )
-            else:
-                ds = _ds_rename_using_standard_names(ds, {common_U: "U", common_V: "V"})
-                break
-
-        else:
-            if common_V in ds:
-                raise ValueError(
-                    f"Dataset has variable with standard name {common_V!r}, "
-                    f"but not the matching variable with standard name {common_U!r}. "
-                    "Please rename the appropriate variables in your dataset to have both 'U' and 'V' for Parcels simulation."
-                )
-            continue
-
-    return ds
-
-
-def _select_uxinterpolator(da: ux.UxDataArray):
-    """Selects the appropriate uxarray interpolator for a given uxarray UxDataArray"""
-    supported_uxinterp_mapping = {
-        # (zc,n_face): face-center laterally, layer centers vertically — piecewise constant
-        "zc,n_face": UxConstantFaceConstantZC,
-        # (zc,n_node): node/corner laterally, layer centers vertically — barycentric lateral & piecewise constant vertical
-        "zc,n_node": UxLinearNodeConstantZC,
-        # (zf,n_node): node/corner laterally, layer interfaces vertically — barycentric lateral & linear vertical
-        "zf,n_node": UxLinearNodeLinearZF,
-        # (zf,n_face): face-center laterally, layer interfaces vertically — piecewise constant lateral & linear vertical
-        "zf,n_face": UxConstantFaceLinearZF,
-    }
-    # Extract only spatial dimensions, neglecting time
-    da_spatial_dims = tuple(d for d in da.dims if d not in ("time",))
-    if len(da_spatial_dims) != 2:
-        raise ValueError(
-            "Fields on unstructured grids must have two spatial dimensions, one vertical (zf or zc) and one lateral (n_face, n_edge, or n_node)"
-        )
-
-    # Construct key (string) for mapping to interpolator
-    # Find vertical and lateral tokens
-    vdim = None
-    ldim = None
-    for d in da_spatial_dims:
-        if d in ("zf", "zc"):
-            vdim = d
-        if d in ("n_face", "n_node"):
-            ldim = d
-    # Map to supported interpolators
-    if vdim and ldim:
-        key = f"{vdim},{ldim}"
-        if key in supported_uxinterp_mapping.keys():
-            return supported_uxinterp_mapping[key]
-
-    return None
-
-
-# TODO: Refactor later into something like `parcels._metadata.discover(dataset)` helper that can be used to discover important metadata like this. I think this whole metadata handling should be refactored into its own module.
-def _get_mesh_type_from_sgrid_dataset(ds_sgrid: xr.Dataset) -> Mesh:
-    """Small helper to inspect SGRID metadata and dataset metadata to determine mesh type."""
-    sgrid_metadata = ds_sgrid.sgrid.metadata
-
-    fpoint_x, fpoint_y = sgrid_metadata.node_coordinates
-
-    if _is_coordinate_in_degrees(ds_sgrid[fpoint_x]) ^ _is_coordinate_in_degrees(ds_sgrid[fpoint_x]):
-        msg = (
-            f"Mismatch in units between X and Y coordinates.\n"
-            f"  Coordinate {ds_sgrid[fpoint_x]!r} attrs: {ds_sgrid[fpoint_x].attrs}\n"
-            f"  Coordinate {ds_sgrid[fpoint_y]!r} attrs: {ds_sgrid[fpoint_y].attrs}\n"
-        )
-        raise ValueError(msg)
-
-    return "spherical" if _is_coordinate_in_degrees(ds_sgrid[fpoint_x]) else "flat"
-
-
-def _is_agrid(ds: xr.Dataset) -> bool:
-    # check if U and V are defined on the same dimensions
-    # if yes, interpret as A grid
-    return set(ds["U"].dims) == set(ds["V"].dims)
-
-
-def _is_coordinate_in_degrees(da: xr.DataArray) -> bool:
-    units = da.attrs.get("units")
-    if units is None:
-        raise ValueError(
-            f"Coordinate {da.name!r} of your dataset has no 'units' attribute - we don't know what the spatial units are."
-        )
-    if isinstance(units, str) and "degree" in units.lower():
-        return True
-    return False

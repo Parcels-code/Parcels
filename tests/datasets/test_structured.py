@@ -1,23 +1,21 @@
-import xgcm
-
-from parcels._core.xgrid import _DEFAULT_XGCM_KWARGS
 from parcels._datasets.structured.generic import datasets
+from parcels._sgrid.accessor import get_dim_position
+from parcels._sgrid.core import Padding
 
 
 def test_left_indexed_dataset():
-    """Checks that 'ds_2d_left' is right indexed on all variables."""
+    """Checks that 'ds_2d_left' has HIGH padding (MITgcm/left-indexed) on all spatial axes."""
     ds = datasets["ds_2d_left"]
-    grid = xgcm.Grid(ds, **_DEFAULT_XGCM_KWARGS)
-
-    for _axis_name, axis in grid.axes.items():
-        for pos, _dim_name in axis.coords.items():
-            assert pos in ["left", "center"]
+    metadata = ds.sgrid.metadata
+    for fnp in metadata.face_dimensions:
+        assert get_dim_position(metadata, fnp.face) == "face"
+        assert get_dim_position(metadata, fnp.node) == Padding.HIGH
 
 
 def test_right_indexed_dataset():
-    """Checks that 'ds_2d_right' is right indexed on all variables."""
+    """Checks that 'ds_2d_right' has LOW padding (NEMO/right-indexed) on all spatial axes."""
     ds = datasets["ds_2d_right"]
-    grid = xgcm.Grid(ds, **_DEFAULT_XGCM_KWARGS)
-    for _axis_name, axis in grid.axes.items():
-        for pos, _dim_name in axis.coords.items():
-            assert pos in ["center", "right"]
+    metadata = ds.sgrid.metadata
+    for fnp in metadata.face_dimensions:
+        assert get_dim_position(metadata, fnp.face) == "face"
+        assert get_dim_position(metadata, fnp.node) == Padding.LOW

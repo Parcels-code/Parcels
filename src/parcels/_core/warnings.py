@@ -22,7 +22,16 @@ class FileWarning(UserWarning):
 
     These warnings can be related to file chunking, naming, or decoding issues.
     Chunking issues in particular may negatively impact performance
-    (see also https://docs.parcels-code.org/en/latest/examples/documentation_MPI.html#Chunking-the-FieldSet-with-dask)
+    """
+
+    pass
+
+
+class FieldEvalWarning(UserWarning):
+    """Warning that is raised when there are issues during the evaluation of a Field.
+
+    These warnings can be related to out-of-bounds indices during interpolation,
+    or other issues that arise during the evaluation of a Field at particle positions.
     """
 
     pass

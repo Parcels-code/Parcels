@@ -98,11 +98,11 @@ def assert_metadata_ds_consistency(ds: xr.Dataset, metadata: SGrid2DMetadata):
         face, node, padding = obj.face, obj.node, obj.padding
 
         try:
-            n_nodes = ds.dims[node]
+            n_nodes = ds.sizes[node]
         except KeyError:  # node dimension is not in this dataset
             continue
         try:
-            n_faces = ds.dims[face]
+            n_faces = ds.sizes[face]
         except KeyError:  # face dimension is not in this dataset
             continue
 
@@ -146,6 +146,15 @@ def _get_axis_info(grid: SGrid2DMetadata) -> dict[str, tuple[FaceNodePadding, bo
         result[fnp.node] = (fnp, True)
         result[fnp.face] = (fnp, False)
     return result
+
+
+def get_dim_position(grid: SGrid2DMetadata, dim: str) -> "Literal['face'] | Padding":
+    """Returns 'face' if dim is a face dimension, or the SGRID Padding value if it is a node dimension."""
+    axis_info = _get_axis_info(grid)
+    if dim not in axis_info:
+        raise ValueError(f"Dimension {dim!r} is not a spatial SGRID dimension in this grid.")
+    fnp, is_node = axis_info[dim]
+    return fnp.padding if is_node else "face"
 
 
 def _derive_paired_indexer(

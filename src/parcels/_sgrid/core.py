@@ -13,10 +13,11 @@ from __future__ import annotations
 
 import enum
 import re
+import sys
 from collections.abc import Callable, Hashable, Iterable
 from dataclasses import dataclass
 from textwrap import indent
-from typing import Any, Literal, Protocol, Self, cast, overload
+from typing import IO, Any, Literal, Protocol, Self, cast, overload
 
 import xarray as xr
 
@@ -36,15 +37,6 @@ class Padding(enum.Enum):
     LOW = "low"
     HIGH = "high"
     BOTH = "both"
-
-
-SGRID_PADDING_TO_XGCM_POSITION = {
-    Padding.LOW: "right",
-    Padding.HIGH: "left",
-    Padding.BOTH: "inner",
-    Padding.NONE: "outer",
-    # "center" position is not used in SGrid, in SGrid this would just be the edges/faces themselves
-}
 
 
 def get_n_faces(n_nodes: int, padding: Padding) -> int:
@@ -83,8 +75,8 @@ class SGrid2DMetadata(_AttrsSerializable):
         topology_dimension: Literal[2],
         node_dimensions: tuple[Dim, Dim],
         face_dimensions: tuple[FaceNodePadding, FaceNodePadding],
-        node_coordinates: None | tuple[Dim, Dim] = None,
-        vertical_dimensions: None | tuple[FaceNodePadding] = None,
+        node_coordinates: tuple[Dim, Dim] | None = None,
+        vertical_dimensions: tuple[FaceNodePadding] | None = None,
     ):
         if cf_role != "grid_topology":
             raise ValueError(f"cf_role must be 'grid_topology', got {cf_role!r}")
@@ -146,8 +138,21 @@ class SGrid2DMetadata(_AttrsSerializable):
     def __repr__(self) -> str:
         return repr_from_dunder_dict(self)
 
-    def __str__(self) -> str:
-        return _grid2d_to_ascii(self)
+    def describe(self, buf: IO | None = None) -> None:
+        """
+        ASCII summary of the SGRID 2D metadata, showing the relationship
+        between face and node dimensions.
+
+        Parameters
+        ----------
+        buf : file-like, default: sys.stdout
+            writable buffer
+        """
+        if buf is None:
+            buf = sys.stdout
+        assert buf is not None
+
+        buf.write(_grid2d_to_ascii(self))
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, SGrid2DMetadata):
@@ -205,7 +210,7 @@ class SGrid3DMetadata(_AttrsSerializable):
         topology_dimension: Literal[3],
         node_dimensions: tuple[Dim, Dim, Dim],
         volume_dimensions: tuple[FaceNodePadding, FaceNodePadding, FaceNodePadding],
-        node_coordinates: None | tuple[Dim, Dim, Dim] = None,
+        node_coordinates: tuple[Dim, Dim, Dim] | None = None,
     ):
         if cf_role != "grid_topology":
             raise ValueError(f"cf_role must be 'grid_topology', got {cf_role!r}")
@@ -262,8 +267,21 @@ class SGrid3DMetadata(_AttrsSerializable):
     def __repr__(self) -> str:
         return repr_from_dunder_dict(self)
 
-    def __str__(self) -> str:
-        return _grid3d_to_ascii(self)
+    def describe(self, buf: IO | None = None) -> None:
+        """
+        ASCII summary of the SGRID 3D metadata, showing the relationship
+        between face and node dimensions.
+
+        Parameters
+        ----------
+        buf : file-like, default: sys.stdout
+            writable buffer
+        """
+        if buf is None:
+            buf = sys.stdout
+        assert buf is not None
+
+        buf.write(_grid3d_to_ascii(self))
 
     def __eq__(self, other: Any) -> bool:
         if not isinstance(other, SGrid3DMetadata):
@@ -465,31 +483,6 @@ def parse_grid_attrs(attrs: dict[str, Hashable]) -> SGrid2DMetadata | SGrid3DMet
             e2.add_note("Failed to parse as 3D SGrid")
             raise SGridParsingException("Failed to parse SGrid metadata as either 2D or 3D grid") from e2
     return grid
-
-
-def xgcm_parse_sgrid(ds: xr.Dataset):
-    # Function similar to that provided in `xgcm.metadata_parsers.
-    # Might at some point be upstreamed to xgcm directly
-    grid = ds.sgrid.metadata
-
-    if isinstance(grid, SGrid2DMetadata):
-        dimensions = grid.face_dimensions + (grid.vertical_dimensions or ())
-    else:
-        assert isinstance(grid, SGrid3DMetadata)
-        dimensions = grid.volume_dimensions
-
-    xgcm_coords = {}
-    for face_node_padding, axis in zip(dimensions, "XYZ", strict=False):
-        xgcm_position = SGRID_PADDING_TO_XGCM_POSITION[face_node_padding.padding]
-
-        coords = {}
-        for pos, dim in [("center", face_node_padding.face), (xgcm_position, face_node_padding.node)]:
-            # only include dimensions in dataset (ignore dimensions in metadata that may not exist - e.g., due to `.isel`)
-            if dim in ds.dims:
-                coords[pos] = dim
-        xgcm_coords[axis] = coords
-
-    return (ds, {"coords": xgcm_coords})
 
 
 def _get_unique_names(grid: SGrid2DMetadata | SGrid3DMetadata) -> set[str]:

@@ -32,13 +32,13 @@ def DeleteAnyError(particles, fieldset):
     particles[any_error].state = parcels.StatusCode.Delete
 ```
 
-But of course, you can also write code for more sophisticated behaviour than just deleting the particle. It's up to you! Note that if you don't delete the particle, you will have to update the `particles.state = parcels.StatusCode.Evaluate` yourself. For example:
+But of course, you can also write code for more sophisticated behaviour than just deleting the particle. It's up to you! Note that if you don't delete the particle, you will have to update the `particles.state = parcels.StatusCode.Success` yourself. For example:
 
 ```
 def Move1DegreeWest(particles, fieldset):
     out_of_bounds = particles.state == parcels.StatusCode.ErrorOutOfBounds
-    particles[out_of_bounds].dlon -= 1.0
-    particles[out_of_bounds].state = parcels.StatusCode.Evaluate
+    particles[out_of_bounds].dx -= 1.0
+    particles[out_of_bounds].state = parcels.StatusCode.Success
 ```
 
 Or, if you want to make sure that particles don't escape through the water surface
@@ -49,10 +49,10 @@ def KeepInOcean(particles, fieldset):
     through_surface = particles.state == parcels.StatusCode.ErrorThroughSurface
 
     # move particles to surface
-    particles[through_surface].dz = fieldset.W.grid.depth[0] - particles[through_surface].z
+    particles[through_surface].dz = fieldset.surface - particles[through_surface].z
 
-    # change state from error to evaluate
-    particles[through_surface].state = parcels.StatusCode.Evaluate
+    # change state from error to success
+    particles[through_surface].state = parcels.StatusCode.Success
 ```
 
 Kernel functions such as the ones above can then be added to the list of kernels in `pset.execute()`.
@@ -71,13 +71,14 @@ dx, dy = 1.0 / len(ds.XG), 1.0 / len(ds.YG)
 ds["W"] = ds["U"] - 0.1 # 0.1 m/s towards the surface
 
 fieldset = parcels.FieldSet.from_sgrid_conventions(ds, mesh="flat")
+fieldset.add_context("surface", 0)  # surface is at z=0
 ```
 
 If we advect particles with the `AdvectionRK2_3D` kernel, Parcels will raise a `FieldOutOfBoundSurfaceError`:
 
 ```{code-cell}
 :tags: [raises-exception]
-pset = parcels.ParticleSet(fieldset, parcels.Particle, z=[0.5], lat=[2], lon=[1.5])
+pset = parcels.ParticleSet(fieldset, parcels.Particle, z=[0.5], y=[2], x=[1.5])
 kernels = [parcels.kernels.AdvectionRK2_3D]
 pset.execute(kernels, runtime=np.timedelta64(1, "m"), dt=np.timedelta64(1, "s"), verbose_progress=False)
 ```
@@ -85,7 +86,7 @@ pset.execute(kernels, runtime=np.timedelta64(1, "m"), dt=np.timedelta64(1, "s"),
 When we add the `KeepInOcean` Kernel, particles will stay at the surface:
 
 ```{code-cell}
-pset = parcels.ParticleSet(fieldset, parcels.Particle, z=[0.5], lat=[2], lon=[1.5])
+pset = parcels.ParticleSet(fieldset, parcels.Particle, z=[0.5], y=[2], x=[1.5])
 
 kernels = [parcels.kernels.AdvectionRK2_3D, KeepInOcean]
 
@@ -95,5 +96,5 @@ print(f"particle z at end of run = {pset.z}")
 ```
 
 ```{note}
-Kernels that control what to do with `particles.state` should typically be added at the _end_ of the Kernel list, because otherwise later Kernels may overwrite the `particles.state` or the `particles.dlon` variables (see [Kernel loop explanation](explanation_kernelloop.md)).
+Kernels that control what to do with `particles.state` should typically be added at the _end_ of the Kernel list, because otherwise later Kernels may overwrite the `particles.state` or the `particles.dx` variables (see [Kernel loop explanation](explanation_kernelloop.md)).
 ```

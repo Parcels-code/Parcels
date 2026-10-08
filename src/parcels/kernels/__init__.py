@@ -13,7 +13,7 @@ from ._advectiondiffusion import (
     DiffusionUniformKh,
 )
 from ._sigmagrids import (
-    AdvectionRK4_3D_CROCO,
+    AdvectionRK2_3D_CROCO,
     SampleOmegaCroco,
     convert_z_to_sigma_croco,
 )
@@ -32,7 +32,7 @@ __all__ = [  # noqa: RUF022
     "AdvectionDiffusionM1",
     "DiffusionUniformKh",
     # sigmagrids
-    "AdvectionRK4_3D_CROCO",
+    "AdvectionRK2_3D_CROCO",
     "SampleOmegaCroco",
     "convert_z_to_sigma_croco",
 ]
