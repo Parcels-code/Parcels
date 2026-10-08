@@ -178,7 +178,7 @@ default = { features = [
   "devtools",
 ], solve-group = "main" }
 test = { features = ["test"], solve-group = "main" }
-test-minimum = { features = ["test", "minimum"] }
+test-min-versions = { features = ["test", "minimum"] }
 test-py311 = { features = ["test", "py311"] }
 test-py313 = { features = ["test", "py313"] }
 test-notebooks = { features = ["test", "notebooks"], solve-group = "main" }
