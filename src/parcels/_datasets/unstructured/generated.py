@@ -169,8 +169,8 @@ def _build_triangulated_lattice_grid(nx, x_range, y_range):
     """Build a flat UxGrid by splitting each cell of a regular nx-by-nx node lattice over x_range by y_range (in meters) into two triangles."""
     X, Y = np.meshgrid(np.linspace(x_range[0], x_range[1], nx), np.linspace(y_range[0], y_range[1], nx))
     node_x, node_y = X.ravel(), Y.ravel()
-    i, j = np.meshgrid(np.arange(nx - 1), np.arange(nx - 1))
-    i, j = i.ravel(), j.ravel()
+    i_grid, j_grid = np.meshgrid(np.arange(nx - 1), np.arange(nx - 1))
+    i, j = i_grid.ravel(), j_grid.ravel()
     sw = (j * nx) + i
     se = sw + 1
     nw = sw + nx
@@ -391,7 +391,7 @@ def sigma_coordinate_lattice_dataset(nx, x_range, y_range, nz, bottom_depth, eta
     zc = 0.5 * (zf[:-1] + zf[1:]) if zf.ndim == 1 else 0.5 * (zf[:, :-1] + zf[:, 1:])
 
     if zf.ndim == 1:
-        vertical_coords = {"zf": ("zf", zf), "zc": ("zc", zc)}
+        vertical_coords: dict[str, tuple] = {"zf": ("zf", zf), "zc": ("zc", zc)}
     else:
         vertical_coords = {"zf": (("time", "zf", "n_node"), zf), "zc": (("time", "zc", "n_node"), zc)}
 
