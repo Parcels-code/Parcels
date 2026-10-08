@@ -214,6 +214,7 @@ SLOPING_BOTTOM_DEPTH = np.broadcast_to(np.linspace(20.0, 60.0, 5)[:, np.newaxis]
 RISING_ETA = np.broadcast_to(np.linspace(-1.0, 1.0, 3)[:, np.newaxis, np.newaxis], (3, 5, 5))
 
 
+@pytest.mark.filterwarnings("ignore:Time-varying \\(3D\\) z coordinates are experimental")
 @pytest.mark.parametrize(
     "eta, expected_n_snapshots",
     [
@@ -233,6 +234,7 @@ def test_fieldset_from_sigma_coordinate_dataset(eta, expected_n_snapshots):
         assert isinstance(field.interp_method, UxLinearNodeLinearZF)
 
 
+@pytest.mark.filterwarnings("ignore:Time-varying \\(3D\\) z coordinates are experimental")
 @pytest.mark.parametrize(
     "horizontal_dim, expected_interpolator",
     [
@@ -280,6 +282,7 @@ def test_sigma_linear_field_is_exact_on_moving_sigma_grid(horizontal_dim, expect
     np.testing.assert_allclose(fieldset.F.eval(t, z, y, x), a + b * sigma, rtol=1e-6)
 
 
+@pytest.mark.filterwarnings("ignore:Time-varying \\(3D\\) z coordinates are experimental")
 def test_unstructured_model_data_rejects_z_with_different_time_coordinate():
     ds = sigma_coordinate_lattice_dataset(5, (0.0, 4e3), (0.0, 4e3), 4, SLOPING_BOTTOM_DEPTH, RISING_ETA)
     ds_one_day_later = sigma_coordinate_lattice_dataset(

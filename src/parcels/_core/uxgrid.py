@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import warnings
 from typing import TYPE_CHECKING, Literal
 
 import numpy as np
@@ -9,6 +10,7 @@ from dask import is_dask_collection
 from parcels._core.basegrid import BaseGrid
 from parcels._core.index_search import GRID_SEARCH_ERROR, _search_1d_columns, uxgrid_point_in_cell
 from parcels._core.mesh import SphericalMesh, get_mesh
+from parcels._core.warnings import FieldSetWarning
 
 if TYPE_CHECKING:
     import uxarray as ux
@@ -50,6 +52,16 @@ class UxGrid(BaseGrid):
             raise ValueError(f"z must be a 1D or 3D array of vertical coordinates, got {z.ndim}D")
         if z.ndim == 3 and z.dims != ("time", "zf", "n_node"):
             raise ValueError(f"A 3D z must have dims ('time', 'zf', 'n_node'), got {z.dims}")
+        if z.ndim == 3:
+            warnings.warn(
+                "Time-varying (3D) z coordinates are experimental and may cause significant memory overhead that "
+                f"leads to OOM errors. This z coordinate has sizes {dict(z.sizes)} ({z.nbytes / 1e9:.3g} GB). "
+                "Assumptions: z is defined at the layer interfaces ('zf') on the mesh nodes ('n_node') and is strictly "
+                "increasing along 'zf'; each particle's z column is interpolated barycentrically from its face's "
+                "nodes and linearly in time between z snapshots.",
+                FieldSetWarning,
+                stacklevel=4,
+            )
         self.z = z
         self._mesh = get_mesh(mesh)
         self._spatialhash = None

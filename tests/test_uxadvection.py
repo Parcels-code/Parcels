@@ -30,6 +30,7 @@ def test_ux_constant_flow_face_centered_2D(integrator, tmp_parquet):
     np.testing.assert_allclose(df["x"].iloc[-1], expected_lon, atol=1e-5)
 
 
+@pytest.mark.filterwarnings("ignore:Time-varying \\(3D\\) z coordinates are experimental")
 def test_ux_advection_on_moving_sigma_grid_keeps_depth():
     """With uniform u and w = 0, particles keep their depth while the sigma levels move past them."""
     nx, nz = 5, 6

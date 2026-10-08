@@ -36,6 +36,7 @@ def test_xgrid_get_axis_dim(uxds):
     assert grid.get_axis_dim("Z") == 2
 
 
+@pytest.mark.filterwarnings("ignore:Time-varying \\(3D\\) z coordinates are experimental")
 def test_uxgrid_search_3d_z_requires_ti():
     ds = sigma_coordinate_lattice_dataset(5, (0.0, 4e3), (0.0, 4e3), 4, np.full((5, 5), 50.0))
     grid = UxGrid(ds.uxgrid, z=ds.coords["zf"], mesh="flat")
