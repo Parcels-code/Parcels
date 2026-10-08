@@ -18,12 +18,12 @@ __all__ = [
 ]
 
 
-def rhs_uv(fieldset, time, depth, lat, lon, particles):
-    return fieldset.UV[time, depth, lat, lon, particles]
+def rhs_uv(fieldset, t, z, y, x, particles):
+    return fieldset.UV[t, z, y, x, particles]
 
 
-def rhs_uvw(fieldset, time, depth, lat, lon, particles):
-    return fieldset.UVW[time, depth, lat, lon, particles]
+def rhs_uvw(fieldset, t, z, y, x, particles):
+    return fieldset.UVW[t, z, y, x, particles]
 
 
 def AdvectionRK2(particles, fieldset):  # pragma: no cover
