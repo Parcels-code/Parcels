@@ -1,7 +1,7 @@
 """Collection of time integrators for use in Parcels Kernels"""
 
 
-def RK2(fieldset, particles, rhs):
+def RK2(particles, fieldset, rhs):
     z, y, x = particles.z, particles.y, particles.x
     fields = rhs(fieldset, particles.t, z, y, x, particles)
     if len(fields) == 1:
@@ -15,7 +15,7 @@ def RK2(fieldset, particles, rhs):
     return rhs(fieldset, t, z, y, x, particles)
 
 
-def RK4(fieldset, particles, rhs):
+def RK4(particles, fieldset, rhs):
     z, y, x = particles.z, particles.y, particles.x
     k1 = rhs(fieldset, particles.t, z, y, x, particles)
     if len(k1) == 1:
@@ -32,7 +32,6 @@ def RK4(fieldset, particles, rhs):
         y = particles.y + k2[1] * 0.5 * particles.dt
     if len(k2) > 2:
         z = particles.z + k2[2] * 0.5 * particles.dt
-    t = particles.t + 0.5 * particles.dt
     k3 = rhs(fieldset, t, z, y, x, particles)
     if len(k3) > 1:
         x = particles.x + k3[0] * particles.dt

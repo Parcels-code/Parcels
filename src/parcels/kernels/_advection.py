@@ -28,14 +28,14 @@ def rhs_uvw(fieldset, t, z, y, x, particles):
 
 def AdvectionRK2(particles, fieldset):  # pragma: no cover
     """Advection of particles using second-order Runge-Kutta integration."""
-    u, v = RK2(fieldset, particles, rhs_uv)
+    u, v = RK2(particles, fieldset, rhs_uv)
     particles.dx += u * particles.dt
     particles.dy += v * particles.dt
 
 
 def AdvectionRK2_3D(particles, fieldset):  # pragma: no cover
     """Advection of particles using second-order Runge-Kutta integration including vertical velocity."""
-    u, v, w = RK2(fieldset, particles, rhs_uvw)
+    u, v, w = RK2(particles, fieldset, rhs_uvw)
     particles.dx += u * particles.dt
     particles.dy += v * particles.dt
     particles.dz += w * particles.dt
@@ -43,14 +43,14 @@ def AdvectionRK2_3D(particles, fieldset):  # pragma: no cover
 
 def AdvectionRK4(particles, fieldset):  # pragma: no cover
     """Advection of particles using fourth-order Runge-Kutta integration."""
-    u, v = RK4(fieldset, particles, rhs_uv)
+    u, v = RK4(particles, fieldset, rhs_uv)
     particles.dx += u * particles.dt
     particles.dy += v * particles.dt
 
 
 def AdvectionRK4_3D(particles, fieldset):  # pragma: no cover
     """Advection of particles using fourth-order Runge-Kutta integration including vertical velocity."""
-    u, v, w = RK4(fieldset, particles, rhs_uvw)
+    u, v, w = RK4(particles, fieldset, rhs_uvw)
     particles.dx += u * particles.dt
     particles.dy += v * particles.dt
     particles.dz += w * particles.dt
