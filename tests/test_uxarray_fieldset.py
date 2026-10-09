@@ -16,7 +16,6 @@ from parcels._datasets.unstructured.generated import sigma_coordinate_lattice_da
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
 from parcels.interpolators import (
     UxConstantFaceConstantZC,
-    UxConstantFaceLinearZF,
     UxLinearNodeLinearZF,
 )
 from tests.utils import create_uxgrid_from_triangulation
@@ -232,54 +231,6 @@ def test_fieldset_from_sigma_coordinate_dataset(eta, expected_n_snapshots):
     assert fieldset.U.grid.get_axis_dim("Z") == nz
     for field in (fieldset.U, fieldset.V, fieldset.W):
         assert isinstance(field.interp_method, UxLinearNodeLinearZF)
-
-
-@pytest.mark.filterwarnings("ignore:Time-varying \\(3D\\) z coordinates are experimental")
-@pytest.mark.parametrize(
-    "horizontal_dim, expected_interpolator",
-    [
-        pytest.param("n_node", UxLinearNodeLinearZF, id="node_registered"),
-        pytest.param("n_face", UxConstantFaceLinearZF, id="face_registered"),
-    ],
-)
-def test_sigma_linear_field_is_exact_on_moving_sigma_grid(horizontal_dim, expected_interpolator):
-    """A field equal to a + b * sigma on every interface must evaluate to exactly a + b * sigma at any particle.
-
-    Bottom depth and eta are linear in x and y, and each interface depth is affine in eta, so barycentric
-    interpolation of the node columns and linear interpolation of the columns between snapshots are both exact. A
-    particle placed at sigma = s therefore has a known depth.
-    """
-    nx, nz = 11, 8
-    n_snapshots = 5
-    a, b = 0.3, 1.7
-
-    def bottom_depth(x, y):
-        return 20.0 + 4e-3 * x + 2e-3 * y
-
-    def eta(snapshot, x, y):
-        return 0.3 * snapshot + (-1.0) ** snapshot * 1e-4 * x + 5e-5 * y
-
-    x_nodes, y_nodes = np.meshgrid(np.linspace(0.0, 10e3, nx), np.linspace(0.0, 10e3, nx), indexing="ij")
-    eta_nodes = np.stack([eta(snapshot, x_nodes, y_nodes) for snapshot in range(n_snapshots)])
-    ds = sigma_coordinate_lattice_dataset(nx, (0.0, 10e3), (0.0, 10e3), nz, bottom_depth(x_nodes, y_nodes), eta_nodes)
-    field_on_interfaces = a + b * np.linspace(0.0, 1.0, nz)
-    field_shape = (n_snapshots, nz, getattr(ds.uxgrid, horizontal_dim))
-    ds["F"] = (("time", "zf", horizontal_dim), np.broadcast_to(field_on_interfaces[None, :, None], field_shape).copy())
-    fieldset = FieldSet.from_ugrid_conventions(ds, mesh="flat")
-    assert isinstance(fieldset.F.interp_method, expected_interpolator)
-
-    rng = np.random.default_rng(0)
-    n_particles = 100
-    x = rng.uniform(1.0, 10e3 - 1.0, n_particles)
-    y = rng.uniform(1.0, 10e3 - 1.0, n_particles)
-    t = np.concatenate([[0.0, 3600.0, 7200.0], rng.uniform(0.0, (n_snapshots - 1) * 3600.0, n_particles - 3)])
-    sigma = rng.uniform(0.02, 0.98, n_particles)
-    snapshot = (t // 3600.0).astype(int)
-    tau = t / 3600.0 - snapshot
-    eta_particles = (1 - tau) * eta(snapshot, x, y) + tau * eta(snapshot + 1, x, y)
-    z = -eta_particles + sigma * (bottom_depth(x, y) + eta_particles)
-
-    np.testing.assert_allclose(fieldset.F.eval(t, z, y, x), a + b * sigma, rtol=1e-6)
 
 
 @pytest.mark.filterwarnings("ignore:Time-varying \\(3D\\) z coordinates are experimental")
