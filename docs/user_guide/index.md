@@ -42,6 +42,7 @@ examples/tutorial_mitgcm.ipynb
 examples/tutorial_delft3d.ipynb
 examples/tutorial_fesom.ipynb
 examples/tutorial_schism.ipynb
+examples/explanation_writing_convert_functions.md
 ```
 
 ## Work with FieldSets
