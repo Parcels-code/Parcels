@@ -42,6 +42,8 @@ def _search_1d_array(
         Barycentric coordinate.
     """
     # TODO v4: We probably rework this to deal with 0D arrays before this point (as we already know field dimensionality)
+    if arr.ndim > 1:
+        raise ValueError(f"Expected 1D array for {arr}, got {arr.ndim}D array")
     if len(arr) < 2:
         return np.zeros(shape=x.shape, dtype=np.int32), np.zeros_like(x)
     index = np.clip(np.searchsorted(arr, x, side="left") - 1, 0, len(arr) - 2)
