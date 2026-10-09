@@ -111,10 +111,9 @@ class ModelData(ABC):
             and ``max_levels`` then bounds its size.
         """
         windowed = self.__dict__.setdefault("_windowed", {})
-        for dim in ["lon", "lat", "depth"]:
-            # ensure lon, lat, depth are loaded into memory for dask-backed datasets
-            if dim in self.data and is_dask_collection(self.data[dim]):
-                self.data[dim].load()
+        for name in set(self.data.coords) | {"lon", "lat", "depth"}:
+            if name in self.data and is_dask_collection(self.data[name]):
+                self.data[name].load()
         for name in self.scalar_field_names:
             current = windowed.get(name, self.data[name])
             windowed[name] = maybe_windowed(current, max_levels=max_levels)
