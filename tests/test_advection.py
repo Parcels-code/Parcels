@@ -97,6 +97,9 @@ def test_advection_zonal_periodic():
     halo.lon.values = ds.lon.values[1] + 1
     halo.XG.values = ds.XG.values[1] + 2
     ds = xr.concat([ds, halo], dim="XG", data_vars="all")
+    ds = ds.drop_vars("XC").assign_coords(
+        XC=("XC", ds.XG.values + 0.5, {"axis": "X"})
+    )  # update cell centers to adjust for added halo
 
     fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
 

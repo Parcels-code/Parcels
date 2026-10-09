@@ -312,11 +312,11 @@ datasets = {
             topology_dimension=2,
             node_dimensions=("XG", "YG"),
             face_dimensions=(
-                sgrid.FaceNodePadding("XC", "XG", sgrid.Padding.BOTH),
-                sgrid.FaceNodePadding("YC", "YG", sgrid.Padding.BOTH),
+                sgrid.FaceNodePadding("XC", "XG", sgrid.Padding.NONE),
+                sgrid.FaceNodePadding("YC", "YG", sgrid.Padding.NONE),
             ),
             node_coordinates=("lon", "lat"),
-            vertical_dimensions=(sgrid.FaceNodePadding("ZC", "ZG", sgrid.Padding.BOTH),),
+            vertical_dimensions=(sgrid.FaceNodePadding("ZC", "ZG", sgrid.Padding.NONE),),
         ),
     ),
     "ds_2d_outer": xr.Dataset(
@@ -367,11 +367,11 @@ datasets = {
             topology_dimension=2,
             node_dimensions=("XG", "YG"),
             face_dimensions=(
-                sgrid.FaceNodePadding("XC", "XG", sgrid.Padding.NONE),
-                sgrid.FaceNodePadding("YC", "YG", sgrid.Padding.NONE),
+                sgrid.FaceNodePadding("XC", "XG", sgrid.Padding.BOTH),
+                sgrid.FaceNodePadding("YC", "YG", sgrid.Padding.BOTH),
             ),
             node_coordinates=("lon", "lat"),
-            vertical_dimensions=(sgrid.FaceNodePadding("ZC", "ZG", sgrid.Padding.NONE),),
+            vertical_dimensions=(sgrid.FaceNodePadding("ZC", "ZG", sgrid.Padding.BOTH),),
         ),
     ),
     "2d_left_unrolled_cone": _unrolled_cone_curvilinear_grid().pipe(
@@ -402,8 +402,8 @@ _COMODO_TO_2D_SGRID = {  # Note "2D SGRID" here is meant in the context of SGRID
 _DATASET_NAME_TO_SGRID_NAME = {
     "ds_2d_left": "ds_2d_padded_high",
     "ds_2d_right": "ds_2d_padded_low",
-    "ds_2d_outer": "ds_2d_padded_none",
-    "ds_2d_inner": "ds_2d_padded_both",
+    "ds_2d_outer": "ds_2d_padded_both",
+    "ds_2d_inner": "ds_2d_padded_none",
 }
 
 

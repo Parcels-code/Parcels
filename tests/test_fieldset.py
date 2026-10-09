@@ -18,6 +18,7 @@ from parcels._core.model import _default_vector_field_components
 from parcels._datasets.structured.generic import datasets as datasets_structured
 from parcels._datasets.structured.generic import datasets_sgrid
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
+from parcels._sgrid.accessor import SGridDatasetInconsistency
 
 ds = datasets_structured["ds_2d_left"]
 
@@ -341,6 +342,16 @@ def test_fieldset_from_sgrid_conventions(ds_name):
     fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
     assert isinstance(fieldset, FieldSet)
     assert len(fieldset.fields) > 0
+
+
+@pytest.mark.parametrize("face_dim", ["face_dimension1", "face_dimension2", "vertical_dimensions_dim2"])
+def test_fieldset_from_sgrid_conventions_inconsistent_padding(face_dim):
+    # HIGH padding requires face and node dimensions to be the same size
+    ds = datasets_sgrid["ds_2d_padded_high"]
+    ds = ds.isel({face_dim: slice(1, None)})  # plain xarray isel, so face dim is one shorter than the node dim
+
+    with pytest.raises(SGridDatasetInconsistency, match=f"face dimension {face_dim!r}"):
+        FieldSet.from_sgrid_conventions(ds, mesh="flat")
 
 
 def test_fieldset_skip_field_data_validation():
