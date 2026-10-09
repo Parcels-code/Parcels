@@ -42,7 +42,6 @@ examples/tutorial_mitgcm.ipynb
 examples/tutorial_delft3d.ipynb
 examples/tutorial_fesom.ipynb
 examples/tutorial_schism.ipynb
-examples/tutorial_unstructured_sigma_coordinates.ipynb
 ```
 
 ## Work with FieldSets
@@ -52,6 +51,7 @@ examples/tutorial_unstructured_sigma_coordinates.ipynb
 :name: work-with-fieldsets
 :titlesonly:
 examples/explanation_grids.ipynb
+examples/tutorial_sigma_coordinates.ipynb
 examples/tutorial_velocityconversion.ipynb
 examples/tutorial_nestedgrids.ipynb
 examples/tutorial_manipulating_field_data.ipynb
