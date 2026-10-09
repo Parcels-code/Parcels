@@ -387,7 +387,10 @@ class XGrid(BaseGrid):
 
         depth = self._ds["depth"]
         fnp_x, fnp_y = self.sgrid_metadata.face_dimensions
-        cell_centres = {fnp_y.face: xr.DataArray(yi_centre, dims="points"), fnp_x.face: xr.DataArray(xi_centre, dims="points")}
+        cell_centres = {
+            fnp_y.face: xr.DataArray(yi_centre, dims="points"),
+            fnp_x.face: xr.DataArray(xi_centre, dims="points"),
+        }
 
         ti_found = np.broadcast_to(ti, yi.shape)[found]
         columns_ti = depth.isel({"time": xr.DataArray(ti_found, dims="points"), **cell_centres})

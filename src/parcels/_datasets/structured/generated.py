@@ -43,7 +43,9 @@ def simple_UV_sigma_dataset(dims, bottom_depth, eta=None, mesh="flat", start_tim
     """simple_UV_dataset with zero U, V and W and a time-varying (4D) depth on the cell centres: dims[1] sigma interfaces from the surface (depth -eta) to bottom_depth ((YC, XC) array, meters); eta is None or (time, YC, XC), hourly from start_time."""
     n_times, nz, ny, nx = dims
     if np.shape(bottom_depth) != (ny, nx):
-        raise ValueError(f"bottom_depth must be a (YC, XC) array of shape {(ny, nx)}, got shape {np.shape(bottom_depth)}")
+        raise ValueError(
+            f"bottom_depth must be a (YC, XC) array of shape {(ny, nx)}, got shape {np.shape(bottom_depth)}"
+        )
     if eta is None:
         eta = np.zeros((n_times, ny, nx))
     elif np.shape(eta) != (n_times, ny, nx):
@@ -51,7 +53,9 @@ def simple_UV_sigma_dataset(dims, bottom_depth, eta=None, mesh="flat", start_tim
 
     sigma = np.linspace(0.0, 1.0, nz)
     total_depth = bottom_depth[np.newaxis, :, :] + eta
-    zf = sigma[np.newaxis, :, np.newaxis, np.newaxis] * total_depth[:, np.newaxis] - eta[:, np.newaxis]  # (time, depth, YC, XC)
+    zf = (
+        sigma[np.newaxis, :, np.newaxis, np.newaxis] * total_depth[:, np.newaxis] - eta[:, np.newaxis]
+    )  # (time, depth, YC, XC)
 
     ds = simple_UV_dataset(dims=dims, mesh=mesh)
     ds["W"] = (["time", "depth", "YG", "XG"], np.zeros(dims))
