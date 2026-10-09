@@ -145,10 +145,13 @@ class XGrid(BaseGrid):
                 assert self.sgrid_metadata.vertical_dimensions is not None
                 vertical_dim = self.sgrid_metadata.vertical_dimensions[0].node
                 fnp_x, fnp_y = self.sgrid_metadata.face_dimensions
+                expected_dims = ("time", vertical_dim, fnp_y.face, fnp_x.face)
+                if depth.dims != expected_dims:
+                    raise ValueError(f"A 4D depth must have dims {expected_dims}, got {depth.dims}")
                 warnings.warn(
                     "Time-varying (4D) z coordinates are experimental and may cause significant memory overhead that "
                     f"leads to OOM errors. This z coordinate has sizes {dict(depth.sizes)} ({depth.nbytes / 1e9:.3g} GB). "
-                    f"Assumptions: z has dims ('time', {vertical_dim!r}, {fnp_y.face!r}, {fnp_x.face!r}), i.e. it is "
+                    f"Assumptions: z has dims {expected_dims}, i.e. it is "
                     f"defined at the layer interfaces on the cell centres, and is strictly increasing along "
                     f"{vertical_dim!r}; each particle uses the z column at the centre of its grid cell, so z is constant "
                     "within a cell and jumps between cells, it is linearly interpolated in time between z snapshots.",
