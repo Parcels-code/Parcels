@@ -8,6 +8,7 @@ import xarray as xr
 from parcels import FieldSet, ParticleSet
 from parcels._core._windowed_array import WindowedArray, maybe_windowed
 from parcels._datasets.structured.generated import simple_UV_dataset
+from parcels._datasets.structured.generic import datasets as structured_datasets
 from parcels._datasets.unstructured.generic import _ux_constant_flow_face_centered_2D
 from parcels.kernels import AdvectionRK2
 
@@ -98,6 +99,60 @@ def test_windowed_arrays_wraps_dask_but_not_numpy(fset_convention: callable, ds:
     # transparency: forwarded attributes still behave like the DataArray
     assert fset_dk.U.data.dims == fset_np.U.data.dims
     assert fset_dk.U.data.shape == fset_np.U.data.shape
+
+
+def test_to_windowed_arrays_loads_all_coordinates():
+    ds = simple_UV_dataset(dims=(4, 2, 3, 4), mesh="flat").chunk({"time": 1, "YG": 1, "XG": 2})
+    extra = xr.DataArray(da.arange(12, chunks=4).reshape((3, 4)), dims=("YG", "XG"))
+    ds = ds.assign_coords(extra=extra)
+    expected = ds.coords.to_dataset().compute()
+    fs = FieldSet.from_sgrid_conventions(ds, mesh="flat")
+    model_data = fs.models[0]
+
+    assert isinstance(model_data.data.coords["extra"].data, da.Array)
+    assert isinstance(fs.U.data.data, da.Array)
+
+    fs.to_windowed_arrays()
+
+    for name in ds.coords:
+        assert isinstance(model_data.data.coords[name].data, np.ndarray)
+        np.testing.assert_array_equal(model_data.data.coords[name].data, expected[name].data)
+    assert isinstance(fs.U.data, WindowedArray)
+    windowed_u = fs.U.data
+    fs.to_windowed_arrays()
+    assert fs.U.data is windowed_u
+
+
+def test_to_windowed_arrays_loads_named_coordinate_variables():
+    ds = (
+        structured_datasets["2d_left_rotated"][["U_A_grid", "V_A_grid", "grid"]]
+        .rename({"U_A_grid": "U", "V_A_grid": "V"})
+        .chunk({"time": 1, "YG": 1, "XG": 2})
+    )
+    extra = xr.DataArray(
+        da.arange(ds.sizes["YG"] * ds.sizes["XG"], chunks=4).reshape((ds.sizes["YG"], ds.sizes["XG"])),
+        dims=("YG", "XG"),
+    )
+    ds = ds.assign_coords(extra=extra)
+    fs = FieldSet.from_sgrid_conventions(ds, mesh="flat")
+
+    model_data = fs.models[0]
+    model_data.data = model_data.data.reset_coords(["lon", "lat", "depth"]).chunk({"time": 1})
+    expected = model_data.data[["lon", "lat", "depth"]].compute()
+    assert "lon" not in model_data.data.coords
+    assert "lat" not in model_data.data.coords
+    assert "depth" not in model_data.data.coords
+    assert isinstance(model_data.data["lon"].data, da.Array)
+    assert isinstance(model_data.data["lat"].data, da.Array)
+    assert isinstance(model_data.data["depth"].data, da.Array)
+    assert isinstance(fs.U.data.data, da.Array)
+
+    fs.to_windowed_arrays()
+
+    for name in ["lon", "lat", "depth"]:
+        assert isinstance(model_data.data[name].data, np.ndarray)
+        np.testing.assert_array_equal(model_data.data[name].data, expected[name].data)
+    assert isinstance(fs.U.data, WindowedArray)
 
 
 @pytest.mark.parametrize(
