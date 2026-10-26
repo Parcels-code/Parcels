@@ -5,6 +5,7 @@ from collections.abc import Hashable, Sequence
 from typing import TYPE_CHECKING, Any, Self
 
 import cf_xarray  # noqa: F401
+import numpy as np
 import xarray as xr
 from dask import is_dask_collection
 
@@ -257,7 +258,7 @@ class StructuredModelData(ModelData):
         #     ds["lon"] = ds[node_dimensions[0]]
         #     ds["lat"] = ds[node_dimensions[1]]
 
-        assert_1D_or4D_vertical_dimensions(ds)
+        assert_vertical_dimensionality(ds, allowed_dimensionality=[1, 4])
         assert_metadata_ds_consistency(ds, ds.sgrid.metadata)
 
         vector_fields = resolve_vector_fields(ds, vector_fields)
@@ -305,12 +306,15 @@ def assert_valid_vector_fields(ds: xr.Dataset, vector_fields: ptyping.VectorFiel
     return
 
 
-def assert_1D_or4D_vertical_dimensions(ds: xr.Dataset) -> None:
-    # Assert that vertical dimension has either length 1 or is full 4D
+def assert_vertical_dimensionality(ds: xr.DataArray, allowed_dimensionality: list[int]):
+    # Assert that vertical dimensions have allowed dimensionality.
     if (vertical_dims := ds.cf.axes.get("Z")) is not None:
         for vertical_dim in vertical_dims:
-            if 1 < ds[vertical_dim].ndim < 4:
-                raise ValueError(f"Vertical dimension {vertical_dim} must have length 1 or be part of a full 4D field.")
+            ndim = np.atleast_1d(ds[vertical_dim]).ndim  # cast 0D to 1D
+            if ndim not in allowed_dimensionality:
+                raise ValueError(
+                    f"Vertical dimension {vertical_dim} has dimensionality {ndim}, but allowed dimensionality is {allowed_dimensionality}."
+                )
     return
 
 
@@ -410,7 +414,7 @@ class UnstructuredModelData(ModelData):
         if mesh is None:
             mesh = _infer_mesh_from_ugrid_data(ds)
 
-        assert_1D_or4D_vertical_dimensions(ds)
+        assert_vertical_dimensionality(ds, allowed_dimensionality=[1, 3])
 
         grid = UxGrid(ds.uxgrid, z=ds.coords["zf"], mesh=mesh)
         ds = _discover_ux_U_and_V(ds)
