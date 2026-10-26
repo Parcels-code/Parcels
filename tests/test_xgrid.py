@@ -148,15 +148,6 @@ def test_invalid_depth():
     ds = ds.reindex({"ZG": ds.ZG[::-1]})
 
     with pytest.raises(ValueError, match="Depth DataArray .* must be strictly increasing*"):
-    # TODO: Clean up this attribute setting (really, this should be on the source datasets)
-    lon = ds["lon"]
-    lat = ds["lat"]
-    lon.attrs.update({"units": "metres"})
-    lat.attrs.update({"units": "metres"})
-    ds["lon"] = lon
-    ds["lat"] = lat
-
-    with pytest.raises(ValueError, match="Two dimensions .*provide values in the axis direction 'Z'."):
         FieldSet.from_sgrid_conventions(ds)
 
 
