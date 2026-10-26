@@ -20,7 +20,7 @@ from parcels._core.xgrid import (
     XGrid,
     _transpose_xfield_data_to_tzyx,
 )
-from parcels._datasets.structured.generic import X, Y, Z, datasets, datasets_sgrid
+from parcels._datasets.structured.generic import X, Y, Z, datasets
 from tests import utils
 
 GridTestCase = namedtuple("GridTestCase", ["ds", "attr", "expected"])
@@ -148,23 +148,6 @@ def test_invalid_depth():
     ds = ds.reindex({"ZG": ds.ZG[::-1]})
 
     with pytest.raises(ValueError, match="Depth DataArray .* must be strictly increasing*"):
-        XGrid.from_dataset(ds)
-
-
-@pytest.mark.skip(
-    "Needs updating after refactoring from https://github.com/Parcels-code/Parcels/pull/2646"
-)  # TODO: I think we can just rely on the SGRID metadata for this (which already has robust error messaging). How should discrepencies between SGRID and axis attr be handled?
-def test_dim_with_duplicate_axis():
-    ds = datasets_sgrid["ds_2d_padded_low"].copy()
-
-    # Add an extra Z axis
-    ds = ds[["data_g", "grid"]]
-    ds["data_g"] = ds["data_g"].expand_dims("vertical_dimensions_dim2", 1)
-
-    z = ds["vertical_dimensions_dim2"]
-    z.attrs.update({"axis": "Z"})
-    ds["vertical_dimensions_dim2"] = z
-
     # TODO: Clean up this attribute setting (really, this should be on the source datasets)
     lon = ds["lon"]
     lat = ds["lat"]
