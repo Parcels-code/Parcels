@@ -390,12 +390,6 @@ def test_some_particles_throw_outoftime(fieldset):
         pset.execute(FieldAccessOutsideTime, runtime=np.timedelta64(1, "D"), dt=np.timedelta64(10, "D"))
 
 
-def test_raise_grid_searching_error(): ...
-
-
-def test_raise_general_error(): ...
-
-
 def test_errorinterpolation(fieldset):
     class NaNInterpolator(VectorInterpolator):  # pragma: no cover
         def interp(self, particle_positions, grid_positions, field):

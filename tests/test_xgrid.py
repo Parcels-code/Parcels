@@ -103,11 +103,6 @@ def test_xgrid_get_axis_dim(fieldset):
     assert grid.get_axis_dim("X") == X - 1
 
 
-def test_invalid_xgrid_field_array():
-    """Stress test initialiser by creating incompatible datasets that test the edge cases"""
-    ...
-
-
 def test_invalid_lon_lat():
     """Stress test the grid initialiser by creating incompatible datasets that test the edge cases"""
     ds = datasets["ds_2d_left"].copy()
