@@ -306,7 +306,7 @@ def assert_valid_vector_fields(ds: xr.Dataset, vector_fields: ptyping.VectorFiel
     return
 
 
-def assert_vertical_dimensionality(ds: xr.DataArray, allowed_dimensionality: list[int]):
+def assert_vertical_dimensionality(ds: xr.Dataset, allowed_dimensionality: list[int]):
     # Assert that vertical dimensions have allowed dimensionality.
     if (vertical_dims := ds.cf.axes.get("Z")) is not None:
         for vertical_dim in vertical_dims:
