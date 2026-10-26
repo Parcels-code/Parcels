@@ -50,13 +50,10 @@ def assert_equal(actual, expected):
         assert_allclose(actual, expected)
 
 
-@pytest.mark.skip(
-    "Needs updating after refactoring from https://github.com/Parcels-code/Parcels/pull/2646"
-)  # TODO: Remove or replace
 @pytest.mark.parametrize("ds", [datasets["ds_2d_left"]])
 def test_grid_init_param_types(ds):
-    with pytest.raises(ValueError, match="Invalid value 'invalid'. Valid options are.*"):
-        XGrid.from_dataset(ds, mesh="invalid")
+    with pytest.raises(TypeError, match="mesh must be a FlatMesh or SphericalMesh object. Got mesh.*"):
+        FieldSet.from_sgrid_conventions(ds, mesh="invalid")
 
 
 def test_xgrid_repr(fieldset):
@@ -85,20 +82,17 @@ def test_xgrid_mesh_inferred_from_units(ds, mesh):
     assert isinstance(grid.mesh, mesh)
 
 
-@pytest.mark.skip(
-    "Needs updating after refactoring from https://github.com/Parcels-code/Parcels/pull/2646"
-)  # TODO: Remove or replace
 @pytest.mark.parametrize("ds", [datasets["ds_2d_left"]])
 def test_transpose_xfield_data_to_tzyx(ds):
     da = ds["data_g"]
-    grid = XGrid.from_dataset(ds)
+    grid = FieldSet.from_sgrid_conventions(ds).data_g.grid
 
     all_combinations = (itertools.combinations(da.dims, n) for n in range(len(da.dims)))
     all_combinations = itertools.chain(*all_combinations)
     for subset_dims in all_combinations:
         isel = {dim: 0 for dim in subset_dims}
         da_subset = da.isel(isel, drop=True)
-        da_test = _transpose_xfield_data_to_tzyx(da_subset, grid.xgcm_grid)
+        da_test = _transpose_xfield_data_to_tzyx(da_subset, grid.sgrid_metadata)
         utils.assert_valid_field_data(da_test, grid)
 
 
@@ -114,42 +108,41 @@ def test_invalid_xgrid_field_array():
     ...
 
 
-@pytest.mark.skip(
-    "Needs updating after refactoring from https://github.com/Parcels-code/Parcels/pull/2646"
-)  # TODO: Remove or replace
 def test_invalid_lon_lat():
     """Stress test the grid initialiser by creating incompatible datasets that test the edge cases"""
     ds = datasets["ds_2d_left"].copy()
     ds["lon"], ds["lat"] = xr.broadcast(ds["YC"], ds["XC"])
+    ds["lon"].attrs["units"] = "meters"
+    ds["lat"].attrs["units"] = "meters"
 
     with pytest.raises(
         ValueError,
-        match=r".*is defined on the center of the grid, but must be defined on the F points\.",
+        match=r".*is defined on the faces of the grid, but must be defined on the F nodes\.",
     ):
-        XGrid.from_dataset(ds)
+        FieldSet.from_sgrid_conventions(ds)
 
     ds = datasets["ds_2d_left"].copy()
     ds["lon"], _ = xr.broadcast(ds["YG"], ds["XG"])
+    ds["lon"].attrs["units"] = "meters"
     with pytest.raises(
         ValueError,
         match=r".*have different dimensionalities\.",
     ):
-        XGrid.from_dataset(ds)
+        FieldSet.from_sgrid_conventions(ds)
 
     ds = datasets["ds_2d_left"].copy()
     ds["lon"], ds["lat"] = xr.broadcast(ds["YG"], ds["XG"])
     ds["lon"], ds["lat"] = ds["lon"].transpose(), ds["lat"].transpose()
+    ds["lon"].attrs["units"] = "meters"
+    ds["lat"].attrs["units"] = "meters"
 
     with pytest.raises(
         ValueError,
         match=r".*must be defined on the X and Y axes and transposed to have dimensions in order of Y, X\.",
     ):
-        XGrid.from_dataset(ds)
+        FieldSet.from_sgrid_conventions(ds)
 
 
-@pytest.mark.skip(
-    "Needs updating after refactoring from https://github.com/Parcels-code/Parcels/pull/2646"
-)  # TODO: Remove or replace
 def test_invalid_depth():
     ds = datasets["ds_2d_left"].copy()
     ds = ds.reindex({"ZG": ds.ZG[::-1]})
@@ -184,9 +177,6 @@ def test_dim_with_duplicate_axis():
         FieldSet.from_sgrid_conventions(ds)
 
 
-# TODO restructure: Look into the test below
-# remove: eval with timedelta64 time fails; TimeInterval.is_all_time_in_interval expects float (seconds) not timedelta64; time arg type requirement changed
-@pytest.mark.skip("remove: see comment above")
 @pytest.mark.parametrize("ds", [datasets["ds_2d_left"]])
 def test_vertical1D_field(ds):
     ds = ds.drop_vars(set(ds.data_vars) - {"grid"})
