@@ -571,7 +571,7 @@ def test_uxstommelgyre_multiparticle_pset_execute():
     )
 
 
-def test_uxstommelgyre_pset_execute_output():
+def test_uxstommelgyre_pset_execute_output(tmp_parquet):
     ds = datasets_unstructured["stommel_gyre_delaunay"]
     fieldset = FieldSet.from_ugrid_conventions(ds)
     pset = ParticleSet(
@@ -583,7 +583,7 @@ def test_uxstommelgyre_pset_execute_output():
         pclass=Particle,
     )
     output_file = ParticleFile(
-        path="stommel_uxarray_particles.parquet",  # the file name
+        path=tmp_parquet,  # the file name
         outputdt=np.timedelta64(5, "m"),  # the time step of the outputs
     )
     pset.execute(
