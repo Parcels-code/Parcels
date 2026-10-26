@@ -17,7 +17,7 @@ from parcels._core.fieldset import FieldSet, IncompatibleMeshesException, _datet
 from parcels._core.mesh import SphericalMesh
 from parcels._core.model import _default_vector_field_components, _infer_mesh_from_sgrid_data
 from parcels._core.utils.time import TimeInterval
-from parcels._datasets.structured.generated import simple_UV_sigma_dataset
+from parcels._datasets.structured.generated import simple_UV_dataset, simple_UV_sigma_dataset
 from parcels._datasets.structured.generic import datasets as datasets_structured
 from parcels._datasets.structured.generic import datasets_sgrid
 from parcels._datasets.structured.strategies import reduced_dims_dataset, sgrid_datasets_varying_dims
@@ -295,7 +295,11 @@ def test_datetime_to_msg(input_, expected):
 
 def test_fieldset_samegrids_UV():
     """Test that if a simple fieldset with U and V is created, that only one grid object is defined."""
-    ...
+    ds = simple_UV_dataset(mesh_str="flat")
+    fieldset = FieldSet.from_sgrid_conventions(ds)
+
+    assert fieldset.U.grid is fieldset.V.grid
+    assert len(fieldset.gridset) == 1
 
 
 def test_fieldset_grid_deduplication():
@@ -305,7 +309,15 @@ def test_fieldset_grid_deduplication():
     When grid deduplication is actually implemented, this might need to be refactored
     into multiple tests (/more might be needed).
     """
-    ...
+    ds = simple_UV_dataset(mesh_str="flat")
+    fieldset = FieldSet.from_sgrid_conventions(ds)
+
+    ds2 = simple_UV_dataset(mesh_str="flat").rename({"U": "U2", "V": "V2"})
+    fieldset += FieldSet.from_sgrid_conventions(ds2)
+    assert fieldset.U.grid is fieldset.V.grid
+    assert fieldset.U2.grid is fieldset.V2.grid
+    assert fieldset.U.grid is not fieldset.U2.grid
+    assert fieldset.U.grid is not fieldset.V2.grid
 
 
 def test_fieldset_from_icon():
