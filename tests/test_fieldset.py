@@ -13,7 +13,7 @@ from re_assert import Matches
 import parcels.tutorial
 import tests
 from parcels import Particle, ParticleFile, ParticleSet, Variable, convert
-from parcels._core.fieldset import FieldSet, IncompatibleMeshesException, _datetime_to_msg
+from parcels._core.fieldset import CalendarError, FieldSet, IncompatibleMeshesException, _datetime_to_msg
 from parcels._core.mesh import SphericalMesh
 from parcels._core.model import _default_vector_field_components, _infer_mesh_from_sgrid_data
 from parcels._core.utils.time import TimeInterval
@@ -272,7 +272,16 @@ def test_multi_model_nonoverlapping_time_interval():
 
 def test_fieldset_add_incompatible_calendars():
     # tests the adding of fieldsets that have incompatible calendars
-    ...
+    ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]]
+    fieldset = FieldSet.from_sgrid_conventions(ds1)
+
+    ds2 = ds1.copy().rename({"U_A_grid": "U2", "V_A_grid": "V2"})
+    # Replace the numpy datetime64 time axis by an array of cftime objects with a different calendar
+    times = [cftime.DatetimeNoLeap(2000, 1, 1 + i) for i in range(ds2["time"].size)]
+    ds2["time"] = (ds2["time"].dims, np.array(times, dtype=object), ds2["time"].attrs)
+
+    with pytest.raises(CalendarError):
+        fieldset + FieldSet.from_sgrid_conventions(ds2)
 
 
 @pytest.mark.parametrize(

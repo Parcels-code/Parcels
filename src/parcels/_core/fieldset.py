@@ -70,12 +70,12 @@ class FieldSet:
         for model in models:
             if not isinstance(model, ModelData):
                 raise ValueError(f"Expected `model` to be a ModelData object. Got {model}")
-        # assert_compatible_calendars(fields)
 
         self.models = models
         self.constant_model: StructuredModelData | None = None
         self._fields: dict[str, Field | VectorField] | None = None
         self.reconstruct_fields()
+        assert_compatible_calendars(self.fields.values())
         self.context: dict[str, float] = {}
         assert_models_have_same_mesh(self.models)
 
