@@ -11,11 +11,13 @@ from parcels import (
     StatusCode,
     Variable,
     VectorField,
+    XGrid,
     particlefile_to_v3_zarr,
 )
 from parcels._core.index_search import _search_time_index
 from parcels._core.mesh import FlatMesh, SphericalMesh
 from parcels._datasets.structured.generated import simple_UV_dataset
+from parcels._sgrid.core import Padding
 from parcels.interpolators import (
     CGrid_Velocity,
     XFreeslip,
@@ -25,7 +27,7 @@ from parcels.interpolators import (
     XPartialslip,
 )
 from parcels.interpolators._base import VectorInterpolator
-from parcels.interpolators._xinterpolators import _get_corner_data_Agrid
+from parcels.interpolators._xinterpolators import _get_corner_data_Agrid, _get_offsets_dictionary
 from parcels.kernels import AdvectionRK4_3D
 from tests.utils import TEST_DATA
 
@@ -276,6 +278,29 @@ def test_corner_gather_keeps_axes_missing_from_the_mapping():
     assert out.shape == (2, 1, 2, 2, npart)
     for p in range(npart):
         assert out[0, 0, 0, 0, p] == data.values[ti[p], 0, yi[p], xi[p]]
+
+
+def test_get_offsets_dictionary():
+    ds = simple_UV_dataset()
+    xgrid = XGrid(ds, mesh=FlatMesh())
+
+    # verify simple_UV_dataset padding
+    assert xgrid.sgrid_metadata.face_dimensions[0].padding == Padding.LOW
+    assert xgrid.sgrid_metadata.vertical_dimensions[0].padding == Padding.BOTH
+
+    offsets = _get_offsets_dictionary(xgrid)
+
+    assert offsets["X"] == 1
+    assert offsets["Z"] == 1
+
+    xgrid.sgrid_metadata.face_dimensions[0].padding = Padding.HIGH
+    xgrid.sgrid_metadata.face_dimensions[1].padding = Padding.HIGH
+    xgrid.sgrid_metadata.vertical_dimensions[0].padding = Padding.NONE
+
+    offsets = _get_offsets_dictionary(xgrid)
+
+    assert offsets["X"] == 0
+    assert offsets["Z"] == 0
 
 
 class XNearest_Velocity(VectorInterpolator):  # noqa:  N801
