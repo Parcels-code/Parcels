@@ -251,15 +251,3 @@ def test_field_eval_out_of_bounds_unstructured(field_name, location, expected):
         match="Some interpolated values are out-of-bounds. These values are set to 0. Treat carefully.",
     ):
         np.testing.assert_allclose(field.eval(*location), expected)
-
-
-def test_field_unstructured_grid_creation(): ...
-
-
-def test_field_interpolation(): ...
-
-
-def test_field_interpolation_out_of_spatial_bounds(): ...
-
-
-def test_field_interpolation_out_of_time_bounds(): ...
