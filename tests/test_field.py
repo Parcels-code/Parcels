@@ -88,6 +88,7 @@ def test_vectorfield_init_different_time_intervals():
 
     dsV = dsV.rename({"time": "timeV"})
     dsV["timeV"] = dsV["timeV"] + np.timedelta64(1, "D")
+    dsV["timeV"].attrs["axis"] = "T"
 
     ds = xr.merge([dsU, dsV])
     with pytest.raises(ValueError, match="Multiple time coordinates"):
