@@ -3,11 +3,11 @@ import pytest
 
 from parcels._core.fieldset import FieldSet
 from parcels._core.index_search import (
-    _search_1d_array,
     _search_indices_curvilinear_2d,
     curvilinear_point_in_cell,
     uxgrid_point_in_cell,
 )
+from parcels._datasets.structured.generated import simple_UV_dataset
 from parcels._datasets.structured.generic import datasets
 from tests.utils import create_lonlat_grid, sample_points_inside_faces
 
@@ -20,10 +20,10 @@ def field_cone():
 
 
 def test_multi_array_errors_in_search_1d_array():
-    arr = np.array([[1, 2, 3]])
-    x = np.array([[1], [2]])
+    ds = simple_UV_dataset()
+    ds["depth"] = (("depth_a", "depth_b"), np.array([[1, 2]]))
     with pytest.raises(ValueError):
-        _search_1d_array(arr, x)
+        FieldSet.from_sgrid_conventions(ds)
 
 
 def test_grid_indexing_fpoints(field_cone):

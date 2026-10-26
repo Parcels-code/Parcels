@@ -257,6 +257,7 @@ class StructuredModelData(ModelData):
         #     ds["lon"] = ds[node_dimensions[0]]
         #     ds["lat"] = ds[node_dimensions[1]]
 
+        assert_1D_or4D_vertical_dimensions(ds)
         assert_metadata_ds_consistency(ds, ds.sgrid.metadata)
 
         vector_fields = resolve_vector_fields(ds, vector_fields)
@@ -301,6 +302,15 @@ def assert_valid_vector_fields(ds: xr.Dataset, vector_fields: ptyping.VectorFiel
                 )
 
     assert_vector_field_components_in_dataset(ds, vector_fields)
+    return
+
+
+def assert_1D_or4D_vertical_dimensions(ds: xr.Dataset) -> None:
+    # Assert that vertical dimension has either length 1 or is full 4D
+    if (vertical_dims := ds.cf.axes.get("Z")) is not None:
+        for vertical_dim in vertical_dims:
+            if 1 < ds[vertical_dim].ndim < 4:
+                raise ValueError(f"Vertical dimension {vertical_dim} must have length 1 or be part of a full 4D field.")
     return
 
 
@@ -399,6 +409,8 @@ class UnstructuredModelData(ModelData):
 
         if mesh is None:
             mesh = _infer_mesh_from_ugrid_data(ds)
+
+        assert_1D_or4D_vertical_dimensions(ds)
 
         grid = UxGrid(ds.uxgrid, z=ds.coords["zf"], mesh=mesh)
         ds = _discover_ux_U_and_V(ds)
