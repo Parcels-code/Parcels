@@ -21,6 +21,7 @@ from parcels._datasets.structured.generated import simple_UV_dataset, simple_UV_
 from parcels._datasets.structured.generic import datasets as datasets_structured
 from parcels._datasets.structured.generic import datasets_sgrid
 from parcels._datasets.structured.strategies import reduced_dims_dataset, sgrid_datasets_varying_dims
+from parcels._datasets.unstructured.generated import simple_small_delaunay
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
 from parcels._sgrid.accessor import SGridDatasetInconsistency
 
@@ -462,11 +463,18 @@ def test_fieldset_add_context_values():
     assert fset.context["c2"] == 2.0
 
 
-def test_fieldset_error_on_unsupported_depth_dimensionality():
+def test_xgrid_fieldset_error_on_unsupported_depth_dimensionality():
     ds = simple_UV_dataset()
     ds["depth"] = (("depth_a", "depth_b"), np.array([[1, 2]]))
     with pytest.raises(ValueError):
         FieldSet.from_sgrid_conventions(ds)
+
+
+def test_ugrid_fieldset_error_on_unsupported_depth_dimensionality():
+    ds = simple_small_delaunay()
+    ds = ds.drop_vars("zf").assign_coords(zf=(("depth_a", "depth_b"), np.array([[1, 2]])))
+    with pytest.raises(ValueError, match="z must be a 1D or 3D array"):
+        FieldSet.from_ugrid_conventions(ds)
 
 
 def _field_name_of(ds):
