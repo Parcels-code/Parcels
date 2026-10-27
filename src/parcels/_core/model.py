@@ -5,7 +5,6 @@ from collections.abc import Hashable, Sequence
 from typing import TYPE_CHECKING, Any, Self
 
 import cf_xarray  # noqa: F401
-import numpy as np
 import xarray as xr
 from dask import is_dask_collection
 
@@ -310,7 +309,7 @@ def assert_vertical_dimensionality(ds: xr.Dataset, allowed_dimensionality: list[
     # Assert that vertical dimensions have allowed dimensionality.
     if (vertical_dims := ds.cf.axes.get("Z")) is not None:
         for vertical_dim in vertical_dims:
-            ndim = np.atleast_1d(ds[vertical_dim]).ndim  # cast 0D to 1D
+            ndim = max(ds[vertical_dim].ndim, 1)  # cast 0D to 1D; metadata only, so lazy data is not computed
             if ndim not in allowed_dimensionality:
                 raise ValueError(
                     f"Vertical dimension {vertical_dim} has dimensionality {ndim}, but allowed dimensionality is {allowed_dimensionality}."
