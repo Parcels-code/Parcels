@@ -5,6 +5,7 @@ from parcels import (
     FieldSet,
     KernelWarning,
     Particle,
+    ParticleFile,
     ParticleSet,
     Variable,
 )
@@ -166,7 +167,8 @@ def test_execution_order(kernel_type):
         assert np.allclose(lons[0], 0.2)
 
 
-def test_dt_modify_in_kernel(fieldset):
+@pytest.mark.parametrize(("with_output", "expected_num_kernel_loops"), [(True, 7), (False, 5)])
+def test_dt_modify_in_kernel(fieldset, tmp_parquet, with_output, expected_num_kernel_loops):
     TestParticle = Particle.add_variable(Variable("num_kernel_loops", dtype=np.float32, initial=0))
     pset = ParticleSet(fieldset, pclass=TestParticle, x=[0.5], y=[0])
 
@@ -175,8 +177,8 @@ def test_dt_modify_in_kernel(fieldset):
         particles.dt = 4
 
     runtime = 17
-    expected_num_kernel_loops = 5  # Five kernel loops
-    pset.execute(ModifyDt, runtime=runtime, dt=1.0)
+    output = ParticleFile(tmp_parquet, outputdt=5.0) if with_output else None
+    pset.execute(ModifyDt, runtime=runtime, dt=1.0, output_file=output, verbose_progress=False)
 
     np.testing.assert_allclose(pset.t[0], runtime)
     np.testing.assert_allclose(pset.num_kernel_loops[0], expected_num_kernel_loops)
