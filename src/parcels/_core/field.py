@@ -98,8 +98,6 @@ class Field:
         self.name = name
         self.model = model
 
-        self.igrid = -1  # Default the grid index to -1
-
     @property
     def data(self):
         return self.model.field_data(self.name)
@@ -107,6 +105,23 @@ class Field:
     @property
     def grid(self):  # TODO PR: Remove in favour of referencing model grid directly
         return self.model.grid
+
+    @property
+    def igrid(self):
+        try:
+            return self._igrid
+        except AttributeError as e:
+            raise AttributeError(
+                f"{type(self).__name__} doesn't have an igrid defined for it. Use `.igrid = ...`"
+            ) from e
+
+    @igrid.setter
+    def igrid(self, value):
+        if value < 0:
+            raise ValueError(
+                    f"igrid of Field {self.name!r} must be a non-negative index into FieldSet.gridset, got {value}. "
+                    )
+        self._igrid = value
 
     @property
     def time_interval(self):  # TODO PR: Remove in favour of referencing model time_interval directly
@@ -215,7 +230,6 @@ class VectorField:
         self.V = V
         self.W = W
         self.grid = U.grid
-        self.igrid = U.igrid
 
         if W is None:
             _assert_same_time_interval((U, V))
@@ -246,6 +260,10 @@ class VectorField:
         if not isinstance(method, VectorInterpolator):
             raise ValueError(f"method must be a `VectorInterpolator` object. Got {type(method)=!r}")
         self._interp_method = method
+
+    @property
+    def igrid(self):
+        return self.U.igrid
 
     def eval(self, t: datetime, z, y, x, particles=None):
         """Interpolate vectorfield values in space and time.
