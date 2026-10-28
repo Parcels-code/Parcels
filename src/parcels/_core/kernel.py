@@ -37,6 +37,13 @@ ErrorsToThrow = {
 }
 
 
+def _clip_dt_to_endtime(dt, time_to_endtime, compute_time_direction):
+    """Clip dt so that particles do not step beyond the endtime, in the direction of integration."""
+    if compute_time_direction == 1:
+        return np.maximum(np.minimum(dt, time_to_endtime), 0)
+    return np.minimum(np.maximum(dt, -time_to_endtime), 0)
+
+
 class Kernel:
     """Kernel object that encapsulates auto-generated code.
 
@@ -185,6 +192,8 @@ class Kernel:
         compute_time_direction = 1 if dt > 0 else -1
 
         pset._data["state"][:] = StatusCode.Success
+        preserve_particle_dt = not hasattr(self.fieldset, "RK45_tol")
+        dt_to_restore = pset.dt.copy()
 
         while (len(pset) > 0) and np.any(np.isin(pset.state, [StatusCode.Success, StatusCode.Repeat])):
             time_to_endtime = compute_time_direction * (endtime - pset.t)
@@ -193,11 +202,11 @@ class Kernel:
             if not np.any(evaluate_particles):
                 return StatusCode.Success
 
+            if preserve_particle_dt:
+                pset.dt = dt_to_restore
+
             # adapt dt to end exactly on endtime
-            if compute_time_direction == 1:
-                pset.dt = np.maximum(np.minimum(pset.dt, time_to_endtime), 0)
-            else:
-                pset.dt = np.minimum(np.maximum(pset.dt, -time_to_endtime), 0)
+            pset.dt = _clip_dt_to_endtime(pset.dt, time_to_endtime, compute_time_direction)
 
             # run kernels for all particles that need to be evaluated
             for f in self._kernels:
@@ -216,18 +225,22 @@ class Kernel:
             # (particles that signalled Stop*/Delete/errors should not have time/position advanced)
             update_particles = evaluate_particles & (pset.state == StatusCode.Success)
             if np.any(update_particles):
+                pset.dt = _clip_dt_to_endtime(pset.dt, time_to_endtime, compute_time_direction)
                 self._position_update(pset[update_particles], self._fieldset)
 
-            # revert to original dt (unless in RK45 mode)
-            if not hasattr(self.fieldset, "RK45_tol"):
-                pset._data["dt"][:] = dt
+            # revert to the retained dt (unless in RK45 mode)
+            if preserve_particle_dt:
+                pset.dt = dt_to_restore
 
             # Set particle state for particles that reached endtime
             particles_endofloop = (pset.state == StatusCode.Success) & (pset.t == endtime)
             pset[particles_endofloop].state = StatusCode.EndofLoop
 
-            # delete particles that signalled deletion
+            # delete particles that signalled deletion and remove their corresponding dt_to_restore
+            deleted_particles = pset.state == StatusCode.Delete
             self.remove_deleted(pset)
+            if preserve_particle_dt:
+                dt_to_restore = dt_to_restore[~deleted_particles]
 
             # check and throw errors
             if np.any(pset.state == StatusCode.StopAllExecution):
