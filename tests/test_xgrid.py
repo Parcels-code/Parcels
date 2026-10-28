@@ -20,7 +20,7 @@ from parcels._core.xgrid import (
     XGrid,
     _transpose_xfield_data_to_tzyx,
 )
-from parcels._datasets.structured.generic import X, Y, Z, datasets
+from parcels._datasets.structured.generic import X, Y, Z, datasets, datasets_sgrid
 from tests import utils
 
 GridTestCase = namedtuple("GridTestCase", ["ds", "attr", "expected"])
@@ -143,6 +143,21 @@ def test_invalid_depth():
     ds = ds.reindex({"ZG": ds.ZG[::-1]})
 
     with pytest.raises(ValueError, match="Depth DataArray .* must be strictly increasing*"):
+        FieldSet.from_sgrid_conventions(ds)
+
+
+def test_dim_with_duplicate_axis():
+    ds = datasets_sgrid["ds_2d_padded_low"].copy()
+
+    # Add an extra Z axis
+    ds = ds[["data_g", "grid"]]
+    ds["data_g"] = ds["data_g"].expand_dims({"vertical_dimensions_dim2": 90})
+
+    z = ds["vertical_dimensions_dim2"]
+    z.attrs.update({"axis": "Z"})
+    ds["vertical_dimensions_dim2"] = z
+
+    with pytest.raises(ValueError, match="Two dimensions .*provide values in the axis direction 'Z'."):
         FieldSet.from_sgrid_conventions(ds)
 
 

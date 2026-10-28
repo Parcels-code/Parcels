@@ -47,7 +47,8 @@ def _drop_field_data(ds: xr.Dataset) -> xr.Dataset:
 
 
 def assert_all_field_dims_have_axis(da: xr.DataArray, metadata: sgrid.SGrid2DMetadata) -> None:
-    dim_to_axis = _get_dim_to_axis_mapping(metadata) | {"time": "T"}
+    mock_dim_to_axis = {f"mock{ax}": ax for ax in _FIELD_DATA_ORDERING}
+    dim_to_axis = _get_dim_to_axis_mapping(metadata) | {"time": "T"} | mock_dim_to_axis
     ax_dims = [(dim_to_axis.get(str(dim)), str(dim)) for dim in da.dims]
 
     for ax, dim_name in ax_dims:
@@ -102,6 +103,7 @@ def _transpose_xfield_data_to_tzyx(da: xr.DataArray, sgrid_metadata: sgrid.SGrid
 
     if mock_dims_to_create:
         da = da.expand_dims(mock_dims_to_create, create_index_for_new_dim=False)
+        da = da.assign_coords({dim: (dim, [0], {"axis": dim_to_axis[dim]}) for dim in mock_dims_to_create})
 
     ax_dims = sorted(dim_to_axis.items(), key=lambda x: _FIELD_DATA_ORDERING.index(x[1]))
 
