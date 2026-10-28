@@ -403,4 +403,6 @@ def sigma_coordinate_lattice_dataset(nx, x_range, y_range, nz, bottom_depth, eta
     ds = ux.UxDataset(xr.Dataset(velocities, coords={"time": time, **vertical_coords}), uxgrid=uxgrid)
     ds.uxgrid.node_lon.attrs["units"] = "m"
     ds.uxgrid.node_lat.attrs["units"] = "m"
+    ds.variables["zf"].attrs["axis"] = "Z"
+    ds.variables["zc"].attrs["axis"] = "Z"
     return ds
