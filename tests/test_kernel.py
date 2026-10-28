@@ -7,6 +7,7 @@ from parcels import (
     Particle,
     ParticleFile,
     ParticleSet,
+    StatusCode,
     Variable,
 )
 from parcels._core.kernel import Kernel
@@ -169,19 +170,21 @@ def test_execution_order(kernel_type):
 
 @pytest.mark.parametrize(("with_output", "expected_num_kernel_loops"), [(True, 7), (False, 5)])
 def test_dt_modify_in_kernel(fieldset, tmp_parquet, with_output, expected_num_kernel_loops):
+    npart = 10
     TestParticle = Particle.add_variable(Variable("num_kernel_loops", dtype=np.float32, initial=0))
-    pset = ParticleSet(fieldset, pclass=TestParticle, x=[0.5], y=[0])
+    pset = ParticleSet(fieldset, pclass=TestParticle, x=np.linspace(0, 1, npart), y=[0] * npart)
 
     def ModifyDt(particles, fieldset):  # pragma: no cover
         particles.num_kernel_loops += 1
         particles.dt = 4
+        particles[particles.x > 0.8].state = StatusCode.Delete
 
     runtime = 17
     output = ParticleFile(tmp_parquet, outputdt=5.0) if with_output else None
     pset.execute(ModifyDt, runtime=runtime, dt=1.0, output_file=output, verbose_progress=False)
 
-    np.testing.assert_allclose(pset.t[0], runtime)
-    np.testing.assert_allclose(pset.num_kernel_loops[0], expected_num_kernel_loops)
+    np.testing.assert_allclose(pset.t, runtime)
+    np.testing.assert_allclose(pset.num_kernel_loops, expected_num_kernel_loops)
 
 
 def test_dt_modify_in_kernel_vector(fieldset):
