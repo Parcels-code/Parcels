@@ -168,7 +168,7 @@ class Kernel:
         )
 
     def execute(self, pset, endtime):
-        """Execute this Kernel over a ParticleSet for several timesteps in a given time direction.
+        """Execute this Kernel over a ParticleSet for several timesteps.
 
         Parameters
         ----------
