@@ -167,6 +167,8 @@ def validate_field_data(ds: xr.Dataset) -> xr.Dataset:
 
 
 class StructuredModelData(ModelData):
+    grid: XGrid
+
     def __init__(
         self,
         data: xr.Dataset,
