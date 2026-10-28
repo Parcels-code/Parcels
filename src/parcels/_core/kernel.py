@@ -167,7 +167,7 @@ class Kernel:
             self.pclass,
         )
 
-    def execute(self, pset, endtime, sign_dt):
+    def execute(self, pset, endtime):
         """Execute this Kernel over a ParticleSet for several timesteps in a given time direction.
 
         Parameters
@@ -176,9 +176,11 @@ class Kernel:
             object of (sub-)type ParticleSet
         endtime :
             endtime of this overall kernel evaluation step
-        sign_dt :
-            direction of time integration, 1 for forward, -1 for backward
         """
+        sign_dt = np.sign(pset.dt[0])
+        if len(pset) > 0 and np.any(np.sign(pset.dt) != sign_dt):
+            raise ValueError("All particle timesteps must have the same sign")
+
         pset._data["state"][:] = StatusCode.Success
         preserve_particle_dt = not hasattr(self.fieldset, "RK45_tol")
         dt_to_restore = pset.dt.copy()
