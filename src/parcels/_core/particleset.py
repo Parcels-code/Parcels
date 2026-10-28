@@ -264,13 +264,8 @@ class ParticleSet:
         """Pre-populate guesses of particle ei (element id) indices"""
         for i, grid in enumerate(self.fieldset.gridset):
             grid_positions = grid.search(self.z, self.y, self.x)
-            self._data["ei"][:, i] = grid.ravel_index(
-                {
-                    "X": grid_positions["X"]["index"],
-                    "Y": grid_positions["Y"]["index"],
-                    "Z": grid_positions["Z"]["index"],
-                }
-            )
+            axes = ("Z", "FACE") if isinstance(grid, UxGrid) else ("X", "Y", "Z")
+            self._data["ei"][:, i] = grid.ravel_index({axis: grid_positions[axis]["index"] for axis in axes})
 
     @classmethod
     def from_particlefile(cls, fieldset, pclass, filename, restart=True, restarttime=None, **kwargs):

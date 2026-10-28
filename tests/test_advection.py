@@ -16,6 +16,7 @@ from parcels import (
     Variable,
     convert,
 )
+from parcels._core.field import _get_positions
 from parcels._core.utils.time import timedelta_to_float
 from parcels._core.warnings import FieldEvalWarning
 from parcels._datasets.structured.generated import (
@@ -28,6 +29,7 @@ from parcels._datasets.structured.generated import (
     stommel_gyre_dataset,
 )
 from parcels._datasets.structured.generic import datasets_sgrid
+from parcels._datasets.unstructured.generated import simple_small_delaunay
 from parcels.kernels import (
     RK2,
     RK4,
@@ -151,6 +153,43 @@ def test_horizontal_advection_in_3D_flow(mesh_str, npart=10):
     if mesh_str == "spherical":
         expected_lon /= 1852 * 60 * np.cos(np.deg2rad(pset.y))
     np.testing.assert_allclose(pset.x, expected_lon, atol=1.0e-1)
+
+
+@pytest.mark.parametrize("npart", [1, 5])
+def test_ei_update_during_xgrid_advection(npart):
+    ds = simple_UV_dataset(mesh_str="flat")
+    ds["U"].data[:] = 100.0
+    ds["V"].data[:] = -20.0
+    fieldset = FieldSet.from_sgrid_conventions(ds)
+
+    pset = ParticleSet(fieldset, x=np.linspace(0, 3e5, npart), y=np.zeros(npart))
+    pset.populate_indices()
+    ei_before = pset.ei.copy()
+
+    pset.execute(AdvectionRK4, runtime=np.timedelta64(1, "h"), dt=np.timedelta64(15, "m"))
+
+    _, grid_positions = _get_positions(fieldset.U, pset.t, pset.z, pset.y, pset.x, pset, pset.ei[:, 0])
+    ei_after = fieldset.U.grid.unravel_index(pset.ei[:, 0])
+    assert np.all(pset.ei != ei_before)
+    np.testing.assert_allclose(grid_positions["X"]["index"], ei_after["X"])
+    np.testing.assert_allclose(grid_positions["Y"]["index"], ei_after["Y"])
+
+
+@pytest.mark.parametrize("npart", [1, 5])
+def test_ei_update_during_ugrid_advection(npart):
+    ds = simple_small_delaunay()
+    fieldset = FieldSet.from_ugrid_conventions(ds)
+
+    pset = ParticleSet(fieldset, x=np.linspace(0.1, 0.8, npart), y=0.6 * np.ones(npart))
+    pset.populate_indices()
+    ei_before = pset.ei.copy()
+
+    pset.execute(AdvectionRK4, runtime=np.timedelta64(10, "h"), dt=np.timedelta64(15, "m"))
+
+    _, grid_positions = _get_positions(fieldset.U, pset.t, pset.z, pset.y, pset.x, pset, pset.ei[:, 0])
+    ei_after = fieldset.U.grid.unravel_index(pset.ei[:, 0])
+    assert np.all(pset.ei != ei_before)
+    np.testing.assert_allclose(grid_positions["FACE"]["index"], ei_after["FACE"])
 
 
 @pytest.mark.parametrize("direction", ["up", "down"])
