@@ -177,8 +177,8 @@ class Kernel:
             self.pclass,
         )
 
-    def execute(self, pset, endtime, dt):
-        """Execute this Kernel over a ParticleSet for several timesteps.
+    def execute(self, pset, endtime, sign_dt):
+        """Execute this Kernel over a ParticleSet for several timesteps in a given time direction.
 
         Parameters
         ----------
@@ -186,17 +186,15 @@ class Kernel:
             object of (sub-)type ParticleSet
         endtime :
             endtime of this overall kernel evaluation step
-        dt :
-            computational integration timestep from pset.execute
+        sign_dt :
+            direction of time integration, 1 for forward, -1 for backward
         """
-        compute_time_direction = 1 if dt > 0 else -1
-
         pset._data["state"][:] = StatusCode.Success
         preserve_particle_dt = not hasattr(self.fieldset, "RK45_tol")
         dt_to_restore = pset.dt.copy()
 
         while (len(pset) > 0) and np.any(np.isin(pset.state, [StatusCode.Success, StatusCode.Repeat])):
-            time_to_endtime = compute_time_direction * (endtime - pset.t)
+            time_to_endtime = sign_dt * (endtime - pset.t)
 
             evaluate_particles = (pset.state == StatusCode.Success) & (time_to_endtime >= 0)
             if not np.any(evaluate_particles):
@@ -206,7 +204,7 @@ class Kernel:
                 pset.dt = dt_to_restore
 
             # adapt dt to end exactly on endtime
-            pset.dt = _clip_dt_to_endtime(pset.dt, time_to_endtime, compute_time_direction)
+            pset.dt = _clip_dt_to_endtime(pset.dt, time_to_endtime, sign_dt)
 
             # run kernels for all particles that need to be evaluated
             for f in self._kernels:
@@ -225,7 +223,7 @@ class Kernel:
             # (particles that signalled Stop*/Delete/errors should not have time/position advanced)
             update_particles = evaluate_particles & (pset.state == StatusCode.Success)
             if np.any(update_particles):
-                pset.dt = _clip_dt_to_endtime(pset.dt, time_to_endtime, compute_time_direction)
+                pset.dt = _clip_dt_to_endtime(pset.dt, time_to_endtime, sign_dt)
                 self._position_update(pset[update_particles], self._fieldset)
 
             # revert to the retained dt (unless in RK45 mode)
