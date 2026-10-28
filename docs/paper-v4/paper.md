@@ -9,13 +9,13 @@ tags:
 authors:
   - name: Nick Hodgskin
     orcid: 0009-0003-0778-3183
-    corresponding: true
     affiliation: 1
   - name: Joe Schoonover
     orcid: 0000-0001-5650-7095
     affiliation: 2
   - name: Erik van Sebille
     orcid: 0000-0003-2041-0704
+    corresponding: true
     affiliation: 1
 
 affiliations:
