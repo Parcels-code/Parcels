@@ -101,16 +101,6 @@ class Kernel:
     def fieldset(self):
         return self._fieldset
 
-    def remove_deleted(self, pset):
-        """Utility to remove all particles that signalled deletion."""
-        bool_indices = pset._data["state"] == StatusCode.Delete
-        indices = np.where(bool_indices)[0]
-        # TODO v4: need to implement ParticleFile writing of deleted particles
-        # if len(indices) > 0 and self.fieldset.particlefile is not None:
-        #     self.fieldset.particlefile.write(pset, None, indices=indices)
-        if len(indices) > 0:
-            pset.remove_indices(indices)
-
     def _position_update(self, particles, fieldset):
         particles.x += particles.dx
         particles.y += particles.dy
@@ -235,10 +225,11 @@ class Kernel:
             pset[particles_endofloop].state = StatusCode.EndofLoop
 
             # delete particles that signalled deletion and remove their corresponding dt_to_restore
-            deleted_particles = pset.state == StatusCode.Delete
-            self.remove_deleted(pset)
-            if preserve_particle_dt:
-                dt_to_restore = dt_to_restore[~deleted_particles]
+            indices = np.flatnonzero(pset.state == StatusCode.Delete)
+            if len(indices) > 0:
+                pset.remove_indices(indices)
+                if preserve_particle_dt:
+                    dt_to_restore = np.delete(dt_to_restore, indices)
 
             # check and throw errors
             if np.any(pset.state == StatusCode.StopAllExecution):
