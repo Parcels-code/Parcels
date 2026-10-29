@@ -88,6 +88,10 @@ def test_particleset_repr(fieldset):
         Variable(name='state', dtype='int32', initial=0, to_write=False)"""
     assert str(pset) == expected
 
+    expected = """\
+P[0]: t=2000-01-01T00:00:00, z=0.000000, y=1.000000, x=0.000000, particle_id=0"""
+    assert str(pset[0]) == expected
+
 
 @pytest.mark.parametrize("offset", [0, 1, 200])
 def test_pset_with_pids(fieldset, offset, npart=100):

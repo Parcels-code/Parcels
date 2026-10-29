@@ -177,7 +177,7 @@ class ParticleSet:
 
     def __getitem__(self, index):
         """Get a single particle by index."""
-        return ParticleSetView(self._data, index=index, pclass=self._pclass)
+        return ParticleSetView(self._data, index=index, pclass=self._pclass, time_interval=self.fieldset.time_interval)
 
     def __setattr__(self, name, value):
         if name in ["_data"]:
