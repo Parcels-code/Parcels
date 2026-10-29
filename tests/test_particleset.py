@@ -5,7 +5,6 @@ from operator import attrgetter
 import numpy as np
 import pytest
 import xarray as xr
-from re_assert import Matches
 
 from parcels import (
     FieldSet,
@@ -37,7 +36,61 @@ def test_create_empty_pset(fieldset):
 
 
 def test_particleset_repr(fieldset):
-    Matches(r"\<.*ParticleSet object at.*\>").assert_matches(repr(ParticleSet(fieldset, pclass=Particle)))
+    npart = 100
+    pset = ParticleSet(fieldset, x=np.linspace(0, 1, npart), y=np.ones(npart))
+    expected = """\
+<ParticleSet>
+    Number of particles: 100
+    Particles:
+        P[0]: t=nan, z=0.000000, y=1.000000, x=0.000000, particle_id=0
+        P[1]: t=nan, z=0.000000, y=1.000000, x=0.010101, particle_id=1
+        P[2]: t=nan, z=0.000000, y=1.000000, x=0.020202, particle_id=2
+        P[3]: t=nan, z=0.000000, y=1.000000, x=0.030303, particle_id=3
+        P[4]: t=nan, z=0.000000, y=1.000000, x=0.040404, particle_id=4
+        P[5]: t=nan, z=0.000000, y=1.000000, x=0.050505, particle_id=5
+        P[6]: t=nan, z=0.000000, y=1.000000, x=0.060606, particle_id=6
+        ...
+        P[99]: t=nan, z=0.000000, y=1.000000, x=1.000000, particle_id=99
+    Pclass:
+        Variable(name='t', dtype='float64', initial=0, to_write=True, attrs={'standard_name': 'time', 'units': 'seconds', 'axis': 'T'})
+        Variable(name='z', dtype='float32', initial=0, to_write=True, attrs={'standard_name': 'vertical coordinate', 'units': 'm', 'positive': 'down'})
+        Variable(name='y', dtype='float32', initial=0, to_write=True, attrs={'standard_name': 'latitude', 'units': 'degrees_north', 'axis': 'Y'})
+        Variable(name='x', dtype='float32', initial=0, to_write=True, attrs={'standard_name': 'longitude', 'units': 'degrees_east', 'axis': 'X'})
+        Variable(name='dz', dtype='float32', initial=0, to_write=False)
+        Variable(name='dy', dtype='float32', initial=0, to_write=False)
+        Variable(name='dx', dtype='float32', initial=0, to_write=False)
+        Variable(name='particle_id', dtype='int64', initial=0, to_write=True, attrs={'long_name': 'Unique identifier for each particle', 'cf_role': 'trajectory_id'})
+        Variable(name='dt', dtype='float64', initial=1.0, to_write=False)
+        Variable(name='state', dtype='int32', initial=0, to_write=False)"""
+    assert str(pset) == expected
+
+    npart = 5
+    pset = ParticleSet(fieldset, x=np.linspace(0, 1, npart), y=np.ones(npart), t=npart * [np.timedelta64(0, "s")])
+    expected = """\
+<ParticleSet>
+    Number of particles: 5
+    Particles:
+        P[0]: t=2000-01-01T00:00:00, z=0.000000, y=1.000000, x=0.000000, particle_id=0
+        P[1]: t=2000-01-01T00:00:00, z=0.000000, y=1.000000, x=0.250000, particle_id=1
+        P[2]: t=2000-01-01T00:00:00, z=0.000000, y=1.000000, x=0.500000, particle_id=2
+        P[3]: t=2000-01-01T00:00:00, z=0.000000, y=1.000000, x=0.750000, particle_id=3
+        P[4]: t=2000-01-01T00:00:00, z=0.000000, y=1.000000, x=1.000000, particle_id=4
+    Pclass:
+        Variable(name='t', dtype='float64', initial=0, to_write=True, attrs={'standard_name': 'time', 'units': 'seconds', 'axis': 'T'})
+        Variable(name='z', dtype='float32', initial=0, to_write=True, attrs={'standard_name': 'vertical coordinate', 'units': 'm', 'positive': 'down'})
+        Variable(name='y', dtype='float32', initial=0, to_write=True, attrs={'standard_name': 'latitude', 'units': 'degrees_north', 'axis': 'Y'})
+        Variable(name='x', dtype='float32', initial=0, to_write=True, attrs={'standard_name': 'longitude', 'units': 'degrees_east', 'axis': 'X'})
+        Variable(name='dz', dtype='float32', initial=0, to_write=False)
+        Variable(name='dy', dtype='float32', initial=0, to_write=False)
+        Variable(name='dx', dtype='float32', initial=0, to_write=False)
+        Variable(name='particle_id', dtype='int64', initial=0, to_write=True, attrs={'long_name': 'Unique identifier for each particle', 'cf_role': 'trajectory_id'})
+        Variable(name='dt', dtype='float64', initial=1.0, to_write=False)
+        Variable(name='state', dtype='int32', initial=0, to_write=False)"""
+    assert str(pset) == expected
+
+    expected = """\
+P[0]: t=2000-01-01T00:00:00, z=0.000000, y=1.000000, x=0.000000, particle_id=0"""
+    assert str(pset[0]) == expected
 
 
 @pytest.mark.parametrize("offset", [0, 1, 200])

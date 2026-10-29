@@ -6,10 +6,11 @@ from parcels._repr_utils import particlesetview_repr
 class ParticleSetView:
     """Class to be used in a kernel that links a View of the ParticleSet (on the kernel level) to a ParticleSet."""
 
-    def __init__(self, data, index, pclass):
+    def __init__(self, data, index, pclass, time_interval=None):
         self._data = data
         self._index = index
         self._pclass = pclass
+        self._time_interval = time_interval
 
     def __getattr__(self, name):
         # Return a proxy that behaves like the underlying numpy array but
@@ -28,7 +29,7 @@ class ParticleSetView:
         return self._data[name][self._index]
 
     def __setattr__(self, name, value):
-        if name in ["_data", "_index", "_pclass"]:
+        if name in ["_data", "_index", "_pclass", "_time_interval"]:
             object.__setattr__(self, name, value)
         else:
             self._data[name][self._index] = value

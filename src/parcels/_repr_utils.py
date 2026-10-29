@@ -104,11 +104,17 @@ def particleset_repr(pset: ParticleSet) -> str:
 
 def particlesetview_repr(pview: Any) -> str:
     """Return a pretty repr for ParticleSetView"""
-    time_string = "not_yet_set" if pview.t is None or np.isnan(pview.t) else f"{pview.t:f}"
-    out = f"P[{pview.particle_id}]: time={time_string}, z={pview.z:f}, y={pview.y:f}, x={pview.x:f}"
-    vars = [v.name for v in pview._pclass.variables if v.to_write is True and v.name not in ["z", "y", "x", "time"]]
+    from parcels._core.utils.time import float_to_datelike
+
+    t = pview.t
+    if t is None or np.isnan(t):
+        time_string = str(t)
+    else:
+        time_string = str(float_to_datelike(t, pview._time_interval))
+    out = f"P[{pview.particle_id}]: t={time_string}, z={pview.z:f}, y={pview.y:f}, x={pview.x:f}"
+    vars = [v.name for v in pview._pclass.variables if v.to_write is True and v.name not in ["t", "z", "y", "x"]]
     for var in vars:
-        out += f", {var}={getattr(pview, var):f}"
+        out += f", {var}={getattr(pview, var)}"
 
     return textwrap.dedent(out).strip()
 
@@ -124,7 +130,10 @@ def particleclass_repr(pclass: Any) -> str:
 
 def variable_repr(var: Any) -> str:
     """Return a pretty repr for Variable"""
-    return f"Variable(name={var._name!r}, dtype={var.dtype!r}, initial={var.initial!r}, to_write={var.to_write!r}, attrs={var.attrs!r})"
+    out = f"Variable(name={var._name!r}, dtype={np.dtype(var.dtype).name!r}, initial={var.initial!r}, to_write={var.to_write!r}"
+    if getattr(var, "attrs", None):
+        out += f", attrs={var.attrs!r}"
+    return out + ")"
 
 
 def timeinterval_repr(ti: Any) -> str:
