@@ -351,6 +351,7 @@ def create_empty_constant_field_model(mesh: SphericalMesh | FlatMesh) -> Structu
                     sgrid.FaceNodePadding("XC", "lon", sgrid.Padding.LOW),
                     sgrid.FaceNodePadding("YC", "lat", sgrid.Padding.LOW),
                 ),
+                node_coordinates=("lon", "lat"),
             ),
         ),
         mesh=mesh,
