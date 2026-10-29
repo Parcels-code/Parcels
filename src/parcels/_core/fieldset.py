@@ -70,12 +70,12 @@ class FieldSet:
         for model in models:
             if not isinstance(model, ModelData):
                 raise ValueError(f"Expected `model` to be a ModelData object. Got {model}")
-        # assert_compatible_calendars(fields)
 
         self.models = models
         self.constant_model: StructuredModelData | None = None
         self._fields: dict[str, Field | VectorField] | None = None
         self.reconstruct_fields()
+        assert_compatible_calendars(self.fields.values())
         self.context: dict[str, float] = {}
         assert_models_have_same_mesh(self.models)
 
@@ -106,6 +106,9 @@ class FieldSet:
         if self.constant_model is not None:
             fields += self.constant_model.construct_fields()
         self._fields = {f.name: f for f in fields}
+        for field in self._fields.values():
+            if isinstance(field, Field):
+                field.igrid = self.gridset.index(field.grid)
 
     def __getattr__(self, name):
         """Get the field by name. If the field is not found, check if it's a context variable."""

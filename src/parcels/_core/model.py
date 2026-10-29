@@ -20,7 +20,7 @@ from parcels._core.uxgrid import UxGrid
 from parcels._core.xgrid import (
     XGrid,
     _transpose_xfield_data_to_tzyx,
-    assert_all_field_dims_have_axis,  # noqa: F401, leave import for now until decision is made # TODO v4: Make decision
+    assert_all_field_dims_have_axis,
 )
 from parcels._logger import logger
 from parcels._python import NOTSET, NotSetType
@@ -169,6 +169,8 @@ def validate_field_data(ds: xr.Dataset) -> xr.Dataset:
 
 
 class StructuredModelData(ModelData):
+    grid: XGrid
+
     def __init__(
         self,
         data: xr.Dataset,
@@ -192,7 +194,7 @@ class StructuredModelData(ModelData):
         self.assert_valid_model_data()
 
     def assert_valid_field_data(self, field_data: xr.DataArray) -> None:
-        # assert_all_field_dims_have_axis(field_data, self.grid.xgcm_grid) #! TODO v4: These checks should be revisited
+        assert_all_field_dims_have_axis(field_data, self.grid.sgrid_metadata)
         _assert_has_time_coordinate(field_data)
 
     @property
@@ -259,6 +261,7 @@ class StructuredModelData(ModelData):
         #     ds["lon"] = ds[node_dimensions[0]]
         #     ds["lat"] = ds[node_dimensions[1]]
 
+        assert_vertical_dimensionality(ds, allowed_dimensionality=[1, 4])
         assert_metadata_ds_consistency(ds, ds.sgrid.metadata)
 
         vector_fields = resolve_vector_fields(ds, vector_fields)
@@ -303,6 +306,18 @@ def assert_valid_vector_fields(ds: xr.Dataset, vector_fields: ptyping.VectorFiel
                 )
 
     assert_vector_field_components_in_dataset(ds, vector_fields)
+    return
+
+
+def assert_vertical_dimensionality(ds: xr.Dataset, allowed_dimensionality: list[int]):
+    # Assert that vertical dimensions have allowed dimensionality.
+    if (vertical_dims := ds.cf.axes.get("Z")) is not None:
+        for vertical_dim in vertical_dims:
+            ndim = max(ds[vertical_dim].ndim, 1)  # cast 0D to 1D; metadata only, so lazy data is not computed
+            if ndim not in allowed_dimensionality:
+                raise ValueError(
+                    f"Vertical dimension {vertical_dim} has dimensionality {ndim}, but allowed dimensionality is {allowed_dimensionality}."
+                )
     return
 
 
@@ -401,6 +416,8 @@ class UnstructuredModelData(ModelData):
 
         if mesh is None:
             mesh = _infer_mesh_from_ugrid_data(ds)
+
+        assert_vertical_dimensionality(ds, allowed_dimensionality=[1, 3])
 
         grid = UxGrid(ds.uxgrid, z=ds.coords["zf"], mesh=mesh)
         ds = _discover_ux_U_and_V(ds)

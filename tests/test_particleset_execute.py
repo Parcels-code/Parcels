@@ -16,6 +16,7 @@ from parcels import (
     Variable,
 )
 from parcels._core.mesh import FlatMesh
+from parcels._core.spatialhash import SpatialHash
 from parcels._core.statuscodes import GridSearchingError
 from parcels._core.utils.time import timedelta_to_float
 from parcels._datasets.structured.generated import simple_UV_dataset
@@ -191,6 +192,39 @@ def test_sampleUonly(fieldset):
         match="Sampling of velocities should normally be done using fieldset.UV or fieldset.UVW object; tread carefully",
     ):
         pset.execute(SampleU, runtime=np.timedelta64(1, "D"), dt=np.timedelta64(1, "D"))
+
+
+def test_ei_cache_skips_spatial_hash_with_two_grids(monkeypatch):
+    """Each grid keeps its own cached ei, so stationary particles only go through the spatial hash on the first step."""
+    n_hashed = []
+    query = SpatialHash.query
+
+    def counting_query(self, y, x):
+        n_hashed.append(len(y))
+        return query(self, y, x)
+
+    monkeypatch.setattr(SpatialHash, "query", counting_query)
+
+    ds_curvilinear = datasets_structured["2d_left_rotated"][["data_g", "grid"]].rename({"data_g": "curvilinear"})
+    ds_rectilinear = datasets_structured["ds_2d_left"][["data_g", "grid"]].rename({"data_g": "rectilinear"})
+    fieldset = FieldSet.from_sgrid_conventions(ds_curvilinear, mesh=FlatMesh()) + FieldSet.from_sgrid_conventions(
+        ds_rectilinear, mesh=FlatMesh()
+    )
+
+    def SampleBothGrids(particles, fieldset):  # pragma: no cover
+        _ = fieldset.curvilinear[particles]
+        _ = fieldset.rectilinear[particles]
+
+    npart = 50
+    rng = np.random.default_rng(0)
+    pset = ParticleSet(fieldset, x=rng.uniform(1, 5, npart), y=rng.uniform(1, 5, npart), z=rng.uniform(1, 80, npart))
+    dt = np.timedelta64(1, "D")
+    pset.execute(SampleBothGrids, runtime=dt, dt=dt)
+    assert sum(n_hashed) == npart
+
+    n_hashed.clear()
+    pset.execute(SampleBothGrids, runtime=4 * dt, dt=dt)
+    assert sum(n_hashed) == 0
 
 
 def test_particleset_run_to_endtime(fieldset):
@@ -390,12 +424,6 @@ def test_some_particles_throw_outoftime(fieldset):
         pset.execute(FieldAccessOutsideTime, runtime=np.timedelta64(1, "D"), dt=np.timedelta64(10, "D"))
 
 
-def test_raise_grid_searching_error(): ...
-
-
-def test_raise_general_error(): ...
-
-
 def test_errorinterpolation(fieldset):
     class NaNInterpolator(VectorInterpolator):  # pragma: no cover
         def interp(self, particle_positions, grid_positions, field):
@@ -571,24 +599,23 @@ def test_uxstommelgyre_multiparticle_pset_execute():
     )
 
 
-@pytest.mark.xfail(reason="Output file not implemented yet")
-def test_uxstommelgyre_pset_execute_output():
+def test_uxstommelgyre_pset_execute_output(tmp_parquet):
     ds = datasets_unstructured["stommel_gyre_delaunay"]
     fieldset = FieldSet.from_ugrid_conventions(ds)
     pset = ParticleSet(
         fieldset,
-        x=[30.0],
-        y=[5.0],
-        z=[50.0],
-        t=[0.0],
+        x=30.0,
+        y=5.0,
+        z=50.0,
+        t=np.timedelta64(0, "s"),
         pclass=Particle,
     )
     output_file = ParticleFile(
-        name="stommel_uxarray_particles.zarr",  # the file name
+        path=tmp_parquet,  # the file name
         outputdt=np.timedelta64(5, "m"),  # the time step of the outputs
     )
     pset.execute(
-        runtime=np.timedelta64(10, "m"), dt=np.timedelta64(60, "s"), kernels=AdvectionEE, output_file=output_file
+        runtime=np.timedelta64(10, "m"), dt=np.timedelta64(150, "s"), kernels=AdvectionEE, output_file=output_file
     )
 
 
