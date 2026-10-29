@@ -108,19 +108,10 @@ class Field:
 
     @property
     def igrid(self):
-        try:
-            return self._igrid
-        except AttributeError as e:
-            raise AttributeError(
-                f"{type(self).__name__} doesn't have an igrid defined for it. Use `.igrid = ...`"
-            ) from e
+        return self._igrid
 
     @igrid.setter
     def igrid(self, value):
-        if value < 0:
-            raise ValueError(
-                f"igrid of Field {self.name!r} must be a non-negative index into FieldSet.gridset, got {value}. "
-            )
         self._igrid = value
 
     @property
