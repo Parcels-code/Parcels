@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
+import xarray as xr
 from re_assert import Matches
 
 from parcels import Field, VectorField
@@ -82,7 +83,16 @@ def test_field_time_interval():
 
 def test_vectorfield_init_different_time_intervals():
     # Tests that a VectorField raises a ValueError if the component fields have different time domains.
-    ...
+    dsU = simple_UV_dataset(mesh_str="flat")[["U", "grid"]]
+    dsV = simple_UV_dataset(mesh_str="flat")[["V"]]
+
+    dsV = dsV.rename({"time": "timeV"})
+    dsV["timeV"] = dsV["timeV"] + np.timedelta64(1, "D")
+    dsV["timeV"].attrs["axis"] = "T"
+
+    ds = xr.merge([dsU, dsV])
+    with pytest.raises(ValueError, match="Multiple time coordinates"):
+        FieldSet.from_sgrid_conventions(ds)
 
 
 def test_field_invalid_interpolator():
@@ -242,15 +252,3 @@ def test_field_eval_out_of_bounds_unstructured(field_name, location, expected):
         match="Some interpolated values are out-of-bounds. These values are set to 0. Treat carefully.",
     ):
         np.testing.assert_allclose(field.eval(*location), expected)
-
-
-def test_field_unstructured_grid_creation(): ...
-
-
-def test_field_interpolation(): ...
-
-
-def test_field_interpolation_out_of_spatial_bounds(): ...
-
-
-def test_field_interpolation_out_of_time_bounds(): ...

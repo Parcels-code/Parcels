@@ -390,12 +390,6 @@ def test_some_particles_throw_outoftime(fieldset):
         pset.execute(FieldAccessOutsideTime, runtime=np.timedelta64(1, "D"), dt=np.timedelta64(10, "D"))
 
 
-def test_raise_grid_searching_error(): ...
-
-
-def test_raise_general_error(): ...
-
-
 def test_errorinterpolation(fieldset):
     class NaNInterpolator(VectorInterpolator):  # pragma: no cover
         def interp(self, particle_positions, grid_positions, field):
@@ -571,24 +565,23 @@ def test_uxstommelgyre_multiparticle_pset_execute():
     )
 
 
-@pytest.mark.xfail(reason="Output file not implemented yet")
-def test_uxstommelgyre_pset_execute_output():
+def test_uxstommelgyre_pset_execute_output(tmp_parquet):
     ds = datasets_unstructured["stommel_gyre_delaunay"]
     fieldset = FieldSet.from_ugrid_conventions(ds)
     pset = ParticleSet(
         fieldset,
-        x=[30.0],
-        y=[5.0],
-        z=[50.0],
-        t=[0.0],
+        x=30.0,
+        y=5.0,
+        z=50.0,
+        t=np.timedelta64(0, "s"),
         pclass=Particle,
     )
     output_file = ParticleFile(
-        name="stommel_uxarray_particles.zarr",  # the file name
+        path=tmp_parquet,  # the file name
         outputdt=np.timedelta64(5, "m"),  # the time step of the outputs
     )
     pset.execute(
-        runtime=np.timedelta64(10, "m"), dt=np.timedelta64(60, "s"), kernels=AdvectionEE, output_file=output_file
+        runtime=np.timedelta64(10, "m"), dt=np.timedelta64(150, "s"), kernels=AdvectionEE, output_file=output_file
     )
 
 
