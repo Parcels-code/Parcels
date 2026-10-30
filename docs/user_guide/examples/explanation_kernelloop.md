@@ -38,6 +38,8 @@ Below is a structured overview of how the Kernel loop is implemented. Note that 
 
    5. If `outputdt` is a multiple of `particles.t`, write `particles.x` and `particles.t` to parquet output file
 
+Changing `particles.dt` in a Kernel affects the current particle time update and the changed value is retained for subsequent steps. A shortened timestep used to land exactly on an output time or the simulation end time is temporary and does not replace the particle's retained timestep.
+
 Besides having commutable Kernels, the main advantage of this implementation is that, when using Field Sampling with e.g. `particles.var = fieldset.Var[particles.t, particles.z, particles.y, particles.x]`, the particle location stays the same throughout the entire Kernel loop. Additionally, this implementation ensures that the particle location is the same as the location of the sampled field in the output file.
 
 ## Example with currents and winds

@@ -445,7 +445,7 @@ class ParticleSet:
                 else:
                     next_time = end_time
 
-                self._kernel.execute(self, endtime=next_time, dt=dt)
+                self._kernel.execute(self, endtime=next_time)
 
                 if next_output is not None:
                     if np.abs(next_time - next_output) < 0.001:
