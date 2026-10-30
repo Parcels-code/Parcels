@@ -177,8 +177,11 @@ class Kernel:
         endtime :
             endtime of this overall kernel evaluation step
         """
+        if len(pset) == 0:
+            return StatusCode.StopAllExecution
+
         sign_dt = np.sign(pset.dt[0])
-        if len(pset) > 0 and np.any(np.sign(pset.dt) != sign_dt):
+        if np.any(np.sign(pset.dt) != sign_dt):
             raise ValueError("All particle timesteps must have the same sign")
 
         pset._data["state"][:] = StatusCode.Success
