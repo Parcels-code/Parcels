@@ -194,7 +194,7 @@ def test_dt_modify_in_kernel_vector(fieldset):
     dt_in_kernel = np.array([1, 4, 3, 4, 5, 5, 10, 2, 2])
     fieldset.add_context("dt_in_kernel", dt_in_kernel)
 
-    def ModifyDt_FromAarray(particles, fieldset):  # pragma: no cover
+    def ModifyDt_FromArray(particles, fieldset):  # pragma: no cover
         i = np.asarray(particles.num_kernel_loops).astype(int)
         particles.dt = fieldset.dt_in_kernel[i]
         assert particles.t == np.cumsum(np.r_[0, fieldset.dt_in_kernel])[i]
@@ -202,7 +202,7 @@ def test_dt_modify_in_kernel_vector(fieldset):
 
     runtime = sum(dt_in_kernel)
     expected_num_kernel_loops = len(dt_in_kernel)
-    pset.execute(ModifyDt_FromAarray, runtime=runtime, dt=1.0)
+    pset.execute(ModifyDt_FromArray, runtime=runtime, dt=1.0)
 
     np.testing.assert_allclose(pset.t[0], runtime)
     np.testing.assert_allclose(pset.num_kernel_loops[0], expected_num_kernel_loops)
