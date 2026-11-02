@@ -56,12 +56,12 @@ def test_particleset_repr(fieldset):
         Variable(name='z', dtype='float32', initial=0, to_write=True, attrs={'standard_name': 'vertical coordinate', 'units': 'm', 'positive': 'down'})
         Variable(name='y', dtype='float32', initial=0, to_write=True, attrs={'standard_name': 'latitude', 'units': 'degrees_north', 'axis': 'Y'})
         Variable(name='x', dtype='float32', initial=0, to_write=True, attrs={'standard_name': 'longitude', 'units': 'degrees_east', 'axis': 'X'})
-        Variable(name='dz', dtype='float32', initial=0, to_write=False)
-        Variable(name='dy', dtype='float32', initial=0, to_write=False)
-        Variable(name='dx', dtype='float32', initial=0, to_write=False)
+        Variable(name='dz', dtype='float32', initial=0, to_write=False, attrs={})
+        Variable(name='dy', dtype='float32', initial=0, to_write=False, attrs={})
+        Variable(name='dx', dtype='float32', initial=0, to_write=False, attrs={})
         Variable(name='particle_id', dtype='int64', initial=0, to_write=True, attrs={'long_name': 'Unique identifier for each particle', 'cf_role': 'trajectory_id'})
-        Variable(name='dt', dtype='float64', initial=1.0, to_write=False)
-        Variable(name='state', dtype='int32', initial=0, to_write=False)"""
+        Variable(name='dt', dtype='float64', initial=1.0, to_write=False, attrs={})
+        Variable(name='state', dtype='int32', initial=0, to_write=False, attrs={})"""
     assert str(pset) == expected
 
     npart = 5
@@ -80,12 +80,12 @@ def test_particleset_repr(fieldset):
         Variable(name='z', dtype='float32', initial=0, to_write=True, attrs={'standard_name': 'vertical coordinate', 'units': 'm', 'positive': 'down'})
         Variable(name='y', dtype='float32', initial=0, to_write=True, attrs={'standard_name': 'latitude', 'units': 'degrees_north', 'axis': 'Y'})
         Variable(name='x', dtype='float32', initial=0, to_write=True, attrs={'standard_name': 'longitude', 'units': 'degrees_east', 'axis': 'X'})
-        Variable(name='dz', dtype='float32', initial=0, to_write=False)
-        Variable(name='dy', dtype='float32', initial=0, to_write=False)
-        Variable(name='dx', dtype='float32', initial=0, to_write=False)
+        Variable(name='dz', dtype='float32', initial=0, to_write=False, attrs={})
+        Variable(name='dy', dtype='float32', initial=0, to_write=False, attrs={})
+        Variable(name='dx', dtype='float32', initial=0, to_write=False, attrs={})
         Variable(name='particle_id', dtype='int64', initial=0, to_write=True, attrs={'long_name': 'Unique identifier for each particle', 'cf_role': 'trajectory_id'})
-        Variable(name='dt', dtype='float64', initial=1.0, to_write=False)
-        Variable(name='state', dtype='int32', initial=0, to_write=False)"""
+        Variable(name='dt', dtype='float64', initial=1.0, to_write=False, attrs={})
+        Variable(name='state', dtype='int32', initial=0, to_write=False, attrs={})"""
     assert str(pset) == expected
 
     expected = """\

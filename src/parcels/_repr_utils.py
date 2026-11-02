@@ -129,10 +129,7 @@ def particleclass_repr(pclass: Any) -> str:
 
 def variable_repr(var: Any) -> str:
     """Return a pretty repr for Variable"""
-    out = f"Variable(name={var._name!r}, dtype={np.dtype(var.dtype).name!r}, initial={var.initial!r}, to_write={var.to_write!r}"
-    if getattr(var, "attrs", None):
-        out += f", attrs={var.attrs!r}"
-    return out + ")"
+    return f"Variable(name={var._name!r}, dtype={np.dtype(var.dtype).name!r}, initial={var.initial!r}, to_write={var.to_write!r}, attrs={var.attrs!r})"
 
 
 def particlefile_repr(pfile: Any) -> str:

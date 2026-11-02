@@ -41,7 +41,7 @@ def test_variable_invalid_init():
         ),
         (
             Variable("test", np.float32, 0.0, True),
-            "Variable(name='test', dtype='float32', initial=0.0, to_write=True)",
+            "Variable(name='test', dtype='float32', initial=0.0, to_write=True, attrs={})",
         ),
     ],
 )
@@ -78,9 +78,9 @@ def test_particleclass_invalid_vars():
                     Variable("varc", dtype=np.float32, to_write=True),
                 ]
             ),
-            """Variable(name='vara', dtype='float32', initial=0, to_write=True)
-Variable(name='varb', dtype='float32', initial=0, to_write=False)
-Variable(name='varc', dtype='float32', initial=0, to_write=True)""",
+            """Variable(name='vara', dtype='float32', initial=0, to_write=True, attrs={})
+Variable(name='varb', dtype='float32', initial=0, to_write=False, attrs={})
+Variable(name='varc', dtype='float32', initial=0, to_write=True, attrs={})""",
         ),
     ],
 )
