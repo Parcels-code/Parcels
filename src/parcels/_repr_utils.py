@@ -126,6 +126,11 @@ def variable_repr(var: Any) -> str:
     return f"Variable(name={var._name!r}, dtype={np.dtype(var.dtype).name!r}, initial={var.initial!r}, to_write={var.to_write!r}, attrs={var.attrs!r})"
 
 
+def timeinterval_repr(ti: Any) -> str:
+    """Return a pretty repr for TimeInterval"""
+    return f"TimeInterval(left={ti.left!r}, right={ti.right!r})"
+
+
 def particlefile_repr(pfile: Any) -> str:
     """Return a pretty repr for ParticleFile"""
     out = f"""<{type(pfile).__name__}>
