@@ -37,11 +37,19 @@ ErrorsToThrow = {
 }
 
 
-def _clip_dt_to_endtime(dt, time_to_endtime, compute_time_direction):
+def _clip_dt_to_endtime(dt, time_to_endtime, compute_time_direction, dt_to_restore):
     """Clip dt so that particles do not step beyond the endtime, in the direction of integration."""
     if compute_time_direction == 1:
-        return np.maximum(np.minimum(dt, time_to_endtime), 0)
-    return np.minimum(np.maximum(dt, -time_to_endtime), 0)
+        clipped_dt = np.maximum(np.minimum(dt, time_to_endtime), 0)
+    else:
+        clipped_dt = np.minimum(np.maximum(dt, -time_to_endtime), 0)
+
+    newly_clipped = clipped_dt != dt
+    indices = np.flatnonzero(newly_clipped)
+    if indices.size:
+        dt_to_restore.append((indices, dt[indices].copy()))
+
+    return clipped_dt
 
 
 class Kernel:
@@ -182,11 +190,10 @@ class Kernel:
 
         sign_dt = np.sign(pset.dt[0])
         if np.any(np.sign(pset.dt) != sign_dt):
-            raise ValueError("All particle timesteps must have the same sign")
+            raise ValueError("All particle timesteps must have the same sign dt")
 
         pset._data["state"][:] = StatusCode.Success
         preserve_particle_dt = not hasattr(self.fieldset, "RK45_tol")
-        dt_to_restore = pset.dt.copy()
 
         while (len(pset) > 0) and np.any(np.isin(pset.state, [StatusCode.Success, StatusCode.Repeat])):
             time_to_endtime = sign_dt * (endtime - pset.t)
@@ -195,11 +202,10 @@ class Kernel:
             if not np.any(evaluate_particles):
                 return StatusCode.Success
 
-            if preserve_particle_dt:
-                pset.dt = dt_to_restore
+            dt_to_restore = []
 
             # adapt dt to end exactly on endtime
-            pset.dt = _clip_dt_to_endtime(pset.dt, time_to_endtime, sign_dt)
+            pset.dt = _clip_dt_to_endtime(pset.dt, time_to_endtime, sign_dt, dt_to_restore)
 
             # run kernels for all particles that need to be evaluated
             for f in self._kernels:
@@ -218,23 +224,21 @@ class Kernel:
             # (particles that signalled Stop*/Delete/errors should not have time/position advanced)
             update_particles = evaluate_particles & (pset.state == StatusCode.Success)
             if np.any(update_particles):
-                pset.dt = _clip_dt_to_endtime(pset.dt, time_to_endtime, sign_dt)
+                pset.dt = _clip_dt_to_endtime(pset.dt, time_to_endtime, sign_dt, dt_to_restore)
                 self._position_update(pset[update_particles], self._fieldset)
-
-            # revert to the retained dt (unless in RK45 mode)
-            if preserve_particle_dt:
-                pset.dt = dt_to_restore
 
             # Set particle state for particles that reached endtime
             particles_endofloop = (pset.state == StatusCode.Success) & (pset.t == endtime)
             pset[particles_endofloop].state = StatusCode.EndofLoop
 
-            # delete particles that signalled deletion and remove their corresponding dt_to_restore
+            if preserve_particle_dt:
+                for indices, values in dt_to_restore:
+                    pset.dt[indices] = values
+
+            # delete particles that signalled deletion
             indices = np.flatnonzero(pset.state == StatusCode.Delete)
             if len(indices) > 0:
                 pset.remove_indices(indices)
-                if preserve_particle_dt:
-                    dt_to_restore = np.delete(dt_to_restore, indices)
 
             # check and throw errors
             if np.any(pset.state == StatusCode.StopAllExecution):
