@@ -12,7 +12,6 @@ from dask.base import is_dask_collection
 
 from parcels._chunk_cached_array.core import ChunkCachedArray
 from parcels._core._windowed_array import WindowedArray
-from parcels._core.utils.time import float_to_datelike
 from parcels._python import isinstance_noimport
 
 if TYPE_CHECKING:
@@ -105,12 +104,7 @@ def particleset_repr(pset: ParticleSet) -> str:
 
 def particlesetview_repr(pview: Any) -> str:
     """Return a pretty repr for ParticleSetView"""
-    t = pview.t
-    if t is None or np.isnan(t):
-        time_string = str(t)
-    else:
-        time_string = str(float_to_datelike(t, pview._time_interval))
-    out = f"P[{pview.particle_id}]: t={time_string}, z={pview.z:f}, y={pview.y:f}, x={pview.x:f}"
+    out = f"P[{pview.particle_id}]: t={pview.t:f}, z={pview.z:f}, y={pview.y:f}, x={pview.x:f}"
     vars = [v.name for v in pview._pclass.variables if v.to_write is True and v.name not in ["t", "z", "y", "x"]]
     for var in vars:
         out += f", {var}={getattr(pview, var)}"

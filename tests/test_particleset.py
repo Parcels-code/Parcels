@@ -70,11 +70,11 @@ def test_particleset_repr(fieldset):
 <ParticleSet>
     Number of particles: 5
     Particles:
-        P[0]: t=2000-01-01T00:00:00, z=0.000000, y=1.000000, x=0.000000, particle_id=0
-        P[1]: t=2000-01-01T00:00:00, z=0.000000, y=1.000000, x=0.250000, particle_id=1
-        P[2]: t=2000-01-01T00:00:00, z=0.000000, y=1.000000, x=0.500000, particle_id=2
-        P[3]: t=2000-01-01T00:00:00, z=0.000000, y=1.000000, x=0.750000, particle_id=3
-        P[4]: t=2000-01-01T00:00:00, z=0.000000, y=1.000000, x=1.000000, particle_id=4
+        P[0]: t=0.000000, z=0.000000, y=1.000000, x=0.000000, particle_id=0
+        P[1]: t=0.000000, z=0.000000, y=1.000000, x=0.250000, particle_id=1
+        P[2]: t=0.000000, z=0.000000, y=1.000000, x=0.500000, particle_id=2
+        P[3]: t=0.000000, z=0.000000, y=1.000000, x=0.750000, particle_id=3
+        P[4]: t=0.000000, z=0.000000, y=1.000000, x=1.000000, particle_id=4
     Pclass:
         Variable(name='t', dtype='float64', initial=0, to_write=True, attrs={'standard_name': 'time', 'units': 'seconds', 'axis': 'T'})
         Variable(name='z', dtype='float32', initial=0, to_write=True, attrs={'standard_name': 'vertical coordinate', 'units': 'm', 'positive': 'down'})
@@ -89,7 +89,7 @@ def test_particleset_repr(fieldset):
     assert str(pset) == expected
 
     expected = """\
-P[0]: t=2000-01-01T00:00:00, z=0.000000, y=1.000000, x=0.000000, particle_id=0"""
+P[0]: t=0.000000, z=0.000000, y=1.000000, x=0.000000, particle_id=0"""
     assert str(pset[0]) == expected
 
 
