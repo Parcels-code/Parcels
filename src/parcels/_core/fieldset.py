@@ -106,6 +106,9 @@ class FieldSet:
         if self.constant_model is not None:
             fields += self.constant_model.construct_fields()
         self._fields = {f.name: f for f in fields}
+        for field in self._fields.values():
+            if isinstance(field, Field):
+                field.igrid = self.gridset.index(field.grid)
 
     def __getattr__(self, name):
         """Get the field by name. If the field is not found, check if it's a context variable."""
