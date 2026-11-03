@@ -696,7 +696,9 @@ def _spherical_face_bounds(verts):
         # A triangle with no area encloses nothing. Rather
         # than let np.linalg.solve raise on it, conver those faces' weights to NaN.
         weights = np.full(M.shape[:-1] + (len(_AXIS_POINTS),), np.nan)
-        has_area = np.abs(np.linalg.det(M)) > 1e-14
+        # Faces with NaN nodes give a NaN determinant
+        with np.errstate(invalid="ignore"):
+            has_area = np.abs(np.linalg.det(M)) > 1e-14
         if has_area.any():
             weights[has_area] = np.linalg.solve(M[has_area], _AXIS_POINTS.T)
 
