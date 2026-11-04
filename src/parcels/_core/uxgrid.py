@@ -61,13 +61,14 @@ class UxGrid(BaseGrid):
         if is_dask_collection(self.uxgrid.face_node_connectivity.data):
             self.uxgrid.face_node_connectivity.load()
 
-
     def _init_time_varying_z(self) -> None:
         """Checks the dims of a time-varying (3D) z, assigns its default z_interp_method and warns about its use."""
         z = self.z
 
         if z.dims not in (("time", "zf", "n_node"), ("time", "zf", "n_face")):
-            raise ValueError(f"A 3D z must have dims ('time', 'zf', 'n_node') or ('time', 'zf', 'n_face'), got {z.dims}")
+            raise ValueError(
+                f"A 3D z must have dims ('time', 'zf', 'n_node') or ('time', 'zf', 'n_face'), got {z.dims}"
+            )
 
         if z.dims[-1] == "n_node":
             self.z_interp_method = UxVerticalCoordinateLinearNode()
@@ -117,7 +118,6 @@ class UxGrid(BaseGrid):
         if isinstance(value, UxVerticalCoordinateConstantFace) and self.z.dims[-1] != "n_face":
             raise ValueError(f"UxVerticalCoordinateConstantFace needs z on the mesh faces, got dims {self.z.dims}")
         self._z_interp_method = value
-
 
     def get_axis_dim(self, axis: _UXGRID_AXES) -> int:
         if axis not in self.axes:

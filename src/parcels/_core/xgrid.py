@@ -202,7 +202,10 @@ class XGrid(BaseGrid):
         if self.depth.ndim != 4:
             raise ValueError("z_interp_method can only be set on a grid with a time-varying (4D) depth")
         depth_dims = self.depth.dims
-        if isinstance(value, XVerticalCoordinateConstant) and get_dim_position(self.sgrid_metadata, depth_dims[-1]) != "face":
+        if (
+            isinstance(value, XVerticalCoordinateConstant)
+            and get_dim_position(self.sgrid_metadata, depth_dims[-1]) != "face"
+        ):
             raise ValueError(f"XVerticalCoordinateConstant needs depth on the cell centres, got dims {depth_dims}")
         self._z_interp_method = value
 

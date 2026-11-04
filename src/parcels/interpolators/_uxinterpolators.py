@@ -23,7 +23,8 @@ def _barycentric_node_values(
     bcoords: np.ndarray,
 ) -> xr.DataArray:
     """Barycentric (lateral) interpolation of node registered data from the nodes of each particle's face, linear in
-    time between the snapshots ti and ti + 1, at every vertical level. Returns a ("points", <vertical dim>) array."""
+    time between the snapshots ti and ti + 1, at every vertical level. Returns a ("points", <vertical dim>) array.
+    """
     tdim, _, ndim = data.dims
     face_nodes = xr.DataArray(node_ids, dims=("points", "nodes"))
     node_weights = xr.DataArray(bcoords, dims=("points", "nodes"))
@@ -258,16 +259,24 @@ class Ux_Velocity(VectorInterpolator):  # noqa: N801
 class UxVerticalCoordinateConstantFace(VerticalCoordinateInterpolator):
     """Piecewise constant over the face (face registered z), linear in time."""
 
-    def columns(self, grid_positions: dict[_UXGRID_AXES, dict[str, int | float | np.ndarray]], grid: UxGrid) -> np.ndarray:
+    def columns(
+        self, grid_positions: dict[_UXGRID_AXES, dict[str, int | float | np.ndarray]], grid: UxGrid
+    ) -> np.ndarray:
         raise NotImplementedError
 
 
 class UxVerticalCoordinateLinearNode(VerticalCoordinateInterpolator):
     """Barycentric from the face's nodes (node registered z), linear in time."""
 
-    def columns(self, grid_positions: dict[_UXGRID_AXES, dict[str, int | float | np.ndarray]], grid: UxGrid) -> np.ndarray:
+    def columns(
+        self, grid_positions: dict[_UXGRID_AXES, dict[str, int | float | np.ndarray]], grid: UxGrid
+    ) -> np.ndarray:
         node_ids = grid.uxgrid.face_node_connectivity[grid_positions["FACE"]["index"], :].values
         columns = _barycentric_node_values(
-            grid.z, grid_positions["T"]["index"], grid_positions["T"]["bcoord"], node_ids, grid_positions["FACE"]["bcoord"]
+            grid.z,
+            grid_positions["T"]["index"],
+            grid_positions["T"]["bcoord"],
+            node_ids,
+            grid_positions["FACE"]["bcoord"],
         )
         return columns.values
