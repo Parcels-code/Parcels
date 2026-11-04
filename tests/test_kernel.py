@@ -208,16 +208,17 @@ def test_dt_modify_in_kernel_vector(fieldset):
     np.testing.assert_allclose(pset.num_kernel_loops[0], expected_num_kernel_loops)
 
 
-def test_dt_modify_age_in_kernel(fieldset):
+@pytest.mark.parametrize("changed_dt", [1, 2, 3])
+def test_dt_modify_age_in_kernel(fieldset, changed_dt):
     TestParticle = Particle.add_variable(Variable("age", dtype=np.float32, initial=0))
     pset = ParticleSet(fieldset, pclass=TestParticle, x=[0.5], y=[0])
 
     def ModifyDt(particles, fieldset):  # pragma: no cover
         particles.age += particles.dt
-        particles.dt = 2
+        particles.dt = changed_dt
 
     runtime = 10
-    expected_age = 1 + 2 * (runtime / 2 - 1)  # 1 for the first step; 2 for the remaining steps (except last)
+    expected_age = 1 + runtime - changed_dt  # 1 for the first step; changed_dt for the remaining steps (except last)
     pset.execute(ModifyDt, runtime=runtime, dt=1.0)
     np.testing.assert_allclose(pset.t[0], runtime)
     np.testing.assert_allclose(pset.age[0], expected_age)
