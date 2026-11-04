@@ -37,8 +37,17 @@ ErrorsToThrow = {
 }
 
 
-def _clip_dt_to_endtime(dt, time_to_endtime, compute_time_direction, dt_to_restore):
-    """Clip dt so that particles do not step beyond the endtime, in the direction of integration."""
+def _clip_dt_to_endtime(dt, time_to_endtime, compute_time_direction):
+    """Clip dt so that particles do not step beyond the endtime, in the direction of integration.
+
+    Returns
+    -------
+    clipped_dt :
+        The clipped timestep array.
+    dt_to_restore :
+        List of (indices, values) pairs with the original dt of each newly clipped
+        particle, so the caller can restore them after the step.
+    """
     if compute_time_direction == 1:
         clipped_dt = np.maximum(np.minimum(dt, time_to_endtime), 0)
     else:
@@ -46,10 +55,9 @@ def _clip_dt_to_endtime(dt, time_to_endtime, compute_time_direction, dt_to_resto
 
     newly_clipped = clipped_dt != dt
     indices = np.flatnonzero(newly_clipped)
-    if indices.size:
-        dt_to_restore.append((indices, dt[indices].copy()))
+    dt_to_restore = [(indices, dt[indices].copy())] if indices.size else []
 
-    return clipped_dt
+    return clipped_dt, dt_to_restore
 
 
 class Kernel:
@@ -202,10 +210,8 @@ class Kernel:
             if not np.any(evaluate_particles):
                 return StatusCode.Success
 
-            dt_to_restore = []
-
             # adapt dt to end exactly on endtime
-            pset.dt = _clip_dt_to_endtime(pset.dt, time_to_endtime, sign_dt, dt_to_restore)
+            pset.dt, dt_to_restore = _clip_dt_to_endtime(pset.dt, time_to_endtime, sign_dt)
 
             # run kernels for all particles that need to be evaluated
             for f in self._kernels:
@@ -224,7 +230,8 @@ class Kernel:
             # (particles that signalled Stop*/Delete/errors should not have time/position advanced)
             update_particles = evaluate_particles & (pset.state == StatusCode.Success)
             if np.any(update_particles):
-                pset.dt = _clip_dt_to_endtime(pset.dt, time_to_endtime, sign_dt, dt_to_restore)
+                pset.dt, newly_clipped = _clip_dt_to_endtime(pset.dt, time_to_endtime, sign_dt)
+                dt_to_restore.extend(newly_clipped)
                 self._position_update(pset[update_particles], self._fieldset)
 
             # Set particle state for particles that reached endtime
