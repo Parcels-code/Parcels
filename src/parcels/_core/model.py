@@ -24,7 +24,6 @@ from parcels._core.xgrid import (
 )
 from parcels._logger import logger
 from parcels._python import NOTSET, NotSetType
-from parcels._sgrid.accessor import assert_metadata_ds_consistency
 from parcels.interpolators import (
     CGrid_Velocity,
     Ux_Velocity,
@@ -262,7 +261,7 @@ class StructuredModelData(ModelData):
         #     ds["lat"] = ds[node_dimensions[1]]
 
         assert_vertical_dimensionality(ds, allowed_dimensionality=[1, 4])
-        assert_metadata_ds_consistency(ds, ds.sgrid.metadata)
+        ds.sgrid.assert_metadata_ds_consistency()
 
         vector_fields = resolve_vector_fields(ds, vector_fields)
         assert_valid_vector_fields(ds, vector_fields)

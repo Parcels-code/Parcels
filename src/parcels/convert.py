@@ -599,7 +599,7 @@ def croco_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.D
         sgrid.SGrid2DMetadata(
             cf_role="grid_topology",
             topology_dimension=2,
-            node_dimensions=("lon", "lat"),
+            node_dimensions=("xi_rho", "eta_rho"),
             node_coordinates=("lon", "lat"),
             face_dimensions=(
                 sgrid.FaceNodePadding("xi_u", "xi_rho", sgrid.Padding.NONE),
