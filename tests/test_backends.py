@@ -10,6 +10,7 @@ import xarray as xr
 import parcels
 import parcels.tutorial
 from parcels._datasets.structured.generated import simple_UV_dataset
+from parcels._datasets.unstructured.generated import simple_small_delaunay
 from parcels.kernels import AdvectionRK2, AdvectionRK4
 
 BackendT = Literal["WindowedArray", "Dask", "NumPy", "ChunkCachedArray"]
@@ -170,3 +171,10 @@ def test_fieldset_describe_backend(nemo_dataset, backend: BackendT):
 
     for other_backend in BACKENDS - {backend}:
         assert not fieldset_uses_backend(fieldset, other_backend)
+
+
+def test_chunk_cached_arrays_on_unstructured_fieldset():
+    ds = simple_small_delaunay().chunk({"time": 1})
+    fset = parcels.FieldSet.from_ugrid_conventions(ds)
+    fset.to_chunk_cached_arrays()
+    assert fieldset_uses_backend(fset, "ChunkCachedArray")
