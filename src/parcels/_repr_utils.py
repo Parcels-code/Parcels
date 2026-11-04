@@ -77,7 +77,7 @@ def xgrid_repr(grid: Any) -> str:
     """Return a pretty repr for Grid"""
     out = f"""<{type(grid).__name__}>
     Parcels attributes:
-        mesh                  : {grid._mesh}
+        mesh                  : {grid.mesh}
         spatialhash           : {grid._spatialhash}
     SGRID Metadata:
 {textwrap.indent(repr(grid.sgrid_metadata), 8 * " ")}
@@ -104,11 +104,10 @@ def particleset_repr(pset: ParticleSet) -> str:
 
 def particlesetview_repr(pview: Any) -> str:
     """Return a pretty repr for ParticleSetView"""
-    time_string = "not_yet_set" if pview.time is None or np.isnan(pview.time) else f"{pview.time:f}"
-    out = f"P[{pview.particle_id}]: time={time_string}, z={pview.z:f}, y={pview.y:f}, x={pview.x:f}"
-    vars = [v.name for v in pview._pclass.variables if v.to_write is True and v.name not in ["z", "y", "x", "time"]]
+    out = f"P[{pview.particle_id}]: t={pview.t:f}, z={pview.z:f}, y={pview.y:f}, x={pview.x:f}"
+    vars = [v.name for v in pview._pclass.variables if v.to_write is True and v.name not in ["t", "z", "y", "x"]]
     for var in vars:
-        out += f", {var}={getattr(pview, var):f}"
+        out += f", {var}={getattr(pview, var)}"
 
     return textwrap.dedent(out).strip()
 
@@ -124,7 +123,7 @@ def particleclass_repr(pclass: Any) -> str:
 
 def variable_repr(var: Any) -> str:
     """Return a pretty repr for Variable"""
-    return f"Variable(name={var._name!r}, dtype={var.dtype!r}, initial={var.initial!r}, to_write={var.to_write!r}, attrs={var.attrs!r})"
+    return f"Variable(name={var._name!r}, dtype={np.dtype(var.dtype).name!r}, initial={var.initial!r}, to_write={var.to_write!r}, attrs={var.attrs!r})"
 
 
 def timeinterval_repr(ti: Any) -> str:
@@ -273,7 +272,7 @@ def fieldset_describe(fieldset: FieldSet) -> str:
         + f"""\
 
 
-mesh: {fieldset.models[0].grid._mesh}
+mesh: {fieldset.models[0].grid.mesh}
 time interval: {_print_time_interval(fieldset.time_interval)}
 """
     )
@@ -292,7 +291,7 @@ def spatialhash_describe(spatialhash: SpatialHash) -> str:
 
     rows = {
         "Grid type": type(grid).__name__,
-        "Mesh": grid._mesh,
+        "Mesh": grid.mesh,
         "Total mesh faces": f"{n_faces:,d}",
         "Valid (non-NaN) mesh faces": f"{n_valid_faces:,d}",
         "Bitwidth (current / max)": f"{spatialhash._bitwidth} / 1023  (higher = finer resolution hash grid)",

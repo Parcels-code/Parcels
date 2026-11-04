@@ -5,7 +5,9 @@ from parcels import (
     FieldSet,
     KernelWarning,
     Particle,
+    ParticleFile,
     ParticleSet,
+    StatusCode,
     Variable,
 )
 from parcels._core.kernel import Kernel
@@ -130,10 +132,10 @@ def test_rk45_kernel_warnings(fieldset):
 @ignore_kernel_warnings
 @pytest.mark.parametrize("kernel_type", ["update_lon", "update_dlon"])
 def test_execution_order(kernel_type):
-    ds = simple_UV_dataset(n_times=1, nz=1, ny=2, nx=2, mesh="flat")
+    ds = simple_UV_dataset(n_times=1, nz=1, ny=2, nx=2, mesh_str="flat")
     ds["U"].data[:, :] = [[0, 1], [2, 3]]
     ds["lon"].data = [0, 2]
-    fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
+    fieldset = FieldSet.from_sgrid_conventions(ds)
 
     def MoveLon_Update_X(particles, fieldset):  # pragma: no cover
         particles.x += 0.2
@@ -166,17 +168,57 @@ def test_execution_order(kernel_type):
         assert np.allclose(lons[0], 0.2)
 
 
-@pytest.mark.xfail(reason="Modifying dt in a kernel doesn't work GH2765")
-def test_dt_modify_in_kernel(fieldset):
+@pytest.mark.parametrize(("with_output", "expected_num_kernel_loops"), [(True, 7), (False, 5)])
+def test_dt_modify_in_kernel(fieldset, tmp_parquet, with_output, expected_num_kernel_loops):
+    npart = 10
+    TestParticle = Particle.add_variable(Variable("num_kernel_loops", dtype=np.float32, initial=0))
+    pset = ParticleSet(fieldset, pclass=TestParticle, x=np.linspace(0, 1, npart), y=[0] * npart)
+
+    def ModifyDt(particles, fieldset):  # pragma: no cover
+        particles.num_kernel_loops += 1
+        particles.dt = 4
+        particles[particles.x > 0.8].state = StatusCode.Delete
+
+    runtime = 17
+    output = ParticleFile(tmp_parquet, outputdt=5.0) if with_output else None
+    pset.execute(ModifyDt, runtime=runtime, dt=1.0, output_file=output, verbose_progress=False)
+
+    np.testing.assert_allclose(pset.t, runtime)
+    np.testing.assert_allclose(pset.num_kernel_loops, expected_num_kernel_loops)
+
+
+def test_dt_modify_in_kernel_vector(fieldset):
+    TestParticle = Particle.add_variable(Variable("num_kernel_loops", dtype=np.float32, initial=0))
+    pset = ParticleSet(fieldset, pclass=TestParticle, x=[0.5], y=[0])
+
+    dt_in_kernel = np.array([1, 4, 3, 4, 5, 5, 10, 2, 2])
+    fieldset.add_context("dt_in_kernel", dt_in_kernel)
+
+    def ModifyDt_FromArray(particles, fieldset):  # pragma: no cover
+        i = np.asarray(particles.num_kernel_loops).astype(int)
+        particles.dt = fieldset.dt_in_kernel[i]
+        assert particles.t == np.cumsum(np.r_[0, fieldset.dt_in_kernel])[i]
+        particles.num_kernel_loops += 1
+
+    runtime = sum(dt_in_kernel)
+    expected_num_kernel_loops = len(dt_in_kernel)
+    pset.execute(ModifyDt_FromArray, runtime=runtime, dt=1.0)
+
+    np.testing.assert_allclose(pset.t[0], runtime)
+    np.testing.assert_allclose(pset.num_kernel_loops[0], expected_num_kernel_loops)
+
+
+@pytest.mark.parametrize("changed_dt", [1, 2, 3])
+def test_dt_modify_age_in_kernel(fieldset, changed_dt):
     TestParticle = Particle.add_variable(Variable("age", dtype=np.float32, initial=0))
     pset = ParticleSet(fieldset, pclass=TestParticle, x=[0.5], y=[0])
 
     def ModifyDt(particles, fieldset):  # pragma: no cover
         particles.age += particles.dt
-        particles.dt = 2
+        particles.dt = changed_dt
 
     runtime = 10
-    expected_age = 1 + 2 * (runtime - 2)  # 1 for the first step; 2 for the remaining steps (except last)
+    expected_age = 1 + runtime - changed_dt  # 1 for the first step; changed_dt for the remaining steps (except last)
     pset.execute(ModifyDt, runtime=runtime, dt=1.0)
     np.testing.assert_allclose(pset.t[0], runtime)
     np.testing.assert_allclose(pset.age[0], expected_age)

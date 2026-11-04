@@ -14,19 +14,22 @@ from parcels._chunk_cached_array import wrap_dataset
 from parcels._core._windowed_array import maybe_windowed
 from parcels._core.basegrid import BaseGrid
 from parcels._core.field import Field, VectorField
-from parcels._core.mesh import FlatMesh, SphericalMesh
+from parcels._core.mesh import FlatMesh, SphericalMesh, _infer_mesh_from_coordinates
 from parcels._core.utils.time import TimeInterval
 from parcels._core.uxgrid import UxGrid
 from parcels._core.xgrid import (
     XGrid,
     _transpose_xfield_data_to_tzyx,
-    assert_all_field_dims_have_axis,  # noqa: F401, leave import for now until decision is made # TODO v4: Make decision
+    assert_all_field_dims_have_axis,
 )
 from parcels._logger import logger
 from parcels._python import NOTSET, NotSetType
+from parcels._sgrid.accessor import assert_metadata_ds_consistency
 from parcels.interpolators import (
     CGrid_Velocity,
     Ux_Velocity,
+    UxConstantEdgeConstantZC,
+    UxConstantEdgeLinearZF,
     UxConstantFaceConstantZC,
     UxConstantFaceLinearZF,
     UxLinearNodeConstantZC,
@@ -48,7 +51,7 @@ class ModelData(ABC):
 
     @property
     def mesh(self) -> FlatMesh | SphericalMesh:
-        return self.grid._mesh
+        return self.grid.mesh
 
     @abstractmethod
     def construct_fields(self) -> list[Field | VectorField]: ...
@@ -166,6 +169,8 @@ def validate_field_data(ds: xr.Dataset) -> xr.Dataset:
 
 
 class StructuredModelData(ModelData):
+    grid: XGrid
+
     def __init__(
         self,
         data: xr.Dataset,
@@ -189,7 +194,7 @@ class StructuredModelData(ModelData):
         self.assert_valid_model_data()
 
     def assert_valid_field_data(self, field_data: xr.DataArray) -> None:
-        # assert_all_field_dims_have_axis(field_data, self.grid.xgcm_grid) #! TODO v4: These checks should be revisited
+        assert_all_field_dims_have_axis(field_data, self.grid.sgrid_metadata)
         _assert_has_time_coordinate(field_data)
 
     @property
@@ -226,13 +231,13 @@ class StructuredModelData(ModelData):
         cls,
         ds: xr.Dataset,
         *,
-        mesh: ptyping.TMesh | None,
+        mesh: ptyping.TMesh | None = None,
         vector_fields: ptyping.VectorFields | NotSetType,
         skip_field_data_validation: bool = False,
     ) -> Self:
         ds = ds.copy()
         if mesh is None:
-            mesh = _get_mesh_type_from_sgrid_dataset(ds)
+            mesh = _infer_mesh_from_sgrid_data(ds)
 
         # Ensure time dimension has axis attribute if present
         if "time" in ds.dims and "time" in ds.coords:
@@ -255,6 +260,9 @@ class StructuredModelData(ModelData):
         #     node_dimensions = sgrid.load_mappings(ds.grid.node_dimensions)
         #     ds["lon"] = ds[node_dimensions[0]]
         #     ds["lat"] = ds[node_dimensions[1]]
+
+        assert_vertical_dimensionality(ds, allowed_dimensionality=[1, 4])
+        assert_metadata_ds_consistency(ds, ds.sgrid.metadata)
 
         vector_fields = resolve_vector_fields(ds, vector_fields)
         assert_valid_vector_fields(ds, vector_fields)
@@ -301,6 +309,18 @@ def assert_valid_vector_fields(ds: xr.Dataset, vector_fields: ptyping.VectorFiel
     return
 
 
+def assert_vertical_dimensionality(ds: xr.Dataset, allowed_dimensionality: list[int]):
+    # Assert that vertical dimensions have allowed dimensionality.
+    if (vertical_dims := ds.cf.axes.get("Z")) is not None:
+        for vertical_dim in vertical_dims:
+            ndim = max(ds[vertical_dim].ndim, 1)  # cast 0D to 1D; metadata only, so lazy data is not computed
+            if ndim not in allowed_dimensionality:
+                raise ValueError(
+                    f"Vertical dimension {vertical_dim} has dimensionality {ndim}, but allowed dimensionality is {allowed_dimensionality}."
+                )
+    return
+
+
 def assert_vector_field_components_in_dataset(ds: xr.Dataset, vector_fields: ptyping.VectorFields) -> None:
     for components in vector_fields.values():
         for c in components:
@@ -313,13 +333,13 @@ def assert_vector_field_components_in_dataset(ds: xr.Dataset, vector_fields: pty
 
 def create_empty_constant_field_model(mesh: SphericalMesh | FlatMesh) -> StructuredModelData:
     """Create a empty model for constant fields with the given mesh type."""
-    mesh_: ptyping.TMesh = "flat" if isinstance(mesh, FlatMesh) else mesh
+    unit = "m" if isinstance(mesh, FlatMesh) else "degrees"
     return StructuredModelData.from_sgrid_conventions(
         xr.Dataset(
             {},
             coords={
-                "lat": (["lat"], [0], {"axis": "Y"}),
-                "lon": (["lon"], [0], {"axis": "X"}),
+                "lat": (["lat"], [0], {"axis": "Y", "units": unit}),
+                "lon": (["lon"], [0], {"axis": "X", "units": unit}),
                 "depth": (["depth"], [0], {"axis": "Z"}),
                 "time": (["time"], [0], {"axis": "T"}),
             },
@@ -335,7 +355,7 @@ def create_empty_constant_field_model(mesh: SphericalMesh | FlatMesh) -> Structu
                 ),
             ),
         ),
-        mesh=mesh_,
+        mesh=mesh,
         vector_fields={},
     )
 
@@ -386,13 +406,18 @@ class UnstructuredModelData(ModelData):
 
     @classmethod
     def from_ugrid_conventions(
-        cls, ds: ux.UxDataset, *, mesh: ptyping.TMesh, vector_fields: ptyping.VectorFields | NotSetType
+        cls, ds: ux.UxDataset, *, mesh: ptyping.TMesh | None = None, vector_fields: ptyping.VectorFields | NotSetType
     ):
         ds_dims = list(ds.dims)
         if not all(dim in ds_dims for dim in ["time", "zf", "zc"]):
             raise ValueError(
                 f"Dataset missing one of the required dimensions 'time', 'zf', or 'zc' for uxDataset. Found dimensions {ds_dims}"
             )
+
+        if mesh is None:
+            mesh = _infer_mesh_from_ugrid_data(ds)
+
+        assert_vertical_dimensionality(ds, allowed_dimensionality=[1, 3])
 
         grid = UxGrid(ds.uxgrid, z=ds.coords["zf"], mesh=mesh)
         ds = _discover_ux_U_and_V(ds)
@@ -410,22 +435,28 @@ class UnstructuredModelData(ModelData):
         return model
 
 
-# TODO: Refactor later into something like `parcels._metadata.discover(dataset)` helper that can be used to discover important metadata like this. I think this whole metadata handling should be refactored into its own module.
-def _get_mesh_type_from_sgrid_dataset(ds_sgrid: xr.Dataset) -> ptyping.TMesh:
+def _infer_mesh_from_ugrid_data(ds_ugrid: ux.UxDataset) -> ptyping.TMesh:
+    """Small helper to inspect UxGRID metadata and dataset metadata to determine mesh type."""
+    return _infer_mesh_from_coordinates(ds_ugrid.uxgrid.node_lon, ds_ugrid.uxgrid.node_lat)
+
+
+def _infer_mesh_from_sgrid_data(ds_sgrid: xr.Dataset) -> ptyping.TMesh:
     """Small helper to inspect SGRID metadata and dataset metadata to determine mesh type."""
     sgrid_metadata = ds_sgrid.sgrid.metadata
 
+    if sgrid_metadata.node_coordinates is None:
+        horizontal_dims = [d for d in sgrid_metadata.node_dimensions[:2] if d in ds_sgrid.dims]
+        if horizontal_dims:
+            raise ValueError(
+                f"SGRID metadata has no 'node_coordinates', but the dataset has horizontal node dimensions "
+                f"{horizontal_dims}. Add 'node_coordinates' to the SGRID metadata, or pass `mesh` explicitly."
+            )
+        # No horizontal dimensions (e.g. 0D or Z-only grids), so there is no geometry to infer from
+        return FlatMesh()
+
     fpoint_x, fpoint_y = sgrid_metadata.node_coordinates
 
-    if _is_coordinate_in_degrees(ds_sgrid[fpoint_x]) ^ _is_coordinate_in_degrees(ds_sgrid[fpoint_x]):
-        msg = (
-            f"Mismatch in units between X and Y coordinates.\n"
-            f"  Coordinate {ds_sgrid[fpoint_x]!r} attrs: {ds_sgrid[fpoint_x].attrs}\n"
-            f"  Coordinate {ds_sgrid[fpoint_y]!r} attrs: {ds_sgrid[fpoint_y].attrs}\n"
-        )
-        raise ValueError(msg)
-
-    return "spherical" if _is_coordinate_in_degrees(ds_sgrid[fpoint_x]) else "flat"
+    return _infer_mesh_from_coordinates(ds_sgrid[fpoint_x], ds_sgrid[fpoint_y])
 
 
 def _default_vector_field_components(data_vars: Sequence[Hashable]) -> ptyping.VectorFields:
@@ -437,17 +468,6 @@ def _default_vector_field_components(data_vars: Sequence[Hashable]) -> ptyping.V
     if {"U", "V", "W"}.issubset(vars):
         ret["UVW"] = ("U", "V", "W")
     return ret
-
-
-def _is_coordinate_in_degrees(da: xr.DataArray) -> bool:
-    units = da.attrs.get("units")
-    if units is None:
-        raise ValueError(
-            f"Coordinate {da.name!r} of your dataset has no 'units' attribute - we don't know what the spatial units are."
-        )
-    if isinstance(units, str) and "degree" in units.lower():
-        return True
-    return False
 
 
 def _discover_ux_U_and_V(ds: ux.UxDataset) -> ux.UxDataset:
@@ -499,10 +519,14 @@ def _select_uxinterpolator(da: ux.UxDataArray):
         "zc,n_face": UxConstantFaceConstantZC,
         # (zc,n_node): node/corner laterally, layer centers vertically — barycentric lateral & piecewise constant vertical
         "zc,n_node": UxLinearNodeConstantZC,
+        # (zc,n_edge): edge-center laterally, layer centres vertically — piecewise constant
+        "zc,n_edge": UxConstantEdgeConstantZC,
         # (zf,n_node): node/corner laterally, layer interfaces vertically — barycentric lateral & linear vertical
         "zf,n_node": UxLinearNodeLinearZF,
         # (zf,n_face): face-center laterally, layer interfaces vertically — piecewise constant lateral & linear vertical
         "zf,n_face": UxConstantFaceLinearZF,
+        # (zf,n_edge): edge-center laterally, layer interfaces vertically — piecewise constant lateral & linear vertical
+        "zf,n_edge": UxConstantEdgeLinearZF,
     }
     # Extract only spatial dimensions, neglecting time
     da_spatial_dims = tuple(d for d in da.dims if d not in ("time",))
@@ -518,7 +542,7 @@ def _select_uxinterpolator(da: ux.UxDataArray):
     for d in da_spatial_dims:
         if d in ("zf", "zc"):
             vdim = d
-        if d in ("n_face", "n_node"):
+        if d in ("n_face", "n_node", "n_edge"):
             ldim = d
     # Map to supported interpolators
     if vdim and ldim:

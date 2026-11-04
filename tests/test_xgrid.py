@@ -14,6 +14,7 @@ from parcels._core.index_search import (
     _search_1d_array,
     _search_1d_columns,
 )
+from parcels._core.mesh import FlatMesh, SphericalMesh
 from parcels._core.utils.time import timedelta_to_float
 from parcels._core.xgrid import (
     XGrid,
@@ -49,13 +50,10 @@ def assert_equal(actual, expected):
         assert_allclose(actual, expected)
 
 
-@pytest.mark.skip(
-    "Needs updating after refactoring from https://github.com/Parcels-code/Parcels/pull/2646"
-)  # TODO: Remove or replace
 @pytest.mark.parametrize("ds", [datasets["ds_2d_left"]])
 def test_grid_init_param_types(ds):
-    with pytest.raises(ValueError, match="Invalid value 'invalid'. Valid options are.*"):
-        XGrid.from_dataset(ds, mesh="invalid")
+    with pytest.raises(TypeError, match="mesh must be a FlatMesh or SphericalMesh object. Got mesh.*"):
+        FieldSet.from_sgrid_conventions(ds, mesh="invalid")
 
 
 def test_xgrid_repr(fieldset):
@@ -64,7 +62,7 @@ def test_xgrid_repr(fieldset):
 
 @pytest.mark.parametrize("ds, attr, expected", test_cases)
 def test_xgrid_properties_ground_truth(ds, attr, expected):
-    grid = FieldSet.from_sgrid_conventions(ds, mesh="flat").data_g.grid
+    grid = FieldSet.from_sgrid_conventions(ds).data_g.grid
     actual = getattr(grid, attr)
     assert_equal(actual, expected)
 
@@ -74,26 +72,27 @@ def test_xgrid_axes(fieldset):
 
 
 @pytest.mark.parametrize("ds", [datasets["ds_2d_left"]])
-@pytest.mark.parametrize("mesh", ["flat", "spherical"])
-def test_uxgrid_mesh(ds, mesh):
-    grid = FieldSet.from_sgrid_conventions(ds, mesh=mesh).data_g.grid
-    assert mesh in grid._mesh.__class__.__name__.lower()
+@pytest.mark.parametrize("mesh", [FlatMesh, SphericalMesh])
+def test_xgrid_mesh_inferred_from_units(ds, mesh):
+    ds = ds.copy(deep=True)
+    if mesh is SphericalMesh:
+        ds["lon"].attrs["units"] = "degrees_east"
+        ds["lat"].attrs["units"] = "degrees_north"
+    grid = FieldSet.from_sgrid_conventions(ds).data_g.grid
+    assert isinstance(grid.mesh, mesh)
 
 
-@pytest.mark.skip(
-    "Needs updating after refactoring from https://github.com/Parcels-code/Parcels/pull/2646"
-)  # TODO: Remove or replace
 @pytest.mark.parametrize("ds", [datasets["ds_2d_left"]])
 def test_transpose_xfield_data_to_tzyx(ds):
     da = ds["data_g"]
-    grid = XGrid.from_dataset(ds, mesh="flat")
+    grid = FieldSet.from_sgrid_conventions(ds).data_g.grid
 
     all_combinations = (itertools.combinations(da.dims, n) for n in range(len(da.dims)))
     all_combinations = itertools.chain(*all_combinations)
     for subset_dims in all_combinations:
         isel = {dim: 0 for dim in subset_dims}
         da_subset = da.isel(isel, drop=True)
-        da_test = _transpose_xfield_data_to_tzyx(da_subset, grid.xgcm_grid)
+        da_test = _transpose_xfield_data_to_tzyx(da_subset, grid.sgrid_metadata)
         utils.assert_valid_field_data(da_test, grid)
 
 
@@ -104,84 +103,64 @@ def test_xgrid_get_axis_dim(fieldset):
     assert grid.get_axis_dim("X") == X - 1
 
 
-def test_invalid_xgrid_field_array():
-    """Stress test initialiser by creating incompatible datasets that test the edge cases"""
-    ...
-
-
-@pytest.mark.skip(
-    "Needs updating after refactoring from https://github.com/Parcels-code/Parcels/pull/2646"
-)  # TODO: Remove or replace
 def test_invalid_lon_lat():
     """Stress test the grid initialiser by creating incompatible datasets that test the edge cases"""
     ds = datasets["ds_2d_left"].copy()
     ds["lon"], ds["lat"] = xr.broadcast(ds["YC"], ds["XC"])
+    ds["lon"].attrs["units"] = "meters"
+    ds["lat"].attrs["units"] = "meters"
 
     with pytest.raises(
         ValueError,
-        match=r".*is defined on the center of the grid, but must be defined on the F points\.",
+        match=r".*is defined on the faces of the grid, but must be defined on the F nodes\.",
     ):
-        XGrid.from_dataset(ds, mesh="flat")
+        FieldSet.from_sgrid_conventions(ds)
 
     ds = datasets["ds_2d_left"].copy()
     ds["lon"], _ = xr.broadcast(ds["YG"], ds["XG"])
+    ds["lon"].attrs["units"] = "meters"
     with pytest.raises(
         ValueError,
         match=r".*have different dimensionalities\.",
     ):
-        XGrid.from_dataset(ds, mesh="flat")
+        FieldSet.from_sgrid_conventions(ds)
 
     ds = datasets["ds_2d_left"].copy()
     ds["lon"], ds["lat"] = xr.broadcast(ds["YG"], ds["XG"])
     ds["lon"], ds["lat"] = ds["lon"].transpose(), ds["lat"].transpose()
+    ds["lon"].attrs["units"] = "meters"
+    ds["lat"].attrs["units"] = "meters"
 
     with pytest.raises(
         ValueError,
         match=r".*must be defined on the X and Y axes and transposed to have dimensions in order of Y, X\.",
     ):
-        XGrid.from_dataset(ds, mesh="flat")
+        FieldSet.from_sgrid_conventions(ds)
 
 
-@pytest.mark.skip(
-    "Needs updating after refactoring from https://github.com/Parcels-code/Parcels/pull/2646"
-)  # TODO: Remove or replace
 def test_invalid_depth():
     ds = datasets["ds_2d_left"].copy()
     ds = ds.reindex({"ZG": ds.ZG[::-1]})
 
     with pytest.raises(ValueError, match="Depth DataArray .* must be strictly increasing*"):
-        XGrid.from_dataset(ds, mesh="flat")
+        FieldSet.from_sgrid_conventions(ds)
 
 
-@pytest.mark.skip(
-    "Needs updating after refactoring from https://github.com/Parcels-code/Parcels/pull/2646"
-)  # TODO: I think we can just rely on the SGRID metadata for this (which already has robust error messaging). How should discrepencies between SGRID and axis attr be handled?
 def test_dim_with_duplicate_axis():
     ds = datasets_sgrid["ds_2d_padded_low"].copy()
 
     # Add an extra Z axis
     ds = ds[["data_g", "grid"]]
-    ds["data_g"] = ds["data_g"].expand_dims("vertical_dimensions_dim2", 1)
+    ds["data_g"] = ds["data_g"].expand_dims({"vertical_dimensions_dim2": 90})
 
     z = ds["vertical_dimensions_dim2"]
     z.attrs.update({"axis": "Z"})
     ds["vertical_dimensions_dim2"] = z
 
-    # TODO: Clean up this attribute setting (really, this should be on the source datasets)
-    lon = ds["lon"]
-    lat = ds["lat"]
-    lon.attrs.update({"units": "metres"})
-    lat.attrs.update({"units": "metres"})
-    ds["lon"] = lon
-    ds["lat"] = lat
-
     with pytest.raises(ValueError, match="Two dimensions .*provide values in the axis direction 'Z'."):
         FieldSet.from_sgrid_conventions(ds)
 
 
-# TODO restructure: Look into the test below
-# remove: eval with timedelta64 time fails; TimeInterval.is_all_time_in_interval expects float (seconds) not timedelta64; time arg type requirement changed
-@pytest.mark.skip("remove: see comment above")
 @pytest.mark.parametrize("ds", [datasets["ds_2d_left"]])
 def test_vertical1D_field(ds):
     ds = ds.drop_vars(set(ds.data_vars) - {"grid"})
@@ -189,7 +168,7 @@ def test_vertical1D_field(ds):
     ds["z1d"] = xr.DataArray(np.linspace(0, 10, ds["depth"].size), dims=("ZG",))
     ds = ds.reset_coords("z1d")
 
-    fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
+    fieldset = FieldSet.from_sgrid_conventions(ds)
     field = fieldset.z1d
 
     np.testing.assert_almost_equal(field.eval(np.timedelta64(0, "s"), 0.45, 0, 0), np.array([4.5]))
@@ -200,7 +179,7 @@ def test_time1D_field():
     ds["data_g"] = (["time"], np.arange(0, ds["time"].size))
     ds["time"] = xr.date_range("2000-01-01", "2000-01-13")
 
-    field = FieldSet.from_sgrid_conventions(ds, mesh="flat").data_g
+    field = FieldSet.from_sgrid_conventions(ds).data_g
     time = timedelta_to_float(np.datetime64("2000-01-10T12:00:00") - field.time_interval.left)
     assert field.eval(time, -20, 5, 6) == 9.5
 
@@ -213,7 +192,7 @@ def test_time1D_field():
     ],
 )  # for key, ds in datasets.items()])
 def test_xgrid_search_cpoints(ds):
-    fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
+    fieldset = FieldSet.from_sgrid_conventions(ds)
     grid = fieldset.U_A_grid.grid
     lat_array, lon_array = get_2d_fpoint_mesh(grid)
     lat_array, lon_array = corner_to_cell_center_points(lat_array, lon_array)
@@ -299,7 +278,6 @@ def test_search_1d_array_some_out_of_bounds(search_1d, array, x, expected_xi):
     np.testing.assert_array_equal(xi, expected_xi)
 
 
-@pytest.mark.xfail(reason="grid.localize not yet adapted to xi, xsi, yi, eta, zi, zeta position keys")
 @pytest.mark.parametrize(
     "ds, da_name, expected",
     [
@@ -345,11 +323,16 @@ def test_search_1d_array_some_out_of_bounds(search_1d, array, x, expected_xi):
         ),
     ],
 )
-def test_xgrid_localize_zero_position(ds, da_name, expected):
-    """Test localize function using left and right datasets."""
-    grid = XGrid.from_dataset(ds, mesh="flat")
+def test_xgrid_localise_zero_position(ds, da_name, expected):
+    """Test localise function using left and right datasets."""
+    fieldset = FieldSet.from_sgrid_conventions(ds)
+    grid = fieldset.models[0].grid
+
     da = ds[da_name]
     position = grid.search(0, 0, 0)
 
-    local_position = grid.localize(position, da.dims)
-    assert local_position == expected, f"Expected {expected}, got {local_position}"
+    local_position = grid.localise(position, da.dims)
+    assert local_position.keys() == expected.keys()
+    for dim, (index, bcoord) in expected.items():
+        np.testing.assert_array_equal(local_position[dim]["index"], [index])
+        np.testing.assert_allclose(local_position[dim]["bcoord"], [bcoord])

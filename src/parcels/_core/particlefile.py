@@ -116,9 +116,13 @@ class ParticleFile:
             raise ValueError(msg)
 
         self.metadata = {}
+        self._time_interval: TimeInterval | None = None
 
     def __repr__(self) -> str:
         return particlefile_repr(self)
+
+    def set_time_interval(self, time_interval: TimeInterval):
+        self._time_interval = time_interval
 
     def set_metadata(self, parcels_grid_mesh: BaseMesh):
         self.metadata.update(
@@ -139,7 +143,7 @@ class ParticleFile:
     def path(self):
         return self._path
 
-    def write(self, pset: ParticleSet | ParticleSetView, t, fieldset=None, indices=None):
+    def write(self, pset: ParticleSet | ParticleSetView, t, indices=None):
         """Write all data from one time step to the parquet file,
         before the particle locations are updated.
 
@@ -148,32 +152,34 @@ class ParticleFile:
         pset :
             ParticleSet object to write
         t :
-            Time at which to write ParticleSet (same time object as fieldset)
-        fieldset :
-            FieldSet object associated with the ParticleSet (optional). By default, the fieldset associated with the ParticleSet will be used, but this can be overridden by providing a fieldset here. This is used in cases when the particleset is a ParticleSetView.
+            Time at which to write ParticleSet (same time object as the fieldset)
         """
         pclass = pset._pclass
-        if isinstance(pset, ParticleSetView) and fieldset is None:
-            raise ValueError("When writing a ParticleSetView, a fieldset must be provided to the write() method.")
-        if fieldset is None:
-            fieldset = pset.fieldset
         particle_data = pset._data
 
         if self._writer is None:
             assert not self.path.exists(), "If the file exists, the writer should already be set"
             self._writer = pq.ParquetWriter(
                 self.path,
-                get_schema(pclass, self.metadata, fieldset.time_interval),
+                get_schema(pclass, self.metadata, self._time_interval),
                 compression=self._compression,
             )
 
         if isinstance(t, (np.timedelta64, np.datetime64)):
-            t = timedelta_to_float(t - fieldset.time_interval.left)
+            if self._time_interval is None:
+                raise ValueError(
+                    "The time interval is unknown, so datetime/timedelta times cannot be converted. "
+                    "Pass the ParticleFile to ParticleSet.execute() or call set_time_interval() first."
+                )
+            t = timedelta_to_float(t - self._time_interval.left)
         vars_to_write = _get_vars_to_write(pclass)
-        if indices is None:
-            indices_to_write = _to_write_particles(particle_data, t)
-        else:
+        if indices is not None:
             indices_to_write = indices
+        elif isinstance(pset, ParticleSetView):
+            # A view already selects the particles to write, so `t` is not used to filter
+            indices_to_write = np.flatnonzero(pset._index)
+        else:
+            indices_to_write = _to_write_particles(particle_data, t)
 
         self._writer.write_table(
             pa.table({v.name: pa.array(particle_data[v.name][indices_to_write]) for v in vars_to_write}),

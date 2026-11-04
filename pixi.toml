@@ -4,7 +4,7 @@ exclude-newer = "5d" # security pre-caution against compromised packages
 preview = ["pixi-build"]
 channels = ["conda-forge"]
 platforms = ["win-64", "linux-64", "osx-64", "osx-arm64"]
-requires-pixi = ">=0.72.0"
+requires-pixi = ">=0.82.1"
 
 [exclude-newer]
 pixi-build-python = "0d"
@@ -17,8 +17,8 @@ version = "dynamic" # dynamic versioning needs better support in pixi https://gi
 backend = { name = "pixi-build-python", version = "0.*" }
 
 [package.host-dependencies]
-setuptools = "*"
-setuptools_scm = "*"
+setuptools = ">=77"
+setuptools_scm = ">=8"
 
 
 [package.run-dependencies] # keep section in sync with pyproject.toml dependencies
@@ -26,7 +26,6 @@ python = ">=3.11"
 cf_xarray = ">=0.10.0"
 cftime = ">=1.6.3"
 dask = ">=2025.7.0"
-holoviews = ">=1.22.0" # https://github.com/prefix-dev/rattler-build/issues/2326
 netcdf4 = ">=1.6.0"
 numpy = ">=2.3.0"
 pandas = ">=2.3"
@@ -65,6 +64,9 @@ python = "3.11.*"
 
 [feature.py313.dependencies]
 python = "3.13.*"
+
+[feature.py315.dependencies]
+python = "3.15.*"
 
 [feature.test.dependencies]
 nbval = "*"
@@ -141,6 +143,9 @@ docs-clean = { depends-on = [
 docs-watch = { cmd = "make livehtml", cwd = "docs", description = "Build and auto-rebuild the documentation on changes.", depends-on = [
   "docs-only-clean",
 ] }
+docs-run-notebook = { cmd = "rm -rf tmp-docs-run-notebook && mkdir tmp-docs-run-notebook && mystnb-to-jupyter --overwrite {{ file }} tmp-docs-run-notebook/notebook.ipynb && cd tmp-docs-run-notebook && jupyter execute --inplace notebook.ipynb && cd .. && echo 'Notebook passed! See the rendered output in the `tmp-docs-run-notebook/notebook.ipynb`.'", args = [
+  "file",
+], description = "Execute a single MyST notebook (.md) or Jupyter notebook (.ipynb) outside of the docs build." }
 docs-linkcheck = { cmd = "make linkcheck", cwd = "docs", description = "Verify all links in documentation don't 404." }
 docs-spelling = { cmd = "python tools/lint_british_english.py docs/user_guide/examples/tutorial*.ipynb docs/user_guide/examples/tutorial*.md docs/user_guide/getting_started/tutorial*.ipynb docs/user_guide/getting_started/tutorial*.md", description = "Check tutorial prose uses British English." }
 more-qaqc = { depends-on = [
@@ -167,7 +172,7 @@ pandas-stubs = "*"
 pyarrow-stubs = "*"
 
 [feature.typing.tasks]
-typing = { cmd = "mypy src/parcels --install-types", description = "Run static type checking with mypy." }
+typing = { cmd = "mypy", description = "Run static type checking with mypy." }
 
 
 [environments]
@@ -179,10 +184,13 @@ default = { features = [
   "numpydoc",
   "devtools",
 ], solve-group = "main" }
-test = { features = ["test"], solve-group = "main" }
+test = { features = [
+  "test",
+], solve-group = "main" } # resolves to the latest Python
 test-min-versions = { features = ["test", "min-versions"] }
 test-py311 = { features = ["test", "py311"] }
 test-py313 = { features = ["test", "py313"] }
+test-py315 = { features = ["test", "py315"] }
 test-notebooks = { features = ["test", "notebooks"], solve-group = "main" }
 docs = { features = ["docs", "notebooks"], solve-group = "docs" }
 typing = { features = ["typing"], solve-group = "main" }

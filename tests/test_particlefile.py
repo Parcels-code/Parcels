@@ -8,7 +8,6 @@ import polars as pl
 import pyarrow as pa
 import pyarrow.parquet as pq
 import pytest
-import xarray as xr
 from re_assert import Matches
 
 import parcels.tutorial
@@ -71,7 +70,7 @@ def test_compression(fieldset, tmp_parquet, compression):
 def test_write_fieldset_without_time(tmp_parquet):
     ds = peninsula_dataset()  # DataSet without time
     assert "time" not in ds.dims
-    fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
+    fieldset = FieldSet.from_sgrid_conventions(ds)
 
     pset = ParticleSet(fieldset, pclass=Particle, x=0, y=0)
 
@@ -95,6 +94,7 @@ def test_pfile_array_remove_particles(fieldset, tmp_parquet):
         t=fieldset.time_interval.left,
     )
     pfile = ParticleFile(tmp_parquet, outputdt=np.timedelta64(1, "s"))
+    pfile.set_time_interval(fieldset.time_interval)
     pset._data["t"][:] = 0
     pfile.write(pset, t=fieldset.time_interval.left)
     pset.remove_indices(3)
@@ -117,6 +117,7 @@ def test_pfile_array_remove_all_particles(fieldset, tmp_parquet):
     pfile.write(pset, t=0)
     for _ in range(npart):
         pset.remove_indices(-1)
+    pfile.set_time_interval(fieldset.time_interval)
     pfile.write(pset, fieldset.time_interval.left + np.timedelta64(1, "D"))
     pfile.write(pset, fieldset.time_interval.left + np.timedelta64(2, "D"))
     pfile.close()
@@ -145,52 +146,13 @@ def test_write_dtypes_pfile(fieldset, tmp_parquet):
 
     pset = ParticleSet(fieldset, pclass=MyParticle, x=0, y=0, t=fieldset.time_interval.left)
     pfile = ParticleFile(tmp_parquet, outputdt=np.timedelta64(1, "s"))
+    pfile.set_time_interval(fieldset.time_interval)
     pfile.write(pset, t=fieldset.time_interval.left)
     pfile.close()
 
     tab = pq.read_table(tmp_parquet)
     for d in dtypes:
         assert tab[f"v_{d.__name__}"].type == pa.from_numpy_dtype(d)
-
-
-@pytest.mark.skip(reason="Pending ParticleFile refactor; see issue #2386")
-@pytest.mark.parametrize("dt", [-np.timedelta64(1, "s"), np.timedelta64(1, "s")])
-@pytest.mark.parametrize("maxvar", [2, 4, 10])
-def test_pset_repeated_release_delayed_adding_deleting(fieldset, tmp_parquet, dt, maxvar):
-    """Tests that if particles are released and deleted based on age that resulting output file is correct."""
-    npart = 10
-    fieldset.add_context("maxvar", maxvar)
-
-    MyParticle = Particle.add_variable(
-        [Variable("sample_var", initial=0.0), Variable("v_once", dtype=np.float64, initial=0.0)]
-    )
-
-    pset = ParticleSet(
-        fieldset,
-        x=np.zeros(npart),
-        y=np.zeros(npart),
-        pclass=MyParticle,
-        t=fieldset.time_interval.left + [np.timedelta64(i + 1, "s") for i in range(npart)],
-    )
-    pfile = ParticleFile(tmp_parquet, outputdt=abs(dt))
-
-    def IncrLon(particles, fieldset):  # pragma: no cover
-        particles.sample_var += 1.0
-        particles.state = np.where(
-            particles.sample_var > fieldset.maxvar,
-            StatusCode.Delete,
-            particles.state,
-        )
-
-    for _ in range(npart):
-        pset.execute(IncrLon, dt=dt, runtime=np.timedelta64(1, "s"), output_file=pfile)
-
-    ds = xr.open_zarr(tmp_parquet)
-    samplevar = ds["sample_var"][:]
-    assert samplevar.shape == (npart, min(maxvar, npart + 1))
-    # test whether samplevar[:, k] = k
-    for k in range(samplevar.shape[1]):
-        assert np.allclose([p for p in samplevar[:, k] if np.isfinite(p)], k + 1)
 
 
 def test_file_warnings(fieldset, tmp_parquet):
@@ -463,12 +425,6 @@ def test_particlefile_init_invalid(tmp_path):
         ParticleFile(path, outputdt=np.timedelta64(1, "s"))
 
 
-def test_pfile_write_custom_particle():
-    # Test the writing of a custom particle with variables that are to_write, some to_write once, and some not to_write
-    # ? This is more of an integration test... Should it be housed here?
-    ...
-
-
 def test_particlefile_readable_after_kernel_error(fieldset, tmp_parquet):
     """Parquet output file must be readable even if the kernel raises an error mid-execution (GH-2713)."""
 
@@ -484,32 +440,6 @@ def test_particlefile_readable_after_kernel_error(fieldset, tmp_parquet):
     # File must be readable despite the crash
     df = pd.read_parquet(tmp_parquet)
     assert len(df) >= 1  # at least the initial condition was written
-
-
-@pytest.mark.xfail(
-    reason="set_variable_write_status should be removed - with Particle writing defined on the particle level. GH2186"
-)
-def test_pfile_set_towrite_False(fieldset, tmp_parquet):
-    npart = 10
-    pset = ParticleSet(fieldset, pclass=Particle, x=np.linspace(0, 1, npart), y=0.5 * np.ones(npart))
-    pset.set_variable_write_status("z", False)
-    pset.set_variable_write_status("lat", False)
-    pfile = pset.ParticleFile(tmp_parquet, outputdt=1)
-
-    def Update_lon(particles, fieldset):  # pragma: no cover
-        particles.dx += 0.1
-
-    pset.execute(Update_lon, runtime=10, output_file=pfile)
-
-    ds = xr.open_zarr(tmp_parquet)
-    assert "t" in ds
-    assert "z" not in ds
-    assert "lat" not in ds
-    ds.close()
-
-    # For pytest purposes, we need to reset to original status
-    pset.set_variable_write_status("z", True)
-    pset.set_variable_write_status("lat", True)
 
 
 @pytest.mark.parametrize(

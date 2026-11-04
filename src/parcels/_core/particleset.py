@@ -1,4 +1,4 @@
-import datetime
+import datetime  # noqa: ICN001
 import sys
 import types
 import warnings
@@ -23,6 +23,7 @@ from parcels._core.uxgrid import UxGrid
 from parcels._core.warnings import ParticleSetWarning
 from parcels._core.xgrid import XGrid
 from parcels._logger import logger
+from parcels._repr_utils import particleset_repr
 
 __all__ = ["ParticleSet"]
 
@@ -190,8 +191,8 @@ class ParticleSet:
     def size(self):
         return len(self)
 
-    # def __repr__(self):
-    #     return particleset_repr(self)
+    def __repr__(self):
+        return particleset_repr(self)
 
     def __len__(self):
         return len(self._data["particle_id"])
@@ -264,13 +265,8 @@ class ParticleSet:
         """Pre-populate guesses of particle ei (element id) indices"""
         for i, grid in enumerate(self.fieldset.gridset):
             grid_positions = grid.search(self.z, self.y, self.x)
-            self._data["ei"][:, i] = grid.ravel_index(
-                {
-                    "X": grid_positions["X"]["index"],
-                    "Y": grid_positions["Y"]["index"],
-                    "Z": grid_positions["Z"]["index"],
-                }
-            )
+            axes = ("Z", "FACE") if isinstance(grid, UxGrid) else ("X", "Y", "Z")
+            self._data["ei"][:, i] = grid.ravel_index({axis: grid_positions[axis]["index"] for axis in axes})
 
     @classmethod
     def from_particlefile(cls, fieldset, pclass, filename, restart=True, restarttime=None, **kwargs):
@@ -351,18 +347,6 @@ class ParticleSet:
         """
         return int(np.sum(self._data["state"] != StatusCode.Success))
 
-    def set_variable_write_status(self, var, write_status):
-        """Method to set the write status of a Variable.
-
-        Parameters
-        ----------
-        var :
-            Name of the variable (string)
-        write_status :
-            Write status of the variable (True, False or 'once')
-        """
-        self._data[var].set_variable_write_status(write_status)
-
     def execute(
         self,
         kernels,
@@ -411,7 +395,8 @@ class ParticleSet:
         self._kernel = Kernel(kernels, self)
 
         if output_file is not None:
-            output_file.set_metadata(self.fieldset.gridset[0]._mesh)
+            output_file.set_metadata(self.fieldset.gridset[0].mesh)
+            output_file.set_time_interval(self.fieldset.time_interval)
             output_file.metadata["parcels_kernels"] = self._kernel.funcname
 
         dt, sign_dt = _convert_dt_to_float(dt)
@@ -461,7 +446,7 @@ class ParticleSet:
                 else:
                     next_time = end_time
 
-                self._kernel.execute(self, endtime=next_time, dt=dt)
+                self._kernel.execute(self, endtime=next_time)
 
                 if next_output is not None:
                     if np.abs(next_time - next_output) < 0.001:
