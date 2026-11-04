@@ -8,11 +8,11 @@ import numpy as np
 import xarray as xr
 from dask import is_dask_collection
 
-from parcels.interpolators._base import ScalarInterpolator, VectorInterpolator
+from parcels.interpolators._base import ScalarInterpolator, VectorInterpolator, VerticalCoordinateInterpolator
 
 if TYPE_CHECKING:
     from parcels._core.field import Field, VectorField
-    from parcels._core.uxgrid import _UXGRID_AXES
+    from parcels._core.uxgrid import _UXGRID_AXES, UxGrid
 
 
 class UxConstantFaceConstantZC(ScalarInterpolator):
@@ -243,3 +243,17 @@ class Ux_Velocity(VectorInterpolator):  # noqa: N801
         else:
             w = np.zeros_like(u)
         return u, v, w
+
+
+class UxVerticalCoordinateConstantFace(VerticalCoordinateInterpolator):
+    """Piecewise constant over the face (face registered z), linear in time."""
+
+    def columns(self, grid_positions: dict[_UXGRID_AXES, dict[str, int | float | np.ndarray]], grid: UxGrid) -> np.ndarray:
+        raise NotImplementedError
+
+
+class UxVerticalCoordinateLinearNode(VerticalCoordinateInterpolator):
+    """Barycentric from the face's nodes (node registered z), linear in time."""
+
+    def columns(self, grid_positions: dict[_UXGRID_AXES, dict[str, int | float | np.ndarray]], grid: UxGrid) -> np.ndarray:
+        raise NotImplementedError
