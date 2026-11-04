@@ -90,7 +90,7 @@ def test_vectorfield_init_different_time_intervals():
     dsV["timeV"] = dsV["timeV"] + np.timedelta64(1, "D")
     dsV["timeV"].attrs["axis"] = "T"
 
-    ds = xr.merge([dsU, dsV])
+    ds = xr.merge([dsU, dsV], compat="no_conflicts")
     with pytest.raises(ValueError, match="Multiple time coordinates"):
         FieldSet.from_sgrid_conventions(ds)
 
