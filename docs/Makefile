@@ -51,8 +51,7 @@ help:
 	@echo "  coverage   to run coverage check of the documentation (if enabled)"
 
 clean:
-	rm -rf $(BUILDDIR)/*
-	rm -rf .jupyter_cache
+	rm -rf $(BUILDDIR)
 	find . -name "*.parquet" -delete
 	find . -name "*.zarr" -type d -exec rm -rf {} +
 
