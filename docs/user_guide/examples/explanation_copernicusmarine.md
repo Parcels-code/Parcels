@@ -9,7 +9,7 @@ You will need to have access to the Copernicus Marine Service and be logged in t
 If you think anything in this notebook isn't working as expected, please [create an Issue or PR](https://github.com/Parcels-code/Parcels/issues).
 ```
 
-First, create a dataset object using the `copernicusmarine` toolbox. Here, we use the global ocean analysis and forecast dataset.
+First, create a dataset object using the `copernicusmarine` toolbox, which you can install with conda, pip or pixi. Here, we use the global ocean analysis and forecast dataset.
 
 ```
 import copernicusmarine
