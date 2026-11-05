@@ -13,10 +13,13 @@ from parcels import (
 )
 from parcels._core.mesh import FlatMesh, SphericalMesh
 from parcels._core.model import UnstructuredModelData
-from parcels._datasets.unstructured.generated import sigma_coordinate_lattice_dataset
+from parcels._datasets.unstructured.generated import sigma_coordinate_lattice_dataset, simple_small_delaunay
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
 from parcels.interpolators import (
+    UxConstantEdgeConstantZC,
+    UxConstantEdgeLinearZF,
     UxConstantFaceConstantZC,
+    UxConstantFaceLinearZF,
     UxLinearNodeConstantZC,
     UxLinearNodeLinearZF,
 )
@@ -154,6 +157,53 @@ def test_icon_evals():
     # value for interpolation is then just computed using query point locations
     # for the latitude and longitude, and the layer centers vertically.
     assert np.allclose(fieldset.p.eval(t=tq, z=zq, y=yq, x=xq), zc * (xq + yq))
+
+
+def test_linear_edge_velocity_evals():
+    ds = simple_small_delaunay()
+    xe = ds.uxgrid.edge_lon.values
+    ye = ds.uxgrid.edge_lat.values
+    for name, zdim, value in (("U", "zc", xe), ("V", "zc", ye), ("W", "zf", xe + ye)):
+        ds[name] = ux.UxDataArray(
+            np.full((ds.sizes["time"], ds.sizes[zdim], ds.uxgrid.n_edge), value),
+            dims=["time", zdim, "n_edge"],
+            coords={"time": ds.time, zdim: ds[zdim]},
+            uxgrid=ds.uxgrid,
+        )
+    fieldset = FieldSet.from_ugrid_conventions(ds)
+
+    xc = ds.uxgrid.face_lon.values
+    yc = ds.uxgrid.face_lat.values
+    zq = np.full(xc.shape, 300.0)
+    tq = np.zeros(xc.shape)
+
+    assert np.allclose(fieldset.U.eval(t=tq, z=zq, y=yc, x=xc), xc)
+    assert np.allclose(fieldset.V.eval(t=tq, z=zq, y=yc, x=xc), yc)
+    assert np.allclose(fieldset.W.eval(t=tq, z=zq, y=yc, x=xc), xc + yc)
+
+
+def test_from_ugrid_conventions_selects_correct_interpolator():
+    """Fields get the default interpolator that matches their vertical and lateral registration."""
+    ds = convert.icon_to_ugrid(datasets_unstructured["icon_square_delaunay_uniform_z_coordinate"].copy(deep=True))
+    expected_interpolators = {
+        ("zc", "n_face"): UxConstantFaceConstantZC,
+        ("zf", "n_face"): UxConstantFaceLinearZF,
+        ("zc", "n_node"): UxLinearNodeConstantZC,
+        ("zf", "n_node"): UxLinearNodeLinearZF,
+        ("zc", "n_edge"): UxConstantEdgeConstantZC,
+        ("zf", "n_edge"): UxConstantEdgeLinearZF,
+    }
+    for vertical_dim, lateral_dim in expected_interpolators:
+        ds[f"{lateral_dim}_{vertical_dim}"] = ux.UxDataArray(
+            np.ones((ds.sizes["time"], ds.sizes[vertical_dim], getattr(ds.uxgrid, lateral_dim))),
+            dims=["time", vertical_dim, lateral_dim],
+            coords={"time": ds.time, vertical_dim: ds[vertical_dim]},
+            uxgrid=ds.uxgrid,
+        )
+    fieldset = FieldSet.from_ugrid_conventions(ds)
+
+    for (vertical_dim, lateral_dim), expected_interpolator in expected_interpolators.items():
+        assert isinstance(getattr(fieldset, f"{lateral_dim}_{vertical_dim}").interp_method, expected_interpolator)
 
 
 _NESTEDGRIDS_NODES = np.array(

@@ -23,6 +23,7 @@ from parcels._core.uxgrid import UxGrid
 from parcels._core.warnings import ParticleSetWarning
 from parcels._core.xgrid import XGrid
 from parcels._logger import logger
+from parcels._repr_utils import particleset_repr
 
 __all__ = ["ParticleSet"]
 
@@ -190,8 +191,8 @@ class ParticleSet:
     def size(self):
         return len(self)
 
-    # def __repr__(self):
-    #     return particleset_repr(self)
+    def __repr__(self):
+        return particleset_repr(self)
 
     def __len__(self):
         return len(self._data["particle_id"])
@@ -445,7 +446,7 @@ class ParticleSet:
                 else:
                     next_time = end_time
 
-                self._kernel.execute(self, endtime=next_time, dt=dt)
+                self._kernel.execute(self, endtime=next_time)
 
                 if next_output is not None:
                     if np.abs(next_time - next_output) < 0.001:

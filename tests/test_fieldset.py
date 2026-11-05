@@ -445,7 +445,7 @@ def test_vectorfields_without_time():
     """Test that vector fields without a time dimension can be evaluated."""
     ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]].rename({"U_A_grid": "U", "V_A_grid": "V"})
     ds2 = ds1.isel(time=0).drop_vars("time").rename({"U": "U_const", "V": "V_const"})
-    ds = xr.merge([ds1, ds2])
+    ds = xr.merge([ds1, ds2], compat="no_conflicts")
 
     fset = FieldSet.from_sgrid_conventions(ds, vector_fields={"UV_const": ("U_const", "V_const")})
     fset.UV_const.eval(t=0, z=0, y=0, x=0)

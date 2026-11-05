@@ -21,6 +21,7 @@ from parcels._core.xgrid import (
     _transpose_xfield_data_to_tzyx,
 )
 from parcels._datasets.structured.generic import X, Y, Z, datasets, datasets_sgrid
+from parcels._sgrid.accessor import SGridDatasetInconsistency
 from tests import utils
 
 GridTestCase = namedtuple("GridTestCase", ["ds", "attr", "expected"])
@@ -137,8 +138,8 @@ def test_invalid_lon_lat():
     ds["lat"].attrs["units"] = "meters"
 
     with pytest.raises(
-        ValueError,
-        match=r".*is defined on the faces of the grid, but must be defined on the F nodes\.",
+        SGridDatasetInconsistency,
+        match=r"Node coordinate .* has dims .*, but node coordinates can only be defined on the node_dimensions=.*",
     ):
         FieldSet.from_sgrid_conventions(ds)
 

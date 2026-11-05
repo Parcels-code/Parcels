@@ -81,8 +81,10 @@ def sgrid_dataset(draw, grid: sgrid.SGrid2DMetadata | None = None) -> xr.Dataset
         data_vars[f"field_{i}"] = (dims, data)
 
     coords = {
-        coord_name1: (coord1_dims, c1),
-        coord_name2: (coord2_dims, c2),
+        node_dim1: ([node_dim1], np.arange(N), {"axis": "X"}),
+        node_dim2: ([node_dim2], np.arange(M), {"axis": "Y"}),
+        coord_name1: (coord1_dims, c1, {"units": "m"}),
+        coord_name2: (coord2_dims, c2, {"units": "m"}),
     }
 
     ds = xr.Dataset(data_vars=data_vars, coords=coords)

@@ -104,6 +104,8 @@ Figure 2 shows the varied types of data and grid geometries that we combine, alo
 
 Parcels has been cited in over 330 peer reviewed scientific papers so far mostly within the field of oceanography.
 
+Version 4 of Parcels, as highlighted in the [Statement of need](#statement-of-need), focusses on three main areas: native compatibility with Xarray datasets, working with different grid geometries, and supporting cross domain tooling. These features were not present in previous versions of Parcels.
+
 # AI usage disclosure
 
 Large Language Models (Claude Opus 4.6, ChatGPT , GitHub Copilot) have been used in a guided manner for code generation, documentation, refactoring, and testing.

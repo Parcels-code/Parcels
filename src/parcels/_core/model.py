@@ -24,10 +24,11 @@ from parcels._core.xgrid import (
 )
 from parcels._logger import logger
 from parcels._python import NOTSET, NotSetType
-from parcels._sgrid.accessor import assert_metadata_ds_consistency
 from parcels.interpolators import (
     CGrid_Velocity,
     Ux_Velocity,
+    UxConstantEdgeConstantZC,
+    UxConstantEdgeLinearZF,
     UxConstantFaceConstantZC,
     UxConstantFaceLinearZF,
     UxLinearNodeConstantZC,
@@ -260,7 +261,7 @@ class StructuredModelData(ModelData):
         #     ds["lat"] = ds[node_dimensions[1]]
 
         assert_vertical_dimensionality(ds, allowed_dimensionality=[1, 4])
-        assert_metadata_ds_consistency(ds, ds.sgrid.metadata)
+        ds.sgrid.assert_metadata_ds_consistency()
 
         vector_fields = resolve_vector_fields(ds, vector_fields)
         assert_valid_vector_fields(ds, vector_fields)
@@ -518,10 +519,14 @@ def _select_uxinterpolator(da: ux.UxDataArray):
         "zc,n_face": UxConstantFaceConstantZC,
         # (zc,n_node): node/corner laterally, layer centers vertically — barycentric lateral & piecewise constant vertical
         "zc,n_node": UxLinearNodeConstantZC,
+        # (zc,n_edge): edge-center laterally, layer centres vertically — piecewise constant
+        "zc,n_edge": UxConstantEdgeConstantZC,
         # (zf,n_node): node/corner laterally, layer interfaces vertically — barycentric lateral & linear vertical
         "zf,n_node": UxLinearNodeLinearZF,
         # (zf,n_face): face-center laterally, layer interfaces vertically — piecewise constant lateral & linear vertical
         "zf,n_face": UxConstantFaceLinearZF,
+        # (zf,n_edge): edge-center laterally, layer interfaces vertically — piecewise constant lateral & linear vertical
+        "zf,n_edge": UxConstantEdgeLinearZF,
     }
     # Extract only spatial dimensions, neglecting time
     da_spatial_dims = tuple(d for d in da.dims if d not in ("time",))
@@ -537,7 +542,7 @@ def _select_uxinterpolator(da: ux.UxDataArray):
     for d in da_spatial_dims:
         if d in ("zf", "zc"):
             vdim = d
-        if d in ("n_face", "n_node"):
+        if d in ("n_face", "n_node", "n_edge"):
             ldim = d
     # Map to supported interpolators
     if vdim and ldim:

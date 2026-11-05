@@ -8,7 +8,7 @@ import parcels._sgrid as sgrid
 import parcels._strategies as pst
 from parcels._datasets.structured.generic import datasets_sgrid
 from parcels._datasets.structured.strategies import sgrid_dataset
-from parcels._sgrid.accessor import SGridDatasetInconsistency, assert_metadata_ds_consistency
+from parcels._sgrid.accessor import SGridDatasetInconsistency
 
 
 @st.composite
@@ -81,8 +81,7 @@ def test_rename_dataset(ds):
 
 @given(sgrid_dataset())
 def test_assert_metadata_ds_consistency(ds):
-    metadata: sgrid.SGrid2DMetadata = ds.sgrid.metadata
-    assert_metadata_ds_consistency(ds, metadata)
+    ds.sgrid.assert_metadata_ds_consistency()
 
 
 @given(ds=sgrid_dataset(), dim=st.sampled_from(["face_dimension1", "face_dimension2", "vertical_dimension"]))
@@ -104,7 +103,7 @@ def test_assert_metadata_ds_consistency_dropped_dim(ds, dim):
     assume(fnp.face in ds.dims)
 
     ds = ds.isel({fnp.face: 0})
-    assert_metadata_ds_consistency(ds, metadata)
+    ds.sgrid.assert_metadata_ds_consistency()
 
 
 @given(ds=sgrid_dataset(), dim=st.sampled_from(["face_dimension1", "face_dimension2", "vertical_dimension"]))
@@ -131,10 +130,103 @@ def test_assert_metadata_ds_consistency_failures(ds, dim):
         SGridDatasetInconsistency,
         match="Node dimension .* has size .*, and face dimension .* has size of .* .* expected face dimension .* to actually be size .*",
     ):
-        assert_metadata_ds_consistency(ds, metadata)
+        ds.sgrid.assert_metadata_ds_consistency()
 
 
 _SYMMETRIC_DATASETS = {k: v for k, v in datasets_sgrid.items() if k in ("ds_2d_padded_high", "ds_2d_padded_low")}
+
+
+@given(ds=sgrid_dataset(), axis=st.sampled_from([None, "Y", "Z"]))
+def test_assert_metadata_ds_consistency_node_dimension_axis(ds, axis):
+    metadata: sgrid.SGrid2DMetadata = ds.sgrid.metadata
+    node_dim1 = metadata.node_dimensions[0]
+    if axis is None:
+        del ds[node_dim1].attrs["axis"]
+    else:
+        ds[node_dim1].attrs["axis"] = axis
+
+    with pytest.raises(SGridDatasetInconsistency, match=r"expected variable .* to have attribute axis='X'"):
+        ds.sgrid.assert_metadata_ds_consistency()
+
+
+@given(ds=sgrid_dataset())
+def test_assert_metadata_ds_consistency_node_dimensions_swapped(ds):
+    metadata: sgrid.SGrid2DMetadata = ds.sgrid.metadata
+    node_dim1, node_dim2 = metadata.node_dimensions
+    ds[node_dim1].attrs["axis"], ds[node_dim2].attrs["axis"] = "Y", "X"
+
+    with pytest.raises(SGridDatasetInconsistency, match=r"expected variable .* to have attribute axis='X'"):
+        ds.sgrid.assert_metadata_ds_consistency()
+
+
+@given(ds=sgrid_dataset())
+def test_assert_metadata_ds_consistency_node_dimension_without_coordinate(ds):
+    # a dimension without a coordinate variable has no axis attribute to check
+    metadata: sgrid.SGrid2DMetadata = ds.sgrid.metadata
+    ds = ds.drop_vars(metadata.node_dimensions[0])
+    ds.sgrid.assert_metadata_ds_consistency()
+
+
+@given(ds=sgrid_dataset())
+def test_assert_metadata_ds_consistency_missing_node_coordinate(ds):
+    metadata: sgrid.SGrid2DMetadata = ds.sgrid.metadata
+    assert metadata.node_coordinates is not None
+    ds = ds.drop_vars(metadata.node_coordinates[0])
+
+    with pytest.raises(SGridDatasetInconsistency, match=r"but there is no variable .* in the dataset"):
+        ds.sgrid.assert_metadata_ds_consistency()
+
+
+@given(ds=sgrid_dataset())
+def test_assert_metadata_ds_consistency_node_coordinate_on_face(ds):
+    metadata: sgrid.SGrid2DMetadata = ds.sgrid.metadata
+    assert metadata.node_coordinates is not None
+    coord = metadata.node_coordinates[0]
+    face_dim = metadata.face_dimensions[0].face
+    assume(face_dim in ds.dims)
+    ds[coord] = xr.DataArray(np.arange(ds.sizes[face_dim], dtype=float), dims=[face_dim], attrs={"units": "m"})
+
+    with pytest.raises(SGridDatasetInconsistency, match=r"node coordinates can only be defined on the node_dimensions"):
+        ds.sgrid.assert_metadata_ds_consistency()
+
+
+@pytest.mark.parametrize("ds", [pytest.param(ds, id=id_) for id_, ds in _SYMMETRIC_DATASETS.items()])
+def test_assert_metadata_ds_consistency_1d_node_coordinates_swapped(ds):
+    metadata: sgrid.SGrid2DMetadata = ds.sgrid.metadata
+    assert metadata.node_coordinates is not None
+    coord1, coord2 = metadata.node_coordinates
+    ds = ds.assign_coords({coord1: ds[coord2].variable, coord2: ds[coord1].variable})
+
+    with pytest.raises(SGridDatasetInconsistency, match=r"is 1D with dims .* expected to be defined on node dimension"):
+        ds.sgrid.assert_metadata_ds_consistency()
+
+
+@pytest.mark.parametrize(
+    "x_units, y_units, valid",
+    [
+        ("degrees_east", "degrees_north", True),
+        ("degree_E", "degreesN", True),
+        ("degrees", "degree", True),
+        ("m", "m", True),
+        ("degrees_north", "degrees_east", False),
+        ("degrees_east", "degrees_east", False),
+        ("degrees_north", "degrees_north", False),
+    ],
+)
+@pytest.mark.parametrize("ds", [pytest.param(ds, id=id_) for id_, ds in _SYMMETRIC_DATASETS.items()])
+def test_assert_metadata_ds_consistency_node_coordinate_units(ds, x_units, y_units, valid):
+    ds = ds.copy()
+    metadata: sgrid.SGrid2DMetadata = ds.sgrid.metadata
+    assert metadata.node_coordinates is not None
+    coord1, coord2 = metadata.node_coordinates
+    ds[coord1].attrs["units"] = x_units
+    ds[coord2].attrs["units"] = y_units
+
+    if valid:
+        ds.sgrid.assert_metadata_ds_consistency()
+    else:
+        with pytest.raises(SGridDatasetInconsistency, match=r"Node coordinate .* has units=.*expected one of"):
+            ds.sgrid.assert_metadata_ds_consistency()
 
 
 @pytest.mark.parametrize("ds", [pytest.param(ds, id=id_) for id_, ds in _SYMMETRIC_DATASETS.items()])
@@ -144,11 +236,10 @@ _SYMMETRIC_DATASETS = {k: v for k, v in datasets_sgrid.items() if k in ("ds_2d_p
 )
 def test_isel(ds, indexer, node_dim, face_dim):
     # Covers HIGH/LOW-specific indexer types (lists, step slices) not exercised by property tests.
-    metadata = ds.sgrid.metadata
 
     ds_trimmed = ds.sgrid.isel({node_dim: indexer})
 
-    assert_metadata_ds_consistency(ds_trimmed, metadata)
+    ds_trimmed.sgrid.assert_metadata_ds_consistency()
 
     # Assert that other dims haven't been affected
     for dim, size_before in ds.sizes.items():
@@ -206,7 +297,7 @@ def test_isel_p1_consistency_invariant(ds, s):
 
     result = ds.sgrid.isel({node_dim: s})
 
-    assert_metadata_ds_consistency(result, metadata)
+    result.sgrid.assert_metadata_ds_consistency()
 
 
 @given(
