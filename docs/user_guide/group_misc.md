@@ -1,5 +1,3 @@
-# Miscellaneous
-
 ```{toctree}
 :titlesonly:
 📖 v4 development <../v4/index>

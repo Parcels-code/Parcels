@@ -1,5 +1,3 @@
-# Getting started
-
 ```{toctree}
 :titlesonly:
 gettingstarted_quickstart.md

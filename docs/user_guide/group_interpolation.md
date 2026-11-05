@@ -1,5 +1,3 @@
-# Set interpolation methods
-
 ```{toctree}
 :titlesonly:
 interpolation_explanation.md

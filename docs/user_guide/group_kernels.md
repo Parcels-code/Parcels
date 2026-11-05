@@ -1,5 +1,3 @@
-# Write Kernels
-
 ```{toctree}
 :titlesonly:
 kernels_loopexplanation.md

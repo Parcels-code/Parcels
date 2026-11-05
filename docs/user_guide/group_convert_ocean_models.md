@@ -1,5 +1,3 @@
-# Converting 🌊 ocean models
-
 ```{toctree}
 :titlesonly:
 convert_copernicusmarine.md

@@ -1,5 +1,3 @@
-# Run a simulation
-
 ```{toctree}
 :titlesonly:
 simulation_performance.md

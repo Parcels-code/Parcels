@@ -1,5 +1,3 @@
-# Work with FieldSets
-
 ```{toctree}
 :titlesonly:
 fieldsets_grids.ipynb

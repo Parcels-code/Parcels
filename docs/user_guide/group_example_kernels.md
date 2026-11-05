@@ -1,5 +1,3 @@
-# Example Kernels
-
 ```{toctree}
 :titlesonly:
 example_gsw_density.ipynb

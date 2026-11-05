@@ -10,15 +10,6 @@ For a description of the specific classes and functions, check out the [API refe
 :titlesonly:
 :maxdepth: 3
 installation.md
-group_gettingstarted.md
-group_convert_models.md
-group_fieldsets.md
-group_particlesets.md
-group_kernels.md
-group_interpolation.md
-group_simulation.md
-group_example_kernels.md
-group_misc.md
 ```
 
 ```{note}
@@ -31,9 +22,7 @@ If you have code that uses Parcels v3, you can migrate to Parcels v4 using [🎓
 :caption: Getting Started
 :name: getting-started
 :titlesonly:
-gettingstarted_quickstart.md
-gettingstarted_output.ipynb
-gettingstarted_concepts.md
+group_gettingstarted.md
 ```
 
 ## Converting model data to FieldSets
@@ -44,28 +33,21 @@ Below is a list of tutorials that show how to convert data from ocean (🌊) and
 :caption: Converting 🌊 ocean models
 :name: converting-ocean-models
 :titlesonly:
-convert_copernicusmarine.md
-convert_nemo.ipynb
-convert_croco_3D.ipynb
-convert_mitgcm.ipynb
-convert_mom6.ipynb
-convert_delft3d.ipynb
-convert_fesom.ipynb
-convert_schism.ipynb
+group_convert_ocean_models.md
 ```
 
 ```{toctree}
 :caption: Converting 🍃 atmospheric models
 :name: converting-atmospheric-models
 :titlesonly:
-convert_aifs.ipynb
+group_convert_atmospheric_models.md
 ```
 
 ```{toctree}
-:caption: Converter concepts
-:name: converter-concepts
+:caption: Converting other models
+:name: converting-other-models
 :titlesonly:
-convert_writing_functions.md
+group_convert_concepts.md
 ```
 
 ## Work with FieldSets
@@ -74,12 +56,7 @@ convert_writing_functions.md
 :caption: Work with FieldSets
 :name: work-with-fieldsets
 :titlesonly:
-fieldsets_grids.ipynb
-fieldsets_sigma_coordinates.ipynb
-fieldsets_velocityconversion.ipynb
-fieldsets_nestedgrids.ipynb
-fieldsets_manipulating_field_data.ipynb
-fieldsets_xgcm_derived_fields.ipynb
+group_fieldsets.md
 ```
 
 ## Create ParticleSets
@@ -88,7 +65,7 @@ fieldsets_xgcm_derived_fields.ipynb
 :caption: Create ParticleSets
 :name: create-particlesets
 :titlesonly:
-particlesets_delaystart.ipynb
+group_particlesets.md
 ```
 
 ## Write Kernels
@@ -97,11 +74,7 @@ particlesets_delaystart.ipynb
 :caption: Write Kernels
 :name: write-kernels
 :titlesonly:
-
-kernels_loopexplanation.md
-kernels_sampling.ipynb
-kernels_statuscodes.ipynb
-kernels_write_in_kernel.ipynb
+group_kernels.md
 ```
 
 ## Set interpolation methods
@@ -110,12 +83,7 @@ kernels_write_in_kernel.ipynb
 :caption: Set interpolation methods
 :name: interpolation-methods
 :titlesonly:
-
-interpolation_explanation.md
-interpolation_tutorial.ipynb
-interpolation_peninsula_AvsCgrid.ipynb
-interpolation_stuck_particles.ipynb
-interpolation_unstuck_Agrid.ipynb
+group_interpolation.md
 ```
 
 <!-- examples/tutorial_analyticaladvection.ipynb -->
@@ -126,8 +94,7 @@ interpolation_unstuck_Agrid.ipynb
 :caption: Run a simulation
 :name: run-simulation
 :titlesonly:
-simulation_performance.md
-simulation_dt_integrators.ipynb
+group_simulation.md
 ```
 
 ## Example Kernels
@@ -136,21 +103,17 @@ simulation_dt_integrators.ipynb
 :caption: Example Kernels
 :name: example-kernels
 :titlesonly:
-example_gsw_density.ipynb
-example_Argofloats.ipynb
-example_diffusion.ipynb
-example_interaction.ipynb
+group_example_kernels.md
 ```
 
-## Other
+## Miscellaneous
 
 ```{toctree}
-:caption: Other
-:name: other
+:caption: Miscellaneous
+:name: miscellaneous
 :titlesonly:
-📖 v4 development <../v4/index>
-🎓 v3 to v4 migration guide <v4-migration>
-misc_homepage_animation.md
+:maxdepth: 1
+group_misc.md
 ```
 
 <!-- examples/documentation_geospatial.ipynb -->
