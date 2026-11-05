@@ -1,3 +1,4 @@
+import numpy as np
 import pytest
 import uxarray as ux
 import xarray as xr
@@ -190,7 +191,10 @@ def test_convert_copernicusmarine_nodepth(caplog):
     ds = ds.isel(depth=0).drop_vars("depth")
     ds_fset = convert.copernicusmarine_to_sgrid(fields={"uo": ds["uo"]})
     FieldSet.from_sgrid_conventions(ds_fset)
-    assert "No depth dimension found in dataset. Added a singleton depth dimension." in caplog.text
+    assert (
+        "No depth dimension found in dataset. Assuming surface data and adding a singleton depth dimension."
+        in caplog.text
+    )
 
 
 def test_convert_fesom_to_ugrid():
@@ -201,3 +205,137 @@ def test_convert_fesom_to_ugrid():
     uxds = ux.UxDataset(data_files, uxgrid=grid)
     uxds = convert.fesom_to_ugrid(uxds)
     FieldSet.from_ugrid_conventions(uxds)
+
+
+@pytest.mark.parametrize("converter", ["copernicusmarine_to_sgrid", "nemo_to_sgrid"])
+def test_convert_does_not_modify_input_w(converter):
+    if converter == "copernicusmarine_to_sgrid":
+        ds = datasets_circulation_models["ds_copernicusmarine"].copy(deep=True)
+        W = 0.5 * ds["uo"]
+        kwargs = dict(fields={"U": ds["uo"], "V": ds["vo"], "W": W})
+    else:
+        U, V, W, coords = (
+            parcels.tutorial.open_dataset(f"NemoNorthSeaORCA025-N006_data/{name}")
+            for name in ("U", "V", "W", "mesh_mask")
+        )
+        W = W["wo"].load()
+        kwargs = dict(fields={"U": U["uo"], "V": V["vo"], "W": W}, coords=coords)
+    W_before = W.copy(deep=True)
+
+    getattr(convert, converter)(**kwargs)
+
+    xr.testing.assert_identical(W, W_before)
+
+
+def test_convert_raises_on_existing_grid_metadata():
+    ds = datasets_circulation_models["ds_copernicusmarine"]
+    coords = ds[["time", "depth", "latitude", "longitude"]]
+    coords["some_grid"] = xr.DataArray(0, attrs={"cf_role": "grid_topology"})
+    with pytest.raises(ValueError, match="Dataset already has SGRID metadata"):
+        convert.copernicusmarine_to_sgrid(fields={"U": ds["uo"], "V": ds["vo"]}, coords=coords)
+
+
+@pytest.mark.filterwarnings("ignore:The delft3d_to_sgrid function is experimental")
+def test_convert_sets_only_conventions_global_attr():
+    U = parcels.tutorial.open_dataset("NemoCurvilinear_data_zonal/U")
+    V = parcels.tutorial.open_dataset("NemoCurvilinear_data_zonal/V")
+    coords = parcels.tutorial.open_dataset("NemoCurvilinear_data_zonal/mesh_mask")
+    U.attrs["source"] = "NEMO"
+    ds = convert.nemo_to_sgrid(fields=dict(U=U, V=V), coords=coords)
+    assert ds.attrs == {"Conventions": "SGRID"}
+
+    ds = open_remote_dataset("Delft3D_data/Rotterdam_tiny")
+    ds_fset = convert.delft3d_to_sgrid(fields={"U": ds["VELU"], "V": ds["VELV"]}, coords=ds[["XZETA", "YZETA"]])
+    assert ds_fset.attrs == {"Conventions": "SGRID"}
+
+
+def test_convert_nemo_surface_adds_depth_after_time():
+    U = parcels.tutorial.open_dataset("NemoCurvilinear_data_zonal/U")
+    V = parcels.tutorial.open_dataset("NemoCurvilinear_data_zonal/V")
+    coords = parcels.tutorial.open_dataset("NemoCurvilinear_data_zonal/mesh_mask")
+    ds = convert.nemo_to_sgrid(fields=dict(U=U, V=V), coords=coords)
+    assert ds["U"].dims[:2] == ("time", "depth")
+    assert ds["V"].dims[:2] == ("time", "depth")
+
+
+def test_convert_dataset_field_without_matching_variable():
+    ds = datasets_circulation_models["ds_copernicusmarine"]
+    with pytest.raises(ValueError, match=r"fields\['U'\] is a Dataset without a variable named 'U'"):
+        convert.copernicusmarine_to_sgrid(fields={"U": ds, "V": ds})
+
+
+def test_mom6_to_sgrid_cefi_example():
+    U = parcels.tutorial.open_dataset("MOM6_example_data/U")["ssu"]
+    V = parcels.tutorial.open_dataset("MOM6_example_data/V")["ssv"]
+    coords = parcels.tutorial.open_dataset("MOM6_example_data/static")
+    ds = convert.mom6_to_sgrid(fields={"U": U, "V": V}, coords=coords)
+
+    # CEFI NEP output is symmetric: one more corner point than cell centres along each axis
+    assert ds["grid"].attrs["face_dimensions"] == "xh:xq (padding:none) yh:yq (padding:none)"
+
+    fieldset = FieldSet.from_sgrid_conventions(ds)
+    lon = float(ds["lon"].mean())
+    lat = float(ds["lat"].mean())
+    pset = parcels.ParticleSet(fieldset, x=[lon], y=[lat])
+    pset.execute(parcels.kernels.AdvectionRK4, runtime=np.timedelta64(1, "D"), dt=np.timedelta64(10, "m"))
+    assert np.isfinite(pset.x).all() and np.isfinite(pset.y).all()
+
+
+def _mom6_synthetic(nx=4, ny=3, symmetric=True):
+    """Small MOM6-like C-grid: U on (yh, xq), V on (yq, xh), corners on (yq, xq)."""
+    nxq = nx + 1 if symmetric else nx
+    nyq = ny + 1 if symmetric else ny
+    lon_c, lat_c = np.meshgrid(np.linspace(-130.0, -125.0, nxq), np.linspace(40.0, 45.0, nyq))
+    time = np.array(["2022-01-01", "2022-01-02"], dtype="datetime64[ns]")
+    coords = xr.Dataset(
+        {
+            "geolon_c": (("yq", "xq"), lon_c),
+            "geolat_c": (("yq", "xq"), lat_c),
+            "areacello": (("yh", "xh"), np.ones((ny, nx))),  # unused static variable, should be dropped
+        }
+    )
+    U = xr.DataArray(np.full((2, ny, nxq), 0.1), dims=("time", "yh", "xq"), coords={"time": time}, name="ssu")
+    V = xr.DataArray(np.full((2, nyq, nx), 0.1), dims=("time", "yq", "xh"), coords={"time": time}, name="ssv")
+    return U, V, coords
+
+
+@pytest.mark.parametrize("symmetric, padding", [(True, "none"), (False, "low")])
+def test_mom6_to_sgrid(symmetric, padding):
+    U, V, coords = _mom6_synthetic(symmetric=symmetric)
+    ds = convert.mom6_to_sgrid(fields={"U": U, "V": V}, coords=coords)
+
+    assert ds["grid"].attrs == {
+        "cf_role": "grid_topology",
+        "topology_dimension": 2,
+        "node_dimensions": "xq yq",
+        "face_dimensions": f"xh:xq (padding:{padding}) yh:yq (padding:{padding})",
+        "node_coordinates": "lon lat",
+    }
+    assert "areacello" not in ds
+
+    meta = ds.sgrid.metadata
+    assert {
+        meta.get_value_by_id("node_dimension1"),  # X edge
+        meta.get_value_by_id("face_dimension2"),  # Y center
+    }.issubset(set(ds["U"].dims))
+    assert {
+        meta.get_value_by_id("face_dimension1"),  # X center
+        meta.get_value_by_id("node_dimension2"),  # Y edge
+    }.issubset(set(ds["V"].dims))
+
+    FieldSet.from_sgrid_conventions(ds)
+
+
+def test_mom6_to_sgrid_inconsistent_sizes():
+    U, V, coords = _mom6_synthetic(symmetric=True)
+    V = V.isel(xh=slice(0, -2))  # two fewer centres than corners along X
+    with pytest.raises(ValueError, match="Unexpected MOM6 grid sizes"):
+        convert.mom6_to_sgrid(fields={"U": U, "V": V}, coords=coords)
+
+
+def test_mom6_to_sgrid_withdepth():
+    U, V, coords = _mom6_synthetic(symmetric=True)
+    U = U.expand_dims(depth=[0], axis=1)
+    V = V.expand_dims(depth=[0], axis=1)
+    with pytest.raises(ValueError, match="has more than 2 spatial dimensions"):
+        convert.mom6_to_sgrid(fields={"U": U, "V": V}, coords=coords)

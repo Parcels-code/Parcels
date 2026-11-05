@@ -10,6 +10,7 @@ import xarray as xr
 import parcels
 import parcels.tutorial
 from parcels._datasets.structured.generated import simple_UV_dataset
+from parcels._datasets.unstructured.generated import simple_small_delaunay
 from parcels.kernels import AdvectionRK2, AdvectionRK4
 
 BackendT = Literal["WindowedArray", "Dask", "NumPy", "ChunkCachedArray"]
@@ -125,12 +126,12 @@ def test_field_without_depth_identical_across_backends(backend: BackendT):
     """Fields without a depth dimension get a size-1 ``mockZ`` dimension, which must
     also be indexable by every backend (gh-2897).
     """
-    ds = simple_UV_dataset(n_times=10, nz=1, ny=20, nx=20, mesh="flat").isel(depth=0, drop=True)
+    ds = simple_UV_dataset(n_times=10, nz=1, ny=20, nx=20, mesh_str="flat").isel(depth=0, drop=True)
     ds["U"].data[:] = 1.0 + ds["XG"].values / 20  # spatially varying, so the corners matter
     ds["V"].data[:] = 0.5
 
     def run(backend: BackendT) -> tuple[np.ndarray, np.ndarray]:
-        fset = parcels.FieldSet.from_sgrid_conventions(ds if backend == "NumPy" else ds.chunk(), mesh="flat")
+        fset = parcels.FieldSet.from_sgrid_conventions(ds if backend == "NumPy" else ds.chunk())
         assert "mockZ" in fset.U.data.dims
         if backend == "WindowedArray":
             fset.to_windowed_arrays()
@@ -170,3 +171,10 @@ def test_fieldset_describe_backend(nemo_dataset, backend: BackendT):
 
     for other_backend in BACKENDS - {backend}:
         assert not fieldset_uses_backend(fieldset, other_backend)
+
+
+def test_chunk_cached_arrays_on_unstructured_fieldset():
+    ds = simple_small_delaunay().chunk({"time": 1})
+    fset = parcels.FieldSet.from_ugrid_conventions(ds)
+    fset.to_chunk_cached_arrays()
+    assert fieldset_uses_backend(fset, "ChunkCachedArray")

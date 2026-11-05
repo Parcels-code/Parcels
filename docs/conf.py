@@ -11,11 +11,11 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import datetime
 import inspect
 import os
 import sys
 import warnings
+from datetime import datetime
 from pathlib import Path
 
 PROJECT_ROOT = (Path(__file__).parent / "..").resolve()
@@ -62,7 +62,7 @@ master_doc = "index"
 
 # General information about the project.
 project = "Parcels"
-copyright = f"{datetime.datetime.now().year}, The Parcels Team"
+copyright = f"{datetime.now().year}, The Parcels Team"
 author = "The Parcels Team"
 
 linkcheck_ignore = [
@@ -517,12 +517,17 @@ epub_exclude_files = ["search.html"]
 myst_heading_anchors = 4
 
 myst_enable_extensions = ["substitution", "amsmath", "dollarmath"]
+myst_substitutions = {"version": os.environ.get("READTHEDOCS_VERSION_NAME", version)}
 
 # -- Options for MyST-nb --------------------------------------------------
 nb_execution_mode = "cache"
 nb_execution_excludepatterns = ["jupyter_execute", ".jupyter_cache"]
 nb_execution_raise_on_error = True
 nb_execution_timeout = 75
+nb_merge_streams = (
+    True  # merge consecutive stdout/stderr outputs of a cell into a single block
+)
+
 suppress_warnings = ["mystnb.unknown_mime_type"]
 nitpicky = True
 nitpick_ignore_regex = [
