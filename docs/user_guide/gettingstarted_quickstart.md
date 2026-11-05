@@ -11,7 +11,7 @@ kernelspec:
 Welcome to the Parcels quickstart tutorial, in which we will go through all the necessary steps to run a simulation.
 The code in this notebook can be used as a starting point to run Parcels in your own environment. Along the way we will
 familiarize ourselves with some specific classes and methods. If you are ever confused about one of these and want to
-read more, we have a [concepts overview](./explanation_concepts.md) discussing them in more detail. Let's dive in!
+read more, we have a [concepts overview](./gettingstarted_concepts.md) discussing them in more detail. Let's dive in!
 
 ## Imports
 
@@ -61,7 +61,7 @@ ds_fset = parcels.convert.copernicusmarine_to_sgrid(fields=fields)
 fieldset = parcels.FieldSet.from_sgrid_conventions(ds_fset)
 ```
 
-Now, in order to improve performance, we can convert the {py:obj}`parcels.FieldSet` to windowed arrays. This is especially useful for large datasets with many timeslices, as it allows Parcels to load only the necessary timeslices into memory during the simulation. For more information about squeezing performance out of Parcels, see the [performance tutorial](./explanation_performance.md).
+Now, in order to improve performance, we can convert the {py:obj}`parcels.FieldSet` to windowed arrays. This is especially useful for large datasets with many timeslices, as it allows Parcels to load only the necessary timeslices into memory during the simulation. For more information about squeezing performance out of Parcels, see the [performance tutorial](./simulation_performance.md).
 
 ```{code-cell}
 # Convert the FieldSet to windowed arrays for better performance
@@ -89,7 +89,7 @@ the virtual particles for which we will calculate the trajectories.
 We need to create a {py:obj}`parcels.ParticleSet` object with the particles' initial time and position. The {py:obj}`parcels.ParticleSet`
 object also needs to know about the {py:obj}`parcels.FieldSet` in which the particles "live". Finally, we need to specify the type of
 {py:obj}`parcels.ParticleClass` we want to use. The default particles have `t`, `z`, `y`, and `x`, but you can easily add
-other {py:obj}`parcels.Variable`s such as size, temperature, or age to create your own particles to mimic plastic or an [ARGO float](./tutorial_Argofloats.ipynb).
+other {py:obj}`parcels.Variable`s such as size, temperature, or age to create your own particles to mimic plastic or an [ARGO float](./example_Argofloats.ipynb).
 
 ```{code-cell}
 # Particle locations and initial time
@@ -120,7 +120,7 @@ If you also want to sample the initial value of a field, you can do so by callin
 pset.temperature = fieldset.thetao[pset]
 ```
 
-See the [sampling tutorial](./tutorial_sampling.ipynb#sampling-initial-field-values) for more information on initial sampling of fields.
+See the [sampling tutorial](./kernels_sampling.ipynb#sampling-initial-field-values) for more information on initial sampling of fields.
 
 ## Compute: `Kernel`
 
@@ -143,7 +143,7 @@ output_file = parcels.ParticleFile("output-quickstart.parquet", outputdt=np.time
 ```
 
 The output files are in `.parquet` [format](https://parquet.apache.org/), which can be read by [Polars](https://pola.rs/).
-See the [Parcels output tutorial](./tutorial_output.ipynb) for more information on the parquet format. We want to choose
+See the [Parcels output tutorial](./gettingstarted_output.ipynb) for more information on the parquet format. We want to choose
 the `outputdt` argument so that it captures the smallest timescales of our interest.
 
 ## Run Simulation: `ParticleSet.execute()`
@@ -176,7 +176,7 @@ df
 ```
 
 The file contains 250 rows: 25 observations for the 10 particle trajectories.
-The [working with Parcels output tutorial](./tutorial_output.ipynb) provides more detail about the dataset and how to analyse it.
+The [working with Parcels output tutorial](./gettingstarted_output.ipynb) provides more detail about the dataset and how to analyse it.
 
 Let's verify that Parcels has computed the advection of the virtual particles!
 

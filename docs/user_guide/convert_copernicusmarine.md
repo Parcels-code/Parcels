@@ -73,13 +73,13 @@ ds_fields = parcels.convert.copernicusmarine_to_sgrid(
 fieldset = parcels.FieldSet.from_sgrid_conventions(ds_fields)
 ```
 
-Now, you will have to set the interpolation method for the UV fields to `XFreeslip`, which is more suitable for A-Grid data like the one provided by Copernicus Marine Service. This ensures that particles don't get stuck near the boundaries. See the [preventing stuck particles tutorial](./tutorial_unstuck_Agrid.ipynb) for more information.
+Now, you will have to set the interpolation method for the UV fields to `XFreeslip`, which is more suitable for A-Grid data like the one provided by Copernicus Marine Service. This ensures that particles don't get stuck near the boundaries. See the [preventing stuck particles tutorial](./interpolation_unstuck_Agrid.ipynb) for more information.
 
 ```
 fieldset.UV.interp_method = parcels.interpolators.XFreeslip()
 ```
 
-For [better performance](./explanation_performance.md), we should also use the `ChunkCachedArray` backend
+For [better performance](./simulation_performance.md), we should also use the `ChunkCachedArray` backend
 
 ```
 fieldset.to_chunk_cached_arrays()

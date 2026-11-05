@@ -82,7 +82,7 @@ fieldset.to_windowed_arrays()
 |                                                                                              | Does not work well for initial Field sampling when the particles start at different times, as Parcels will have to load all required timeslices into memory (see note below). |
 
 ```{note}
- If your particles start at multiple times (e.g. [Delayed starts](./tutorial_delaystart.ipynb)), it's best to do the initial sampling with the FieldSet in Dask mode and only convert to WindowedArrays _after_ the initial sampling.
+ If your particles start at multiple times (e.g. [Delayed starts](./particlesets_delaystart.ipynb)), it's best to do the initial sampling with the FieldSet in Dask mode and only convert to WindowedArrays _after_ the initial sampling.
 ```
 
 ## Option 4: use Dask

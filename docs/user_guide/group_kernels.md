@@ -2,8 +2,8 @@
 
 ```{toctree}
 :titlesonly:
-explanation_kernelloop.md
-tutorial_sampling.ipynb
-tutorial_statuscodes.ipynb
-tutorial_write_in_kernel.ipynb
+kernels_loopexplanation.md
+kernels_sampling.ipynb
+kernels_statuscodes.ipynb
+kernels_write_in_kernel.ipynb
 ```

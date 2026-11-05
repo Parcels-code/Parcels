@@ -2,8 +2,8 @@
 
 ```{toctree}
 :titlesonly:
-tutorial_gsw_density.ipynb
-tutorial_Argofloats.ipynb
-tutorial_diffusion.ipynb
-tutorial_interaction.ipynb
+example_gsw_density.ipynb
+example_Argofloats.ipynb
+example_diffusion.ipynb
+example_interaction.ipynb
 ```

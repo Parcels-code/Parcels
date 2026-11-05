@@ -2,7 +2,7 @@
 
 ```{toctree}
 :titlesonly:
-tutorial_quickstart.md
-tutorial_output.ipynb
-explanation_concepts.md
+gettingstarted_quickstart.md
+gettingstarted_output.ipynb
+gettingstarted_concepts.md
 ```

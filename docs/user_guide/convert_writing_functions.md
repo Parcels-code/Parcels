@@ -9,7 +9,7 @@ kernelspec:
 Parcels reads structured-grid model data through {py:func}`parcels.FieldSet.from_sgrid_conventions`. This function
 does not guess how your model grid is laid out. Instead, it reads [SGRID](https://sgrid.github.io/sgrid/) metadata
 attached to the dataset, which provides information on which dimensions hold the cell corners, which dimensions hold the cell centres, and how
-they line up. See the [Grids explanation](./explanation_grids.ipynb#nodes-edges-and-faces) for more on where data can
+they line up. See the [Grids explanation](./fieldsets_grids.ipynb#nodes-edges-and-faces) for more on where data can
 sit on a grid cell.
 
 Most model output does not (yet) come with SGrid-compliant metadata. For that reason, Parcels ships a set of built-in `convert` functions in

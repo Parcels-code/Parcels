@@ -2,12 +2,12 @@
 
 ```{toctree}
 :titlesonly:
-explanation_copernicusmarine.md
-tutorial_nemo.ipynb
-tutorial_croco_3D.ipynb
-tutorial_mitgcm.ipynb
-tutorial_mom6.ipynb
-tutorial_delft3d.ipynb
-tutorial_fesom.ipynb
-tutorial_schism.ipynb
+convert_copernicusmarine.md
+convert_nemo.ipynb
+convert_croco_3D.ipynb
+convert_mitgcm.ipynb
+convert_mom6.ipynb
+convert_delft3d.ipynb
+convert_fesom.ipynb
+convert_schism.ipynb
 ```

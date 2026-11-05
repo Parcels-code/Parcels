@@ -2,6 +2,6 @@
 
 ```{toctree}
 :titlesonly:
-explanation_performance.md
-tutorial_dt_integrators.ipynb
+simulation_performance.md
+simulation_dt_integrators.ipynb
 ```

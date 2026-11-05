@@ -99,7 +99,7 @@ Add the <code>@parcels.validate_kernel</code> decorator above your Kernel functi
 The Kernel loop is 'vectorized': the input of a Kernel is a collection of particles
 </div>
 <div class="migration-bubble migration-how">
-Replace <code>if</code>-statements with <code>numpy.where</code> statements or <a href="tutorial_Argofloats.html">boolean indexing</a>
+Replace <code>if</code>-statements with <code>numpy.where</code> statements or <a href="example_Argofloats.html">boolean indexing</a>
 </div>
 <hr class="migration-divider" />
 
@@ -155,7 +155,7 @@ Change the argument name in your Kernel signature to <code>particles</code>
 <code>particle.delete()</code> is no longer valid
 </div>
 <div class="migration-bubble migration-how">
-Use <code>StatusCode.Delete</code> in combination with boolean indexing - as detailed <a href="tutorial_statuscodes.html">here</a>
+Use <code>StatusCode.Delete</code> in combination with boolean indexing - as detailed <a href="kernels_statuscodes.html">here</a>
 </div>
 <hr class="migration-divider" />
 
@@ -171,7 +171,7 @@ Use fieldset.context or particle data to share information between kernels
 The <code>InteractionKernel</code> class is removed as normal Kernels now have access to <em>all</em> particles
 </div>
 <div class="migration-bubble migration-how">
-Particle-particle interaction can be <a href="tutorial_interaction.html">performed within normal Kernels</a>
+Particle-particle interaction can be <a href="example_interaction.html">performed within normal Kernels</a>
 </div>
 <hr class="migration-divider" />
 
@@ -179,12 +179,12 @@ Particle-particle interaction can be <a href="tutorial_interaction.html">perform
 Automatic conversion from depth to sigma grids under the hood is removed
 </div>
 <div class="migration-bubble migration-how">
-Explicitly use <code>convert_z_to_sigma_croco</code> in sampling kernels (such as the <code>AdvectionRK4_3D_CROCO</code> or <code>SampleOMegaCroco</code> kernels) when working with <a href="tutorial_croco_3D">CROCO data</a>
+Explicitly use <code>convert_z_to_sigma_croco</code> in sampling kernels (such as the <code>AdvectionRK4_3D_CROCO</code> or <code>SampleOMegaCroco</code> kernels) when working with <a href="convert_croco_3D">CROCO data</a>
 </div>
 <hr class="migration-divider" />
 
 <div class="migration-bubble migration-change">
-The default advection scheme is changed from RK4 to RK2 as it is <a href="tutorial_dt_integrators.html">faster while the accuracy is comparable for most applications</a>
+The default advection scheme is changed from RK4 to RK2 as it is <a href="simulation_dt_integrators.html">faster while the accuracy is comparable for most applications</a>
 </div>
 <div class="migration-bubble migration-how">
 Use <code>pset.execute(parcels.AdvectionRK2)</code> for advection
@@ -201,7 +201,7 @@ Use <code>pset.execute(parcels.AdvectionRK2)</code> for advection
 <code>FieldSet.from_&lt;modelname&gt;()</code> is removed
 </div>
 <div class="migration-bubble migration-how">
-Convert the model data first to <a href="https://sgrid.github.io/sgrid/">SGrid</a> (for example with a <code>parcels.covert_&lt;MODEL&gt;_to_sgrid()</code> function) and then use <code>FieldSet.from_sgrid_conventions()</code>, as also described in the <a href="tutorial_quickstart.html#input-flow-fields-fieldset">Quickstart tutorial</a>
+Convert the model data first to <a href="https://sgrid.github.io/sgrid/">SGrid</a> (for example with a <code>parcels.covert_&lt;MODEL&gt;_to_sgrid()</code> function) and then use <code>FieldSet.from_sgrid_conventions()</code>, as also described in the <a href="gettingstarted_quickstart.html#input-flow-fields-fieldset">Quickstart tutorial</a>
 </div>
 <hr class="migration-divider" />
 
@@ -261,7 +261,7 @@ Simply pass the function(s) as a list to <code>pset.execute()</code>
 <code>repeatdt</code> is removed
 </div>
 <div class="migration-bubble migration-how">
-See the <a href="tutorial_delaystart.html#release-particles-repeatedly">Delayed starts tutorial</a> for how to implement repeated releases of particles
+See the <a href="particlesets_delaystart.html#release-particles-repeatedly">Delayed starts tutorial</a> for how to implement repeated releases of particles
 </div>
 <hr class="migration-divider" />
 
@@ -285,7 +285,7 @@ Update <code>runtime</code> and <code>endtime</code> to use <code>numpy.datetime
 <code>ParticleSet.from_field()</code>, <code>ParticleSet.from_line()</code>, <code>ParticleSet.from_list()</code> are removed
 </div>
 <div class="migration-bubble migration-how">
-Use the <a href="tutorial_delaystart.html"><code>ParticleSet</code> constructor</a> directly
+Use the <a href="particlesets_delaystart.html"><code>ParticleSet</code> constructor</a> directly
 </div>
 <hr class="migration-divider" />
 
@@ -296,7 +296,7 @@ Use the <a href="tutorial_delaystart.html"><code>ParticleSet</code> constructor<
 <div class="migration-chat">
 
 <div class="migration-bubble migration-change">
-ParticleFiles output is in <a href="tutorial_output.html">parquet format</a>
+ParticleFiles output is in <a href="gettingstarted_output.html">parquet format</a>
 </div>
 <div class="migration-bubble migration-how">
 Read the output with <code>polars.read_parquet()</code> or (to automatically handle cftime) <code>parcels.read_particlefile()</code>. For compatility with old postprocessing codes, convert the new Parquet output to v3-style zarr output using <code>parcels.particlefile_to_v3_zarr()</code>
@@ -355,7 +355,7 @@ Either write all timesteps of a variable, or none
 Particles are not written when they are deleted
 </div>
 <div class="migration-bubble migration-how">
-Call <code>ParticleFile.write()</code> <a href="tutorial_write_in_kernel.html#writing-on-particle-deletion">inside a kernel to write out</a> deleted particles
+Call <code>ParticleFile.write()</code> <a href="kernels_write_in_kernel.html#writing-on-particle-deletion">inside a kernel to write out</a> deleted particles
 </div>
 <hr class="migration-divider" />
 
@@ -385,7 +385,7 @@ Use <code>Field.eval()</code> as before, but expect an array of floats instead o
 The <code>NestedField</code> class is removed
 </div>
 <div class="migration-bubble migration-how">
-See the <a href="tutorial_nestedgrids.html">Nested Grids tutorial</a> for how to set up Nested Grids in v4
+See the <a href="fieldsets_nestedgrids.html">Nested Grids tutorial</a> for how to set up Nested Grids in v4
 </div>
 <hr class="migration-divider" />
 

@@ -31,9 +31,9 @@ If you have code that uses Parcels v3, you can migrate to Parcels v4 using [🎓
 :caption: Getting Started
 :name: getting-started
 :titlesonly:
-getting_started/tutorial_quickstart.md
-getting_started/tutorial_output.ipynb
-getting_started/explanation_concepts.md
+gettingstarted_quickstart.md
+gettingstarted_output.ipynb
+gettingstarted_concepts.md
 ```
 
 ## Converting model data to FieldSets
@@ -44,22 +44,28 @@ Below is a list of tutorials that show how to convert data from ocean (🌊) and
 :caption: Converting 🌊 ocean models
 :name: converting-ocean-models
 :titlesonly:
-examples/explanation_copernicusmarine.md
-examples/tutorial_nemo.ipynb
-examples/tutorial_croco_3D.ipynb
-examples/tutorial_mitgcm.ipynb
-examples/tutorial_mom6.ipynb
-examples/tutorial_delft3d.ipynb
-examples/tutorial_fesom.ipynb
-examples/tutorial_schism.ipynb
-examples/explanation_writing_convert_functions.md
+convert_copernicusmarine.md
+convert_nemo.ipynb
+convert_croco_3D.ipynb
+convert_mitgcm.ipynb
+convert_mom6.ipynb
+convert_delft3d.ipynb
+convert_fesom.ipynb
+convert_schism.ipynb
 ```
 
 ```{toctree}
 :caption: Converting 🍃 atmospheric models
 :name: converting-atmospheric-models
 :titlesonly:
-examples/tutorial_aifs.ipynb
+convert_aifs.ipynb
+```
+
+```{toctree}
+:caption: Converter concepts
+:name: converter-concepts
+:titlesonly:
+convert_writing_functions.md
 ```
 
 ## Work with FieldSets
@@ -68,12 +74,12 @@ examples/tutorial_aifs.ipynb
 :caption: Work with FieldSets
 :name: work-with-fieldsets
 :titlesonly:
-examples/explanation_grids.ipynb
-examples/tutorial_sigma_coordinates.ipynb
-examples/tutorial_velocityconversion.ipynb
-examples/tutorial_nestedgrids.ipynb
-examples/tutorial_manipulating_field_data.ipynb
-examples/tutorial_xgcm_derived_fields.ipynb
+fieldsets_grids.ipynb
+fieldsets_sigma_coordinates.ipynb
+fieldsets_velocityconversion.ipynb
+fieldsets_nestedgrids.ipynb
+fieldsets_manipulating_field_data.ipynb
+fieldsets_xgcm_derived_fields.ipynb
 ```
 
 ## Create ParticleSets
@@ -82,7 +88,7 @@ examples/tutorial_xgcm_derived_fields.ipynb
 :caption: Create ParticleSets
 :name: create-particlesets
 :titlesonly:
-examples/tutorial_delaystart.ipynb
+particlesets_delaystart.ipynb
 ```
 
 ## Write Kernels
@@ -92,10 +98,10 @@ examples/tutorial_delaystart.ipynb
 :name: write-kernels
 :titlesonly:
 
-examples/explanation_kernelloop.md
-examples/tutorial_sampling.ipynb
-examples/tutorial_statuscodes.ipynb
-examples/tutorial_write_in_kernel.ipynb
+kernels_loopexplanation.md
+kernels_sampling.ipynb
+kernels_statuscodes.ipynb
+kernels_write_in_kernel.ipynb
 ```
 
 ## Set interpolation methods
@@ -105,11 +111,11 @@ examples/tutorial_write_in_kernel.ipynb
 :name: interpolation-methods
 :titlesonly:
 
-examples/explanation_interpolation.md
-examples/tutorial_interpolation.ipynb
-examples/tutorial_peninsula_AvsCgrid.ipynb
-examples/tutorial_stuck_particles.ipynb
-examples/tutorial_unstuck_Agrid.ipynb
+interpolation_explanation.md
+interpolation_tutorial.ipynb
+interpolation_peninsula_AvsCgrid.ipynb
+interpolation_stuck_particles.ipynb
+interpolation_unstuck_Agrid.ipynb
 ```
 
 <!-- examples/tutorial_analyticaladvection.ipynb -->
@@ -120,8 +126,8 @@ examples/tutorial_unstuck_Agrid.ipynb
 :caption: Run a simulation
 :name: run-simulation
 :titlesonly:
-examples/explanation_performance.md
-examples/tutorial_dt_integrators.ipynb
+simulation_performance.md
+simulation_dt_integrators.ipynb
 ```
 
 ## Example Kernels
@@ -130,10 +136,10 @@ examples/tutorial_dt_integrators.ipynb
 :caption: Example Kernels
 :name: example-kernels
 :titlesonly:
-examples/tutorial_gsw_density.ipynb
-examples/tutorial_Argofloats.ipynb
-examples/tutorial_diffusion.ipynb
-examples/tutorial_interaction.ipynb
+example_gsw_density.ipynb
+example_Argofloats.ipynb
+example_diffusion.ipynb
+example_interaction.ipynb
 ```
 
 ## Other
@@ -144,7 +150,7 @@ examples/tutorial_interaction.ipynb
 :titlesonly:
 📖 v4 development <../v4/index>
 🎓 v3 to v4 migration guide <v4-migration>
-examples/tutorial_homepage_animation.md
+misc_homepage_animation.md
 ```
 
 <!-- examples/documentation_geospatial.ipynb -->

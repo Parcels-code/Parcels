@@ -2,5 +2,5 @@
 
 ```{toctree}
 :titlesonly:
-tutorial_aifs.ipynb
+convert_aifs.ipynb
 ```

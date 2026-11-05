@@ -2,9 +2,9 @@
 
 ```{toctree}
 :titlesonly:
-explanation_interpolation.md
-tutorial_interpolation.ipynb
-tutorial_peninsula_AvsCgrid.ipynb
-tutorial_stuck_particles.ipynb
-tutorial_unstuck_Agrid.ipynb
+interpolation_explanation.md
+interpolation_tutorial.ipynb
+interpolation_peninsula_AvsCgrid.ipynb
+interpolation_stuck_particles.ipynb
+interpolation_unstuck_Agrid.ipynb
 ```

@@ -6,7 +6,7 @@ kernelspec:
 
 # 🖥️ Working with Status Codes
 
-In order to capture errors in the [Kernel loop](explanation_kernelloop.md), Parcels uses a Status Code system. There are several Status Codes, listed below.
+In order to capture errors in the [Kernel loop](kernels_loopexplanation.md), Parcels uses a Status Code system. There are several Status Codes, listed below.
 
 ```{code-cell}
 import parcels
@@ -96,5 +96,5 @@ print(f"particle z at end of run = {pset.z}")
 ```
 
 ```{note}
-Kernels that control what to do with `particles.state` should typically be added at the _end_ of the Kernel list, because otherwise later Kernels may overwrite the `particles.state` or the `particles.dx` variables (see [Kernel loop explanation](explanation_kernelloop.md)).
+Kernels that control what to do with `particles.state` should typically be added at the _end_ of the Kernel list, because otherwise later Kernels may overwrite the `particles.state` or the `particles.dx` variables (see [Kernel loop explanation](kernels_loopexplanation.md)).
 ```

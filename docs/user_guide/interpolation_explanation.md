@@ -38,7 +38,7 @@ the requested value at the particles location.
 
 ## Interpolator API
 
-The interpolators included in Parcels are designed for common interpolation schemes in Parcels simulations; see the [Using the built-in interpolators tutorial](./tutorial_interpolation.ipynb).
+The interpolators included in Parcels are designed for common interpolation schemes in Parcels simulations; see the [Using the built-in interpolators tutorial](./interpolation_tutorial.ipynb).
 
 If we want to create a custom interpolation method, we need to look at the interpolator API. Each interpolator is a class that inherits from either the `ScalarInterpolator` or `VectorInterpolator` class. The `ScalarInterpolator` class is used for scalar fields, such as temperature or salinity, while the `VectorInterpolator` class is used for vector fields, such as velocity.
 
