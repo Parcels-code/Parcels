@@ -2,7 +2,7 @@
 #
 
 # You can set these variables from the command line.
-SPHINXOPTS    = --show-traceback --fail-on-warning --keep-going --jobs auto
+SPHINXOPTS    = --show-traceback --fail-on-warning --keep-going --jobs 1
 SPHINXBUILD   = sphinx-build
 SPHINXATUOBUILD = sphinx-autobuild
 PAPER         =
