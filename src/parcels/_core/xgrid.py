@@ -131,15 +131,18 @@ class XGrid(BaseGrid):
         self._spatialhash = None
         ds = model_data
 
-        # Set the coordinates for the dataset (needed to be done explicitly for curvilinear grids)
-        if "lon" in ds:
-            ds.set_coords("lon")
-        if "lat" in ds:
-            ds.set_coords("lat")
-
         axes = self.axes
-        if len(set(axes) & {"X", "Y"}) > 0:  # Only if spatial grid is >0D (see #2054 for further development)
-            assert_valid_lat_lon(ds["lat"], ds["lon"], self.sgrid_metadata)
+        if len(set(axes) & {"X", "Y"}) > 0:  # TODO also support grids with only lon or lat (see #2054)
+            if self.sgrid_metadata.node_coordinates is None:
+                raise ValueError("SGRID metadata must define 'node_coordinates' for a grid with horizontal axes.")
+            x_coordinate_name, y_coordinate_name = self.sgrid_metadata.node_coordinates
+            missing_coordinates = [name for name in (x_coordinate_name, y_coordinate_name) if name not in ds]
+            if missing_coordinates:
+                raise ValueError(
+                    f"SGRID metadata references node coordinates {missing_coordinates}, which are not present in the dataset."
+                )
+            ds = ds.set_coords([x_coordinate_name, y_coordinate_name])
+            assert_valid_lat_lon(ds[y_coordinate_name], ds[x_coordinate_name], self.sgrid_metadata)
 
         if "Z" in axes:
             depth = ds["depth"]
@@ -184,10 +187,11 @@ class XGrid(BaseGrid):
         """
         if "X" not in self.axes:
             return np.zeros(1)
+        x_coordinate_name = self.sgrid_metadata.node_coordinates[0]
         # ensure lon is loaded into memory for dask-backed datasets, as it is used in the search method
-        if is_dask_collection(self._ds["lon"].data):
-            self._ds["lon"].load()
-        return self._ds["lon"].values
+        if is_dask_collection(self._ds[x_coordinate_name].data):
+            self._ds[x_coordinate_name].load()
+        return self._ds[x_coordinate_name].values
 
     @property
     def lat(self):
@@ -199,10 +203,11 @@ class XGrid(BaseGrid):
         """
         if "Y" not in self.axes:
             return np.zeros(1)
+        y_coordinate_name = self.sgrid_metadata.node_coordinates[1]
         # ensure lat is loaded into memory for dask-backed datasets, as it is used in the search method
-        if is_dask_collection(self._ds["lat"].data):
-            self._ds["lat"].load()
-        return self._ds["lat"].values
+        if is_dask_collection(self._ds[y_coordinate_name].data):
+            self._ds[y_coordinate_name].load()
+        return self._ds[y_coordinate_name].values
 
     @property
     def depth(self):
@@ -347,18 +352,22 @@ class XGrid(BaseGrid):
 
     def search(self, z, y, x, ei=None, ti=None, tau=None):
         ds = self._ds
+        if self.sgrid_metadata.node_coordinates is not None:
+            x_coordinate_name, y_coordinate_name = self.sgrid_metadata.node_coordinates
+            x_coordinates = ds[x_coordinate_name]
+            y_coordinates = ds[y_coordinate_name]
 
-        if "X" not in self.axes or ds.lon.ndim == 1:
+        if "X" not in self.axes or x_coordinates is None or x_coordinates.ndim == 1:
             if "Y" in self.axes:
-                yi, eta = _search_1d_array(ds.lat.values, y)
+                yi, eta = _search_1d_array(y_coordinates.values, y)
             else:
                 yi, eta = np.zeros(y.shape, dtype=int), np.zeros(y.shape, dtype=float)
 
             if "X" in self.axes:
-                xi, xsi = _search_1d_array(ds.lon.values, x)
+                xi, xsi = _search_1d_array(x_coordinates.values, x)
             else:
                 xi, xsi = np.zeros(x.shape, dtype=int), np.zeros(x.shape, dtype=float)
-        elif ds.lon.ndim == 2:
+        elif x_coordinates is not None and x_coordinates.ndim == 2:
             yi, xi = None, None
             if ei is not None:
                 axis_indices = self.unravel_index(ei)
