@@ -9,5 +9,4 @@ tutorial_mom6.ipynb
 tutorial_delft3d.ipynb
 tutorial_fesom.ipynb
 tutorial_schism.ipynb
-explanation_writing_convert_functions.md
 ```

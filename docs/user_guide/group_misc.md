@@ -1,4 +1,4 @@
-# Other
+# Miscellaneous
 
 ```{toctree}
 :titlesonly:

@@ -18,7 +18,7 @@ group_kernels.md
 group_interpolation.md
 group_simulation.md
 group_example_kernels.md
-group_other.md
+group_misc.md
 ```
 
 ```{note}
