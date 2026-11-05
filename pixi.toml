@@ -128,6 +128,7 @@ sphinxcontrib-mermaid = "*"
 sphinx-design = "*"
 sphinx-autoapi = "*"
 sphinx-notfound-page = "*"
+sphinxext-rediraffe = "*"
 vale = "*"
 
 [feature.docs.tasks]

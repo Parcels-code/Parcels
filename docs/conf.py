@@ -45,6 +45,7 @@ extensions = [
     "sphinx_design",
     "autoapi.extension",
     "notfound.extension",
+    "sphinxext.rediraffe",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -85,6 +86,10 @@ linkcheck_ignore = [
 
 # Define the canonical URL using custom domain on Read the Docs
 html_baseurl = os.environ.get("READTHEDOCS_CANONICAL_URL", "")
+
+# Redirects for moved/deleted pages, handled by sphinxext-rediraffe. Paths are relative to
+# the docs folder, e.g. "user_guide/examples/tutorial_old.ipynb": "user_guide/examples/tutorial_new.ipynb"
+rediraffe_redirects = {}
 
 # Tell Jinja2 templates the build is running on Read the Docs
 if os.environ.get("READTHEDOCS", "") == "True":
