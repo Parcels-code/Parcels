@@ -1,13 +1,11 @@
 [workspace]
 name = "Parcels"
-exclude-newer = "5d" # security pre-caution against compromised packages
+exclude-newer = { cutoff = "5d", exemptions = { pixi-build-python = "*" } } # security pre-caution against compromised packages
 preview = ["pixi-build"]
 channels = ["conda-forge"]
 platforms = ["win-64", "linux-64", "osx-64", "osx-arm64"]
-requires-pixi = ">=0.82.1"
+requires-pixi = ">=0.84.0"
 
-[exclude-newer]
-pixi-build-python = "0d"
 
 [package]
 name = "parcels"
