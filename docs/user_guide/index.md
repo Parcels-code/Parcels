@@ -8,6 +8,7 @@ For a description of the specific classes and functions, check out the [API refe
 
 ```{toctree}
 :titlesonly:
+:maxdepth: 3
 installation.md
 group_gettingstarted.md
 group_convert_models.md
