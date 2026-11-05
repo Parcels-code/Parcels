@@ -433,35 +433,17 @@ def _Spatialslip(
     if lenZ == 1:
         land = is_land(0, 0, 0, 0) & is_land(0, 0, 0, 1) & (eta > 0)
     else:
-        land = (
-            is_land(0, 0, 0, 0)
-            & is_land(0, 0, 0, 1)
-            & is_land(0, 1, 0, 0)
-            & is_land(0, 1, 0, 1)
-            & (eta > 0)
-        )
+        land = is_land(0, 0, 0, 0) & is_land(0, 0, 0, 1) & is_land(0, 1, 0, 0) & is_land(0, 1, 0, 1) & (eta > 0)
     f_u[land] = f_u[land] * (a + b * eta[land]) / eta[land]
 
     if lenZ == 1:
         land = is_land(0, 0, 1, 0) & is_land(0, 0, 1, 1) & (eta < 1)
     else:
-        land = (
-            is_land(0, 0, 1, 0)
-            & is_land(0, 0, 1, 1)
-            & is_land(0, 1, 1, 0)
-            & is_land(0, 1, 1, 1)
-            & (eta < 1)
-        )
+        land = is_land(0, 0, 1, 0) & is_land(0, 0, 1, 1) & is_land(0, 1, 1, 0) & is_land(0, 1, 1, 1) & (eta < 1)
     f_u[land] = f_u[land] * (1 - b * eta[land]) / (1 - eta[land])
 
     if lenZ == 2:
-        land = (
-            is_land(0, 1, 0, 0)
-            & is_land(0, 1, 0, 1)
-            & is_land(0, 1, 1, 0)
-            & is_land(0, 1, 1, 1)
-            & (zeta < 1)
-        )
+        land = is_land(0, 1, 0, 0) & is_land(0, 1, 0, 1) & is_land(0, 1, 1, 0) & is_land(0, 1, 1, 1) & (zeta < 1)
         f_u[land] = f_u[land] * (1 - b * zeta[land]) / (1 - zeta[land])
 
     u = u * f_u
@@ -472,35 +454,17 @@ def _Spatialslip(
     if lenZ == 1:
         land = is_land(0, 0, 0, 0) & is_land(0, 0, 1, 0) & (xsi > 0)
     else:
-        land = (
-            is_land(0, 0, 0, 0)
-            & is_land(0, 0, 1, 0)
-            & is_land(0, 1, 0, 0)
-            & is_land(0, 1, 1, 0)
-            & (xsi > 0)
-        )
+        land = is_land(0, 0, 0, 0) & is_land(0, 0, 1, 0) & is_land(0, 1, 0, 0) & is_land(0, 1, 1, 0) & (xsi > 0)
     f_v[land] = f_v[land] * (a + b * xsi[land]) / xsi[land]
 
     if lenZ == 1:
         land = is_land(0, 0, 0, 1) & is_land(0, 0, 1, 1) & (xsi < 1)
     else:
-        land = (
-            is_land(0, 0, 0, 1)
-            & is_land(0, 0, 1, 1)
-            & is_land(0, 1, 0, 1)
-            & is_land(0, 1, 1, 1)
-            & (xsi < 1)
-        )
+        land = is_land(0, 0, 0, 1) & is_land(0, 0, 1, 1) & is_land(0, 1, 0, 1) & is_land(0, 1, 1, 1) & (xsi < 1)
     f_v[land] = f_v[land] * (1 - b * xsi[land]) / (1 - xsi[land])
 
     if lenZ == 2:
-        land = (
-            is_land(0, 1, 0, 0)
-            & is_land(0, 1, 0, 1)
-            & is_land(0, 1, 1, 0)
-            & is_land(0, 1, 1, 1)
-            & (zeta < 1)
-        )
+        land = is_land(0, 1, 0, 0) & is_land(0, 1, 0, 1) & is_land(0, 1, 1, 0) & is_land(0, 1, 1, 1) & (zeta < 1)
         f_v[land] = f_v[land] * (1 - b * zeta[land]) / (1 - zeta[land])
 
     v = v * f_v
@@ -511,38 +475,22 @@ def _Spatialslip(
         f_w = np.ones_like(zeta)
         last_z = lenZ - 1
         land = (
-            is_land(0, 0, 0, 0)
-            & is_land(0, 0, 0, 1)
-            & is_land(0, last_z, 0, 0)
-            & is_land(0, last_z, 0, 1)
-            & (eta > 0)
+            is_land(0, 0, 0, 0) & is_land(0, 0, 0, 1) & is_land(0, last_z, 0, 0) & is_land(0, last_z, 0, 1) & (eta > 0)
         )
         f_w[land] = f_w[land] * (a + b * eta[land]) / eta[land]
 
         land = (
-            is_land(0, 0, 1, 0)
-            & is_land(0, 0, 1, 1)
-            & is_land(0, last_z, 1, 0)
-            & is_land(0, last_z, 1, 1)
-            & (eta < 1)
+            is_land(0, 0, 1, 0) & is_land(0, 0, 1, 1) & is_land(0, last_z, 1, 0) & is_land(0, last_z, 1, 1) & (eta < 1)
         )
         f_w[land] = f_w[land] * (1 - b * eta[land]) / (1 - eta[land])
 
         land = (
-            is_land(0, 0, 0, 0)
-            & is_land(0, 0, 1, 0)
-            & is_land(0, last_z, 0, 0)
-            & is_land(0, last_z, 1, 0)
-            & (xsi > 0)
+            is_land(0, 0, 0, 0) & is_land(0, 0, 1, 0) & is_land(0, last_z, 0, 0) & is_land(0, last_z, 1, 0) & (xsi > 0)
         )
         f_w[land] = f_w[land] * (a + b * xsi[land]) / xsi[land]
 
         land = (
-            is_land(0, 0, 0, 1)
-            & is_land(0, 0, 1, 1)
-            & is_land(0, last_z, 0, 1)
-            & is_land(0, last_z, 1, 1)
-            & (xsi < 1)
+            is_land(0, 0, 0, 1) & is_land(0, 0, 1, 1) & is_land(0, last_z, 0, 1) & is_land(0, last_z, 1, 1) & (xsi < 1)
         )
         f_w[land] = f_w[land] * (1 - b * xsi[land]) / (1 - xsi[land])
         w = w * f_w
