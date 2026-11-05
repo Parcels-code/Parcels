@@ -405,4 +405,4 @@ ds["grid"] = xr.DataArray(
 
 A contribution would typically include the function in `convert.py`, a test in `tests/test_convert.py`, and a
 tutorial notebook in the "Converting model data to FieldSets" section of this user guide. See the
-[development guide](../../development/index.md) for how to get started.
+[development guide](../development/index.md) for how to get started.

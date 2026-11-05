@@ -61,7 +61,7 @@ ds_fset = parcels.convert.copernicusmarine_to_sgrid(fields=fields)
 fieldset = parcels.FieldSet.from_sgrid_conventions(ds_fset)
 ```
 
-Now, in order to improve performance, we can convert the {py:obj}`parcels.FieldSet` to windowed arrays. This is especially useful for large datasets with many timeslices, as it allows Parcels to load only the necessary timeslices into memory during the simulation. For more information about squeezing performance out of Parcels, see the [performance tutorial](../examples/explanation_performance.md).
+Now, in order to improve performance, we can convert the {py:obj}`parcels.FieldSet` to windowed arrays. This is especially useful for large datasets with many timeslices, as it allows Parcels to load only the necessary timeslices into memory during the simulation. For more information about squeezing performance out of Parcels, see the [performance tutorial](./explanation_performance.md).
 
 ```{code-cell}
 # Convert the FieldSet to windowed arrays for better performance
@@ -89,7 +89,7 @@ the virtual particles for which we will calculate the trajectories.
 We need to create a {py:obj}`parcels.ParticleSet` object with the particles' initial time and position. The {py:obj}`parcels.ParticleSet`
 object also needs to know about the {py:obj}`parcels.FieldSet` in which the particles "live". Finally, we need to specify the type of
 {py:obj}`parcels.ParticleClass` we want to use. The default particles have `t`, `z`, `y`, and `x`, but you can easily add
-other {py:obj}`parcels.Variable`s such as size, temperature, or age to create your own particles to mimic plastic or an [ARGO float](../examples/tutorial_Argofloats.ipynb).
+other {py:obj}`parcels.Variable`s such as size, temperature, or age to create your own particles to mimic plastic or an [ARGO float](./tutorial_Argofloats.ipynb).
 
 ```{code-cell}
 # Particle locations and initial time
@@ -120,7 +120,7 @@ If you also want to sample the initial value of a field, you can do so by callin
 pset.temperature = fieldset.thetao[pset]
 ```
 
-See the [sampling tutorial](../examples/tutorial_sampling.ipynb#sampling-initial-field-values) for more information on initial sampling of fields.
+See the [sampling tutorial](./tutorial_sampling.ipynb#sampling-initial-field-values) for more information on initial sampling of fields.
 
 ## Compute: `Kernel`
 

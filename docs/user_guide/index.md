@@ -8,16 +8,16 @@ For a description of the specific classes and functions, check out the [API refe
 
 ```{toctree}
 :titlesonly:
-getting_started/installation.md
-getting_started/index.md
-examples/group_convert_models.md
-examples/group_fieldsets.md
-examples/group_particlesets.md
-examples/group_kernels.md
-examples/group_interpolation.md
-examples/group_simulation.md
-examples/group_example_kernels.md
-examples/group_other.md
+installation.md
+group_gettingstarted.md
+group_convert_models.md
+group_fieldsets.md
+group_particlesets.md
+group_kernels.md
+group_interpolation.md
+group_simulation.md
+group_example_kernels.md
+group_other.md
 ```
 
 ```{note}

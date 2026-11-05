@@ -17,9 +17,9 @@ A Parcels simulation is generally built up from four different components:
 3. [**Kernels**](#3-kernels). Kernels perform some specific operation on the particles every time step (e.g. advect the particles with the three-dimensional flow; or interpolate the temperature field to the particle location).
 4. [**Execute**](#4-execute). Execute the simulation. The core method which integrates the operations defined in Kernels for a given runtime and timestep, and writes output to a ParticleFile.
 
-We discuss each component in more detail below. The subsections titled **"Learn how to"** link to more detailed [how-to guide notebooks](../index.md) and more detailed _explanations_ of Parcels functionality are included under **"Read more about"** subsections. The full list of classes and methods is in the [API reference](../../reference/parcels/index). If you want to learn by doing, check out the [quickstart tutorial](./tutorial_quickstart.md) to start creating your first Parcels simulation.
+We discuss each component in more detail below. The subsections titled **"Learn how to"** link to more detailed [how-to guide notebooks](../index.md) and more detailed _explanations_ of Parcels functionality are included under **"Read more about"** subsections. The full list of classes and methods is in the [API reference](../reference/parcels/index). If you want to learn by doing, check out the [quickstart tutorial](./tutorial_quickstart.md) to start creating your first Parcels simulation.
 
-```{figure} ../../_static/concepts_diagram.png
+```{figure} ../_static/concepts_diagram.png
 :alt: Parcels concepts diagram
 :width: 100%
 
@@ -60,7 +60,7 @@ The user doesn't need to manually construct or manage grids - this is done inter
 
 ```{admonition} 📖 Read more about grids
 :class: seealso
-- [Grids explanation](../examples/explanation_grids.ipynb)
+- [Grids explanation](./explanation_grids.ipynb)
 ```
 
 ### Interpolation
@@ -69,12 +69,12 @@ To find the value of a {py:obj}`parcels.Field` at any particle location, Parcels
 
 ```{admonition} 📖 Read more about interpolation
 :class: seealso
-- [Interpolation explanation](../examples/explanation_interpolation.md)
+- [Interpolation explanation](./explanation_interpolation.md)
 ```
 
 ```{admonition} 🖥️ Learn how to use Parcels interpolators
 :class: seealso
-- [Interpolators guide](../examples/tutorial_interpolation.ipynb)
+- [Interpolators guide](./tutorial_interpolation.ipynb)
 ```
 
 ## 2. ParticleSet
@@ -99,8 +99,8 @@ pset = parcels.ParticleSet(
 
 ```{admonition} 🖥️ Learn more about how to create ParticleSets
 :class: seealso
-- [Release particles at different times](../examples/tutorial_delaystart.ipynb)
-- [Sampling initial Field values](../examples/tutorial_sampling.ipynb#sampling-initial-field-values)
+- [Release particles at different times](./tutorial_delaystart.ipynb)
+- [Sampling initial Field values](./tutorial_sampling.ipynb#sampling-initial-field-values)
 ```
 
 ## 3. Kernels
@@ -133,7 +133,7 @@ Note that the (optional) `@parcels.validate_kernel` decorator can be used to ens
 Basic kernels are included in Parcels to compute advection and diffusion. The standard advection kernel is {py:obj}`parcels.kernels.AdvectionRK2`, a [second-order Runge-Kutta integrator](https://en.wikipedia.org/wiki/Runge%E2%80%93Kutta_methods#The_Runge%E2%80%93Kutta_method) of the advection function.
 
 ```{warning}
-It is advised _not_ to update the particle coordinates (`particles.t`, `particles.z`, `particles.y`, or `particles.x`) directly within a Kernel, as that can negatively interfere with the way that particle movements by different kernels are vectorially added. Use a change in the coordinates: `particles.dy`, `particles.dx` and/or `particles.dz`. Read the [kernel loop tutorial](../examples/explanation_kernelloop.md) to understand why.
+It is advised _not_ to update the particle coordinates (`particles.t`, `particles.z`, `particles.y`, or `particles.x`) directly within a Kernel, as that can negatively interfere with the way that particle movements by different kernels are vectorially added. Use a change in the coordinates: `particles.dy`, `particles.dx` and/or `particles.dz`. Read the [kernel loop tutorial](./explanation_kernelloop.md) to understand why.
 ```
 
 (custom-kernel)=
@@ -158,20 +158,20 @@ Every Kernel must be a function with the following (and only those) arguments: `
 ```
 
 ```{warning}
-We have to be careful with kernels that sample velocities on spherical grids (so with longitude and latitude in degrees). Parcels can automatically convert velocities from m s<sup>-1</sup> to degrees s<sup>-1</sup>, but only when using `VectorFields`. [This guide](../examples/tutorial_velocityconversion.ipynb) describes how to use velocities on a spherical grid in Parcels.
+We have to be careful with kernels that sample velocities on spherical grids (so with longitude and latitude in degrees). Parcels can automatically convert velocities from m s<sup>-1</sup> to degrees s<sup>-1</sup>, but only when using `VectorFields`. [This guide](./tutorial_velocityconversion.ipynb) describes how to use velocities on a spherical grid in Parcels.
 ```
 
 ```{admonition} 📖 Read more about the Kernel loop
 :class: seealso
-- [The Kernel loop](../examples/explanation_kernelloop.md)
+- [The Kernel loop](./explanation_kernelloop.md)
 ```
 
 ```{admonition} 🖥️ Learn how to write Kernels
 :class: seealso
-- [Sample fields like temperature](../examples/tutorial_sampling.ipynb).
-- [Mimic the behaviour of ARGO floats](../examples/tutorial_Argofloats.ipynb).
-- [Add diffusion to approximate subgrid-scale processes and unresolved physics](../examples/tutorial_diffusion.ipynb).
-- [Convert velocities between units in m s<sup>-1</sup> and degrees s<sup>-1</sup>](../examples/tutorial_velocityconversion.ipynb).
+- [Sample fields like temperature](./tutorial_sampling.ipynb).
+- [Mimic the behaviour of ARGO floats](./tutorial_Argofloats.ipynb).
+- [Add diffusion to approximate subgrid-scale processes and unresolved physics](./tutorial_diffusion.ipynb).
+- [Convert velocities between units in m s<sup>-1</sup> and degrees s<sup>-1</sup>](./tutorial_velocityconversion.ipynb).
 ```
 
 ## 4. Execute
@@ -195,10 +195,10 @@ pset.execute(kernels=kernels, dt=dt, runtime=runtime)
 
 To analyse the particle data generated in the simulation, we need to define a {py:obj}`parcels.ParticleFile` and add it as an argument to {py:func}`parcels.ParticleSet.execute()`. The output will be written in a [parquet format](https://parquet.apache.org/), which can be opened as a `polars.DataFrame`. The dataset will contain the particle data with at least `t`, `z`, `y` and `x`, for each particle at timesteps defined by the `outputdt` argument.
 
-There are many ways to analyze particle output, and although we provide [a short tutorial to get started](./tutorial_output.ipynb), we recommend writing your own analysis code and checking out [related Lagrangian analysis projects in our community page](../../community/index.md#analysis-code).
+There are many ways to analyze particle output, and although we provide [a short tutorial to get started](./tutorial_output.ipynb), we recommend writing your own analysis code and checking out [related Lagrangian analysis projects in our community page](../community/index.md#analysis-code).
 
 ```{admonition} 🖥️ Learn how to run a simulation
 :class: seealso
-- [Choose an appropriate timestep and integrator](../examples/tutorial_dt_integrators.ipynb)
+- [Choose an appropriate timestep and integrator](./tutorial_dt_integrators.ipynb)
 - [Work with Parcels output](./tutorial_output.ipynb)
 ```

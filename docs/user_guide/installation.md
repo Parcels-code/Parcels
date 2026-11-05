@@ -37,4 +37,4 @@ pixi shell
 ## Installation for developers
 
 We also use Pixi for our normal development.
-To install the latest development version, see the [development section in our contributing guide](../../development/index.md#development).
+To install the latest development version, see the [development section in our contributing guide](../development/index.md#development).

@@ -1,6 +1,6 @@
 """Collection of pre-built advection-diffusion kernels.
 
-See `this tutorial <../examples/tutorial_diffusion.ipynb>`__ for a detailed explanation.
+See `this tutorial <./tutorial_diffusion.ipynb>`__ for a detailed explanation.
 """
 
 import numpy as np

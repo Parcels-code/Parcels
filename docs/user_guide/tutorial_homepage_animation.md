@@ -145,4 +145,4 @@ anim.save(
 
 The resulting animation is then
 
-![gif](../../_static/homepage.gif)
+![gif](../_static/homepage.gif)
