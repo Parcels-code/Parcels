@@ -134,6 +134,8 @@ See below for more Pixi commands relevant to development.
 - `pixi run docs-watch` - Build and auto-rebuild documentation when files change (useful for live editing)
 - `pixi run docs-linkcheck` - Check for broken links in the documentation
 
+If you move or delete a documentation page, add an entry to `rediraffe_redirects` in `docs/conf.py` so that existing links to the page keep working.
+
 **Code quality**
 
 - `pixi run lint` - Run pre-commit hooks on all files (includes formatting, linting, and other code quality checks)
