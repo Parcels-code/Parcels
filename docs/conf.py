@@ -208,6 +208,9 @@ html_theme_options = {
     "announcement": "Parcels v4 has been released! 🎉 See <a href='https://parcels-code.org/blog/parcels-v4'>our release blog post</a> for more info",
     "header_links_before_dropdown": 8,
     "navbar_align": "left",
+    "show_nav_level": 0,
+    "collapse_navigation": True,
+    "navigation_depth": 2,
 }
 
 html_context = {
