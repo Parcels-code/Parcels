@@ -418,7 +418,7 @@ class UnstructuredModelData(ModelData):
 
         assert_vertical_dimensionality(ds, allowed_dimensionality=[1, 3])
 
-        grid = UxGrid(ds.uxgrid, z=ds.coords["zf"], mesh=mesh)
+        grid = UxGrid(ds.uxgrid, z=ds.coords["zf"], mesh=mesh)  # type: ignore[arg-type] # uxarray coords typed as DataArray instead of UxDataArray
         ds = _discover_ux_U_and_V(ds)
 
         vector_fields = resolve_vector_fields(ds, vector_fields)
