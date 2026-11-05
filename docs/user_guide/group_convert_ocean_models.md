@@ -2,6 +2,7 @@
 
 ```{toctree}
 :titlesonly:
+explanation_copernicusmarine.md
 tutorial_nemo.ipynb
 tutorial_croco_3D.ipynb
 tutorial_mitgcm.ipynb
