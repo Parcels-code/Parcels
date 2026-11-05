@@ -1,10 +1,12 @@
-# 📖 Copernicus Marine Service tutorial
+# 🖥️ Copernicus Marine Service tutorial
 
 Parcels is closely aligned with the Copernicus Marine Service for oceanographic data. This tutorial will show you how to use the [`copernicusmarine` toolbox](https://help.marine.copernicus.eu/en/articles/7949409-copernicus-marine-toolbox-introduction) and {py:func}`parcels.convert.copernicusmarine_to_sgrid` to stream or download (global) ocean data and use it to advect particles.
 
 ```{note}
 Because the `copernicusmarine` toolbox requires a log-in, this tutorial is not interactive.
 You will need to have access to the Copernicus Marine Service and be logged in to reproduce this tutorial yourself.
+
+If you think anything in this notebook isn't working as expected, please [create an Issue or PR](https://github.com/Parcels-code/Parcels/issues).
 ```
 
 First, create a dataset object using the `copernicusmarine` toolbox. Here, we use the global ocean analysis and forecast dataset.
@@ -84,7 +86,7 @@ fieldset.to_chunk_cached_arrays()
 ```
 
 ```{note}
-While Parcels works with "streamed" data from the Copernicus Marine Data Store, streaming the data can be rather slow. It is often more efficient to first download the data and then use it locally. You can do that by (before you create the fieldset) doing a `ds.to_netcdf("local_file.nc")` and then opening the local file with `ds = xr.open_dataset("local_file.nc")`.
+While Parcels works with "streamed" data from the Copernicus Marine Data Store, streaming the data can be rather slow. It is often more efficient to first download the data and then use it locally. You can do that by (before you create the fieldset) doing a `ds.to_zarr("local_store.zarr")` and then opening the local store with `ds = xr.open_zarr("local_store.zarr")`.
 ```
 
 We can then run particles as usual in Parcels, by defining a `ParticleSet` and then executing it with the desired advection kernel and runtime.
