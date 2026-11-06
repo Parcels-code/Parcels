@@ -6,13 +6,13 @@ Welcome to the documentation of Parcels. **Parcels** provides a set of Python cl
 :class: dark-light
 ```
 
-_Animation of virtual particles carried by ocean surface flow in the global oceans. The particles are advected with Parcels in data from the [Copernicus Marine Service](https://marine.copernicus.eu). See [here](./user_guide/examples/tutorial_homepage_animation.md) for the script to create this animation yourself._
+_Animation of virtual particles carried by ocean surface flow in the global oceans. The particles are advected with Parcels in data from the [Copernicus Marine Service](https://marine.copernicus.eu). See [here](./user_guide/misc_homepage_animation.md) for the script to create this animation yourself._
 
 ```{note}
 You are viewing the documentation for Parcels {{ version }}. You can browse the documentation for older versions by using the version switcher in the bottom right.
 ```
 
-**Useful links**: [Installation instructions](user_guide/getting_started/installation) | [Discussions on GitHub](https://github.com/Parcels-code/parcels/discussions) | [Issue on GitHub](https://github.com/Parcels-code/parcels/issues) | [Parcels website](https://parcels-code.org/) | [CLAM community website](https://clam-community.github.io/) | [API reference](reference/parcels/index)
+**Useful links**: [Installation instructions](user_guide/installation) | [Discussions on GitHub](https://github.com/Parcels-code/parcels/discussions) | [Issue on GitHub](https://github.com/Parcels-code/parcels/issues) | [Parcels website](https://parcels-code.org/) | [CLAM community website](https://clam-community.github.io/) | [API reference](reference/parcels/index)
 
 `````{grid} 1 2 2 2
 :gutter: 4
@@ -22,7 +22,7 @@ You are viewing the documentation for Parcels {{ version }}. You can browse the 
 ````{grid-item-card} Getting started
 :shadow: md
 
-New to Parcels? Check out the [installation instructions](user_guide/getting_started/installation), run the [quickstart tutorial](user_guide/getting_started/tutorial_quickstart), and learn the [key concepts](user_guide/getting_started/explanation_concepts) to understand the package.
+New to Parcels? Check out the [installation instructions](user_guide/installation), run the [quickstart tutorial](user_guide/gettingstarted_quickstart), and learn the [key concepts](user_guide/gettingstarted_concepts) to understand the package.
 
 +++
 
