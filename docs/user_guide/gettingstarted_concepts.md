@@ -195,7 +195,7 @@ pset.execute(kernels=kernels, dt=dt, runtime=runtime)
 
 To analyse the particle data generated in the simulation, we need to define a {py:obj}`parcels.ParticleFile` and add it as an argument to {py:func}`parcels.ParticleSet.execute()`. The output will be written in a [parquet format](https://parquet.apache.org/), which can be opened as a `polars.DataFrame`. The dataset will contain the particle data with at least `t`, `z`, `y` and `x`, for each particle at timesteps defined by the `outputdt` argument.
 
-There are many ways to analyze particle output, and although we provide [a short tutorial to get started](./gettingstarted_output.ipynb), we recommend writing your own analysis code and checking out [related Lagrangian analysis projects in our community page](../community/index.md#analysis-code).
+There are many ways to analyse particle output, and although we provide [a short tutorial to get started](./gettingstarted_output.ipynb), we recommend writing your own analysis code and checking out [related Lagrangian analysis projects in our community page](../community/index.md#analysis-code).
 
 ```{admonition} 🖥️ Learn how to run a simulation
 :class: seealso
