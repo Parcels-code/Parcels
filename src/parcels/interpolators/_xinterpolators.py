@@ -11,7 +11,7 @@ from dask import is_dask_collection
 import parcels._core.utils.interpolation as i_u
 import parcels._sgrid as sgrid
 import parcels._typing as ptyping
-from parcels.interpolators._base import ScalarInterpolator, VectorInterpolator
+from parcels.interpolators._base import ScalarInterpolator, VectorInterpolator, VerticalCoordinateInterpolator
 
 if TYPE_CHECKING:
     from parcels._core._windowed_array import WindowedArray
@@ -611,3 +611,30 @@ class XLinearInvdistLandTracer(ScalarInterpolator):
                 values[exact_particles] = exact_vals[exact_particles]
 
         return values.compute() if is_dask_collection(values) else values
+
+
+class XVerticalCoordinateConstant(VerticalCoordinateInterpolator):
+    """Piecewise constant over the grid cell (face registered z), linear in time."""
+
+    def columns(
+        self, grid_positions: dict[ptyping.XgridAxis, dict[str, int | float | np.ndarray]], grid: XGrid
+    ) -> np.ndarray:
+        raise NotImplementedError
+
+
+class XVerticalCoordinateLinear(VerticalCoordinateInterpolator):
+    """Bilinear between the surrounding z columns (face or node registered z), linear in time."""
+
+    def columns(
+        self, grid_positions: dict[ptyping.XgridAxis, dict[str, int | float | np.ndarray]], grid: XGrid
+    ) -> np.ndarray:
+        raise NotImplementedError
+
+
+class XVerticalCoordinateNearest(VerticalCoordinateInterpolator):
+    """Nearest z column (face or node registered z), linear in time."""
+
+    def columns(
+        self, grid_positions: dict[ptyping.XgridAxis, dict[str, int | float | np.ndarray]], grid: XGrid
+    ) -> np.ndarray:
+        raise NotImplementedError
