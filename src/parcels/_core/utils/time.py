@@ -221,6 +221,8 @@ def float_to_datelike(dt: float, time_interval) -> np.datetime64 | np.timedelta6
         result = np.timedelta64(int(dt), "s") + time_interval.left
         if isinstance(result, cftime.datetime):
             return result
+        elif isinstance(result, np.timedelta64):
+            return result.astype("timedelta64[s]")
         return result.astype("datetime64[s]")
     else:
         return np.timedelta64(int(dt), "s")
