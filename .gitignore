@@ -1,6 +1,7 @@
 build/*
 docs/_build/*
 docs/_downloads
+docs/paper-v4/paper.pdf
 docs/jupyter_execute/*
 docs/.jupyter_cache/*
 docs/reference

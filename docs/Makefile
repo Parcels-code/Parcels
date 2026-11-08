@@ -2,7 +2,7 @@
 #
 
 # You can set these variables from the command line.
-SPHINXOPTS    = --show-traceback --fail-on-warning --keep-going --jobs auto
+SPHINXOPTS    = --show-traceback --fail-on-warning --keep-going --jobs 1
 SPHINXBUILD   = sphinx-build
 SPHINXATUOBUILD = sphinx-autobuild
 PAPER         =
@@ -51,8 +51,7 @@ help:
 	@echo "  coverage   to run coverage check of the documentation (if enabled)"
 
 clean:
-	rm -rf $(BUILDDIR)/*
-	rm -rf .jupyter_cache
+	rm -rf $(BUILDDIR)
 	find . -name "*.parquet" -delete
 	find . -name "*.zarr" -type d -exec rm -rf {} +
 
