@@ -382,6 +382,12 @@ def nemo_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.Da
 
     ds = _maybe_rename_variables(ds, _NEMO.varnames_mapping)
     ds = _rename_nemo_depth_dims(ds)
+    if "depth_center" in ds.dims and "depth" not in ds.dims:
+        raise ValueError(
+            "The fields have a vertical dimension (depthu, depthv or deptht), but 'depthw' is missing. "
+            "The depth levels of the W points are needed for the vertical grid. Either pass the W field "
+            "(e.g., fields={..., 'W': ds_w['wo']}) or add 'depthw' from the W files to coords."
+        )
     ds = _maybe_expand_depth_dimension(ds)
     ds = _drop_unused_dimensions_and_coords(ds, _NEMO_DIMENSION_COORD_NAMES)
     ds = _assign_dims_as_coords(ds, _NEMO_DIMENSION_COORD_NAMES)
