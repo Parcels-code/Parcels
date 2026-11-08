@@ -176,10 +176,10 @@ Particle-particle interaction can be <a href="example_interaction.html">performe
 <hr class="migration-divider" />
 
 <div class="migration-bubble migration-change">
-Automatic conversion from depth to sigma grids under the hood is removed
+The Advection_CROCO methods have been removed
 </div>
 <div class="migration-bubble migration-how">
-Explicitly use <code>convert_z_to_sigma_croco</code> in sampling kernels (such as the <code>AdvectionRK4_3D_CROCO</code> or <code>SampleOMegaCroco</code> kernels) when working with <a href="convert_croco_3D">CROCO data</a>
+use the 4-D depth support when working with <a href="convert_croco_3D">CROCO data</a>
 </div>
 <hr class="migration-divider" />
 
