@@ -181,7 +181,7 @@ def test_spatial_slip_interpolation_z_face(field, func, expected, mesh):
     if mesh.is_spherical():
         expected[0] = expected[0] / (1852 * 60.0 * np.cos(np.radians(y)))
         expected[1] = expected[1] / (1852 * 60.0)
-        
+
     np.testing.assert_array_almost_equal(velocities, expected)
 
 
