@@ -74,6 +74,7 @@ pytest-html = "*"
 pytest-cov = "*"
 pytest-reportlog = "*"
 pytest-timeout = "*"
+xroms = "*"
 
 [feature.test.pypi-dependencies]
 re-assert = "*"
