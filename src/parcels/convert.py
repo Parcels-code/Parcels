@@ -238,13 +238,6 @@ def _set_coords(ds: xr.Dataset, dimension_names):
     return ds
 
 
-def _maybe_remove_depth_from_lonlat(ds):
-    for coord in ["glamf", "gphif"]:
-        if coord in ds.coords and "depth" in ds[coord].dims:
-            ds[coord] = ds[coord].squeeze("depth", drop=True)
-    return ds
-
-
 def _set_axis_attrs(ds: xr.Dataset, dim_axis: dict[str, XgcmAxisDirection]):
     for dim, axis in dim_axis.items():
         if dim in ds:
@@ -360,6 +353,8 @@ def nemo_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.Da
             case _:
                 pass
         field_da = field_da.reset_coords(drop=True)
+        if "z" in field_da.dims:  # singleton z on 2D mesh_mask variables (e.g. fmask)
+            field_da = field_da.squeeze("z", drop=True)
         field_das[name] = field_da
 
     if "time" in coords.dims:
@@ -387,14 +382,12 @@ def nemo_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.Da
             "The depth levels of the W points are needed for the vertical grid. Either pass the W field "
             "(e.g., fields={..., 'W': ds_w['wo']}) or add 'depthw' from the W files to coords."
         )
-    ds = _maybe_expand_depth_dimension(ds)
     ds = _drop_unused_dimensions_and_coords(ds, _NEMO_DIMENSION_COORD_NAMES)
     ds = _assign_dims_as_coords(ds, _NEMO_DIMENSION_COORD_NAMES)
     ds = _set_coords(ds, _NEMO_DIMENSION_COORD_NAMES)
-    ds = _maybe_remove_depth_from_lonlat(ds)
     ds = _set_axis_attrs(ds, _NEMO.axis_varnames)
 
-    expected_axes = set("XYZT")  # TODO: Update after we have support for 2D spatial fields
+    expected_axes = set("XY")
     if missing_axes := (expected_axes - set(ds.cf.axes)):
         raise ValueError(
             f"Dataset missing CF compliant metadata for axes "

@@ -92,6 +92,17 @@ def test_nemo_to_sgrid_with_depth(U, V, depth, coords):  # noqa: N803
     parcels.FieldSet.from_sgrid_conventions(ds)
 
 
+def test_convert_nemo_to_sgrid_without_time():
+    ds = parcels.tutorial.open_dataset("NemoCurvilinear_data_zonal/mesh_mask")
+    ds_fset = parcels.convert.nemo_to_sgrid(fields={"fmask": ds.fmask}, coords=ds)
+    fieldset = parcels.FieldSet.from_sgrid_conventions(ds_fset)
+
+    assert "mockT" in fieldset.fmask.data.dims
+    assert "mockZ" in fieldset.fmask.data.dims
+    # sampling time-constant field should yield the same value
+    assert fieldset.fmask[10, 0, 0, 0] == fieldset.fmask[1, 0, 0, 0]
+
+
 def test_convert_nemo_offsets():
     U = parcels.tutorial.open_dataset("NemoCurvilinear_data_zonal/U")
     V = parcels.tutorial.open_dataset("NemoCurvilinear_data_zonal/V")
@@ -262,13 +273,15 @@ def test_convert_sets_only_conventions_global_attr():
     assert ds_fset.attrs == {"Conventions": "SGRID"}
 
 
-def test_convert_nemo_surface_adds_depth_after_time():
+def test_convert_nemo_surface_adds_mockZ():
     U = parcels.tutorial.open_dataset("NemoCurvilinear_data_zonal/U")
     V = parcels.tutorial.open_dataset("NemoCurvilinear_data_zonal/V")
     coords = parcels.tutorial.open_dataset("NemoCurvilinear_data_zonal/mesh_mask")
     ds = convert.nemo_to_sgrid(fields=dict(U=U, V=V), coords=coords)
-    assert ds["U"].dims[:2] == ("time", "depth")
-    assert ds["V"].dims[:2] == ("time", "depth")
+
+    fieldset = FieldSet.from_sgrid_conventions(ds)
+    assert fieldset.U.data.dims[:2] == ("time", "mockZ")
+    assert fieldset.V.data.dims[:2] == ("time", "mockZ")
 
 
 def test_convert_dataset_field_without_matching_variable():
