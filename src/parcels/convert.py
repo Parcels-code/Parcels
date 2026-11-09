@@ -193,6 +193,12 @@ def _rename_nemo_depth_dims(ds: xr.Dataset) -> xr.Dataset:
         for old_depth, target in _NEMO_DEPTH_DIM_RENAMES.items():
             if old_depth in ds[var].dims:
                 ds[var] = ds[var].rename({old_depth: target})
+    if "depth_center" in ds.dims and "depth" not in ds.dims:
+        raise ValueError(
+            "The fields have a vertical dimension (depthu, depthv or deptht), but 'depthw' is missing. "
+            "The depth levels of the W points are needed for the vertical grid. Either pass the W field "
+            "(e.g., fields={..., 'W': ds_w['wo']}) or add 'depthw' from the W files to coords."
+        )
     return ds
 
 
@@ -365,12 +371,6 @@ def nemo_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.Da
 
     ds = _maybe_rename_variables(ds, _NEMO.varnames_mapping)
     ds = _rename_nemo_depth_dims(ds)
-    if "depth_center" in ds.dims and "depth" not in ds.dims:
-        raise ValueError(
-            "The fields have a vertical dimension (depthu, depthv or deptht), but 'depthw' is missing. "
-            "The depth levels of the W points are needed for the vertical grid. Either pass the W field "
-            "(e.g., fields={..., 'W': ds_w['wo']}) or add 'depthw' from the W files to coords."
-        )
     ds = _drop_unused_dimensions_and_coords(ds, _NEMO_DIMENSION_COORD_NAMES)
     ds = _assign_dims_as_coords(ds, _NEMO_DIMENSION_COORD_NAMES)
     ds = _set_coords(ds, _NEMO_DIMENSION_COORD_NAMES)
