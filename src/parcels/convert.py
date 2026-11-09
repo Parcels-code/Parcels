@@ -223,7 +223,7 @@ def _drop_unused_dimensions_and_coords(ds: xr.Dataset, dimension_and_coord_names
     for dim in ds.dims:
         if dim not in dimension_and_coord_names:
             dim = cast(str, dim)
-            ds = ds.drop_dims(dim, errors="ignore")
+            ds = ds.isel({dim: 0})
     for coord in ds.coords:
         coord = cast(str, coord)
         if coord not in dimension_and_coord_names:
@@ -353,8 +353,6 @@ def nemo_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.Da
             case _:
                 pass
         field_da = field_da.reset_coords(drop=True)
-        if "z" in field_da.dims:  # singleton z on 2D mesh_mask variables (e.g. fmask)
-            field_da = field_da.squeeze("z", drop=True)
         field_das[name] = field_da
 
     if "time" in coords.dims:
@@ -362,16 +360,7 @@ def nemo_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.Da
             raise ValueError("Time dimension in coords must be length 1 (i.e., no time-varying grid).")
         coords = coords.isel(time=0).drop_vars("time")
 
-    if (
-        len(coords.dims) == 3
-    ):  #! This should really be looking at the dimensionality of the lons and lats arrays. Currently having 2D lon lat and 1D depth triggers this `if` clause
-        for dim, len_ in coords.sizes.items():
-            if len_ == 1:
-                # TODO: log statement about selecting along z dim of 1
-                coords = coords.isel({dim: 0})
-    # if len(coords.dims) != 2: #! This should really be looking at the dimensionality of the lons and lats arrays. Currently having 2D lon lat and 1D depth triggers this `if` clause
-    #     raise ValueError("Expected coordinates to be 2 dimensional")
-    ds = xr.merge(list(field_das.values()) + [coords])
+    ds = xr.merge(list(field_das.values()) + [coords], join="exact", compat="override")
     ds.attrs.clear()  # Clear global attributes from the merging
 
     ds = _maybe_rename_variables(ds, _NEMO.varnames_mapping)

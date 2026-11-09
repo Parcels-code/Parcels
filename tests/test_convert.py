@@ -284,6 +284,13 @@ def test_convert_nemo_surface_adds_mockZ():
     assert fieldset.V.data.dims[:2] == ("time", "mockZ")
 
 
+def test_convert_nemo_edges():
+    ds = parcels.tutorial.open_dataset("NemoNorthSeaORCA025-N006_data/mesh_mask")
+    ds = convert.nemo_to_sgrid(fields={"e1u": ds["e1u"]}, coords=ds)
+    fieldset = FieldSet.from_sgrid_conventions(ds)
+    assert fieldset.e1u.data.dims[:2] == ("mockT", "mockZ")
+
+
 def test_convert_dataset_field_without_matching_variable():
     ds = datasets_circulation_models["ds_copernicusmarine"]
     with pytest.raises(ValueError, match=r"fields\['U'\] is a Dataset without a variable named 'U'"):
