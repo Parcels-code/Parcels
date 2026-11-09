@@ -17,7 +17,7 @@ from parcels._core.mesh import TMesh  # noqa: F401
 from parcels._sgrid.core import Padding
 
 PathLike = str | os.PathLike
-VectorType = Literal["3D", "3DSigma", "2D"] | None  # corresponds with `vector_type`
+VectorType = Literal["3D", "2D"] | None  # corresponds with `vector_type`
 TimeLike = datetime | cftime_datetime | np.datetime64
 
 CfAxisSpatial = Literal["X", "Y", "Z"]
