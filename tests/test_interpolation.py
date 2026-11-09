@@ -344,17 +344,31 @@ def _random_grid_positions(npart, seed=0):
     ("z_interp_method", "registration", "expected_y", "expected_x"),
     [
         # Columns at the particle's cell centre (face indices are the cell indices plus the padding offset)
-        pytest.param(XVerticalCoordinateConstant(), "face", lambda i, b, o: i + o, lambda i, b, o: i + o, id="constant-face"),
-        pytest.param(XVerticalCoordinateNearest(), "face", lambda i, b, o: i + o, lambda i, b, o: i + o, id="nearest-face"),
+        pytest.param(
+            XVerticalCoordinateConstant(), "face", lambda i, b, o: i + o, lambda i, b, o: i + o, id="constant-face"
+        ),
+        pytest.param(
+            XVerticalCoordinateNearest(), "face", lambda i, b, o: i + o, lambda i, b, o: i + o, id="nearest-face"
+        ),
         # Column at the nearest corner of the particle's cell
         pytest.param(
-            XVerticalCoordinateNearest(), "node", lambda i, b, o: i + (b > 0.5), lambda i, b, o: i + (b > 0.5), id="nearest-node"
+            XVerticalCoordinateNearest(),
+            "node",
+            lambda i, b, o: i + (b > 0.5),
+            lambda i, b, o: i + (b > 0.5),
+            id="nearest-node",
         ),
         # Bilinear interpolation reproduces the linear depth at the particle's position, measured in face or node indices
         pytest.param(
-            XVerticalCoordinateLinear(), "face", lambda i, b, o: i + o + b - 0.5, lambda i, b, o: i + o + b - 0.5, id="linear-face"
+            XVerticalCoordinateLinear(),
+            "face",
+            lambda i, b, o: i + o + b - 0.5,
+            lambda i, b, o: i + o + b - 0.5,
+            id="linear-face",
         ),
-        pytest.param(XVerticalCoordinateLinear(), "node", lambda i, b, o: i + b, lambda i, b, o: i + b, id="linear-node"),
+        pytest.param(
+            XVerticalCoordinateLinear(), "node", lambda i, b, o: i + b, lambda i, b, o: i + b, id="linear-node"
+        ),
     ],
 )
 @pytest.mark.parametrize("time_varying", [True, False])

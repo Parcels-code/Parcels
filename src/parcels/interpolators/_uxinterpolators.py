@@ -156,7 +156,8 @@ class UxLinearNodeLinearZF(ScalarInterpolator):
 
         def _zsample(z_index):
             """Barycentric (lateral) interpolation of the node values at a single vertical interface level, linear in
-            time between the snapshots ti and ti + 1."""
+            time between the snapshots ti and ti + 1.
+            """
             selection_dict = {
                 tdim: xr.DataArray(ti, dims="points"),
                 zdim: xr.DataArray(z_index, dims="points"),
