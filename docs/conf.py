@@ -89,7 +89,45 @@ html_baseurl = os.environ.get("READTHEDOCS_CANONICAL_URL", "")
 
 # Redirects for moved/deleted pages, handled by sphinxext-rediraffe. Paths are relative to
 # the docs folder, e.g. "user_guide/examples/tutorial_old.ipynb": "user_guide/examples/tutorial_new.ipynb"
-rediraffe_redirects = {}
+rediraffe_redirects = {
+    # Flattening user_guide/examples and user_guide/getting_started into user_guide (GH-3038)
+    "user_guide/examples/explanation_copernicusmarine.md": "user_guide/convert_copernicusmarine.md",
+    "user_guide/examples/explanation_grids.ipynb": "user_guide/fieldsets_grids.ipynb",
+    "user_guide/examples/explanation_interpolation.md": "user_guide/interpolation_explanation.md",
+    "user_guide/examples/explanation_kernelloop.md": "user_guide/kernels_loopexplanation.md",
+    "user_guide/examples/explanation_performance.md": "user_guide/simulation_performance.md",
+    "user_guide/examples/explanation_writing_convert_functions.md": "user_guide/convert_writing_functions.md",
+    "user_guide/examples/tutorial_Argofloats.ipynb": "user_guide/example_Argofloats.ipynb",
+    "user_guide/examples/tutorial_aifs.ipynb": "user_guide/convert_aifs.ipynb",
+    "user_guide/examples/tutorial_croco_3D.ipynb": "user_guide/convert_croco_3D.ipynb",
+    "user_guide/examples/tutorial_delaystart.ipynb": "user_guide/particlesets_delaystart.ipynb",
+    "user_guide/examples/tutorial_delft3d.ipynb": "user_guide/convert_delft3d.ipynb",
+    "user_guide/examples/tutorial_diffusion.ipynb": "user_guide/example_diffusion.ipynb",
+    "user_guide/examples/tutorial_dt_integrators.ipynb": "user_guide/simulation_dt_integrators.ipynb",
+    "user_guide/examples/tutorial_fesom.ipynb": "user_guide/convert_fesom.ipynb",
+    "user_guide/examples/tutorial_gsw_density.ipynb": "user_guide/example_gsw_density.ipynb",
+    "user_guide/examples/tutorial_homepage_animation.md": "user_guide/misc_homepage_animation.md",
+    "user_guide/examples/tutorial_interaction.ipynb": "user_guide/example_interaction.ipynb",
+    "user_guide/examples/tutorial_interpolation.ipynb": "user_guide/interpolation_tutorial.ipynb",
+    "user_guide/examples/tutorial_manipulating_field_data.ipynb": "user_guide/fieldsets_manipulating_field_data.ipynb",
+    "user_guide/examples/tutorial_mitgcm.ipynb": "user_guide/convert_mitgcm.ipynb",
+    "user_guide/examples/tutorial_mom6.ipynb": "user_guide/convert_mom6.ipynb",
+    "user_guide/examples/tutorial_nemo.ipynb": "user_guide/convert_nemo.ipynb",
+    "user_guide/examples/tutorial_nestedgrids.ipynb": "user_guide/fieldsets_nestedgrids.ipynb",
+    "user_guide/examples/tutorial_peninsula_AvsCgrid.ipynb": "user_guide/interpolation_peninsula_AvsCgrid.ipynb",
+    "user_guide/examples/tutorial_sampling.ipynb": "user_guide/kernels_sampling.ipynb",
+    "user_guide/examples/tutorial_schism.ipynb": "user_guide/convert_schism.ipynb",
+    "user_guide/examples/tutorial_sigma_coordinates.ipynb": "user_guide/fieldsets_sigma_coordinates.ipynb",
+    "user_guide/examples/tutorial_statuscodes.md": "user_guide/kernels_statuscodes.ipynb",
+    "user_guide/examples/tutorial_stuck_particles.ipynb": "user_guide/interpolation_stuck_particles.ipynb",
+    "user_guide/examples/tutorial_unstuck_Agrid.ipynb": "user_guide/interpolation_unstuck_Agrid.ipynb",
+    "user_guide/examples/tutorial_velocityconversion.ipynb": "user_guide/fieldsets_velocityconversion.ipynb",
+    "user_guide/examples/tutorial_write_in_kernel.ipynb": "user_guide/kernels_write_in_kernel.ipynb",
+    "user_guide/getting_started/explanation_concepts.md": "user_guide/gettingstarted_concepts.md",
+    "user_guide/getting_started/installation.md": "user_guide/installation.md",
+    "user_guide/getting_started/tutorial_output.ipynb": "user_guide/gettingstarted_output.ipynb",
+    "user_guide/getting_started/tutorial_quickstart.md": "user_guide/gettingstarted_quickstart.md",
+}
 
 # Tell Jinja2 templates the build is running on Read the Docs
 if os.environ.get("READTHEDOCS", "") == "True":
@@ -213,6 +251,9 @@ html_theme_options = {
     "announcement": "Parcels v4 has been released! 🎉 See <a href='https://parcels-code.org/blog/parcels-v4'>our release blog post</a> for more info",
     "header_links_before_dropdown": 8,
     "navbar_align": "left",
+    "show_nav_level": 0,
+    "collapse_navigation": True,
+    "navigation_depth": 2,
 }
 
 html_context = {
