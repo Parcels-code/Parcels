@@ -105,6 +105,15 @@ def test_convert_nemo_offsets():
     assert offsets["Z"] == 0
 
 
+def test_convert_nemo_3d_without_depthw():
+    U = parcels.tutorial.open_dataset("NemoNorthSeaORCA025-N006_data/U")
+    V = parcels.tutorial.open_dataset("NemoNorthSeaORCA025-N006_data/V")
+    coords = parcels.tutorial.open_dataset("NemoNorthSeaORCA025-N006_data/mesh_mask")[["glamf", "gphif"]]
+
+    with pytest.raises(ValueError, match="'depthw' is missing"):
+        convert.nemo_to_sgrid(fields=dict(U=U["uo"], V=V["vo"]), coords=coords)
+
+
 def test_convert_mitgcm_offsets():
     ds_fields = parcels.tutorial.open_dataset("MITgcm_example_data/mitgcm_UV_surface_zonally_reentrant")
     coords = ds_fields[["XG", "YG", "Zl", "time"]]
