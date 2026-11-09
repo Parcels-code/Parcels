@@ -11,6 +11,7 @@ from dask import is_dask_collection
 import parcels._core.utils.interpolation as i_u
 import parcels._sgrid as sgrid
 import parcels._typing as ptyping
+from parcels._sgrid.accessor import get_dim_position
 from parcels.interpolators._base import ScalarInterpolator, VectorInterpolator, VerticalCoordinateInterpolator
 
 if TYPE_CHECKING:
@@ -614,27 +615,78 @@ class XLinearInvdistLandTracer(ScalarInterpolator):
 
 
 class XVerticalCoordinateConstant(VerticalCoordinateInterpolator):
-    """Piecewise constant over the grid cell (face registered z), linear in time."""
+    """Piecewise constant over the grid cell (face registered z), linear in time.
+
+    Each particle uses the z column at the centre of its cell, so z is discontinuous between cells.
+    """
 
     def columns(
         self, grid_positions: dict[ptyping.XgridAxis, dict[str, int | float | np.ndarray]], grid: XGrid
     ) -> np.ndarray:
-        raise NotImplementedError
+        # Search indices are cells (indexed by their lower node). Point each particle exactly (bcoord 0) at its cell's
+        # face, so XNearest picks that single column.
+        offsets = _get_offsets_dictionary(grid)
+        yi, xi = grid_positions["Y"]["index"], grid_positions["X"]["index"]
+        cell_centre_positions = {
+            "T": grid_positions["T"],
+            "Y": {"index": yi + offsets["Y"], "bcoord": np.zeros(np.shape(yi))},
+            "X": {"index": xi + offsets["X"], "bcoord": np.zeros(np.shape(xi))},
+        }
+        return self._columns_from_scalar(XNearest(), cell_centre_positions, grid)
+
+
+def _position_between_cell_centres(face_index: np.ndarray, bcoord: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+    """Moves an index/barycentric coordinate combination back by half a cell in index space.
+
+    The grid search gives positions relative to the nodes, but face registered data lives at the cell centres, half a
+    cell further along. Shifting back by half a cell gives the position relative to the cell centres, so node based
+    interpolators (e.g. XLinear) can interpolate face registered data. Positions before the first cell centre are
+    clamped onto it.
+    """
+    upper_half = bcoord >= 0.5
+    lower_face = np.where(upper_half, face_index, face_index - 1)
+    centre_bcoord = np.where(upper_half, bcoord - 0.5, bcoord + 0.5)
+    below_first_centre = lower_face < 0
+    return np.where(below_first_centre, 0, lower_face), np.where(below_first_centre, 0.0, centre_bcoord)
 
 
 class XVerticalCoordinateLinear(VerticalCoordinateInterpolator):
-    """Bilinear between the surrounding z columns (face or node registered z), linear in time."""
+    """Bilinear between the surrounding z columns (face or node registered z), linear in time.
+
+    Node registered z is interpolated from the corners of the particle's cell. Face registered z is interpolated from
+    the four cell centres around the particle. Both are continuous in space. Beyond the outermost cell centres z is
+    constant.
+    """
 
     def columns(
         self, grid_positions: dict[ptyping.XgridAxis, dict[str, int | float | np.ndarray]], grid: XGrid
     ) -> np.ndarray:
-        raise NotImplementedError
+        if get_dim_position(grid.sgrid_metadata, grid.depth.dims[-1]) == "face":
+            offsets = _get_offsets_dictionary(grid)
+            yi, eta = _position_between_cell_centres(
+                grid_positions["Y"]["index"] + offsets["Y"], grid_positions["Y"]["bcoord"]
+            )
+            xi, xsi = _position_between_cell_centres(
+                grid_positions["X"]["index"] + offsets["X"], grid_positions["X"]["bcoord"]
+            )
+            grid_positions = {
+                "T": grid_positions["T"],
+                "Y": {"index": yi, "bcoord": eta},
+                "X": {"index": xi, "bcoord": xsi},
+            }
+        return self._columns_from_scalar(XLinear(), grid_positions, grid)
 
 
 class XVerticalCoordinateNearest(VerticalCoordinateInterpolator):
-    """Nearest z column (face or node registered z), linear in time."""
+    """Nearest z column (face or node registered z), linear in time.
+
+    For node registered z this is the nearest corner of the particle's cell. For face registered z the nearest cell
+    centre is the particle's own cell, so this is the same as XVerticalCoordinateConstant.
+    """
 
     def columns(
         self, grid_positions: dict[ptyping.XgridAxis, dict[str, int | float | np.ndarray]], grid: XGrid
     ) -> np.ndarray:
-        raise NotImplementedError
+        if get_dim_position(grid.sgrid_metadata, grid.depth.dims[-1]) == "face":
+            return XVerticalCoordinateConstant().columns(grid_positions, grid)
+        return self._columns_from_scalar(XNearest(), grid_positions, grid)
