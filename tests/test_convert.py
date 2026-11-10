@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 import uxarray as ux
 import xarray as xr
+import xroms
 
 import parcels
 import parcels.convert as convert
@@ -125,9 +126,12 @@ def test_convert_mitgcm_offsets():
     assert offsets["Z"] == 0
 
 
+@pytest.mark.xfail(reason="Compatibility issue between xroms v0.6.1 and xgcm v0.10.1")
 def test_convert_croco_offsets():
     ds = datasets_circulation_models["ds_CROCO_idealized"]
     coords = ds[["x_rho", "y_rho", "s_w", "time"]]
+    ds, xgrid = xroms.roms_dataset(ds)
+    ds.xroms.set_grid(xgrid)
 
     ds = convert.croco_to_sgrid(fields={"U": ds["u"], "V": ds["v"]}, coords=coords)
     fieldset = FieldSet.from_sgrid_conventions(ds)

@@ -145,7 +145,6 @@ _CROCO = _ModelConventions(
     varnames_mapping={
         "x_rho": "lon",
         "y_rho": "lat",
-        "s_w": "depth",
     },
 )
 
@@ -611,7 +610,7 @@ def croco_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.D
                 sgrid.FaceNodePadding("xi_u", "xi_rho", sgrid.Padding.NONE),
                 sgrid.FaceNodePadding("eta_v", "eta_rho", sgrid.Padding.NONE),
             ),
-            vertical_dimensions=(sgrid.FaceNodePadding("s_rho", "depth", sgrid.Padding.NONE),),
+            vertical_dimensions=(sgrid.FaceNodePadding("s_rho", "s_w", sgrid.Padding.NONE),),
         ),
     )
 
