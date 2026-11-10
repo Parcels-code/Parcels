@@ -1,4 +1,3 @@
-import warnings
 from collections.abc import Hashable, Sequence
 from functools import cached_property
 from typing import Literal, cast
@@ -13,7 +12,6 @@ import parcels._typing as ptyping
 from parcels._core.basegrid import BaseGrid
 from parcels._core.index_search import _search_1d_array, _search_1d_columns, _search_indices_curvilinear_2d
 from parcels._core.mesh import BaseMesh
-from parcels._core.warnings import FieldSetWarning
 from parcels._sgrid.accessor import _get_dim_to_axis_mapping, get_dim_position
 from parcels.interpolators._base import VerticalCoordinateInterpolator
 from parcels.interpolators._xinterpolators import XVerticalCoordinateConstant, XVerticalCoordinateLinear
@@ -155,7 +153,7 @@ class XGrid(BaseGrid):
         self._ds = ds
 
     def _init_time_varying_depth(self) -> None:
-        """Checks the dims of a time-varying (4D) depth, assigns its default z_interp_method and warns about its use."""
+        """Checks the dims of a time-varying (4D) depth and assigns its default z_interp_method."""
         depth = self.depth
 
         assert self.sgrid_metadata.vertical_dimensions is not None
@@ -172,17 +170,6 @@ class XGrid(BaseGrid):
             )
 
         self.z_interp_method = XVerticalCoordinateLinear()
-
-        warnings.warn(
-            "Time-varying (4D) z coordinates are experimental and may cause significant memory overhead that "
-            f"leads to OOM errors. This z coordinate has sizes {dict(depth.sizes)} ({depth.nbytes / 1e9:.3g} GB). "
-            f"Assumptions: z has dims {depth.dims}, i.e. it is "
-            f"defined at the layer interfaces on the cell centres or corners, and is strictly increasing along "
-            f"{vertical_dim!r}; each particle's z column is interpolated with the grid's `z_interp_method` "
-            "(by default bilinearly from the surrounding columns), and linearly in time between z snapshots.",
-            FieldSetWarning,
-            stacklevel=6,
-        )
 
     # def __repr__(self):
     #     return xgrid_repr(self)

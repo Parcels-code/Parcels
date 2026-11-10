@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import warnings
 from typing import TYPE_CHECKING, Literal
 
 import numpy as np
@@ -9,7 +8,6 @@ from dask import is_dask_collection
 from parcels._core.basegrid import BaseGrid
 from parcels._core.index_search import GRID_SEARCH_ERROR, _search_1d_array, _search_1d_columns, uxgrid_point_in_cell
 from parcels._core.mesh import BaseMesh, TMesh
-from parcels._core.warnings import FieldSetWarning
 from parcels.interpolators._base import VerticalCoordinateInterpolator
 from parcels.interpolators._uxinterpolators import UxVerticalCoordinateConstantFace, UxVerticalCoordinateLinearNode
 
@@ -62,7 +60,7 @@ class UxGrid(BaseGrid):
             self.uxgrid.face_node_connectivity.load()
 
     def _init_time_varying_z(self) -> None:
-        """Checks the dims of a time-varying (3D) z, assigns its default z_interp_method and warns about its use."""
+        """Checks the dims of a time-varying (3D) z and assigns its default z_interp_method."""
         z = self.z
 
         if z.dims not in (("time", "zf", "n_node"), ("time", "zf", "n_face")):
@@ -74,17 +72,6 @@ class UxGrid(BaseGrid):
             self.z_interp_method = UxVerticalCoordinateLinearNode()
         else:
             self.z_interp_method = UxVerticalCoordinateConstantFace()
-
-        warnings.warn(
-            "Time-varying (3D) z coordinates are experimental and may cause significant memory overhead that "
-            f"leads to OOM errors. This z coordinate has sizes {dict(z.sizes)} ({z.nbytes / 1e9:.3g} GB). "
-            f"Assumptions: z has dims {z.dims}, i.e. it is defined at the layer interfaces ('zf') on the mesh "
-            "nodes or faces, and is strictly increasing along 'zf'; each particle's z column is interpolated with "
-            "the grid's `z_interp_method` (by default barycentrically from its face's nodes for node z, or "
-            "constant over its face for face z), and linearly in time between z snapshots.",
-            FieldSetWarning,
-            stacklevel=5,
-        )
 
     @property
     def depth(self):

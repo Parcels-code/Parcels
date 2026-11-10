@@ -67,7 +67,6 @@ def _position_in_node_indices(i, b, o):
     return i + b
 
 
-@pytest.mark.filterwarnings("ignore:Time-varying \\(4D\\) z coordinates are experimental")
 @pytest.mark.parametrize(
     ("z_interp_method", "registration", "expected_y", "expected_x"),
     [
@@ -106,7 +105,6 @@ def test_vertical_coordinate_columns(z_interp_method, registration, expected_y, 
     np.testing.assert_allclose(columns, expected)
 
 
-@pytest.mark.filterwarnings("ignore:Time-varying \\(4D\\) z coordinates are experimental")
 @pytest.mark.parametrize("registration", ["face", "node"])
 def test_vertical_coordinate_linear_is_continuous(registration):
     """z is continuous across cell edges, and across the cell centre (where face registered z changes the bracketing
@@ -144,7 +142,6 @@ def test_position_between_cell_centres(face_index, bcoord, expected_index, expec
     np.testing.assert_allclose(centre_bcoord[0], expected_bcoord)
 
 
-@pytest.mark.filterwarnings("ignore:Time-varying \\(4D\\) z coordinates are experimental")
 def test_z_interp_method_defaults_and_validation():
     face_grid, node_grid = _sigma_grid("face"), _sigma_grid("node")
     assert isinstance(face_grid.z_interp_method, XVerticalCoordinateLinear)
@@ -197,7 +194,6 @@ def _time_varying_uxgrid(lateral_dim):
     return UxGrid(uxgrid, z=ux.UxDataArray(z, dims=("time", "zf", lateral_dim), uxgrid=uxgrid), mesh=FlatMesh())
 
 
-@pytest.mark.filterwarnings("ignore:Time-varying \\(3D\\) z coordinates are experimental")
 def test_ux_z_interp_method_defaults_and_validation():
     face_grid, node_grid = _time_varying_uxgrid("n_face"), _time_varying_uxgrid("n_node")
     assert isinstance(face_grid.z_interp_method, UxVerticalCoordinateConstantFace)
