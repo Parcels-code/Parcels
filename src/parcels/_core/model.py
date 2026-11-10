@@ -280,6 +280,7 @@ class StructuredModelData(ModelData):
                     model.data[f.name],
                     model.grid.sgrid_metadata,
                     model.vector_field_components,
+                    dataset=model.data,
                 )
                 if interp_cls is not None:
                     f.interp_method = interp_cls()
@@ -523,14 +524,23 @@ def _select_xinterpolator(
     da: xr.DataArray,
     sgrid_metadata: sgrid.SGrid2DMetadata,
     vector_fields: ptyping.VectorFields | None = None,
+    dataset: xr.Dataset | None = None,
 ) -> type[ScalarInterpolator]:
     """Selects the appropriate interpolator for a given xarray DataArray on an SGRID grid.
 
     Following Delandmeter and Van Sebille (2019), tracer fields on an Arakawa C-grid
     are located at cell centers (face dimensions) and should be interpolated constant
     over the grid cell using CGrid_Tracer. Non-tracer fields, velocity components,
-    node-located variables, or fields on unstaggered grids default to XLinear.
+    node-located variables, or fields on unstaggered/A-grids default to XLinear.
     """
+    # If the model grid is an A-grid (velocity components defined on identical dimensions),
+    # all fields are collocated; default to XLinear.
+    if dataset is not None and vector_fields:
+        for comps in vector_fields.values():
+            if len(comps) >= 2 and comps[0] in dataset and comps[1] in dataset:
+                if _is_agrid(dataset, u=comps[0], v=comps[1]):
+                    return XLinear
+
     fnp_x, fnp_y = sgrid_metadata.face_dimensions
     if fnp_x.face == fnp_x.node or fnp_y.face == fnp_y.node:
         return XLinear

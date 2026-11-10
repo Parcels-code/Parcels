@@ -28,7 +28,7 @@ from parcels._datasets.structured.strategies import reduced_dims_dataset, sgrid_
 from parcels._datasets.unstructured.generated import simple_small_delaunay
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
 from parcels._sgrid.accessor import SGridDatasetInconsistency
-from parcels.interpolators import CGrid_Tracer, CGrid_Velocity, XLinear
+from parcels.interpolators import CGrid_Tracer, CGrid_Velocity, XLinear, XLinear_Velocity
 
 ds = datasets_structured["ds_2d_left"]
 
@@ -833,6 +833,33 @@ def test_select_xinterpolator_edge_cases():
     )
     da_unstaggered = xr.DataArray(np.zeros((3, 3)), dims=["Y", "X"], name="tracer")
     assert _select_xinterpolator(da_unstaggered, unstaggered_metadata) is XLinear
+
+    # A-grid dataset with collocated velocity components -> XLinear for all scalar fields
+    ds_agrid = datasets_structured["ds_2d_left"]
+    assert (
+        _select_xinterpolator(
+            da_3d_tracer,
+            metadata,
+            vector_fields={"UV": ("U_A_grid", "V_A_grid")},
+            dataset=ds_agrid,
+        )
+        is XLinear
+    )
+
+
+def test_agrid_all_fields_default_to_xlinear():
+    """Verify that when a dataset is configured as an A-grid, all scalar fields default to XLinear."""
+    ds = datasets_structured["ds_2d_left"]
+    fieldset = FieldSet.from_sgrid_conventions(
+        ds,
+        vector_fields={"UV": ("U_A_grid", "V_A_grid")},
+    )
+    # Even though data_c has face dimensions, on an A-grid it must default to XLinear
+    assert isinstance(fieldset.data_c.interp_method, XLinear)
+    assert isinstance(fieldset.data_g.interp_method, XLinear)
+    assert isinstance(fieldset.U_A_grid.interp_method, XLinear)
+    assert isinstance(fieldset.V_A_grid.interp_method, XLinear)
+    assert isinstance(fieldset.UV.interp_method, XLinear_Velocity)
 
 
 def test_cgrid_tracer_particle_sampling():
