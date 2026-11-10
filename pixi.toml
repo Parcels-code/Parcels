@@ -1,13 +1,11 @@
 [workspace]
 name = "Parcels"
-exclude-newer = "5d" # security pre-caution against compromised packages
+exclude-newer = { cutoff = "5d", exemptions = { pixi-build-python = "*" } } # security pre-caution against compromised packages
 preview = ["pixi-build"]
 channels = ["conda-forge"]
 platforms = ["win-64", "linux-64", "osx-64", "osx-arm64"]
-requires-pixi = ">=0.82.1"
+requires-pixi = ">=0.84.0"
 
-[exclude-newer]
-pixi-build-python = "0d"
 
 [package]
 name = "parcels"
@@ -65,6 +63,9 @@ python = "3.11.*"
 [feature.py313.dependencies]
 python = "3.13.*"
 
+[feature.py315.dependencies]
+python = "3.15.*"
+
 [feature.test.dependencies]
 nbval = "*"
 pytest = "*"
@@ -73,6 +74,7 @@ pytest-html = "*"
 pytest-cov = "*"
 pytest-reportlog = "*"
 pytest-timeout = "*"
+xroms = "*"
 
 [feature.test.pypi-dependencies]
 re-assert = "*"
@@ -91,6 +93,8 @@ gsw = "*"
 py-triangle = "*"
 cmocean = "*"
 cartopy = "*"
+xroms = "*"
+xgcm = ">=0.10.0"
 
 [feature.devtools.dependencies]
 pdbpp = "*"
@@ -127,6 +131,7 @@ sphinxcontrib-mermaid = "*"
 sphinx-design = "*"
 sphinx-autoapi = "*"
 sphinx-notfound-page = "*"
+sphinxext-rediraffe = "*"
 vale = "*"
 
 [feature.docs.tasks]
@@ -143,7 +148,7 @@ docs-run-notebook = { cmd = "rm -rf tmp-docs-run-notebook && mkdir tmp-docs-run-
   "file",
 ], description = "Execute a single MyST notebook (.md) or Jupyter notebook (.ipynb) outside of the docs build." }
 docs-linkcheck = { cmd = "make linkcheck", cwd = "docs", description = "Verify all links in documentation don't 404." }
-docs-spelling = { cmd = "python tools/lint_british_english.py docs/user_guide/examples/tutorial*.ipynb docs/user_guide/examples/tutorial*.md docs/user_guide/getting_started/tutorial*.ipynb docs/user_guide/getting_started/tutorial*.md", description = "Check tutorial prose uses British English." }
+docs-spelling = { cmd = "python tools/lint_british_english.py docs/user_guide/*.ipynb docs/user_guide/*.md docs/user_guide/*.ipynb docs/user_guide/*.md", description = "Check tutorial prose uses British English." }
 more-qaqc = { depends-on = [
   "docs-spelling",
 ], description = "Additional QAQC tooling separate to pre-commit hooks" }
@@ -186,6 +191,7 @@ test = { features = [
 test-min-versions = { features = ["test", "min-versions"] }
 test-py311 = { features = ["test", "py311"] }
 test-py313 = { features = ["test", "py313"] }
+test-py315 = { features = ["test", "py315"] }
 test-notebooks = { features = ["test", "notebooks"], solve-group = "main" }
 docs = { features = ["docs", "notebooks"], solve-group = "docs" }
 typing = { features = ["typing"], solve-group = "main" }
