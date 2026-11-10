@@ -212,7 +212,12 @@ def test_ux_interpolators_are_linear_in_time():
     rng = np.random.default_rng(0)
     value_at_snapshots = rng.random(ds.sizes["time"])
     registrations = [
-        ("zc", "n_face"), ("zf", "n_face"), ("zc", "n_node"), ("zf", "n_node"), ("zc", "n_edge"), ("zf", "n_edge")
+        ("zc", "n_face"),
+        ("zf", "n_face"),
+        ("zc", "n_node"),
+        ("zf", "n_node"),
+        ("zc", "n_edge"),
+        ("zf", "n_edge"),
     ]
     for vertical_dim, lateral_dim in registrations:
         shape = (ds.sizes["time"], ds.sizes[vertical_dim], getattr(ds.uxgrid, lateral_dim))
