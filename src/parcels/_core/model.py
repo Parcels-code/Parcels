@@ -276,14 +276,12 @@ class StructuredModelData(ModelData):
         model._fields = model.construct_fields()
         for f in model._fields:
             if isinstance(f, Field):
-                interp_cls = _select_xinterpolator(
+                f.interp_method = _select_xinterpolator(
                     model.data[f.name],
                     model.grid.sgrid_metadata,
                     model.vector_field_components,
                     dataset=model.data,
-                )
-                if interp_cls is not None:
-                    f.interp_method = interp_cls()
+                )()
         return model
 
 
@@ -530,8 +528,8 @@ def _select_xinterpolator(
 
     Following Delandmeter and Van Sebille (2019), tracer fields on an Arakawa C-grid
     are located at cell centers (face dimensions) and should be interpolated constant
-    over the grid cell using CGrid_Tracer. Non-tracer fields, velocity components,
-    node-located variables, or fields on unstaggered/A-grids default to XLinear.
+    over the grid cell using CGrid_Tracer. Non-tracer fields, node-located variables,
+    or fields on unstaggered/A-grids default to XLinear.
     """
     # If the model grid is an A-grid (velocity components defined on identical dimensions),
     # all fields are collocated; default to XLinear.
@@ -541,21 +539,10 @@ def _select_xinterpolator(
                 if _is_agrid(dataset, u=comps[0], v=comps[1]):
                     return XLinear
 
-    fnp_x, fnp_y = sgrid_metadata.face_dimensions
-    if fnp_x.face == fnp_x.node or fnp_y.face == fnp_y.node:
-        return XLinear
-
     # Tracers on a C-grid must be defined at the face (cell center) dimensions
+    fnp_x, fnp_y = sgrid_metadata.face_dimensions
     face_dims = {fnp_x.face, fnp_y.face}
     if not face_dims.issubset(da.dims):
-        return XLinear
-
-    # Velocity components (U, V, W or components of vector fields) are not tracers
-    velocity_names = {"U", "V", "W"}
-    if vector_fields:
-        for comps in vector_fields.values():
-            velocity_names.update(comps)
-    if da.name is not None and da.name in velocity_names:
         return XLinear
 
     # If vertical dimensions are present and staggered, interface-defined variables

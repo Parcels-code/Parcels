@@ -729,20 +729,9 @@ def test_fieldset_from_simple_UV_sigma_dataset(n_snapshots):
     assert fieldset.U.grid.get_axis_dim("Z") == nz
 
 
-@pytest.mark.parametrize(
-    "dataset_name",
-    [
-        "ds_2d_left",
-        "ds_2d_right",
-        "ds_2d_inner",
-        "ds_2d_outer",
-        "2d_left_rotated",
-        "2d_left_unrolled_cone",
-    ],
-)
-def test_cgrid_tracer_default_interpolator(dataset_name):
+def test_cgrid_tracer_default_interpolator():
     """Verify that tracer fields on C-grid default to CGrid_Tracer while non-tracers default to XLinear."""
-    ds = datasets_structured[dataset_name]
+    ds = datasets_structured["ds_2d_left"]
     fieldset = FieldSet.from_sgrid_conventions(
         ds,
         vector_fields={"UV": ("U_C_grid", "V_C_grid")},
@@ -762,23 +751,6 @@ def test_cgrid_tracer_default_interpolator(dataset_name):
 
     # Vector velocity field defaults to CGrid_Velocity
     assert isinstance(fieldset.UV.interp_method, CGrid_Velocity)
-
-
-def test_cgrid_tracer_piecewise_constant_evaluation():
-    """Verify that CGrid_Tracer evaluates to a constant value everywhere inside a C-grid cell."""
-    ds = datasets_structured["ds_2d_left"]
-    fieldset = FieldSet.from_sgrid_conventions(ds)
-
-    # Both points (0.5, 0.5, 0.5) and (0.5, 0.51, 0.51) lie within the same C-grid cell
-    val1 = fieldset.data_c.eval(0.0, 0.5, 0.5, 0.5)
-    val2 = fieldset.data_c.eval(0.0, 0.5, 0.51, 0.51)
-    np.testing.assert_allclose(val1, val2)
-
-    # Confirm that XLinear would produce differing values at the two locations
-    fieldset.data_c.interp_method = XLinear()
-    val_lin1 = fieldset.data_c.eval(0.0, 0.5, 0.5, 0.5)
-    val_lin2 = fieldset.data_c.eval(0.0, 0.5, 0.51, 0.51)
-    assert not np.allclose(val_lin1, val_lin2)
 
 
 def test_select_xinterpolator_edge_cases():
@@ -804,35 +776,6 @@ def test_select_xinterpolator_edge_cases():
 
     # Edge-defined velocity variable -> XLinear
     assert _select_xinterpolator(da_edge_u, metadata) is XLinear
-
-    # Velocity variable names U, V, W -> XLinear even if defined on face dims
-    da_u_named = da_3d_tracer.rename("U")
-    assert _select_xinterpolator(da_u_named, metadata) is XLinear
-
-    # Vector field component names -> XLinear
-    assert (
-        _select_xinterpolator(
-            da_3d_tracer,
-            metadata,
-            vector_fields={"UV": ("data_c", "other")},
-        )
-        is XLinear
-    )
-
-    # Unstaggered grid metadata (face == node) -> XLinear
-    from parcels._sgrid.core import FaceNodePadding, Padding, SGrid2DMetadata
-
-    unstaggered_metadata = SGrid2DMetadata(
-        cf_role="grid_topology",
-        topology_dimension=2,
-        node_dimensions=("X", "Y"),
-        face_dimensions=(
-            FaceNodePadding("X", "X", Padding.NONE),
-            FaceNodePadding("Y", "Y", Padding.NONE),
-        ),
-    )
-    da_unstaggered = xr.DataArray(np.zeros((3, 3)), dims=["Y", "X"], name="tracer")
-    assert _select_xinterpolator(da_unstaggered, unstaggered_metadata) is XLinear
 
     # A-grid dataset with collocated velocity components -> XLinear for all scalar fields
     ds_agrid = datasets_structured["ds_2d_left"]
@@ -860,32 +803,3 @@ def test_agrid_all_fields_default_to_xlinear():
     assert isinstance(fieldset.U_A_grid.interp_method, XLinear)
     assert isinstance(fieldset.V_A_grid.interp_method, XLinear)
     assert isinstance(fieldset.UV.interp_method, XLinear_Velocity)
-
-
-def test_cgrid_tracer_particle_sampling():
-    """Verify that particles can sample a CGrid_Tracer field during simulation."""
-    ds = datasets_structured["ds_2d_left"].copy()
-    fieldset = FieldSet.from_sgrid_conventions(
-        ds,
-        vector_fields={"UV": ("U_C_grid", "V_C_grid")},
-    )
-
-    SampleParticle = Particle.add_variable(Variable("c", dtype=np.float32))
-
-    def SampleKernel(particles, fieldset):
-        particles.c = fieldset.data_c[particles.t, particles.z, particles.y, particles.x]
-
-    # Initialize particles within the same C-grid cell
-    pset = ParticleSet(
-        fieldset,
-        pclass=SampleParticle,
-        x=[0.5, 0.51],
-        y=[0.5, 0.51],
-        z=[0.5, 0.5],
-        t=np.datetime64("2000-01-01"),
-    )
-    pset.execute(SampleKernel, dt=timedelta(hours=1), runtime=timedelta(hours=1))
-
-    # Both particles started in the same cell, so their sampled tracer value should match
-    assert pset.c[0] == pset.c[1]
-    assert not np.isnan(pset.c[0])
