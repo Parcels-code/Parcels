@@ -62,7 +62,7 @@ examples/tutorial_aifs.ipynb
 :name: work-with-fieldsets
 :titlesonly:
 examples/explanation_grids.ipynb
-examples/tutorial_sigma_coordinates.ipynb
+examples/tutorial_time_varying_z_coordinates.ipynb
 examples/tutorial_velocityconversion.ipynb
 examples/tutorial_nestedgrids.ipynb
 examples/tutorial_manipulating_field_data.ipynb
