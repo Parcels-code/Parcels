@@ -25,6 +25,7 @@ from parcels._core.xgrid import (
 from parcels._logger import logger
 from parcels._python import NOTSET, NotSetType
 from parcels.interpolators import (
+    CGrid_Tracer,
     CGrid_Velocity,
     Ux_Velocity,
     UxConstantEdgeConstantZC,
@@ -275,7 +276,13 @@ class StructuredModelData(ModelData):
         model._fields = model.construct_fields()
         for f in model._fields:
             if isinstance(f, Field):
-                f.interp_method = XLinear()
+                interp_cls = _select_xinterpolator(
+                    model.data[f.name],
+                    model.grid.sgrid_metadata,
+                    model.vector_field_components,
+                )
+                if interp_cls is not None:
+                    f.interp_method = interp_cls()
         return model
 
 
@@ -510,6 +517,45 @@ def _discover_ux_U_and_V(ds: ux.UxDataset) -> ux.UxDataset:
             continue
 
     return ds
+
+
+def _select_xinterpolator(
+    da: xr.DataArray,
+    sgrid_metadata: sgrid.SGrid2DMetadata,
+    vector_fields: ptyping.VectorFields | None = None,
+) -> type[ScalarInterpolator]:
+    """Selects the appropriate interpolator for a given xarray DataArray on an SGRID grid.
+
+    Following Delandmeter and Van Sebille (2019), tracer fields on an Arakawa C-grid
+    are located at cell centers (face dimensions) and should be interpolated constant
+    over the grid cell using CGrid_Tracer. Non-tracer fields, velocity components,
+    node-located variables, or fields on unstaggered grids default to XLinear.
+    """
+    fnp_x, fnp_y = sgrid_metadata.face_dimensions
+    if fnp_x.face == fnp_x.node or fnp_y.face == fnp_y.node:
+        return XLinear
+
+    # Tracers on a C-grid must be defined at the face (cell center) dimensions
+    face_dims = {fnp_x.face, fnp_y.face}
+    if not face_dims.issubset(da.dims):
+        return XLinear
+
+    # Velocity components (U, V, W or components of vector fields) are not tracers
+    velocity_names = {"U", "V", "W"}
+    if vector_fields:
+        for comps in vector_fields.values():
+            velocity_names.update(comps)
+    if da.name is not None and da.name in velocity_names:
+        return XLinear
+
+    # If vertical dimensions are present and staggered, interface-defined variables
+    # (e.g. vertical velocity W defined on node) are not cell-centered tracers
+    if sgrid_metadata.vertical_dimensions:
+        fnp_z = sgrid_metadata.vertical_dimensions[0]
+        if fnp_z.face != fnp_z.node and fnp_z.node in da.dims:
+            return XLinear
+
+    return CGrid_Tracer
 
 
 def _select_uxinterpolator(da: ux.UxDataArray):
