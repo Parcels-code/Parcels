@@ -1,14 +1,23 @@
+from types import SimpleNamespace
+
 import numpy as np
 import pytest
+import uxarray as ux
 
-from parcels import FieldSet
+from parcels import FieldSet, UxGrid
+from parcels._core.mesh import FlatMesh
 from parcels._datasets.structured.generated import simple_UV_sigma_dataset
+from parcels._datasets.unstructured.generated import sigma_coordinate_lattice_dataset
 from parcels.interpolators import (
+    UxConstantFaceConstantZC,
+    UxVerticalCoordinateConstantFace,
+    UxVerticalCoordinateLinearNode,
     XLinear,
     XVerticalCoordinateConstant,
     XVerticalCoordinateLinear,
     XVerticalCoordinateNearest,
 )
+from parcels.interpolators._base import ScalarInterpolator
 from parcels.interpolators._xinterpolators import _get_offsets_dictionary, _position_between_cell_centres
 
 # Time-varying depth used to test the vertical coordinate interpolators. It is linear in level, lateral index and time,
@@ -81,17 +90,17 @@ def test_vertical_coordinate_columns(z_interp_method, registration, expected_y, 
     grid = _sigma_grid(registration)
     grid.z_interp_method = z_interp_method
     offsets = _get_offsets_dictionary(grid)
-    gp = _random_grid_positions(npart=200)
+    grid_positions = _random_grid_positions(npart=200)
     if not time_varying:
-        gp["T"] = {"index": 1, "bcoord": 0.0}  # scalar time position, as on a time-constant grid
+        grid_positions["T"] = {"index": 1, "bcoord": 0.0}  # scalar time position, as on a time-constant grid
 
-    columns = grid.z_interp_method.columns(gp, grid)
+    columns = grid.z_interp_method.columns(grid_positions, grid)
 
     expected = _linear_depth(
         np.arange(SIGMA_SHAPE["nz"])[np.newaxis, :],
-        expected_y(gp["Y"]["index"], gp["Y"]["bcoord"], offsets["Y"])[:, np.newaxis],
-        expected_x(gp["X"]["index"], gp["X"]["bcoord"], offsets["X"])[:, np.newaxis],
-        np.add(gp["T"]["index"], gp["T"]["bcoord"])[..., np.newaxis] if time_varying else 1.0,
+        expected_y(grid_positions["Y"]["index"], grid_positions["Y"]["bcoord"], offsets["Y"])[:, np.newaxis],
+        expected_x(grid_positions["X"]["index"], grid_positions["X"]["bcoord"], offsets["X"])[:, np.newaxis],
+        np.add(grid_positions["T"]["index"], grid_positions["T"]["bcoord"])[..., np.newaxis] if time_varying else 1.0,
     )
     assert columns.shape == (200, SIGMA_SHAPE["nz"])
     np.testing.assert_allclose(columns, expected)
@@ -108,11 +117,13 @@ def test_vertical_coordinate_linear_is_continuous(registration):
     depth = ds["depth"].values + rng.random(ds["depth"].shape) * 0.01  # non-linear depth, unlike _sigma_grid
     ds = ds.assign_coords(depth=(("time", "ZF", *lateral_dims), depth, {"axis": "Z"}))
     grid = FieldSet.from_sgrid_conventions(ds).U.grid
-    gp = _random_grid_positions(npart=100)
-    yi, npart = gp["Y"]["index"], len(gp["Y"]["index"])
+    grid_positions = _random_grid_positions(npart=100)
+    yi, npart = grid_positions["Y"]["index"], len(grid_positions["Y"]["index"])
 
     def columns_at(y_index, y_bcoord):
-        return grid.z_interp_method.columns({**gp, "Y": {"index": y_index, "bcoord": np.full(npart, y_bcoord)}}, grid)
+        return grid.z_interp_method.columns(
+            {**grid_positions, "Y": {"index": y_index, "bcoord": np.full(npart, y_bcoord)}}, grid
+        )
 
     np.testing.assert_allclose(columns_at(yi, 1.0), columns_at(yi + 1, 0.0))
     np.testing.assert_allclose(columns_at(yi, 0.5 - 1e-12), columns_at(yi, 0.5))
@@ -143,3 +154,67 @@ def test_z_interp_method_defaults_and_validation():
         node_grid.z_interp_method = XVerticalCoordinateConstant()
     with pytest.raises(ValueError, match="must be a `VerticalCoordinateInterpolator`"):
         face_grid.z_interp_method = XLinear()
+
+
+class _EchoInterpolator(ScalarInterpolator):
+    """Records the grid positions it is evaluated at, and returns 100 * time index + 10 * face index + level index."""
+
+    def interp(self, particle_positions, grid_positions, field):
+        self.grid_positions = grid_positions
+        return 100 * grid_positions["T"]["index"] + 10 * grid_positions["FACE"]["index"] + grid_positions["Z"]["index"]
+
+
+@pytest.mark.parametrize("time_varying", [True, False])
+def test_columns_from_scalar(time_varying):
+    npart, nlev = 4, 3
+    grid = SimpleNamespace(depth=np.zeros((2, nlev, 5)))  # only the number of levels of depth is used
+    fi, face_bcoords = np.array([4, 0, 2, 3]), np.arange(npart * 3).reshape(npart, 3) / 10
+    ti, tau = (np.array([0, 1, 1, 0]), np.array([0.1, 0.2, 0.3, 0.4])) if time_varying else (1, 0.0)
+    grid_positions = {"T": {"index": ti, "bcoord": tau}, "FACE": {"index": fi, "bcoord": face_bcoords}}
+    echo = _EchoInterpolator()
+
+    columns = UxVerticalCoordinateLinearNode()._columns_from_scalar(echo, grid_positions, grid)
+
+    np.testing.assert_array_equal(columns, 100 * np.reshape(ti, (-1, 1)) + 10 * fi[:, np.newaxis] + np.arange(nlev))
+
+    # Each level is evaluated exactly on the level, at its particle's face and time barycentric coordinates
+    recorded = echo.grid_positions
+    np.testing.assert_array_equal(recorded["Z"]["bcoord"], 0.0)
+    np.testing.assert_array_equal(
+        recorded["FACE"]["bcoord"].reshape(npart, nlev, 3),
+        np.broadcast_to(face_bcoords[:, np.newaxis], (npart, nlev, 3)),
+    )
+    np.testing.assert_array_equal(
+        recorded["T"]["bcoord"].reshape(npart, nlev),
+        np.broadcast_to(np.reshape(tau, (-1, 1)), (npart, nlev)),
+    )
+
+
+def _time_varying_uxgrid(lateral_dim):
+    """UxGrid on a small lattice with a time-varying z, increasing along the levels, on the given lateral dimension."""
+    uxgrid = sigma_coordinate_lattice_dataset(3, (0.0, 1.0), (0.0, 1.0), 4, bottom_depth=1.0).uxgrid
+    z = np.broadcast_to(np.arange(4.0)[:, np.newaxis], (2, 4, getattr(uxgrid, lateral_dim)))
+    return UxGrid(uxgrid, z=ux.UxDataArray(z, dims=("time", "zf", lateral_dim), uxgrid=uxgrid), mesh=FlatMesh())
+
+
+@pytest.mark.filterwarnings("ignore:Time-varying \\(3D\\) z coordinates are experimental")
+def test_ux_z_interp_method_defaults_and_validation():
+    face_grid, node_grid = _time_varying_uxgrid("n_face"), _time_varying_uxgrid("n_node")
+    assert isinstance(face_grid.z_interp_method, UxVerticalCoordinateConstantFace)
+    assert isinstance(node_grid.z_interp_method, UxVerticalCoordinateLinearNode)
+
+    with pytest.raises(ValueError, match="needs z on the mesh faces"):
+        node_grid.z_interp_method = UxVerticalCoordinateConstantFace()
+    with pytest.raises(ValueError, match="needs z on the mesh nodes"):
+        face_grid.z_interp_method = UxVerticalCoordinateLinearNode()
+    with pytest.raises(ValueError, match="must be a `VerticalCoordinateInterpolator`"):
+        face_grid.z_interp_method = UxConstantFaceConstantZC()
+
+    z_1d = ux.UxDataArray(np.arange(4.0), dims=("zf",), uxgrid=face_grid.uxgrid)
+    grid_with_1d_z = UxGrid(face_grid.uxgrid, z=z_1d, mesh=FlatMesh())
+    assert grid_with_1d_z.z_interp_method is None
+    with pytest.raises(ValueError, match="can only be set on a grid with a time-varying"):
+        grid_with_1d_z.z_interp_method = UxVerticalCoordinateLinearNode()
+
+    with pytest.raises(ValueError, match="A 3D z must have dims"):
+        _time_varying_uxgrid("n_edge")
