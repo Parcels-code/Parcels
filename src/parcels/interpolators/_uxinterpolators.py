@@ -33,18 +33,21 @@ class UxConstantFaceConstantZC(ScalarInterpolator):
         )
 
         tdim, zdim, fdim = field.data.dims
+
+        if np.any(tau > 0):
+            t_levels = np.stack([ti, np.clip(ti + 1, 0, field.data.sizes[tdim] - 1)])
+            t_weights = np.stack([1 - tau, tau])
+        else:
+            t_levels, t_weights = ti[np.newaxis], np.ones((1, ti.size))
         selection_dict = {
-            tdim: xr.DataArray(ti, dims="points"),
+            tdim: xr.DataArray(t_levels, dims=("tlevels", "points")),
             zdim: xr.DataArray(zi, dims="points"),
             fdim: xr.DataArray(fi, dims="points"),
         }
-        value = field.data.isel(selection_dict, ignore_grid=True).data
+        face_data = field.data.isel(selection_dict, ignore_grid=True)
 
         # Linear interpolation in time between the snapshots ti and ti + 1
-        if np.any(tau > 0):
-            selection_dict[tdim] = xr.DataArray(np.clip(ti + 1, 0, field.data.sizes[tdim] - 1), dims="points")
-            value_next = field.data.isel(selection_dict, ignore_grid=True).data
-            value = (1 - tau) * value + tau * value_next
+        value = (face_data * xr.DataArray(t_weights, dims=("tlevels", "points"))).sum("tlevels").data
         return value.compute() if is_dask_collection(value) else value
 
 
@@ -111,20 +114,22 @@ class UxLinearNodeConstantZC(ScalarInterpolator):
         node_ids = field.grid.uxgrid.face_node_connectivity[fi, :].values
 
         tdim, zdim, ndim = field.data.dims
+
+        if np.any(tau > 0):
+            t_levels = np.stack([ti, np.clip(ti + 1, 0, field.data.sizes[tdim] - 1)])
+            t_weights = np.stack([1 - tau, tau])
+        else:
+            t_levels, t_weights = ti[np.newaxis], np.ones((1, ti.size))
         selection_dict = {
-            tdim: xr.DataArray(ti, dims="points"),
+            tdim: xr.DataArray(t_levels, dims=("tlevels", "points")),
             zdim: xr.DataArray(zi, dims="points"),
             ndim: xr.DataArray(node_ids, dims=("points", "nodes")),
         }
 
         node_data = field.data.isel(selection_dict, ignore_grid=True)
-        value = (node_data * bcoords).sum("nodes").data  # Barycentric interpolation in the lateral direction
-
-        # Linear interpolation in time between the snapshots ti and ti + 1
-        if np.any(tau > 0):
-            selection_dict[tdim] = xr.DataArray(np.clip(ti + 1, 0, field.data.sizes[tdim] - 1), dims="points")
-            node_data_next = field.data.isel(selection_dict, ignore_grid=True)
-            value = (1 - tau) * value + tau * (node_data_next * bcoords).sum("nodes").data
+        # Barycentric interpolation in the lateral direction and linear interpolation in time
+        weights = bcoords * xr.DataArray(t_weights, dims=("tlevels", "points"))
+        value = (node_data * weights).sum(("nodes", "tlevels")).data
         return value.compute() if is_dask_collection(value) else value
 
 
@@ -154,23 +159,26 @@ class UxLinearNodeLinearZF(ScalarInterpolator):
 
         tdim, zdim, ndim = field.data.dims
 
+        if np.any(tau > 0):
+            t_levels = np.stack([ti, np.clip(ti + 1, 0, field.data.sizes[tdim] - 1)])
+            t_weights = np.stack([1 - tau, tau])
+        else:
+            t_levels, t_weights = ti[np.newaxis], np.ones((1, ti.size))
+        # Barycentric weights in the lateral direction combined with linear weights in time
+        weights = bcoords * xr.DataArray(t_weights, dims=("tlevels", "points"))
+
         def _zsample(z_index):
             """Barycentric (lateral) interpolation of the node values at a single vertical interface level, linear in
             time between the snapshots ti and ti + 1.
             """
             selection_dict = {
-                tdim: xr.DataArray(ti, dims="points"),
+                tdim: xr.DataArray(t_levels, dims=("tlevels", "points")),
                 zdim: xr.DataArray(z_index, dims="points"),
                 ndim: xr.DataArray(node_ids, dims=("points", "nodes")),
             }
-            # Reduce over the "nodes" dimension by name so the result is independent of ``isel`` dim order.
+            # Reduce over the "nodes" and "tlevels" dimensions by name so the result is independent of ``isel`` dim order.
             node_data = field.data.isel(selection_dict, ignore_grid=True)
-            value = (node_data * bcoords).sum("nodes").data
-            if np.any(tau > 0):
-                selection_dict[tdim] = xr.DataArray(np.clip(ti + 1, 0, field.data.sizes[tdim] - 1), dims="points")
-                node_data_next = field.data.isel(selection_dict, ignore_grid=True)
-                value = (1 - tau) * value + tau * (node_data_next * bcoords).sum("nodes").data
-            return value
+            return (node_data * weights).sum(("nodes", "tlevels")).data
 
         # The zi refers to the vertical layer index. The field in this routine are assumed to be defined at the vertical interface levels.
         # For interface zi, the interface indices are [zi, zi+1], so we need to use the values at zi and zi+1.
