@@ -193,6 +193,12 @@ def _rename_nemo_depth_dims(ds: xr.Dataset) -> xr.Dataset:
         for old_depth, target in _NEMO_DEPTH_DIM_RENAMES.items():
             if old_depth in ds[var].dims:
                 ds[var] = ds[var].rename({old_depth: target})
+    if "depth_center" in ds.dims and "depth" not in ds.dims:
+        raise ValueError(
+            "The fields have a vertical dimension (depthu, depthv or deptht), but 'depthw' is missing. "
+            "The depth levels of the W points are needed for the vertical grid. Either pass the W field "
+            "(e.g., fields={..., 'W': ds_w['wo']}) or add 'depthw' from the W files to coords."
+        )
     return ds
 
 
@@ -223,7 +229,7 @@ def _drop_unused_dimensions_and_coords(ds: xr.Dataset, dimension_and_coord_names
     for dim in ds.dims:
         if dim not in dimension_and_coord_names:
             dim = cast(str, dim)
-            ds = ds.drop_dims(dim, errors="ignore")
+            ds = ds.isel({dim: 0})
     for coord in ds.coords:
         coord = cast(str, coord)
         if coord not in dimension_and_coord_names:
@@ -235,13 +241,6 @@ def _set_coords(ds: xr.Dataset, dimension_names):
     for varname in dimension_names:
         if varname in ds and varname not in ds.coords:
             ds = ds.set_coords([varname])
-    return ds
-
-
-def _maybe_remove_depth_from_lonlat(ds):
-    for coord in ["glamf", "gphif"]:
-        if coord in ds.coords and "depth" in ds[coord].dims:
-            ds[coord] = ds[coord].squeeze("depth", drop=True)
     return ds
 
 
@@ -367,34 +366,17 @@ def nemo_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr.Da
             raise ValueError("Time dimension in coords must be length 1 (i.e., no time-varying grid).")
         coords = coords.isel(time=0).drop_vars("time")
 
-    if (
-        len(coords.dims) == 3
-    ):  #! This should really be looking at the dimensionality of the lons and lats arrays. Currently having 2D lon lat and 1D depth triggers this `if` clause
-        for dim, len_ in coords.sizes.items():
-            if len_ == 1:
-                # TODO: log statement about selecting along z dim of 1
-                coords = coords.isel({dim: 0})
-    # if len(coords.dims) != 2: #! This should really be looking at the dimensionality of the lons and lats arrays. Currently having 2D lon lat and 1D depth triggers this `if` clause
-    #     raise ValueError("Expected coordinates to be 2 dimensional")
-    ds = xr.merge(list(field_das.values()) + [coords])
+    ds = xr.merge(list(field_das.values()) + [coords], join="exact", compat="override")
     ds.attrs.clear()  # Clear global attributes from the merging
 
     ds = _maybe_rename_variables(ds, _NEMO.varnames_mapping)
     ds = _rename_nemo_depth_dims(ds)
-    if "depth_center" in ds.dims and "depth" not in ds.dims:
-        raise ValueError(
-            "The fields have a vertical dimension (depthu, depthv or deptht), but 'depthw' is missing. "
-            "The depth levels of the W points are needed for the vertical grid. Either pass the W field "
-            "(e.g., fields={..., 'W': ds_w['wo']}) or add 'depthw' from the W files to coords."
-        )
-    ds = _maybe_expand_depth_dimension(ds)
     ds = _drop_unused_dimensions_and_coords(ds, _NEMO_DIMENSION_COORD_NAMES)
     ds = _assign_dims_as_coords(ds, _NEMO_DIMENSION_COORD_NAMES)
     ds = _set_coords(ds, _NEMO_DIMENSION_COORD_NAMES)
-    ds = _maybe_remove_depth_from_lonlat(ds)
     ds = _set_axis_attrs(ds, _NEMO.axis_varnames)
 
-    expected_axes = set("XYZT")  # TODO: Update after we have support for 2D spatial fields
+    expected_axes = set("XY")
     if missing_axes := (expected_axes - set(ds.cf.axes)):
         raise ValueError(
             f"Dataset missing CF compliant metadata for axes "
