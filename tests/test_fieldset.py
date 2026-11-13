@@ -12,9 +12,9 @@ from re_assert import Matches
 
 import parcels.tutorial
 import tests
-from parcels import Particle, ParticleFile, ParticleSet, Variable, convert
+from parcels import Particle, ParticleFile, ParticleSet, Variable, VectorField, convert
 from parcels._core.fieldset import CalendarError, FieldSet, IncompatibleMeshesException, _datetime_to_msg
-from parcels._core.mesh import SphericalMesh
+from parcels._core.mesh import FlatMesh, SphericalMesh
 from parcels._core.model import (
     _default_vector_field_components,
     _infer_mesh_from_sgrid_data,
@@ -775,3 +775,71 @@ def test_select_xinterpolator_edge_cases():
 
     # A-grid configuration -> XLinear
     assert _select_xinterpolator(da_3d_tracer, metadata, is_cgrid=False) is XLinear
+
+
+def test_cgrid_tracer_without_vector_fields():
+    """Verify that cell-centred tracers on C-grid default to CGrid_Tracer even when no VectorFields are present."""
+    ds = datasets_structured["ds_2d_left"]
+    fieldset = FieldSet.from_sgrid_conventions(
+        ds,
+        vector_fields={},
+    )
+
+    # data_c is defined on cell centers (face dimensions) -> CGrid_Tracer
+    assert isinstance(fieldset.data_c.interp_method, CGrid_Tracer)
+
+    # data_g is defined on cell vertices (node dimensions) -> XLinear
+    assert isinstance(fieldset.data_g.interp_method, XLinear)
+
+    # Scalar velocity components retain XLinear
+    assert isinstance(fieldset.U_C_grid.interp_method, XLinear)
+    assert isinstance(fieldset.V_C_grid.interp_method, XLinear)
+
+    # FieldSet contains no VectorFields
+    assert not any(isinstance(f, VectorField) for f in fieldset.fields.values())
+
+
+def test_agrid_and_bgrid_without_vector_fields():
+    """Verify that A-grid and B-grid fields default to XLinear when no VectorFields are present."""
+    from parcels._datasets.structured.generated import peninsula_dataset
+    from parcels._sgrid.core import FaceNodePadding, Padding, SGrid2DMetadata, _attach_sgrid_metadata
+
+    # A-grid dataset with no VectorFields
+    ds_a = peninsula_dataset(grid_type="A")
+    fieldset_a = FieldSet.from_sgrid_conventions(ds_a, vector_fields={})
+    assert isinstance(fieldset_a.U.interp_method, XLinear)
+    assert isinstance(fieldset_a.V.interp_method, XLinear)
+    assert isinstance(fieldset_a.P.interp_method, XLinear)
+
+    # B-grid dataset where U and V are both collocated on nodes (YG, XG)
+    ds_b = xr.Dataset(
+        {
+            "tracer": (["YC", "XC"], np.ones((5, 5))),
+            "U": (["YG", "XG"], np.ones((6, 6))),
+            "V": (["YG", "XG"], np.ones((6, 6))),
+        },
+        coords={
+            "YC": (["YC"], np.arange(5) + 0.5, {"axis": "Y"}),
+            "YG": (["YG"], np.arange(6), {"axis": "Y"}),
+            "XC": (["XC"], np.arange(5) + 0.5, {"axis": "X"}),
+            "XG": (["XG"], np.arange(6), {"axis": "X"}),
+            "lon": (["XG"], np.linspace(0, 10, 6), {"axis": "X", "units": "m"}),
+            "lat": (["YG"], np.linspace(0, 10, 6), {"axis": "Y", "units": "m"}),
+        },
+    ).pipe(
+        _attach_sgrid_metadata,
+        SGrid2DMetadata(
+            cf_role="grid_topology",
+            topology_dimension=2,
+            node_dimensions=("XG", "YG"),
+            node_coordinates=("lon", "lat"),
+            face_dimensions=(
+                FaceNodePadding("XC", "XG", Padding.NONE),
+                FaceNodePadding("YC", "YG", Padding.NONE),
+            ),
+        ),
+    )
+    fieldset_b = FieldSet.from_sgrid_conventions(ds_b, mesh=FlatMesh(), vector_fields={})
+    assert isinstance(fieldset_b.tracer.interp_method, XLinear)
+    assert isinstance(fieldset_b.U.interp_method, XLinear)
+    assert isinstance(fieldset_b.V.interp_method, XLinear)
