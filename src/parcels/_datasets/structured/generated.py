@@ -310,7 +310,7 @@ def peninsula_dataset(xdim=100, ydim=50, mesh_str="flat", grid_type="A"):
         {
             "U": (Udims, U),
             "V": (Vdims, V),
-            "P": (["YC", "XC"], P),
+            "P": (["YG", "XG"], P),
         },
         coords={
             "YC": (["YC"], np.arange(ydim) - 0.5, {"axis": "Y"}),
