@@ -56,6 +56,11 @@ group_convert_concepts.md
 :caption: Work with FieldSets
 :name: work-with-fieldsets
 :titlesonly:
+examples/explanation_grids.ipynb
+examples/tutorial_time_varying_z_coordinates.ipynb
+examples/tutorial_velocityconversion.ipynb
+examples/tutorial_nestedgrids.ipynb
+examples/tutorial_manipulating_field_data.ipynb
 group_fieldsets.md
 ```
 

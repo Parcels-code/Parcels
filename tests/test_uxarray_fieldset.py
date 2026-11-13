@@ -206,6 +206,41 @@ def test_from_ugrid_conventions_selects_correct_interpolator():
         assert isinstance(getattr(fieldset, f"{lateral_dim}_{vertical_dim}").interp_method, expected_interpolator)
 
 
+def test_ux_interpolators_are_linear_in_time():
+    """The default interpolator of every registration is linear in time between snapshots (fields uniform in space)."""
+    ds = convert.icon_to_ugrid(datasets_unstructured["icon_square_delaunay_uniform_z_coordinate"].copy(deep=True))
+    rng = np.random.default_rng(0)
+    value_at_snapshots = rng.random(ds.sizes["time"])
+    registrations = [
+        ("zc", "n_face"),
+        ("zf", "n_face"),
+        ("zc", "n_node"),
+        ("zf", "n_node"),
+        ("zc", "n_edge"),
+        ("zf", "n_edge"),
+    ]
+    for vertical_dim, lateral_dim in registrations:
+        shape = (ds.sizes["time"], ds.sizes[vertical_dim], getattr(ds.uxgrid, lateral_dim))
+        ds[f"{lateral_dim}_{vertical_dim}"] = ux.UxDataArray(
+            np.broadcast_to(value_at_snapshots[:, np.newaxis, np.newaxis], shape),
+            dims=["time", vertical_dim, lateral_dim],
+            coords={"time": ds.time, vertical_dim: ds[vertical_dim]},
+            uxgrid=ds.uxgrid,
+        )
+    fieldset = FieldSet.from_ugrid_conventions(ds)
+
+    # One particle at each face centre, at a random time (in seconds since the first snapshot)
+    xc, yc = ds.uxgrid.face_lon.values, ds.uxgrid.face_lat.values
+    zq = np.full(xc.shape, 300.0)
+    snapshot_times = (ds.time.values - ds.time.values[0]) / np.timedelta64(1, "s")
+    tq = rng.uniform(snapshot_times[0], snapshot_times[-1], xc.size)
+
+    expected = np.interp(tq, snapshot_times, value_at_snapshots)
+    for vertical_dim, lateral_dim in registrations:
+        values = getattr(fieldset, f"{lateral_dim}_{vertical_dim}").eval(t=tq, z=zq, y=yc, x=xc)
+        np.testing.assert_allclose(values, expected, err_msg=f"{lateral_dim}_{vertical_dim}")
+
+
 _NESTEDGRIDS_NODES = np.array(
     [
         [10.0, 15.0],
@@ -264,7 +299,6 @@ SLOPING_BOTTOM_DEPTH = np.broadcast_to(np.linspace(20.0, 60.0, 5)[:, np.newaxis]
 RISING_ETA = np.broadcast_to(np.linspace(-1.0, 1.0, 3)[:, np.newaxis, np.newaxis], (3, 5, 5))
 
 
-@pytest.mark.filterwarnings("ignore:Time-varying \\(3D\\) z coordinates are experimental")
 @pytest.mark.parametrize(
     "eta, expected_n_snapshots",
     [
@@ -284,7 +318,6 @@ def test_fieldset_from_sigma_coordinate_dataset(eta, expected_n_snapshots):
         assert isinstance(field.interp_method, UxLinearNodeLinearZF)
 
 
-@pytest.mark.filterwarnings("ignore:Time-varying \\(3D\\) z coordinates are experimental")
 def test_unstructured_model_data_rejects_z_with_different_time_coordinate():
     ds = sigma_coordinate_lattice_dataset(5, (0.0, 4e3), (0.0, 4e3), 4, SLOPING_BOTTOM_DEPTH, RISING_ETA)
     ds_one_day_later = sigma_coordinate_lattice_dataset(
