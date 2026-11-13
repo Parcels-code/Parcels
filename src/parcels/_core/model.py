@@ -532,13 +532,7 @@ def _select_xinterpolator(
     """
     if is_cgrid:
         fnp_x, fnp_y = sgrid_metadata.face_dimensions
-        is_face_centered = {fnp_x.face, fnp_y.face}.issubset(da.dims)
-        is_vertical_interface = False
-        if sgrid_metadata.vertical_dimensions:
-            fnp_z = sgrid_metadata.vertical_dimensions[0]
-            is_vertical_interface = fnp_z.node in da.dims and fnp_z.face != fnp_z.node
-
-        if is_face_centered and not is_vertical_interface:
+        if {fnp_x.face, fnp_y.face}.issubset(da.dims):
             return CGrid_Tracer
 
     return XLinear

@@ -767,10 +767,6 @@ def test_select_xinterpolator_edge_cases():
     da_2d_tracer = da_3d_tracer.isel(ZC=0, drop=True)
     assert _select_xinterpolator(da_2d_tracer, metadata) is CGrid_Tracer
 
-    # 3D vertical interface variable (node along Z) -> XLinear
-    da_z_interface = da_3d_tracer.rename({"ZC": "ZG"})
-    assert _select_xinterpolator(da_z_interface, metadata) is XLinear
-
     # Node-defined variable -> XLinear
     assert _select_xinterpolator(da_node, metadata) is XLinear
 
