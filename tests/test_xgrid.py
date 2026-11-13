@@ -21,6 +21,7 @@ from parcels._core.xgrid import (
     _transpose_xfield_data_to_tzyx,
 )
 from parcels._datasets.structured.generic import X, Y, Z, datasets, datasets_sgrid
+from parcels._sgrid.accessor import SGridDatasetInconsistency
 from tests import utils
 
 GridTestCase = namedtuple("GridTestCase", ["ds", "attr", "expected"])
@@ -71,6 +72,32 @@ def test_xgrid_axes(fieldset):
     assert fieldset.U.grid.axes == ["Z", "Y", "X"]
 
 
+@pytest.mark.parametrize(
+    "ds",
+    [datasets["ds_2d_left"], datasets["2d_left_rotated"]],
+    ids=["rectilinear", "curvilinear"],
+)
+def test_xgrid_uses_sgrid_node_coordinate_names(ds):
+    reference_grid = FieldSet.from_sgrid_conventions(ds).data_g.grid
+    ds = ds.sgrid.rename({"lon": "dim1", "lat": "dim2"})
+    grid = FieldSet.from_sgrid_conventions(ds).data_g.grid
+
+    np.testing.assert_array_equal(grid.lon, ds["dim1"].values)
+    np.testing.assert_array_equal(grid.lat, ds["dim2"].values)
+
+    if grid.lon.ndim == 1:
+        y = np.array([(grid.lat[1] + grid.lat[2]) / 2])
+        x = np.array([(grid.lon[1] + grid.lon[2]) / 2])
+    else:
+        y = np.array([grid.lat[1, 1]])
+        x = np.array([grid.lon[1, 1]])
+    result = grid.search(0, y, x)
+    reference_result = reference_grid.search(0, y, x)
+    for axis in ("X", "Y"):
+        np.testing.assert_array_equal(result[axis]["index"], reference_result[axis]["index"])
+        np.testing.assert_allclose(result[axis]["bcoord"], reference_result[axis]["bcoord"])
+
+
 @pytest.mark.parametrize("ds", [datasets["ds_2d_left"]])
 @pytest.mark.parametrize("mesh", [FlatMesh, SphericalMesh])
 def test_xgrid_mesh_inferred_from_units(ds, mesh):
@@ -111,8 +138,8 @@ def test_invalid_lon_lat():
     ds["lat"].attrs["units"] = "meters"
 
     with pytest.raises(
-        ValueError,
-        match=r".*is defined on the faces of the grid, but must be defined on the F nodes\.",
+        SGridDatasetInconsistency,
+        match=r"Node coordinate .* has dims .*, but node coordinates can only be defined on the node_dimensions=.*",
     ):
         FieldSet.from_sgrid_conventions(ds)
 

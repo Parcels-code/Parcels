@@ -46,7 +46,7 @@ def wrap_dataset(ds: xr.Dataset, max_cache_bytes: int) -> xr.Dataset:
             continue
         ds[name].load()
     for name in ds.data_vars:
-        var = ds[name].variable
+        var = ds.variables[name]
         if is_duck_array(var._data) and is_dask_collection(var._data):
             var._data = ChunkCachedArray(var._data, max_cache_bytes)  # type: ignore[assignment, arg-type]
     return ds

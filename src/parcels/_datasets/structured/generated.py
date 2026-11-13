@@ -10,7 +10,8 @@ from parcels._core.utils.time import timedelta_to_float
 def simple_UV_dataset(n_times=360, nz=2, ny=30, nx=4, maxdepth=1, mesh_str="spherical"):
     max_lon = 180.0 if mesh_str == "spherical" else 1e6
     max_lat = 90.0 if mesh_str == "spherical" else 1e6
-    unit = "degrees" if mesh_str == "spherical" else "m"
+    x_unit = "degrees_east" if mesh_str == "spherical" else "m"
+    y_unit = "degrees_north" if mesh_str == "spherical" else "m"
     shape = (n_times, nz, ny, nx)
 
     return xr.Dataset(
@@ -18,12 +19,12 @@ def simple_UV_dataset(n_times=360, nz=2, ny=30, nx=4, maxdepth=1, mesh_str="sphe
         coords={
             "time": (["time"], xr.date_range("2000", "2001", n_times), {"axis": "T"}),
             "depth": (["depth"], np.linspace(0, maxdepth, nz), {"axis": "Z", "units": "m"}),
-            "YC": (["YC"], np.arange(ny) + 0.5, {"axis": "Y", "units": unit}),
-            "YG": (["YG"], np.arange(ny), {"axis": "Y", "units": unit}),
-            "XC": (["XC"], np.arange(nx) + 0.5, {"axis": "X", "units": unit}),
-            "XG": (["XG"], np.arange(nx), {"axis": "X", "units": unit}),
-            "lat": (["YG"], np.linspace(-max_lat, max_lat, ny), {"axis": "Y", "units": unit}),
-            "lon": (["XG"], np.linspace(-max_lon, max_lon, nx), {"axis": "X", "units": unit}),
+            "YC": (["YC"], np.arange(ny) + 0.5, {"axis": "Y", "units": y_unit}),
+            "YG": (["YG"], np.arange(ny), {"axis": "Y", "units": y_unit}),
+            "XC": (["XC"], np.arange(nx) + 0.5, {"axis": "X", "units": x_unit}),
+            "XG": (["XG"], np.arange(nx), {"axis": "X", "units": x_unit}),
+            "lat": (["YG"], np.linspace(-max_lat, max_lat, ny), {"axis": "Y", "units": y_unit}),
+            "lon": (["XG"], np.linspace(-max_lon, max_lon, nx), {"axis": "X", "units": x_unit}),
         },
     ).pipe(
         sgrid._attach_sgrid_metadata,
@@ -302,7 +303,8 @@ def peninsula_dataset(xdim=100, ydim=50, mesh_str="flat", grid_type="A"):
     # Convert from m to lat/lon for spherical meshes
     lon = La / 1852.0 / 60.0 if mesh_str == "spherical" else La
     lat = Wa / 1852.0 / 60.0 if mesh_str == "spherical" else Wa
-    unit = "m" if mesh_str == "flat" else "degree"
+    x_unit = "m" if mesh_str == "flat" else "degrees_east"
+    y_unit = "m" if mesh_str == "flat" else "degrees_north"
 
     return xr.Dataset(
         {
@@ -315,8 +317,8 @@ def peninsula_dataset(xdim=100, ydim=50, mesh_str="flat", grid_type="A"):
             "YG": (["YG"], np.arange(ydim), {"axis": "Y"}),
             "XC": (["XC"], np.arange(xdim) - 0.5, {"axis": "X"}),
             "XG": (["XG"], np.arange(xdim), {"axis": "X"}),
-            "lat": (["YG"], lat, {"axis": "Y", "units": unit}),
-            "lon": (["XG"], lon, {"axis": "X", "units": unit}),
+            "lat": (["YG"], lat, {"axis": "Y", "units": y_unit}),
+            "lon": (["XG"], lon, {"axis": "X", "units": x_unit}),
         },
     ).pipe(
         sgrid._attach_sgrid_metadata,
