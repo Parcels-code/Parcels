@@ -2,6 +2,7 @@ import numpy as np
 import pytest
 import uxarray as ux
 import xarray as xr
+import xroms
 
 import parcels
 import parcels.convert as convert
@@ -91,6 +92,17 @@ def test_nemo_to_sgrid_with_depth(U, V, depth, coords):  # noqa: N803
     parcels.FieldSet.from_sgrid_conventions(ds)
 
 
+def test_convert_nemo_to_sgrid_without_time():
+    ds = parcels.tutorial.open_dataset("NemoCurvilinear_data_zonal/mesh_mask")
+    ds_fset = parcels.convert.nemo_to_sgrid(fields={"fmask": ds.fmask}, coords=ds)
+    fieldset = parcels.FieldSet.from_sgrid_conventions(ds_fset)
+
+    assert "mockT" in fieldset.fmask.data.dims
+    assert "mockZ" in fieldset.fmask.data.dims
+    # sampling time-constant field should yield the same value
+    assert fieldset.fmask[10, 0, 0, 0] == fieldset.fmask[1, 0, 0, 0]
+
+
 def test_convert_nemo_offsets():
     U = parcels.tutorial.open_dataset("NemoCurvilinear_data_zonal/U")
     V = parcels.tutorial.open_dataset("NemoCurvilinear_data_zonal/V")
@@ -125,9 +137,12 @@ def test_convert_mitgcm_offsets():
     assert offsets["Z"] == 0
 
 
+@pytest.mark.xfail(reason="Compatibility issue between xroms v0.6.1 and xgcm v0.10.1")
 def test_convert_croco_offsets():
     ds = datasets_circulation_models["ds_CROCO_idealized"]
     coords = ds[["x_rho", "y_rho", "s_w", "time"]]
+    ds, xgrid = xroms.roms_dataset(ds)
+    ds.xroms.set_grid(xgrid)
 
     ds = convert.croco_to_sgrid(fields={"U": ds["u"], "V": ds["v"]}, coords=coords)
     fieldset = FieldSet.from_sgrid_conventions(ds)
@@ -258,13 +273,22 @@ def test_convert_sets_only_conventions_global_attr():
     assert ds_fset.attrs == {"Conventions": "SGRID"}
 
 
-def test_convert_nemo_surface_adds_depth_after_time():
+def test_convert_nemo_surface_adds_mockZ():
     U = parcels.tutorial.open_dataset("NemoCurvilinear_data_zonal/U")
     V = parcels.tutorial.open_dataset("NemoCurvilinear_data_zonal/V")
     coords = parcels.tutorial.open_dataset("NemoCurvilinear_data_zonal/mesh_mask")
     ds = convert.nemo_to_sgrid(fields=dict(U=U, V=V), coords=coords)
-    assert ds["U"].dims[:2] == ("time", "depth")
-    assert ds["V"].dims[:2] == ("time", "depth")
+
+    fieldset = FieldSet.from_sgrid_conventions(ds)
+    assert fieldset.U.data.dims[:2] == ("time", "mockZ")
+    assert fieldset.V.data.dims[:2] == ("time", "mockZ")
+
+
+def test_convert_nemo_edges():
+    ds = parcels.tutorial.open_dataset("NemoNorthSeaORCA025-N006_data/mesh_mask")
+    ds = convert.nemo_to_sgrid(fields={"e1u": ds["e1u"]}, coords=ds)
+    fieldset = FieldSet.from_sgrid_conventions(ds)
+    assert fieldset.e1u.data.dims[:2] == ("mockT", "mockZ")
 
 
 def test_convert_dataset_field_without_matching_variable():

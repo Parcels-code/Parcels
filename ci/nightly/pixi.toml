@@ -33,6 +33,7 @@ pytest-cov = "*"
 pytest-reportlog = "*"
 pytest-timeout = "*"
 re-assert = "*"
+xroms = "*"
 
 [feature.test.tasks]
 tests-nightly = { cmd = "pytest --run-validation-tests", cwd = "../..", description = "Run nightly tests (normal tests and validation tests)" }
