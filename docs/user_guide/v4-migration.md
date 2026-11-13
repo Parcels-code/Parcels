@@ -359,6 +359,14 @@ Call <code>ParticleFile.write()</code> <a href="kernels_write_in_kernel.html#wri
 </div>
 <hr class="migration-divider" />
 
+<div class="migration-bubble migration-change">
+<code>add_metadata</code> method has been removed
+</div>
+<div class="migration-bubble migration-how">
+Use <code>ParticleFile.metadata.update({...})</code> to add metadata when creating the file
+</div>
+<hr class="migration-divider" />
+
 </div>
 
 ## Field

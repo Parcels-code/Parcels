@@ -11,6 +11,7 @@ import parcels._strategies as pst  # Parcels strategies
 from parcels._core.utils.time import (
     TimeInterval,
     _get_cf_attrs,
+    float_to_datelike,
     maybe_convert_python_timedelta_to_numpy,
     timedelta_to_float,
 )
@@ -173,6 +174,48 @@ def test_timedelta_to_float(input, expected):
 def test_timedelta_to_float_exceptions():
     with pytest.raises((ValueError, TypeError)):
         timedelta_to_float("invalid_type")
+
+
+@pytest.mark.parametrize(
+    "left,right,offset,expected",
+    [
+        (np.timedelta64(10500, "ms"), np.timedelta64(20, "s"), 2.9, np.timedelta64(12, "s")),
+        (np.timedelta64(3, "m"), np.timedelta64(5, "m"), -4.7, np.timedelta64(176, "s")),
+    ],
+)
+def test_float_to_datelike_timedelta_interval(left, right, offset, expected):
+    result = float_to_datelike(offset, TimeInterval(left, right))
+
+    assert isinstance(result, np.timedelta64)
+    assert result.dtype == np.dtype("timedelta64[s]")
+    assert result == expected
+
+
+@pytest.mark.parametrize(
+    "interval,expected",
+    [
+        (None, np.timedelta64(2, "s")),
+        (
+            TimeInterval(np.datetime64("2023-01-01"), np.datetime64("2023-01-02")),
+            np.datetime64("2023-01-01T00:00:02", "s"),
+        ),
+        (
+            TimeInterval(
+                cftime_datetime(2023, 1, 1, calendar="360_day"), cftime_datetime(2023, 1, 2, calendar="360_day")
+            ),
+            cftime_datetime(2023, 1, 1, 0, 0, 2, calendar="360_day"),
+        ),
+    ],
+)
+def test_float_to_datelike_other_intervals(interval, expected):
+    result = float_to_datelike(2.9, interval)
+
+    assert isinstance(result, type(expected))
+    assert result == expected
+    if isinstance(expected, (np.datetime64, np.timedelta64)):
+        assert result.dtype == expected.dtype
+    elif isinstance(expected, cftime_datetime):
+        assert result.calendar == expected.calendar
 
 
 @given(pst.time.datetime_various())
