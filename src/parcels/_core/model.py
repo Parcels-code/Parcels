@@ -216,7 +216,7 @@ class StructuredModelData(ModelData):
 
         for vfield_name, components in self.vector_field_components.items():
             interp_method = (
-                XLinear_Velocity() if _is_agrid(self.data, u=components[0], v=components[1]) else CGrid_Velocity()
+                CGrid_Velocity() if _is_cgrid(self.data, u=components[0], v=components[1]) else XLinear_Velocity()
             )
 
             component_fields = [single_fields[name] for name in components]
@@ -553,10 +553,10 @@ def _select_uxinterpolator(da: ux.UxDataArray):
     return None
 
 
-def _is_agrid(ds: xr.Dataset, u: str, v: str) -> bool:
-    # check if U and V are defined on the same dimensions
-    # if yes, interpret as A grid
-    return set(ds[u].dims) == set(ds[v].dims)
+def _is_cgrid(ds: xr.Dataset, u: str, v: str) -> bool:
+    # check if U and V are defined on different dimensions
+    # if yes, interpret as C grid (if no, it could be an A or B grid)
+    return set(ds[u].dims) != set(ds[v].dims)
 
 
 def _get_time_interval(data: xr.DataArray | ux.UxDataArray) -> TimeInterval | None:
