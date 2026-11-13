@@ -5,6 +5,7 @@ from typing import TYPE_CHECKING, Literal
 import numpy as np
 from dask import is_dask_collection
 
+from parcels._chunk_cached_array import ChunkCachedArray
 from parcels._core.basegrid import BaseGrid
 from parcels._core.index_search import GRID_SEARCH_ERROR, _search_1d_array, _search_1d_columns, uxgrid_point_in_cell
 from parcels._core.mesh import BaseMesh, TMesh
@@ -67,6 +68,9 @@ class UxGrid(BaseGrid):
             raise ValueError(
                 f"A 3D z must have dims ('time', 'zf', 'n_node') or ('time', 'zf', 'n_face'), got {z.dims}"
             )
+
+        if is_dask_collection(z.data):
+            z.variable._data = ChunkCachedArray(z.data, max_cache_bytes=600_000_000)
 
         if z.dims[-1] == "n_node":
             self.z_interp_method = UxVerticalCoordinateLinearNode()

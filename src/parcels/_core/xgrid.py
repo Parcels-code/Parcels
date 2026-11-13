@@ -9,6 +9,7 @@ from dask import is_dask_collection
 
 import parcels._sgrid as sgrid
 import parcels._typing as ptyping
+from parcels._chunk_cached_array import ChunkCachedArray
 from parcels._core.basegrid import BaseGrid
 from parcels._core.index_search import _search_1d_array, _search_1d_columns, _search_indices_curvilinear_2d
 from parcels._core.mesh import BaseMesh
@@ -168,6 +169,9 @@ class XGrid(BaseGrid):
                 f"A 4D depth must have dims {face_registered_dims} (cell centres) or {node_registered_dims} "
                 f"(cell corners), got {depth.dims}"
             )
+
+        if is_dask_collection(depth.data):
+            depth.variable._data = ChunkCachedArray(depth.data, max_cache_bytes=600_000_000)
 
         self.z_interp_method = XVerticalCoordinateLinear()
 
