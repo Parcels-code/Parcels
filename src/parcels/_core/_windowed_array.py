@@ -63,10 +63,7 @@ class WindowedArray:
     # -- window management ----------------------------------------------------
     def _read_level(self, min_lvl: int, max_lvl: int) -> np.ndarray:
         """Bulk, sequential read of self._tchunk time levels into NumPy (the dask->NumPy step)."""
-
-        return np.asarray(
-            self._data.isel({self._tdim: slice(min_lvl, max_lvl)}).values
-        )
+        return np.asarray(self._data.isel({self._tdim: slice(min_lvl, max_lvl)}).values)
 
     def _ensure(self, levels: np.ndarray) -> None:
         if self._max is not None and levels.size > self._max:
