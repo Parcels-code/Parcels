@@ -122,14 +122,9 @@ class WindowedArray:
             )  # I've changed read_level to return an xarray dataset wrapped around numpy arrays
             self.loads += 1
             self.bytes_read += self._slab_bytes
-<<<<<<< HEAD
-            slab_as_xr = xr.DataArray(slab, dims=self._data.dims, coords={self._tdim: np.arange(min_lvl,max_lvl,dtype=int)}) # Have replaced slab[None] with slab because read_level now keeps dimensions with the slice
-=======
             slab_as_xr = xr.DataArray(
                 slab, dims=self._data.dims, coords={self._tdim: np.arange(min_lvl, max_lvl, dtype=int)}
-            )  # Turns out the numpy wrapper is about throwing away bonus coordinates. Fair # Have replaced slab[None] with slab because read_level now keeps dimensions with the slice
->>>>>>> 31bf4e34a3aba9f226b1302fd98ccb519e571116
-
+            )  # Have replaced slab[None] with slab because read_level now keeps dimensions with the slice
             # The cache is ordered based on time index
             coord = self._cache[self._tdim].values
             pos = int(np.searchsorted(coord, lvl))
