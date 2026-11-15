@@ -84,7 +84,7 @@ class ModelData(ABC):
             return windowed[name]
         return self.data[name]
 
-    def to_windowed_arrays(self, *, max_levels: int | None = None) -> Self:
+    def to_windowed_arrays(self, *, max_levels: int | None = None, time_chunk: int = 1) -> Self:
         """Wrap dask-backed field data in rolling time-window caches.
 
         Opt-in optimization for forward-marching simulations where all particles
@@ -117,7 +117,7 @@ class ModelData(ABC):
                 self.data[dim].load()
         for name in self.scalar_field_names:
             current = windowed.get(name, self.data[name])
-            windowed[name] = maybe_windowed(current, max_levels=max_levels)
+            windowed[name] = maybe_windowed(current, max_levels=max_levels, time_chunk=time_chunk)
         return self
 
     def to_chunk_cached_arrays(self, *, max_cache_bytes: int = 600_000_000) -> Self:

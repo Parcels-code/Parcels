@@ -10,6 +10,7 @@ Assumptions / current limits:
     (``dt > 0``) or backward (``dt < 0``). Eviction keeps only the levels each
     ``isel`` actually requests, which is symmetric in time -- so direction never
     enters the logic and no integration-direction flag is needed.
+  * Time coordinate of U/V data/files is monotonic (ie, grabbing slice(i,i+10) is 10 sequential times)
 """
 
 from __future__ import annotations
@@ -29,12 +30,13 @@ _NON_INDEXER_KWARGS = frozenset({"drop", "missing_dims", "ignore_grid"})
 class WindowedArray:
     """Wrap a lazy DataArray so ``isel`` loads/caches/evicts time levels as NumPy."""
 
-    def __init__(self, data: xr.DataArray, time_dim: str = "time", max_levels: int | None = None):
+    def __init__(self, data: xr.DataArray, time_dim: str = "time", max_levels: int | None = None, time_chunk: int = 1):
         if data.dims[0] != time_dim:
             raise ValueError(f"WindowedArray expects {time_dim!r} as the leading dimension, got {data.dims}")
         self._data = data
         self._tdim = time_dim
         self._max = max_levels
+        self._tchunk = time_chunk # Let us load a bunch of stuff in at once (e.g. 1 day, or 1 month)
         self._cache: xr.DataArray = xr.DataArray(
             np.empty((0, *data.shape[1:]), dtype=data.dtype),
             dims=data.dims,
@@ -43,7 +45,7 @@ class WindowedArray:
         # diagnostics
         self.loads = 0
         self.bytes_read = 0
-        self._slab_bytes = int(np.prod(data.isel({time_dim: 0}).shape)) * data.dtype.itemsize
+        self._slab_bytes = int(np.prod(data.isel({time_dim: 0}).shape)) * data.dtype.itemsize * self._tchunk # If I understand this variable correctly
 
     # -- transparency: forward everything we don't override -------------------
     def __getattr__(self, name):
@@ -57,9 +59,12 @@ class WindowedArray:
         )
 
     # -- window management ----------------------------------------------------
-    def _read_level(self, lvl: int) -> np.ndarray:
+    def _read_level(self, min_lvl: int, max_lvl: int) -> np.ndarray:
         """Bulk, sequential read of one time level into NumPy (the dask->NumPy step)."""
-        return np.asarray(self._data.isel({self._tdim: int(lvl)}).values)
+
+
+        #return self._data.isel({self._tdim: slice(min_lvl, min_lvl+self._tchunk)}).compute() # Pass back as an array, and keep new dimensions?
+        return np.asarray(self._data.isel({self._tdim: slice(min_lvl, max_lvl)}).values) # Concerned there was a reason for using np.asarray though. Using it was messing up putting the old coordinates back on, because we now might have time. 
 
     def _ensure(self, levels: np.ndarray) -> None:
         if self._max is not None and levels.size > self._max:
@@ -79,8 +84,12 @@ class WindowedArray:
             )
 
         lo, hi = int(np.min(levels)), int(np.max(levels))
+        # Expand these out for the full number of chunks we're keeping
+        lo = lo//self._tchunk * self._tchunk
+        hi = hi//self._tchunk * self._tchunk + self._tchunk # Suggest using [ ) rather than [ ] sets with a -1?
         coord = self._cache[self._tdim].values
-        keep = (coord >= lo) & (coord <= hi)
+        keep = (coord >= lo) & (coord < hi)
+        # print(lo, hi)
 
         if self._max is not None:
             cached_in_span = np.flatnonzero(keep)
@@ -100,10 +109,14 @@ class WindowedArray:
             if lvl in self._cache[self._tdim].values:
                 continue
 
-            slab = self._read_level(lvl)
+                    # What are the bounds of the chunk that this lvl goes into?
+            min_lvl = lvl//self._tchunk * self._tchunk
+            max_lvl = min(min_lvl+self._tchunk, len(self._data[self._tdim])) # pretty sure this is fine but would appreciate a second pair of eyes for off-by-one errors and not grabbing the end of the array
+            # print(min_lvl,max_lvl)
+            slab = self._read_level(min_lvl,max_lvl) # I've changed read_level to return an xarray dataset wrapped around numpy arrays
             self.loads += 1
             self.bytes_read += self._slab_bytes
-            slab_as_xr = xr.DataArray(slab[None], dims=self._data.dims, coords={self._tdim: [lvl]})
+            slab_as_xr = xr.DataArray(slab, dims=self._data.dims, coords={self._tdim: np.arange(min_lvl,max_lvl,dtype=int)}) #Turns out the numpy wrapper is about throwing away bonus coordinates. Fair # Have replaced slab[None] with slab because read_level now keeps dimensions with the slice
 
             # The cache is ordered based on time index
             coord = self._cache[self._tdim].values
@@ -112,7 +125,7 @@ class WindowedArray:
             self._cache = xr.concat(
                 [
                     self._cache.isel({self._tdim: slice(0, pos)}),
-                    slab_as_xr,
+                    slab_as_xr, # With modified _read_level to give multiple timesteps at once this is multiple timesteps, but .concat should still be fine
                     self._cache.isel({self._tdim: slice(pos, None)}),
                 ],
                 dim=self._tdim,
@@ -146,7 +159,7 @@ class WindowedArray:
             return self._cache.isel(sel)  # return the requested isel directly from the cached DataArray
 
 
-def maybe_windowed(data: xr.DataArray, max_levels: int | None = None):
+def maybe_windowed(data: xr.DataArray, max_levels: int | None = None, time_chunk: int = 1):
     """Wrap dask-backed, field data in a ``WindowedArray``; else pass through.
 
     NumPy-backed fields (already resident) and fields without a leading ``time``
@@ -156,7 +169,7 @@ def maybe_windowed(data: xr.DataArray, max_levels: int | None = None):
     if isinstance(data, WindowedArray):
         return data
     if data.dims and data.dims[0] == "time" and is_dask_collection(data.data):
-        return WindowedArray(data, max_levels=max_levels)
+        return WindowedArray(data, max_levels=max_levels, time_chunk=time_chunk)
     elif data.dims and data.dims[0] == "mockT" and is_dask_collection(data.data):
         return data.compute()
     return data

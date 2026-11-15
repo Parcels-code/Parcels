@@ -161,7 +161,7 @@ class FieldSet:
 
         return overlap
 
-    def to_windowed_arrays(self, *, max_levels: int | None = None):
+    def to_windowed_arrays(self, *, max_levels: int | None = None, time_chunk: int = 1):
         """Wrap dask-backed field data in rolling time-window caches.
 
         Opt-in optimization for forward-marching simulations where all particles
@@ -191,7 +191,7 @@ class FieldSet:
             ``self``, to allow chaining.
         """
         for model in self.models:
-            model.to_windowed_arrays(max_levels=max_levels)
+            model.to_windowed_arrays(max_levels=max_levels, time_chunk=time_chunk)
         return self
 
     def to_chunk_cached_arrays(self, *, max_cache_bytes: int = 600_000_000):
