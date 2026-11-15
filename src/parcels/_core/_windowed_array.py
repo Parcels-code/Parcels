@@ -36,7 +36,7 @@ class WindowedArray:
         self._data = data
         self._tdim = time_dim
         self._max = max_levels
-        self._tchunk = time_chunk # Let us load a bunch of stuff in at once (e.g. 1 day, or 1 month)
+        self._tchunk = time_chunk  # Let us load a bunch of stuff in at once (e.g. 1 day, or 1 month)
         self._cache: xr.DataArray = xr.DataArray(
             np.empty((0, *data.shape[1:]), dtype=data.dtype),
             dims=data.dims,
@@ -45,7 +45,9 @@ class WindowedArray:
         # diagnostics
         self.loads = 0
         self.bytes_read = 0
-        self._slab_bytes = int(np.prod(data.isel({time_dim: 0}).shape)) * data.dtype.itemsize * self._tchunk # If I understand this variable correctly
+        self._slab_bytes = (
+            int(np.prod(data.isel({time_dim: 0}).shape)) * data.dtype.itemsize * self._tchunk
+        )  # If I understand this variable correctly
 
     # -- transparency: forward everything we don't override -------------------
     def __getattr__(self, name):
@@ -61,10 +63,10 @@ class WindowedArray:
     # -- window management ----------------------------------------------------
     def _read_level(self, min_lvl: int, max_lvl: int) -> np.ndarray:
         """Bulk, sequential read of one time level into NumPy (the dask->NumPy step)."""
-
-
-        #return self._data.isel({self._tdim: slice(min_lvl, min_lvl+self._tchunk)}).compute() # Pass back as an array, and keep new dimensions?
-        return np.asarray(self._data.isel({self._tdim: slice(min_lvl, max_lvl)}).values) # Concerned there was a reason for using np.asarray though. Using it was messing up putting the old coordinates back on, because we now might have time. 
+        # return self._data.isel({self._tdim: slice(min_lvl, min_lvl+self._tchunk)}).compute() # Pass back as an array, and keep new dimensions?
+        return np.asarray(
+            self._data.isel({self._tdim: slice(min_lvl, max_lvl)}).values
+        )  # Concerned there was a reason for using np.asarray though. Using it was messing up putting the old coordinates back on, because we now might have time.
 
     def _ensure(self, levels: np.ndarray) -> None:
         if self._max is not None and levels.size > self._max:
@@ -85,8 +87,8 @@ class WindowedArray:
 
         lo, hi = int(np.min(levels)), int(np.max(levels))
         # Expand these out for the full number of chunks we're keeping
-        lo = lo//self._tchunk * self._tchunk
-        hi = hi//self._tchunk * self._tchunk + self._tchunk # Suggest using [ ) rather than [ ] sets with a -1?
+        lo = lo // self._tchunk * self._tchunk
+        hi = hi // self._tchunk * self._tchunk + self._tchunk  # Suggest using [ ) rather than [ ] sets with a -1?
         coord = self._cache[self._tdim].values
         keep = (coord >= lo) & (coord < hi)
         # print(lo, hi)
@@ -109,14 +111,20 @@ class WindowedArray:
             if lvl in self._cache[self._tdim].values:
                 continue
 
-                    # What are the bounds of the chunk that this lvl goes into?
-            min_lvl = lvl//self._tchunk * self._tchunk
-            max_lvl = min(min_lvl+self._tchunk, len(self._data[self._tdim])) # pretty sure this is fine but would appreciate a second pair of eyes for off-by-one errors and not grabbing the end of the array
+                # What are the bounds of the chunk that this lvl goes into?
+            min_lvl = lvl // self._tchunk * self._tchunk
+            max_lvl = min(
+                min_lvl + self._tchunk, len(self._data[self._tdim])
+            )  # pretty sure this is fine but would appreciate a second pair of eyes for off-by-one errors and not grabbing the end of the array
             # print(min_lvl,max_lvl)
-            slab = self._read_level(min_lvl,max_lvl) # I've changed read_level to return an xarray dataset wrapped around numpy arrays
+            slab = self._read_level(
+                min_lvl, max_lvl
+            )  # I've changed read_level to return an xarray dataset wrapped around numpy arrays
             self.loads += 1
             self.bytes_read += self._slab_bytes
-            slab_as_xr = xr.DataArray(slab, dims=self._data.dims, coords={self._tdim: np.arange(min_lvl,max_lvl,dtype=int)}) #Turns out the numpy wrapper is about throwing away bonus coordinates. Fair # Have replaced slab[None] with slab because read_level now keeps dimensions with the slice
+            slab_as_xr = xr.DataArray(
+                slab, dims=self._data.dims, coords={self._tdim: np.arange(min_lvl, max_lvl, dtype=int)}
+            )  # Turns out the numpy wrapper is about throwing away bonus coordinates. Fair # Have replaced slab[None] with slab because read_level now keeps dimensions with the slice
 
             # The cache is ordered based on time index
             coord = self._cache[self._tdim].values
@@ -125,7 +133,7 @@ class WindowedArray:
             self._cache = xr.concat(
                 [
                     self._cache.isel({self._tdim: slice(0, pos)}),
-                    slab_as_xr, # With modified _read_level to give multiple timesteps at once this is multiple timesteps, but .concat should still be fine
+                    slab_as_xr,  # With modified _read_level to give multiple timesteps at once this is multiple timesteps, but .concat should still be fine
                     self._cache.isel({self._tdim: slice(pos, None)}),
                 ],
                 dim=self._tdim,
