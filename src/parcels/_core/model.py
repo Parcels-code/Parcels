@@ -109,6 +109,13 @@ class ModelData(ABC):
             Only when a single call requests a wider time span (e.g. particles
             spread across many time levels) does the window grow beyond that,
             and ``max_levels`` then bounds its size.
+
+        time_chunk: int, optional
+            The number of timesteps to be called into memory each time another
+            time level is needed. If using dask, this should be at least the 
+            chunksize used by xr.open_(mf)dataset times the number of cores, 
+            but should be a number of timesteps that takes less than half the
+            available memory.
         """
         windowed = self.__dict__.setdefault("_windowed", {})
         for dim in ["lon", "lat", "depth"]:

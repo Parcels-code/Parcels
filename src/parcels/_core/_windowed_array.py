@@ -60,11 +60,9 @@ class WindowedArray:
 
     # -- window management ----------------------------------------------------
     def _read_level(self, min_lvl: int, max_lvl: int) -> np.ndarray:
-        """Bulk, sequential read of one time level into NumPy (the dask->NumPy step)."""
+        """Bulk, sequential read of self._tchunk time levels into NumPy (the dask->NumPy step)."""
 
-
-        #return self._data.isel({self._tdim: slice(min_lvl, min_lvl+self._tchunk)}).compute() # Pass back as an array, and keep new dimensions?
-        return np.asarray(self._data.isel({self._tdim: slice(min_lvl, max_lvl)}).values) # Concerned there was a reason for using np.asarray though. Using it was messing up putting the old coordinates back on, because we now might have time. 
+        return np.asarray(self._data.isel({self._tdim: slice(min_lvl, max_lvl)}).values)
 
     def _ensure(self, levels: np.ndarray) -> None:
         if self._max is not None and levels.size > self._max:
@@ -116,7 +114,7 @@ class WindowedArray:
             slab = self._read_level(min_lvl,max_lvl) # I've changed read_level to return an xarray dataset wrapped around numpy arrays
             self.loads += 1
             self.bytes_read += self._slab_bytes
-            slab_as_xr = xr.DataArray(slab, dims=self._data.dims, coords={self._tdim: np.arange(min_lvl,max_lvl,dtype=int)}) #Turns out the numpy wrapper is about throwing away bonus coordinates. Fair # Have replaced slab[None] with slab because read_level now keeps dimensions with the slice
+            slab_as_xr = xr.DataArray(slab, dims=self._data.dims, coords={self._tdim: np.arange(min_lvl,max_lvl,dtype=int)}) # Have replaced slab[None] with slab because read_level now keeps dimensions with the slice
 
             # The cache is ordered based on time index
             coord = self._cache[self._tdim].values
