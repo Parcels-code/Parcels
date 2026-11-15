@@ -88,7 +88,6 @@ class WindowedArray:
         hi = hi // self._tchunk * self._tchunk + self._tchunk  # Suggest using [ ) rather than [ ] sets with a -1?
         coord = self._cache[self._tdim].values
         keep = (coord >= lo) & (coord < hi)
-        # print(lo, hi)
 
         if self._max is not None:
             cached_in_span = np.flatnonzero(keep)
@@ -113,10 +112,9 @@ class WindowedArray:
             max_lvl = min(
                 min_lvl + self._tchunk, len(self._data[self._tdim])
             )  # pretty sure this is fine but would appreciate a second pair of eyes for off-by-one errors and not grabbing the end of the array
-            # print(min_lvl,max_lvl)
             slab = self._read_level(
                 min_lvl, max_lvl
-            )  # I've changed read_level to return an xarray dataset wrapped around numpy arrays
+            )  
             self.loads += 1
             self.bytes_read += self._slab_bytes
             slab_as_xr = xr.DataArray(
