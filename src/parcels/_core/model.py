@@ -25,6 +25,7 @@ from parcels._core.xgrid import (
 from parcels._logger import logger
 from parcels._python import NOTSET, NotSetType
 from parcels.interpolators import (
+    CGrid_Tracer,
     CGrid_Velocity,
     Ux_Velocity,
     UxConstantEdgeConstantZC,
@@ -216,7 +217,7 @@ class StructuredModelData(ModelData):
 
         for vfield_name, components in self.vector_field_components.items():
             interp_method = (
-                XLinear_Velocity() if _is_agrid(self.data, u=components[0], v=components[1]) else CGrid_Velocity()
+                CGrid_Velocity() if _is_cgrid(self.data, u=components[0], v=components[1]) else XLinear_Velocity()
             )
 
             component_fields = [single_fields[name] for name in components]
@@ -224,6 +225,17 @@ class StructuredModelData(ModelData):
 
         fields: dict[str, Field | VectorField] = {**single_fields, **vector_fields}
         return list(fields.values())
+
+    @property
+    def is_cgrid(self) -> bool:
+        """Whether the model grid is a staggered C-grid."""
+        if self.vector_field_components:
+            return any(
+                _is_cgrid(self.data, u=comps[0], v=comps[1])
+                for comps in self.vector_field_components.values()
+                if len(comps) >= 2 and comps[0] in self.data and comps[1] in self.data
+            )
+        return _is_cgrid(self.data, sgrid_metadata=self.grid.sgrid_metadata)
 
     @classmethod
     def from_sgrid_conventions(
@@ -273,9 +285,14 @@ class StructuredModelData(ModelData):
             skip_field_data_validation=skip_field_data_validation,
         )
         model._fields = model.construct_fields()
+        is_cgrid = model.is_cgrid
         for f in model._fields:
             if isinstance(f, Field):
-                f.interp_method = XLinear()
+                f.interp_method = _select_xinterpolator(
+                    model.data[f.name],
+                    model.grid.sgrid_metadata,
+                    is_cgrid=is_cgrid,
+                )()
         return model
 
 
@@ -512,6 +529,26 @@ def _discover_ux_U_and_V(ds: ux.UxDataset) -> ux.UxDataset:
     return ds
 
 
+def _select_xinterpolator(
+    da: xr.DataArray,
+    sgrid_metadata: sgrid.SGrid2DMetadata,
+    *,
+    is_cgrid: bool = True,
+) -> type[ScalarInterpolator]:
+    """Selects the appropriate interpolator for a given xarray DataArray on an SGRID grid.
+
+    Following Delandmeter and Van Sebille (2019), tracer fields on an Arakawa C-grid
+    are located at cell centers (face dimensions) and default to CGrid_Tracer.
+    All other fields default to XLinear.
+    """
+    if is_cgrid:
+        fnp_x, fnp_y = sgrid_metadata.face_dimensions
+        if {fnp_x.face, fnp_y.face}.issubset(da.dims):
+            return CGrid_Tracer
+
+    return XLinear
+
+
 def _select_uxinterpolator(da: ux.UxDataArray):
     """Selects the appropriate uxarray interpolator for a given uxarray UxDataArray"""
     supported_uxinterp_mapping = {
@@ -553,10 +590,56 @@ def _select_uxinterpolator(da: ux.UxDataArray):
     return None
 
 
+def _is_cgrid(
+    ds: xr.Dataset,
+    u: str | None = None,
+    v: str | None = None,
+    sgrid_metadata: sgrid.SGrid2DMetadata | None = None,
+) -> bool:
+    """Check if a dataset or specified (u, v) components represent a staggered C-grid.
+
+    Following Arakawa C-grid conventions, horizontal velocity components U and V
+    are defined on different dimensions (edges). If u and v are defined on identical
+    dimensions, the grid is an A-grid or B-grid.
+
+    When u and v are not specified (e.g. for scalar-only FieldSets), the dataset
+    is checked for default velocity components or edge-staggered variables.
+    """
+    if u is not None and v is not None:
+        # check if U and V are defined on different dimensions
+        # if yes, interpret as C grid (if no, it could be an A or B grid)
+        return set(ds[u].dims) != set(ds[v].dims)
+
+    # If dataset has default U and V variables, check their dimensions
+    default_vfields = _default_vector_field_components(list(ds.data_vars))
+    for comps in default_vfields.values():
+        if len(comps) >= 2 and comps[0] in ds and comps[1] in ds:
+            return _is_cgrid(ds, u=comps[0], v=comps[1])
+
+    # If SGRID metadata is available, check for edge-staggered variables
+    if sgrid_metadata is None and hasattr(ds, "sgrid"):
+        try:
+            sgrid_metadata = ds.sgrid.metadata
+        except Exception:
+            pass
+
+    if sgrid_metadata is not None:
+        fnp_x, fnp_y = sgrid_metadata.face_dimensions
+        if fnp_x.face != fnp_x.node and fnp_y.face != fnp_y.node:
+            edge1 = {fnp_x.face, fnp_y.node}
+            edge2 = {fnp_x.node, fnp_y.face}
+            has_edge1 = any(edge1.issubset(da.dims) for da in ds.data_vars.values())
+            has_edge2 = any(edge2.issubset(da.dims) for da in ds.data_vars.values())
+            if has_edge1 or has_edge2:
+                return True
+
+    return False
+
+
 def _is_agrid(ds: xr.Dataset, u: str, v: str) -> bool:
     # check if U and V are defined on the same dimensions
     # if yes, interpret as A grid
-    return set(ds[u].dims) == set(ds[v].dims)
+    return not _is_cgrid(ds, u=u, v=v)
 
 
 def _get_time_interval(data: xr.DataArray | ux.UxDataArray) -> TimeInterval | None:
