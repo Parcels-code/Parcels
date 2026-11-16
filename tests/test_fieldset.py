@@ -662,7 +662,26 @@ time interval: (np.datetime64('2000-01-02T12:00:00.000000000'), np.datetime64('2
     actual = io.getvalue()
     assert actual == expected
 
-    # TODO: Add test for the ChunkedArray backend (can also refactor this test at the same time)
+    # Also run with ChunkCachedArray backend (needs a new fieldset instance)
+    fieldset = FieldSet.from_sgrid_conventions(ds_fset)
+    fieldset = fieldset.to_chunk_cached_arrays()
+
+    io = StringIO()
+    expected = """\
+| Name   | Type        |   Grid number | Interp method / value   | Parcels backend   |
+|:-------|:------------|--------------:|:------------------------|:------------------|
+| U      | Field       |             0 | XLinear(...)            | ChunkCachedArray  |
+| V      | Field       |             0 | XLinear(...)            | ChunkCachedArray  |
+| W      | Field       |             0 | XLinear(...)            | ChunkCachedArray  |
+| UV     | VectorField |             0 | CGrid_Velocity(...)     | -                 |
+| UVW    | VectorField |             0 | CGrid_Velocity(...)     | -                 |
+
+mesh: SphericalMesh(radius=6366707.019493707)
+time interval: (np.datetime64('2000-01-02T12:00:00.000000000'), np.datetime64('2000-01-12T12:00:00.000000000'))
+"""
+    fieldset.describe(io)
+    actual = io.getvalue()
+    assert actual == expected
 
 
 @pytest.mark.filterwarnings("ignore:Time-varying \\(4D\\) z coordinates are experimental")
