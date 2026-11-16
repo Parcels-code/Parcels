@@ -446,39 +446,3 @@ def _datetime_to_msg(example_datetime: TimeLike) -> str:
 
 def _format_calendar_error_message(field: Field | VectorField, reference_datetime: TimeLike) -> str:
     return f"Expected field {field.name!r} to have calendar compatible with datetime object {_datetime_to_msg(reference_datetime)}. Got field with calendar {_datetime_to_msg(field.time_interval.left)}. Have you considered using xarray to update the time dimension of the dataset to have a compatible calendar?"
-
-
-_COPERNICUS_MARINE_AXIS_VARNAMES = {
-    "T": "time",
-    "Z": "depth",
-    "Y": "lat",
-    "X": "lon",
-}
-
-
-_COPERNICUS_MARINE_CF_STANDARD_NAME_FALLBACKS = {
-    "UV": [
-        (
-            "eastward_sea_water_velocity",
-            "northward_sea_water_velocity",
-        ),  # GLOBAL_ANALYSISFORECAST_PHY_001_024, MEDSEA_ANALYSISFORECAST_PHY_006_013, BALTICSEA_ANALYSISFORECAST_PHY_003_006, BLKSEA_ANALYSISFORECAST_PHY_007_001, IBI_ANALYSISFORECAST_PHY_005_001, NWSHELF_ANALYSISFORECAST_PHY_004_013, MULTIOBS_GLO_PHY_MYNRT_015_003, MULTIOBS_GLO_PHY_W_3D_REP_015_007
-        (
-            "surface_geostrophic_eastward_sea_water_velocity",
-            "surface_geostrophic_northward_sea_water_velocity",
-        ),  # SEALEVEL_GLO_PHY_L4_MY_008_047, SEALEVEL_EUR_PHY_L4_NRT_008_060
-        (
-            "geostrophic_eastward_sea_water_velocity",
-            "geostrophic_northward_sea_water_velocity",
-        ),  # MULTIOBS_GLO_PHY_TSUV_3D_MYNRT_015_012
-        (
-            "sea_surface_wave_stokes_drift_x_velocity",
-            "sea_surface_wave_stokes_drift_y_velocity",
-        ),  # GLOBAL_ANALYSISFORECAST_WAV_001_027, MEDSEA_MULTIYEAR_WAV_006_012, ARCTIC_ANALYSIS_FORECAST_WAV_002_014, BLKSEA_ANALYSISFORECAST_WAV_007_003, IBI_ANALYSISFORECAST_WAV_005_005, NWSHELF_ANALYSISFORECAST_WAV_004_014
-        ("sea_water_x_velocity", "sea_water_y_velocity"),  # ARCTIC_ANALYSISFORECAST_PHY_002_001
-        (
-            "eastward_sea_water_velocity_vertical_mean_over_pelagic_layer",
-            "northward_sea_water_velocity_vertical_mean_over_pelagic_layer",
-        ),  # GLOBAL_MULTIYEAR_BGC_001_033
-    ],
-    "W": ["upward_sea_water_velocity", "vertical_sea_water_velocity"],
-}
