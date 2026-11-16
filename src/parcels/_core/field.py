@@ -221,6 +221,7 @@ class VectorField:
         self.V = V
         self.W = W
         self.grid = U.grid
+        self.model = U.model
 
         if W is None:
             _assert_same_time_interval((U, V))
@@ -234,23 +235,25 @@ class VectorField:
         else:
             self.vector_type = "2D"
 
-        if not isinstance(interp_method, VectorInterpolator):
-            raise ValueError(f"interp_method must be a `VectorInterpolator` object. Got {type(interp_method)=!r}")
-
-        self._interp_method = interp_method
+        self.interp_method = interp_method
 
     # def __repr__(self):
     #     return vectorfield_repr(self)
 
     @property
     def interp_method(self):
-        return self._interp_method
+        try:
+            return self.model.field_to_interpolator[self.name]
+        except KeyError as e:
+            raise AttributeError(
+                f"{type(self).__name__} doesn't have an interp_method defined for it. Use `.interp_method = ...`"
+            ) from e
 
     @interp_method.setter
     def interp_method(self, method: VectorInterpolator):
         if not isinstance(method, VectorInterpolator):
-            raise ValueError(f"method must be a `VectorInterpolator` object. Got {type(method)=!r}")
-        self._interp_method = method
+            raise ValueError(f"interp_method must be a `VectorInterpolator` object. Got {type(method)=!r}")
+        self.model.field_to_interpolator[self.name] = method
 
     @property
     def igrid(self):
@@ -292,7 +295,7 @@ class VectorField:
 
         particle_positions, grid_positions = _get_positions(self.U, t, z, y, x, particles, _ei)
 
-        (u, v, w) = self._interp_method.interp(particle_positions, grid_positions, self)
+        (u, v, w) = self.interp_method.interp(particle_positions, grid_positions, self)
 
         for vel in (u, v, w):
             _update_particle_states_interp_value(particles, vel)
