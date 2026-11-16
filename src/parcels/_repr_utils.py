@@ -310,4 +310,4 @@ def spatialhash_describe(spatialhash: SpatialHash) -> str:
 
 
 def _get_parent_model(field: Field | VectorField) -> ModelData:
-    return field.model  # type:ignore[union-attr]
+    return field.model
