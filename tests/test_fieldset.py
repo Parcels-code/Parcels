@@ -232,6 +232,14 @@ def test_default_vector_field_components(data_vars, expected):
     assert got == expected
 
 
+def test_time_not_increasing_monotonic():
+    ds = simple_UV_dataset(mesh_str="flat", n_times=3).copy()
+    ds["time"] = np.array([np.timedelta64(0, "h"), np.timedelta64(1, "h"), np.timedelta64(1, "h")])
+
+    with pytest.raises(ValueError):
+        FieldSet.from_sgrid_conventions(ds)
+
+
 def test_multi_model_time_interval():
     ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]]
     fieldset = FieldSet.from_sgrid_conventions(ds1)
