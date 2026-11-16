@@ -251,6 +251,8 @@ class VectorField:
         if not isinstance(method, VectorInterpolator):
             raise ValueError(f"method must be a `VectorInterpolator` object. Got {type(method)=!r}")
         self._interp_method = method
+        if getattr(self.U, "model", None) is not None:
+            self.U.model.field_to_interpolator[self.name] = method
 
     @property
     def igrid(self):

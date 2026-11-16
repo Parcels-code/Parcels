@@ -421,6 +421,22 @@ def test_fieldset_add():
     assert set(fields_before) == set(fset.fields.keys())
 
 
+def test_fieldset_add_preserves_vector_field_interp_method():
+    """Test that custom Field and VectorField interp_method values survive FieldSet extension."""
+    from parcels.interpolators import XFreeslip, XNearest
+
+    ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]].rename({"U_A_grid": "U", "V_A_grid": "V"})
+    fieldset = FieldSet.from_sgrid_conventions(ds1)
+    fieldset.U.interp_method = XNearest()
+    fieldset.UV.interp_method = XFreeslip()
+
+    ds2 = ds1.copy().rename({"U": "U2", "V": "V2"})
+    fieldset += FieldSet.from_sgrid_conventions(ds2, vector_fields={"UV2": ("U2", "V2")})
+
+    assert isinstance(fieldset.U.interp_method, XNearest)
+    assert isinstance(fieldset.UV.interp_method, XFreeslip)
+
+
 def test_fieldset_add_different_meshes():
     ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]].rename({"U_A_grid": "U", "V_A_grid": "V"})
     ds2 = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]].rename(
