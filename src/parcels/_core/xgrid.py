@@ -1,7 +1,7 @@
 import warnings
 from collections.abc import Hashable, Sequence
 from functools import cached_property
-from typing import Literal, cast
+from typing import cast
 
 import numpy as np
 import numpy.typing as npt
@@ -179,12 +179,6 @@ class XGrid(BaseGrid):
 
     @property
     def lon(self):
-        """
-        Notes
-        -----
-        Included for compatibility with v3 codebase. May be removed in future.
-        TODO v4: Evaluate
-        """
         if "X" not in self.axes:
             return np.zeros(1)
         x_coordinate_name = self.sgrid_metadata.node_coordinates[0]
@@ -195,12 +189,6 @@ class XGrid(BaseGrid):
 
     @property
     def lat(self):
-        """
-        Notes
-        -----
-        Included for compatibility with v3 codebase. May be removed in future.
-        TODO v4: Evaluate
-        """
         if "Y" not in self.axes:
             return np.zeros(1)
         y_coordinate_name = self.sgrid_metadata.node_coordinates[1]
@@ -211,12 +199,6 @@ class XGrid(BaseGrid):
 
     @property
     def depth(self):
-        """
-        Notes
-        -----
-        Included for compatibility with v3 codebase. May be removed in future.
-        TODO v4: Evaluate
-        """
         if "Z" not in self.axes:
             return np.zeros(1)
         return self._ds["depth"].values
@@ -318,37 +300,7 @@ class XGrid(BaseGrid):
         }
 
     @property
-    def _z4d(self) -> Literal[0, 1]:
-        """
-        Notes
-        -----
-        Included for compatibility with v3 codebase. May be removed in future.
-        TODO v4: Evaluate
-        """
-        return 1 if self.depth.shape == 4 else 0
-
-    @property
     def zonal_periodic(self): ...  # ? hmmm, from v3, do we still need this?
-
-    @property
-    def _gtype(self):
-        """This class is created *purely* for compatibility with v3 code and will be removed
-        or changed in future.
-
-        TODO: Remove
-        """
-        from parcels._core.basegrid import GridType
-
-        if len(self.lon.shape) <= 1:
-            if self.depth is None or len(self.depth.shape) <= 1:
-                return GridType.RectilinearZGrid
-            else:
-                return GridType.RectilinearSGrid
-        else:
-            if self.depth is None or len(self.depth.shape) <= 1:
-                return GridType.CurvilinearZGrid
-            else:
-                return GridType.CurvilinearSGrid
 
     def search(self, z, y, x, ei=None, ti=None, tau=None):
         ds = self._ds
