@@ -134,11 +134,11 @@ class Field:
             ) from e
 
     @interp_method.setter
-    def interp_method(self, value):
+    def interp_method(self, method):
         # Setting the interpolation method dynamically
-        if not isinstance(value, ScalarInterpolator):
-            raise ValueError(f"interp_method must be a `ScalarInterpolator` object. Got {type(value)=!r}")
-        self.model.field_to_interpolator[self.name] = value
+        if not isinstance(method, ScalarInterpolator):
+            raise ValueError(f"interp_method must be a `ScalarInterpolator` object. Got {type(method)=!r}")
+        self.model.field_to_interpolator[self.name] = method
 
     def _check_velocitysampling(self):
         if self.name in ["U", "V", "W"]:
