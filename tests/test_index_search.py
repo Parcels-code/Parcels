@@ -110,3 +110,20 @@ def test_point_in_cell_locates_interior_points_of_large_faces(grid_type, face_de
             f"{coord_sum[worst]:.6f} at (lon, lat)=({lon[worst]:.3f}, {lat[worst]:.3f}) "
             f"in face {expected_face[worst]}"
         )
+
+
+def test_curvilinear_point_in_cell_ignores_out_of_bounds_indices():
+    """Out-of-bounds or negative cell index guesses must return is_in_cell=0 instead of raising IndexError."""
+    grid, nodes, faces = create_lonlat_grid("xgrid", 1.0, centre=(25.0, 10.0), n=4)
+    ny, nx = grid.lon.shape
+    lon, lat, expected_face = sample_points_inside_faces(nodes, faces, weights=_point_in_cell_weights(4))
+    yi_ok, xi_ok = np.unravel_index(expected_face[:1], (ny - 1, nx - 1))
+
+    yi = np.array([int(yi_ok[0]), ny - 1, -1, 0])
+    xi = np.array([int(xi_ok[0]), 0, 0, nx - 1])
+    y = np.array([float(lat[0]), float(lat[0]), float(lat[0]), float(lat[0])])
+    x = np.array([float(lon[0]), float(lon[0]), float(lon[0]), float(lon[0])])
+
+    is_in_cell, coords = curvilinear_point_in_cell(grid, y, x, yi, xi)
+    assert is_in_cell.tolist() == [1, 0, 0, 0]
+    assert np.allclose(coords[1:], -1.0)

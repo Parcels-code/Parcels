@@ -139,23 +139,33 @@ def curvilinear_point_in_cell(grid, y: np.ndarray, x: np.ndarray, yi: np.ndarray
     bilinear weights in the space the inverse was solved in; downstream interpolators
     must agree on that same space.
     """
+    ny, nx = grid.lon.shape
+    valid = (yi >= 0) & (yi < ny - 1) & (xi >= 0) & (xi < nx - 1)
+    is_in_cell = np.zeros(len(yi), dtype=int)
+    coords = np.full((len(yi), 2), -1.0, dtype=float)
+    if not np.any(valid):
+        return is_in_cell, coords
+
+    yi_v, xi_v = yi[valid], xi[valid]
+    y_v, x_v = y[valid], x[valid]
     clon = np.asarray(
-        [grid.lon[yi, xi], grid.lon[yi, xi + 1], grid.lon[yi + 1, xi + 1], grid.lon[yi + 1, xi]],
+        [grid.lon[yi_v, xi_v], grid.lon[yi_v, xi_v + 1], grid.lon[yi_v + 1, xi_v + 1], grid.lon[yi_v + 1, xi_v]],
         dtype=float,
     )
     clat = np.asarray(
-        [grid.lat[yi, xi], grid.lat[yi, xi + 1], grid.lat[yi + 1, xi + 1], grid.lat[yi + 1, xi]],
+        [grid.lat[yi_v, xi_v], grid.lat[yi_v, xi_v + 1], grid.lat[yi_v + 1, xi_v + 1], grid.lat[yi_v + 1, xi_v]],
         dtype=float,
     )
 
     if grid.mesh.is_spherical():
-        xsi, eta = _bilinear_inverse_tangent_plane(clon, clat, x, y)
-        is_in_cell = np.where((xsi >= 0) & (xsi <= 1) & (eta >= 0) & (eta <= 1), 1, 0)
+        xsi, eta = _bilinear_inverse_tangent_plane(clon, clat, x_v, y_v)
     else:
-        xsi, eta = _bilinear_inverse_latlon(clon, clat, x, y, apply_antimeridian_shift=False)
-        is_in_cell = np.where((xsi >= 0) & (xsi <= 1) & (eta >= 0) & (eta <= 1), 1, 0)
+        xsi, eta = _bilinear_inverse_latlon(clon, clat, x_v, y_v, apply_antimeridian_shift=False)
 
-    return is_in_cell, np.column_stack((xsi, eta))
+    is_in_cell[valid] = np.where((xsi >= 0) & (xsi <= 1) & (eta >= 0) & (eta <= 1), 1, 0)
+    coords[valid] = np.column_stack((xsi, eta))
+
+    return is_in_cell, coords
 
 
 _invA = np.array(
