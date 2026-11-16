@@ -372,3 +372,12 @@ def test_mom6_to_sgrid_withdepth():
     V = V.expand_dims(depth=[0], axis=1)
     with pytest.raises(ValueError, match="has more than 2 spatial dimensions"):
         convert.mom6_to_sgrid(fields={"U": U, "V": V}, coords=coords)
+
+
+def test_normalize_fields_warns_about_other_variables(caplog):
+    ds = xr.Dataset({"U": ("x", [1.0]), "V": ("x", [2.0])})
+
+    result = convert._normalize_fields({"U": ds})
+
+    xr.testing.assert_identical(result["U"], ds["U"])
+    assert "other data variables are ignored for this entry: ['V']" in caplog.text

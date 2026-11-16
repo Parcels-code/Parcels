@@ -307,7 +307,12 @@ def _normalize_fields(fields: dict[str, xr.Dataset | xr.DataArray]) -> dict[str,
                     f"the DataArray instead (e.g., fields={{{name!r}: ds['<variable name>']}})."
                 )
             normalized[name] = field[name]
-            # TODO: logging message, warn if multiple fields are in this dataset
+            ignored = [var for var in field.data_vars if var != name]
+            if ignored:
+                logger.warning(
+                    f"fields[{name!r}] selects only {name!r} from the Dataset; "
+                    f"other data variables are ignored for this entry: {ignored}."
+                )
         else:
             normalized[name] = field.rename(name)
     return normalized
