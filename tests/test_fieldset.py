@@ -13,9 +13,10 @@ from re_assert import Matches
 import parcels.tutorial
 import tests
 from parcels import Particle, ParticleFile, ParticleSet, Variable, convert
-from parcels._core.fieldset import CalendarError, FieldSet, IncompatibleMeshesException, _datetime_to_msg
+from parcels._core.fieldset import FieldSet, IncompatibleMeshesException, _datetime_to_msg
 from parcels._core.mesh import SphericalMesh
 from parcels._core.model import _default_vector_field_components, _infer_mesh_from_sgrid_data
+from parcels._core.statuscodes import CalendarError
 from parcels._core.utils.time import TimeInterval
 from parcels._datasets.structured.generated import simple_UV_dataset, simple_UV_sigma_dataset
 from parcels._datasets.structured.generic import datasets as datasets_structured

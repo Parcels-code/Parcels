@@ -17,6 +17,7 @@ from parcels._core.model import (
     UnstructuredModelData,
     create_empty_constant_field_model,
 )
+from parcels._core.statuscodes import CalendarError
 from parcels._core.utils.string import _assert_str_and_python_varname
 from parcels._core.utils.time import get_datetime_type_calendar
 from parcels._core.utils.time import is_compatible as datetime_is_compatible
@@ -413,10 +414,6 @@ def assert_models_have_same_mesh(models: list[ModelData]):
             raise IncompatibleMeshesException(
                 f"All ModelData objects must have the same meshes. ModelData at index 0 has a mesh of {first_mesh!r} while ModelData at index {i} has mesh {model.mesh!r} "
             )
-
-
-class CalendarError(Exception):  # TODO: Move to a Parcels errors module
-    """Exception raised when the calendar of a field is not compatible with the rest of the Fields. The user should ensure that they only add fields to a FieldSet that have compatible CFtime calendars."""
 
 
 def assert_compatible_calendars(fields: Iterable[Field | VectorField]):
