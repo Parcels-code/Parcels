@@ -361,7 +361,6 @@ def test_pset_execute_outputdt_backwards_fieldset_timevarying():
     runtime = timedelta(days=2)
     dt = -timedelta(minutes=5)
 
-    # TODO: Not ideal using the `open_dataset` here, but I'm struggling to recreate this error using the test suite fieldsets we have
     ds_in = parcels.tutorial.open_dataset("CopernicusMarine_data_for_Argo_tutorial/data")
     fields = {"U": ds_in["uo"], "V": ds_in["vo"]}
     ds_fset = convert.copernicusmarine_to_sgrid(fields=fields)
