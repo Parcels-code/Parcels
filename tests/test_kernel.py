@@ -64,12 +64,10 @@ def test_kernel_init(fieldset):
 def test_kernel_merging(fieldset):
     pset = ParticleSet(fieldset, x=[0.5], y=[0.5])
     merged_kernel = Kernel(kernels=[AdvectionRK4, MoveEast, MoveNorth], pset=pset)
-    assert merged_kernel.funcname == "AdvectionRK4MoveEastMoveNorth"
     assert len(merged_kernel._kernels) == 3
     assert merged_kernel._kernels == [AdvectionRK4, MoveEast, MoveNorth]
 
     merged_kernel = Kernel(kernels=[MoveEast, MoveNorth, AdvectionRK4], pset=pset)
-    assert merged_kernel.funcname == "MoveEastMoveNorthAdvectionRK4"
     assert len(merged_kernel._kernels) == 3
     assert merged_kernel._kernels == [MoveEast, MoveNorth, AdvectionRK4]
 
@@ -86,8 +84,8 @@ def test_kernel_from_list(fieldset):
     kernels_functions = Kernel(kernels=[AdvectionRK4, MoveEast, MoveNorth], pset=pset)
 
     # Check if the kernels were combined correctly
-    assert kernels_single.funcname == "AdvectionRK4"
-    assert kernels_functions.funcname == "AdvectionRK4MoveEastMoveNorth"
+    assert [f.__name__ for f in kernels_single._kernels] == ["AdvectionRK4"]
+    assert [f.__name__ for f in kernels_functions._kernels] == ["AdvectionRK4", "MoveEast", "MoveNorth"]
 
 
 def test_kernel_from_list_error_checking(fieldset):
@@ -105,8 +103,7 @@ def test_kernel_from_list_error_checking(fieldset):
         Kernel(kernels=[AdvectionRK4, "something else"], pset=pset)
 
     with pytest.raises(TypeError, match=r".* should be a function or list of functions.*"):
-        kernels_mixed = Kernel(kernels=[Kernel(kernels=[AdvectionRK4], pset=pset), MoveEast, MoveNorth], pset=pset)
-        assert kernels_mixed.funcname == "AdvectionRK4MoveEastMoveNorth"
+        Kernel(kernels=[Kernel(kernels=[AdvectionRK4], pset=pset), MoveEast, MoveNorth], pset=pset)
 
 
 def test_RK45Kernel_error_no_next_dt(fieldset):

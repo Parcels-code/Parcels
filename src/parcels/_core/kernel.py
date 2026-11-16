@@ -102,13 +102,6 @@ class Kernel:
 
         self._kernels: list[Callable] = kernels
 
-    @property  #! Ported from v3. To be removed in v4? (/find another way to name kernels in output file)
-    def funcname(self):
-        ret = ""
-        for f in self._kernels:
-            ret += f.__name__
-        return ret
-
     @property
     def pclass(self):
         return self._pclass

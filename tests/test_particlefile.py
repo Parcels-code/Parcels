@@ -44,10 +44,10 @@ def test_metadata(fieldset, tmp_parquet):
     pset = ParticleSet(fieldset, pclass=Particle, x=0, y=0)
 
     ofile = ParticleFile(tmp_parquet, outputdt=np.timedelta64(1, "s"))
-    pset.execute(DoNothing, runtime=np.timedelta64(1, "s"), dt=np.timedelta64(1, "s"), output_file=ofile)
+    pset.execute([DoNothing, DoNothing], runtime=np.timedelta64(1, "s"), dt=np.timedelta64(1, "s"), output_file=ofile)
 
     tab = pq.read_table(tmp_parquet)
-    assert tab.schema.metadata[b"parcels_kernels"].decode().lower() == "DoNothing".lower()
+    assert tab.schema.metadata[b"parcels_kernels"].decode().lower() == "DoNothing DoNothing".lower()
 
 
 @pytest.mark.parametrize("compression", ["zstd", "gzip", "snappy", "brotli", None])
