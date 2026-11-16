@@ -157,7 +157,7 @@ def curvilinear_point_in_cell(grid, y: np.ndarray, x: np.ndarray, yi: np.ndarray
     return is_in_cell, np.column_stack((xsi, eta))
 
 
-_invA = np.array(
+_inv_a = np.array(
     [
         [1, 0, 0, 0],
         [-1, 1, 0, 0],
@@ -170,7 +170,7 @@ _invA = np.array(
 def _bilinear_inverse(px, py, xq, yq):
     """Solve for (xsi, eta) s.t. bilinear blend of (px, py) corners equals (xq, yq)."""
     eta_init = -1.0 * np.ones(len(xq), dtype=float)
-    a, b = np.dot(_invA, px), np.dot(_invA, py)
+    a, b = np.dot(_inv_a, px), np.dot(_inv_a, py)
     aa = a[3] * b[2] - a[2] * b[3]
     bb = a[3] * b[0] - a[0] * b[3] + a[1] * b[2] - a[2] * b[1] + xq * b[3] - yq * a[3]
     cc = a[1] * b[0] - a[0] * b[1] + xq * b[1] - yq * a[1]
