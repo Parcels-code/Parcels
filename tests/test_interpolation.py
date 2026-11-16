@@ -156,6 +156,35 @@ def test_spatial_slip_interpolation(field, func, t, z, y, x, expected, mesh):
     np.testing.assert_array_almost_equal(velocities, expected)
 
 
+@pytest.mark.parametrize("mesh", [FlatMesh(), SphericalMesh()])
+@pytest.mark.parametrize(
+    "func, expected",
+    [
+        (XPartialslip(), [[0.75], [0.75], [0.5]]),
+        (XFreeslip(), [[1.0], [1.0], [0.5]]),
+    ],
+)
+def test_spatial_slip_interpolation_z_face(field, func, expected, mesh):
+    field.grid.mesh = mesh
+    field.data[:] = 1.0
+    field.data[:, 1, 1:3, 1:3] = 0.0  # Set zero land value on the lower Z face
+
+    U = field
+    V = field
+    W = field
+    UVW = VectorField("UVW", U, V, W, interp_method=func)
+
+    y = 1.5
+    velocities = UVW[1, 0.5, y, 1.5]
+
+    expected = np.array(expected)
+    if mesh.is_spherical():
+        expected[0] = expected[0] / (1852 * 60.0 * np.cos(np.radians(y)))
+        expected[1] = expected[1] / (1852 * 60.0)
+
+    np.testing.assert_array_almost_equal(velocities, expected)
+
+
 @pytest.mark.parametrize(
     "interpolator, t, z, y, x, expected",
     [

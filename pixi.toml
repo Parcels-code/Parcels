@@ -74,6 +74,7 @@ pytest-html = "*"
 pytest-cov = "*"
 pytest-reportlog = "*"
 pytest-timeout = "*"
+xroms = "*"
 
 [feature.test.pypi-dependencies]
 re-assert = "*"
@@ -92,6 +93,7 @@ gsw = "*"
 py-triangle = "*"
 cmocean = "*"
 cartopy = "*"
+xroms = "*"
 xgcm = ">=0.10.0"
 
 [feature.devtools.dependencies]

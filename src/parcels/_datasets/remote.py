@@ -119,7 +119,7 @@ _ODIE_REGISTRY_FILES: list[str] = (
         "data/SWASH_data/field_0065557.nc",
     ]
     # + [f"data/WOA_data/woa18_decav_t{m:02d}_04.nc" for m in range(1, 13)]
-    + ["data/CROCOidealized_data/CROCO_idealized.nc"]
+    + ["data/CROCOOverflow_data/over_his.nc"]
     # These datasets are from v4 of Parcels where we're opting for Zipped zarr datasets
     + [
         "data-zarr/Benchmarks_FESOM2-baroclinic-gyre/data.zip",
@@ -264,7 +264,7 @@ _DATASET_KEYS_AND_CONFIGS: dict[str, tuple[_ParcelsDataset, _Purpose]] = dict([
     # "POPSouthernOcean_data/t.x1_SAMOC_flux.16900*.nc", # TODO v4: In v3 but should not be in v4 https://github.com/Parcels-code/Parcels/issues/2571#issuecomment-4214476973
     # ("SWASH_data/data", (_V3Dataset(_ODIE,"data/SWASH_data/field_00655*.nc"), _Purpose.TUTORIAL)),
     # ("WOA_data/data", (_V3Dataset(_ODIE,"data/WOA_data/woa18_decav_t*_04.nc", _preprocess_set_cf_calendar_360_day), _Purpose.TUTORIAL)),
-    ("CROCOidealized_data/data", (_V3Dataset(_ODIE,"data/CROCOidealized_data/CROCO_idealized.nc"), _Purpose.TUTORIAL)),
+    ("CROCOoverflow_data/data", (_V3Dataset(_ODIE,"data/CROCOOverflow_data/over_his.nc"), _Purpose.TUTORIAL)),
     ("AIFSmeteo/data", (_V3Dataset(_ODIE,"data/AIFS-meteo-data/*.nc"), _Purpose.TUTORIAL))
 ] + [
     ("Benchmarks_FESOM2-baroclinic-gyre/data", (_ZarrZipDataset(_ODIE, 'data-zarr/Benchmarks_FESOM2-baroclinic-gyre/data.zip', zarr_format=2), _Purpose.TESTING)),

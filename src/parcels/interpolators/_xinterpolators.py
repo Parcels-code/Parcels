@@ -409,11 +409,19 @@ def _Spatialslip(
 
     corner_dataU = _get_corner_data_Agrid(vectorfield.U.data, ti, zi, yi, xi, lenT, lenZ, npart, axis_dim)
     corner_dataV = _get_corner_data_Agrid(vectorfield.V.data, ti, zi, yi, xi, lenT, lenZ, npart, axis_dim)
+    corner_dataW = None
+    if vectorfield.W:
+        axis_dimW = vectorfield.W.grid.get_axis_dim_mapping(vectorfield.W.data.dims)
+        corner_dataW = _get_corner_data_Agrid(vectorfield.W.data, ti, zi, yi, xi, lenT, lenZ, npart, axis_dimW)
 
     def is_land(ti: int, zi: int, yi: int, xi: int):
         uval = corner_dataU[ti, zi, yi, xi, :]
         vval = corner_dataV[ti, zi, yi, xi, :]
-        return np.where(np.isclose(uval, 0.0) & np.isclose(vval, 0.0), True, False)
+        wval = None if corner_dataW is None else corner_dataW[ti, zi, yi, xi, :]
+        land_check = np.isclose(uval, 0.0) & np.isclose(vval, 0.0)
+        if wval is not None:
+            land_check = land_check & np.isclose(wval, 0.0)
+        return np.where(land_check, True, False)
 
     if is_dask_collection(u):
         u = u.compute()
@@ -434,6 +442,10 @@ def _Spatialslip(
         land = is_land(0, 0, 1, 0) & is_land(0, 0, 1, 1) & is_land(0, 1, 1, 0) & is_land(0, 1, 1, 1) & (eta < 1)
     f_u[land] = f_u[land] * (1 - b * eta[land]) / (1 - eta[land])
 
+    if lenZ == 2:
+        land = is_land(0, 1, 0, 0) & is_land(0, 1, 0, 1) & is_land(0, 1, 1, 0) & is_land(0, 1, 1, 1) & (zeta < 1)
+        f_u[land] = f_u[land] * (1 - b * zeta[land]) / (1 - zeta[land])
+
     u = u * f_u
     if vectorfield.grid.mesh.is_spherical():
         u /= 1852 * 60 * np.cos(np.deg2rad(particle_positions["y"]))
@@ -451,24 +463,36 @@ def _Spatialslip(
         land = is_land(0, 0, 0, 1) & is_land(0, 0, 1, 1) & is_land(0, 1, 0, 1) & is_land(0, 1, 1, 1) & (xsi < 1)
     f_v[land] = f_v[land] * (1 - b * xsi[land]) / (1 - xsi[land])
 
+    if lenZ == 2:
+        land = is_land(0, 1, 0, 0) & is_land(0, 1, 0, 1) & is_land(0, 1, 1, 0) & is_land(0, 1, 1, 1) & (zeta < 1)
+        f_v[land] = f_v[land] * (1 - b * zeta[land]) / (1 - zeta[land])
+
     v = v * f_v
     if vectorfield.grid.mesh.is_spherical():
         v /= 1852 * 60
 
     if vectorfield.W:
         f_w = np.ones_like(zeta)
-        land = is_land(0, 0, 0, 0) & is_land(0, 0, 0, 1) & is_land(0, 1, 0, 0) & is_land(0, 1, 0, 1) & (eta > 0)
+        last_z = lenZ - 1
+        land = (
+            is_land(0, 0, 0, 0) & is_land(0, 0, 0, 1) & is_land(0, last_z, 0, 0) & is_land(0, last_z, 0, 1) & (eta > 0)
+        )
         f_w[land] = f_w[land] * (a + b * eta[land]) / eta[land]
 
-        land = is_land(0, 0, 1, 0) & is_land(0, 0, 1, 1) & is_land(0, 1, 1, 0) & is_land(0, 1, 1, 1) & (eta < 1)
+        land = (
+            is_land(0, 0, 1, 0) & is_land(0, 0, 1, 1) & is_land(0, last_z, 1, 0) & is_land(0, last_z, 1, 1) & (eta < 1)
+        )
         f_w[land] = f_w[land] * (1 - b * eta[land]) / (1 - eta[land])
 
-        land = is_land(0, 0, 0, 0) & is_land(0, 0, 1, 0) & is_land(0, 1, 0, 0) & is_land(0, 1, 1, 0) & (xsi > 0)
+        land = (
+            is_land(0, 0, 0, 0) & is_land(0, 0, 1, 0) & is_land(0, last_z, 0, 0) & is_land(0, last_z, 1, 0) & (xsi > 0)
+        )
         f_w[land] = f_w[land] * (a + b * xsi[land]) / xsi[land]
 
-        land = is_land(0, 0, 0, 1) & is_land(0, 0, 1, 1) & is_land(0, 1, 0, 1) & is_land(0, 1, 1, 1) & (xsi < 1)
+        land = (
+            is_land(0, 0, 0, 1) & is_land(0, 0, 1, 1) & is_land(0, last_z, 0, 1) & is_land(0, last_z, 1, 1) & (xsi < 1)
+        )
         f_w[land] = f_w[land] * (1 - b * xsi[land]) / (1 - xsi[land])
-
         w = w * f_w
     else:
         w = np.zeros_like(u)

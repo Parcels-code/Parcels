@@ -5,6 +5,7 @@ from collections.abc import Hashable, Sequence
 from typing import TYPE_CHECKING, Any, Self
 
 import cf_xarray  # noqa: F401
+import numpy as np
 import xarray as xr
 from dask import is_dask_collection
 
@@ -215,9 +216,11 @@ class StructuredModelData(ModelData):
             single_fields[varname] = Field(str(varname), self)
 
         for vfield_name, components in self.vector_field_components.items():
-            interp_method = (
-                XLinear_Velocity() if _is_agrid(self.data, u=components[0], v=components[1]) else CGrid_Velocity()
-            )
+            interp_method = self.field_to_interpolator.get(vfield_name)
+            if interp_method is None:
+                interp_method = (
+                    XLinear_Velocity() if _is_agrid(self.data, u=components[0], v=components[1]) else CGrid_Velocity()
+                )
 
             component_fields = [single_fields[name] for name in components]
             vector_fields[vfield_name] = VectorField(vfield_name, *component_fields, interp_method=interp_method)  # type:ignore[misc,arg-type]
@@ -388,7 +391,9 @@ class UnstructuredModelData(ModelData):
             single_fields[varname] = Field(str(varname), self)
 
         for vfield_name, components in self.vector_field_components.items():
-            interp_method = Ux_Velocity()
+            interp_method = self.field_to_interpolator.get(vfield_name)
+            if interp_method is None:
+                interp_method = Ux_Velocity()
 
             component_fields = [single_fields[name] for name in components]
             vector_fields[vfield_name] = VectorField(vfield_name, *component_fields, interp_method=interp_method)  # type:ignore[misc, arg-type]
@@ -588,4 +593,7 @@ def _assert_has_time_coordinate(da: xr.DataArray) -> None:
     if da.shape[0] > 1:
         if "time" not in da.coords:
             raise ValueError("Field data is missing a 'time' coordinate.")
+        times = da["time"].values
+        if not np.all(times[1:] > times[:-1]):
+            raise ValueError(f"Time dimension of {da.name} is not strictly increasing")
     return
