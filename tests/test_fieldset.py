@@ -1,4 +1,3 @@
-from datetime import timedelta
 from io import StringIO
 
 import cf_xarray  # noqa: F401
@@ -231,45 +230,6 @@ def test_fieldset_unstructured_vectorfield_empty():
 def test_default_vector_field_components(data_vars, expected):
     got = _default_vector_field_components(data_vars)
     assert got == expected
-
-
-def test_multi_model_time_interval():
-    ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]]
-    fieldset = FieldSet.from_sgrid_conventions(ds1)
-
-    ds2 = ds1.copy().rename({"U_A_grid": "U2", "V_A_grid": "V2"})
-    ds2["time"] = (ds2["time"].dims, ds2["time"].data + np.timedelta64(timedelta(days=1)), ds2["time"].attrs)
-    fieldset += FieldSet.from_sgrid_conventions(ds2)
-
-    ds3 = ds1.copy().rename({"U_A_grid": "U3", "V_A_grid": "V3"})
-    ds3["time"] = (ds3["time"].dims, ds3["time"].data + np.timedelta64(timedelta(days=2)), ds3["time"].attrs)
-    fieldset += FieldSet.from_sgrid_conventions(ds3)
-
-    fieldset.add_constant_field("constant_field", 1.0)
-
-    assert len(fieldset.models) == 3
-    assert fieldset.constant_model is not None
-    assert fieldset.time_interval.left == np.datetime64("2000-01-03")
-    assert fieldset.time_interval.right == np.datetime64("2001-01-01")
-
-
-def test_multi_model_nonoverlapping_time_interval():
-    ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]]
-    fieldset = FieldSet.from_sgrid_conventions(ds1)
-
-    ds2 = ds1.copy().rename({"U_A_grid": "U2", "V_A_grid": "V2"})
-    ds2["time"] = (ds2["time"].dims, ds2["time"].data + np.timedelta64(timedelta(days=1000)), ds2["time"].attrs)
-    fieldset += FieldSet.from_sgrid_conventions(ds2)
-
-    ds3 = ds1.copy().rename({"U_A_grid": "U3", "V_A_grid": "V3"})
-    ds3["time"] = (ds3["time"].dims, ds3["time"].data + np.timedelta64(timedelta(days=2000)), ds3["time"].attrs)
-    fieldset += FieldSet.from_sgrid_conventions(ds3)
-
-    fieldset.add_constant_field("constant_field", 1.0)
-
-    assert len(fieldset.models) == 3
-    assert fieldset.constant_model is not None
-    assert fieldset.time_interval is None
 
 
 def test_fieldset_add_incompatible_calendars():

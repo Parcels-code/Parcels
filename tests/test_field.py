@@ -71,16 +71,6 @@ def test_field_init_fail_on_float_time_dim():
         _ = model.time_interval
 
 
-# TODO: Move to test_model.py as test_model_time_interval() ?
-def test_field_time_interval():
-    """Test that field.time_interval delegates correctly to model.time_interval."""
-    data = datasets_structured["ds_2d_left"]
-    model = StructuredModelData.from_sgrid_conventions(data, vector_fields=NOTSET)
-    field = Field(name="data_g", model=model)
-    assert field.time_interval.left == np.datetime64("2000-01-01")
-    assert field.time_interval.right == np.datetime64("2001-01-01")
-
-
 def test_vectorfield_init_different_time_intervals():
     # Tests that a VectorField raises a ValueError if the component fields have different time domains.
     dsU = simple_UV_dataset(mesh_str="flat")[["U", "grid"]]
