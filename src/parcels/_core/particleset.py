@@ -135,17 +135,10 @@ class ParticleSet:
                 y=y,
                 x=x,
                 particle_id=particle_ids,
+                **kwargs,
             ),
         )
         self._pclass = pclass
-
-        # update initial values provided on ParticleSet creation # TODO: Wrap this into create_particle_data
-        particle_variables = [v.name for v in pclass.variables]
-        for kwvar, kwval in kwargs.items():
-            if kwvar not in particle_variables:
-                raise RuntimeError(f"Particle class does not have Variable {kwvar}")
-            self._data[kwvar][:] = kwval
-
         self._kernel = None
 
     def __del__(self):
