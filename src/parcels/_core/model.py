@@ -216,9 +216,11 @@ class StructuredModelData(ModelData):
             single_fields[varname] = Field(str(varname), self)
 
         for vfield_name, components in self.vector_field_components.items():
-            interp_method = (
-                XLinear_Velocity() if _is_agrid(self.data, u=components[0], v=components[1]) else CGrid_Velocity()
-            )
+            interp_method = self.field_to_interpolator.get(vfield_name)
+            if interp_method is None:
+                interp_method = (
+                    XLinear_Velocity() if _is_agrid(self.data, u=components[0], v=components[1]) else CGrid_Velocity()
+                )
 
             component_fields = [single_fields[name] for name in components]
             vector_fields[vfield_name] = VectorField(vfield_name, *component_fields, interp_method=interp_method)  # type:ignore[misc,arg-type]
@@ -389,7 +391,9 @@ class UnstructuredModelData(ModelData):
             single_fields[varname] = Field(str(varname), self)
 
         for vfield_name, components in self.vector_field_components.items():
-            interp_method = Ux_Velocity()
+            interp_method = self.field_to_interpolator.get(vfield_name)
+            if interp_method is None:
+                interp_method = Ux_Velocity()
 
             component_fields = [single_fields[name] for name in components]
             vector_fields[vfield_name] = VectorField(vfield_name, *component_fields, interp_method=interp_method)  # type:ignore[misc, arg-type]
