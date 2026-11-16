@@ -312,5 +312,5 @@ def spatialhash_describe(spatialhash: SpatialHash) -> str:
 
 def _get_parent_model(field: Field | VectorField) -> ModelData:
     if isinstance_noimport(field, "Field"):
-        return field.model  # type:ignore[union-attr]
+        return field.model
     return field.U.model  # type:ignore[union-attr]
