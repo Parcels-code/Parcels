@@ -70,12 +70,6 @@ class UxGrid(BaseGrid):
 
     @property
     def depth(self):
-        """
-        Notes
-        -----
-        Included for compatibility with v3 codebase. May be removed in future.
-        TODO v4: Evaluate
-        """
         try:
             _ = self.z.values
         except KeyError:
