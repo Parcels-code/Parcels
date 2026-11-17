@@ -11,6 +11,7 @@ from parcels import (
     UxGrid,
     convert,
 )
+from parcels._chunk_cached_array import ChunkCachedArray
 from parcels._core.mesh import FlatMesh, SphericalMesh
 from parcels._core.model import UnstructuredModelData
 from parcels._datasets.unstructured.generated import sigma_coordinate_lattice_dataset, simple_small_delaunay
@@ -316,6 +317,15 @@ def test_fieldset_from_sigma_coordinate_dataset(eta, expected_n_snapshots):
     assert fieldset.U.grid.get_axis_dim("Z") == nz
     for field in (fieldset.U, fieldset.V, fieldset.W):
         assert isinstance(field.interp_method, UxLinearNodeLinearZF)
+
+
+def test_uxgrid_dask_time_varying_z_is_chunk_cached():
+    ds = sigma_coordinate_lattice_dataset(5, (0.0, 4e3), (0.0, 4e3), 4, SLOPING_BOTTOM_DEPTH, RISING_ETA)
+    ds = ds.chunk({"time": 1})
+
+    grid = FieldSet.from_ugrid_conventions(ds).U.grid
+
+    assert isinstance(grid.z.variable._data, ChunkCachedArray)
 
 
 def test_unstructured_model_data_rejects_z_with_different_time_coordinate():

@@ -145,6 +145,8 @@ class XGrid(BaseGrid):
             ds = ds.set_coords([x_coordinate_name, y_coordinate_name])
             assert_valid_lat_lon(ds[y_coordinate_name], ds[x_coordinate_name], self.sgrid_metadata)
 
+        self._ds = ds
+
         if "Z" in axes:
             depth = ds["depth"]
             if depth.ndim not in (1, 4):
@@ -153,8 +155,6 @@ class XGrid(BaseGrid):
                 self._init_time_varying_depth()
             else:
                 assert_valid_depth(depth)
-
-        self._ds = ds
 
     def _init_time_varying_depth(self) -> None:
         """Checks the dims of a time-varying (4D) depth and assigns its default z_interp_method."""
@@ -167,11 +167,14 @@ class XGrid(BaseGrid):
         face_registered_dims = ("time", vertical_dim, fnp_y.face, fnp_x.face)
         node_registered_dims = ("time", vertical_dim, fnp_y.node, fnp_x.node)
 
-        if depth.dims not in (face_registered_dims, node_registered_dims):
+        if set(depth.dims) not in (set(face_registered_dims), set(node_registered_dims)):
             raise ValueError(
                 f"A 4D depth must have dims {face_registered_dims} (cell centres) or {node_registered_dims} "
-                f"(cell corners), got {depth.dims}"
+                f"(cell corners), in any order, got {depth.dims}"
             )
+
+        self._ds.coords["depth"] = _transpose_xfield_data_to_tzyx(depth, self.sgrid_metadata)
+        depth = self.depth
 
         if is_dask_collection(depth.data):
             depth.variable._data = ChunkCachedArray(depth.data, max_cache_bytes=600_000_000)

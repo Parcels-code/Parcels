@@ -18,6 +18,19 @@ if TYPE_CHECKING:
 _UXGRID_AXES = Literal["Z", "FACE"]
 
 
+def _transpose_uxfield_data(da: ux.UxDataArray) -> ux.UxDataArray:
+    """Transpose a DataArray on a UxGrid to the order (time, vertical, lateral) that the Ux interpolators assume."""
+    dim_to_position = {"time": 0, "zf": 1, "zc": 1, "n_node": 2, "n_face": 2, "n_edge": 2}
+
+    dims_not_on_grid = set(da.dims) - set(dim_to_position)
+    if dims_not_on_grid:
+        raise ValueError(
+            f"DataArray {da.name!r} with dims {da.dims} has dimensions {dims_not_on_grid} that are not on a UxGrid."
+        )
+
+    return da.transpose(*sorted(da.dims, key=dim_to_position.__getitem__))
+
+
 class UxGrid(BaseGrid):
     """
     Extension of uxarray's Grid class that supports point-location search
@@ -35,7 +48,8 @@ class UxGrid(BaseGrid):
         z : ux.UxDataArray
             Vertical coordinates (depths) of the layer interface heights (not the mid-layer depths). Either a 1D array,
             constant in time and space (flat bottom topography, no moving vertical grid), or a 3D array with dims
-            ("time", "zf", "n_node") or ("time", "zf", "n_face"), varying in time and across the mesh nodes or faces.
+            ("time", "zf", "n_node") or ("time", "zf", "n_face") in any order, varying in time and across the mesh nodes
+            or faces.
         mesh : FlatMesh or SphericalMesh
             The mesh of the grid, e.g. ``FlatMesh()`` or ``SphericalMesh(radius=...)``.
         """
@@ -64,10 +78,14 @@ class UxGrid(BaseGrid):
         """Checks the dims of a time-varying (3D) z and assigns its default z_interp_method."""
         z = self.z
 
-        if z.dims not in (("time", "zf", "n_node"), ("time", "zf", "n_face")):
+        if set(z.dims) not in ({"time", "zf", "n_node"}, {"time", "zf", "n_face"}):
             raise ValueError(
-                f"A 3D z must have dims ('time', 'zf', 'n_node') or ('time', 'zf', 'n_face'), got {z.dims}"
+                f"A 3D z must have dims ('time', 'zf', 'n_node') or ('time', 'zf', 'n_face'), in any order, "
+                f"got {z.dims}"
             )
+
+        self.z = _transpose_uxfield_data(z)
+        z = self.z
 
         if is_dask_collection(z.data):
             z.variable._data = ChunkCachedArray(z.data, max_cache_bytes=600_000_000)

@@ -8,6 +8,7 @@ from numpy.testing import assert_allclose
 from re_assert import Matches
 
 from parcels import FieldSet
+from parcels._chunk_cached_array import ChunkCachedArray
 from parcels._core.index_search import (
     LEFT_OUT_OF_BOUNDS,
     RIGHT_OUT_OF_BOUNDS,
@@ -20,6 +21,7 @@ from parcels._core.xgrid import (
     XGrid,
     _transpose_xfield_data_to_tzyx,
 )
+from parcels._datasets.structured.generated import simple_UV_sigma_dataset
 from parcels._datasets.structured.generic import X, Y, Z, datasets, datasets_sgrid
 from parcels._sgrid.accessor import SGridDatasetInconsistency
 from tests import utils
@@ -121,6 +123,29 @@ def test_transpose_xfield_data_to_tzyx(ds):
         da_subset = da.isel(isel, drop=True)
         da_test = _transpose_xfield_data_to_tzyx(da_subset, grid.sgrid_metadata)
         utils.assert_valid_field_data(da_test, grid)
+
+
+def test_xgrid_time_varying_depth_in_any_dim_order():
+    ny, nx = 5, 6
+    rng = np.random.default_rng(0)
+    ds = simple_UV_sigma_dataset(
+        n_times=3, nz=4, ny=ny, nx=nx, bottom_depth=rng.uniform(10.0, 50.0, (ny, nx)), eta=rng.random((3, ny, nx))
+    )
+    canonical_depth = ds["depth"]
+    ds = ds.assign_coords(depth=canonical_depth.transpose("XC", "ZF", "time", "YC"))
+
+    grid = FieldSet.from_sgrid_conventions(ds).U.grid
+
+    assert grid.depth.dims == canonical_depth.dims
+    np.testing.assert_array_equal(grid.depth.values, canonical_depth.values)
+
+
+def test_xgrid_dask_time_varying_depth_is_chunk_cached():
+    ds = simple_UV_sigma_dataset(n_times=3, nz=4, ny=5, nx=6).chunk({"time": 1})
+
+    grid = FieldSet.from_sgrid_conventions(ds).U.grid
+
+    assert isinstance(grid.depth.variable._data, ChunkCachedArray)
 
 
 def test_xgrid_get_axis_dim(fieldset):
