@@ -24,7 +24,13 @@ class VectorInterpolator(ABC):
 
 
 class VerticalCoordinateInterpolator(ABC):
-    """Used for models with time varying z."""
+    """Base class for the interpolators that build each particle's z column on a grid with a time-varying z.
+
+    Unlike ScalarInterpolator and VectorInterpolator, which interpolate a field's values onto the particle positions,
+    these interpolators are part of the particle search. They interpolate the grid's z coordinate horizontally and in
+    time to give each particle a column of layer interface depths, which is then searched for the particle's vertical
+    index. They are therefore set on the grid (``grid.z_interp_method``) rather than on a field.
+    """
 
     @abstractmethod
     def columns(self, grid_positions, grid) -> np.ndarray:
