@@ -198,12 +198,12 @@ class XGrid(BaseGrid):
             raise ValueError(f"z_interp_method must be a `VerticalCoordinateInterpolator` object. Got {type(value)=!r}")
         if self.depth.ndim != 4:
             raise ValueError("z_interp_method can only be set on a grid with a time-varying (4D) depth")
-        depth_dims = self.depth.dims
-        if (
-            isinstance(value, XVerticalCoordinateConstant)
-            and get_dim_position(self.sgrid_metadata, depth_dims[-1]) != "face"
-        ):
-            raise ValueError(f"XVerticalCoordinateConstant needs depth on the cell centres, got dims {depth_dims}")
+        fnp_x, fnp_y = self.sgrid_metadata.face_dimensions
+        cell_centre_dims = (fnp_y.face, fnp_x.face)
+        if isinstance(value, XVerticalCoordinateConstant) and self.depth.dims[-2:] != cell_centre_dims:
+            raise ValueError(
+                f"XVerticalCoordinateConstant needs depth on the cell centres {cell_centre_dims}, got dims {self.depth.dims}"
+            )
         self._z_interp_method = value
 
     @property
