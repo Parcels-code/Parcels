@@ -248,6 +248,8 @@ class XGrid(BaseGrid):
 
     @cached_property
     def zdim(self) -> int:
+        if "Z" not in self.axes:
+            return np.ones(1)
         return self.get_axis_dim("Z")
 
     def get_axis_dim(self, axis: ptyping.XgridAxis) -> int:

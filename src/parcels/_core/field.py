@@ -319,9 +319,10 @@ def _update_particles_ei(particles, grid_positions: dict, field: Field):
         if isinstance(field.grid, XGrid):
             particles.ei[:, field.igrid] = field.grid.ravel_index(
                 {
-                    "X": grid_positions["X"]["index"],
-                    "Y": grid_positions["Y"]["index"],
-                    "Z": grid_positions["Z"]["index"],
+                    # Clip the axis indices to be within the valid range of the grid dimensions (#3062)
+                    "X": np.clip(grid_positions["X"]["index"], 0, field.grid.xdim - 1),
+                    "Y": np.clip(grid_positions["Y"]["index"], 0, field.grid.ydim - 1),
+                    "Z": np.clip(grid_positions["Z"]["index"], 0, field.grid.zdim - 1),
                 }
             )
         elif isinstance(field.grid, UxGrid):
