@@ -665,7 +665,8 @@ def _position_between_cell_centres(face_index: np.ndarray, bcoord: np.ndarray) -
     The grid search gives positions relative to the nodes, but face registered data lives at the cell centres, half a
     cell further along. Shifting back by half a cell gives the position relative to the cell centres, so node based
     interpolators (e.g. XLinear) can interpolate face registered data. Positions before the first cell centre are
-    clamped onto it.
+    clamped onto it. ``face_index`` is the particle's cell in face indices, i.e. the search index plus the padding
+    offset from ``_get_offsets_dictionary``.
     """
     upper_half = bcoord >= 0.5
     lower_face = np.where(upper_half, face_index, face_index - 1)
