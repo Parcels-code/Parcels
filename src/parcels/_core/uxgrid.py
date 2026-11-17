@@ -115,7 +115,8 @@ class UxGrid(BaseGrid):
     @property
     def z_interp_method(self) -> VerticalCoordinateInterpolator | None:
         """The ``VerticalCoordinateInterpolator`` used during the particle search to build each particle's z column.
-        Unlike a field's ``interp_method``, it is shared by every field on this grid."""
+        Unlike a field's ``interp_method``, it is shared by every field on this grid.
+        """
         return self._z_interp_method
 
     @z_interp_method.setter
