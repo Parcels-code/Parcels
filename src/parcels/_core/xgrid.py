@@ -411,7 +411,7 @@ class XGrid(BaseGrid):
             raise NotImplementedError("Searching in >2D lon/lat arrays is not implemented yet.")
 
         if "Z" in self.axes and ds.depth.ndim == 4:
-            zi, zeta = self._search_time_varying_depth(z, yi, eta, xi, xsi, ti, tau)
+            zi, zeta = self._search_time_varying_depth(z, ti, tau, yi, eta, xi, xsi)
         elif "Z" in self.axes:
             zi, zeta = _search_1d_array(ds.depth.values, z)
         else:
@@ -423,7 +423,7 @@ class XGrid(BaseGrid):
             "X": {"index": xi, "bcoord": xsi},
         }
 
-    def _search_time_varying_depth(self, z, yi, eta, xi, xsi, ti, tau):
+    def _search_time_varying_depth(self, z, ti, tau, yi, eta, xi, xsi):
         """Vertical search of each particle in the z column built by the grid's z_interp_method."""
         found = (yi >= 0) & (xi >= 0)
         grid_positions = {

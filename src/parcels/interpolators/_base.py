@@ -7,7 +7,7 @@ import numpy as np
 
 class ScalarInterpolator(ABC):
     @abstractmethod
-    def interp(self, particle_positions, grid_positions, field) -> Any:  #! API a WIP
+    def interp(self, particle_positions, grid_positions, field) -> Any:
         ...
 
     def __repr__(self):
@@ -16,7 +16,7 @@ class ScalarInterpolator(ABC):
 
 class VectorInterpolator(ABC):
     @abstractmethod
-    def interp(self, particle_positions, grid_positions, vectorfield) -> Any:  #! API a WIP
+    def interp(self, particle_positions, grid_positions, vectorfield) -> Any:
         ...
 
     def __repr__(self):
@@ -27,7 +27,8 @@ class VerticalCoordinateInterpolator(ABC):
     """Used for models with time varying z."""
 
     @abstractmethod
-    def columns(self, grid_positions, grid) -> np.ndarray:  #! API a WIP, returns an (npart, n_interfaces) array
+    def columns(self, grid_positions, grid) -> np.ndarray:
+        """Returns each particle's z column as an (npart, n_interfaces) array."""
         ...
 
     def _columns_from_scalar(self, interp: ScalarInterpolator, grid_positions, grid) -> np.ndarray:

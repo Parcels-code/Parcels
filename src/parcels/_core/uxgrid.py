@@ -198,13 +198,13 @@ class UxGrid(BaseGrid):
             fi[zero_indices] = face_ids_q
 
         if self.z.ndim == 3:
-            zi, zeta = self._search_time_varying_z(z, fi, coords, ti, tau)
+            zi, zeta = self._search_time_varying_z(z, ti, tau, fi, coords)
         else:
             zi, zeta = _search_1d_array(self.z.values, z)
 
         return {"Z": {"index": zi, "bcoord": zeta}, "FACE": {"index": fi, "bcoord": coords}}
 
-    def _search_time_varying_z(self, z, fi, coords, ti, tau):
+    def _search_time_varying_z(self, z, ti, tau, fi, coords):
         """Vertical search of each particle in the z column built by the grid's z_interp_method."""
         found = fi >= 0
         grid_positions = {
