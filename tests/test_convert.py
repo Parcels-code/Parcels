@@ -372,3 +372,22 @@ def test_mom6_to_sgrid_withdepth():
     V = V.expand_dims(depth=[0], axis=1)
     with pytest.raises(ValueError, match="has more than 2 spatial dimensions"):
         convert.mom6_to_sgrid(fields={"U": U, "V": V}, coords=coords)
+
+
+def test_mom6_to_sgrid_clip_ei():
+    U = parcels.tutorial.open_dataset("MOM6_example_data/U")["ssu"]
+    V = parcels.tutorial.open_dataset("MOM6_example_data/V")["ssv"]
+    coords = parcels.tutorial.open_dataset("MOM6_example_data/static")
+    ds = convert.mom6_to_sgrid(fields={"U": U, "V": V}, coords=coords)
+    fieldset = FieldSet.from_sgrid_conventions(ds)
+
+    X = coords.geolon.isel(xh=-1)
+    Y = coords.geolat.isel(xh=-1)
+
+    pset = parcels.ParticleSet(fieldset=fieldset, x=X, y=Y)
+
+    pset.execute(
+        [parcels.kernels.AdvectionRK2],
+        runtime=np.timedelta64(12, "h"),
+        dt=np.timedelta64(1, "h"),
+    )
