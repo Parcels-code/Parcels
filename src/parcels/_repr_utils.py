@@ -131,6 +131,11 @@ def timeinterval_repr(ti: Any) -> str:
     return f"TimeInterval(left={ti.left!r}, right={ti.right!r})"
 
 
+def interpolator_repr(interp: Any) -> str:
+    """Return a pretty repr for scalar, vector and vertical coordinate interpolators"""
+    return f"{type(interp).__name__}(...)"
+
+
 def particlefile_repr(pfile: Any) -> str:
     """Return a pretty repr for ParticleFile"""
     out = f"""<{type(pfile).__name__}>

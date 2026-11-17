@@ -4,13 +4,15 @@ from typing import Any
 
 import numpy as np
 
+from parcels._repr_utils import interpolator_repr
+
 
 class ScalarInterpolator(ABC):
     @abstractmethod
     def interp(self, particle_positions, grid_positions, field) -> Any: ...
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(...)"
+        return interpolator_repr(self)
 
 
 class VectorInterpolator(ABC):
@@ -18,7 +20,7 @@ class VectorInterpolator(ABC):
     def interp(self, particle_positions, grid_positions, vectorfield) -> Any: ...
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(...)"
+        return interpolator_repr(self)
 
 
 class VerticalCoordinateInterpolator(ABC):
@@ -52,4 +54,4 @@ class VerticalCoordinateInterpolator(ABC):
         return np.asarray(interp.interp({}, level_positions, depth_field)).reshape(npart, nlev)
 
     def __repr__(self):
-        return f"{self.__class__.__name__}(...)"
+        return interpolator_repr(self)
