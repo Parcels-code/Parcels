@@ -7,8 +7,7 @@ import numpy as np
 
 class ScalarInterpolator(ABC):
     @abstractmethod
-    def interp(self, particle_positions, grid_positions, field) -> Any:
-        ...
+    def interp(self, particle_positions, grid_positions, field) -> Any: ...
 
     def __repr__(self):
         return f"{self.__class__.__name__}(...)"
@@ -16,8 +15,7 @@ class ScalarInterpolator(ABC):
 
 class VectorInterpolator(ABC):
     @abstractmethod
-    def interp(self, particle_positions, grid_positions, vectorfield) -> Any:
-        ...
+    def interp(self, particle_positions, grid_positions, vectorfield) -> Any: ...
 
     def __repr__(self):
         return f"{self.__class__.__name__}(...)"
