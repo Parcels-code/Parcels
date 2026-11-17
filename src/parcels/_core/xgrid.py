@@ -240,10 +240,14 @@ class XGrid(BaseGrid):
 
     @cached_property
     def xdim(self) -> int:
+        if "X" not in self.axes:
+            return np.ones(1)
         return self.get_axis_dim("X")
 
     @cached_property
     def ydim(self) -> int:
+        if "Y" not in self.axes:
+            return np.ones(1)
         return self.get_axis_dim("Y")
 
     @cached_property
