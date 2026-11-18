@@ -577,7 +577,6 @@ def test_mitgcm():
     np.testing.assert_allclose(pset.y, lat_v3, atol=1)
 
 
-@pytest.mark.filterwarnings("ignore:Time-varying \\(4D\\) z coordinates are experimental")
 def test_advection_on_moving_sigma_grid_keeps_depth():
     """With uniform u and w = 0, particles keep their depth while the sigma levels move past them."""
     n_snapshots, nz, ny, nx = 3, 6, 5, 5
