@@ -232,6 +232,14 @@ def test_default_vector_field_components(data_vars, expected):
     assert got == expected
 
 
+def test_time_not_increasing_monotonic():
+    ds = simple_UV_dataset(mesh_str="flat", n_times=3).copy()
+    ds["time"] = np.array([np.timedelta64(0, "h"), np.timedelta64(1, "h"), np.timedelta64(1, "h")])
+
+    with pytest.raises(ValueError):
+        FieldSet.from_sgrid_conventions(ds)
+
+
 def test_multi_model_time_interval():
     ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]]
     fieldset = FieldSet.from_sgrid_conventions(ds1)
@@ -450,6 +458,21 @@ def test_vectorfields_without_time():
     fset = FieldSet.from_sgrid_conventions(ds, vector_fields={"UV_const": ("U_const", "V_const")})
     fset.UV_const.eval(t=0, z=0, y=0, x=0)
     fset.U_const.eval(t=0, z=0, y=0, x=0)
+
+
+def test_interpolators_vectorfields_add():
+    ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]].rename({"U_A_grid": "U", "V_A_grid": "V"})
+    fieldset = FieldSet.from_sgrid_conventions(ds1)
+    fieldset.U.interp_method = parcels.interpolators.XNearest()
+    fieldset.UV.interp_method = parcels.interpolators.XFreeslip()
+    assert isinstance(fieldset.U.interp_method, parcels.interpolators.XNearest)
+    assert isinstance(fieldset.UV.interp_method, parcels.interpolators.XFreeslip)
+
+    ds2 = ds1.copy().rename({"U": "U2", "V": "V2"})
+    fieldset += FieldSet.from_sgrid_conventions(ds2)
+
+    assert isinstance(fieldset.U.interp_method, parcels.interpolators.XNearest)
+    assert isinstance(fieldset.UV.interp_method, parcels.interpolators.XFreeslip)
 
 
 def test_fieldset_add_error_on_duplicate_context_values():
