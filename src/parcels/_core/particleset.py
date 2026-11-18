@@ -450,7 +450,7 @@ class ParticleSet:
 
                 if verbose_progress:
                     pbar.set_description_str(
-                        "Integration time: " + str(float_to_datelike(time, self.fieldset.time_interval))
+                        "Integration time: " + str(float_to_datelike(next_time, self.fieldset.time_interval))
                     )
                     pbar.update(sign_dt * (next_time - time))
 

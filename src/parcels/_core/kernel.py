@@ -219,6 +219,10 @@ class Kernel:
                         f(pset[repeat_particles], self._fieldset)
                         repeat_particles = pset.state == StatusCode.Repeat
 
+                # a kernel may have changed dt; keep it from stepping past endtime in the next kernel
+                pset.dt, newly_clipped = _clip_dt_to_endtime(pset.dt, time_to_endtime, sign_dt)
+                dt_to_restore.extend(newly_clipped)
+
             # apply position/time update only to particles still in a normal state
             # (particles that signalled Stop*/Delete/errors should not have time/position advanced)
             update_particles = evaluate_particles & (pset.state == StatusCode.Success)

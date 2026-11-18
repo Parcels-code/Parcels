@@ -413,6 +413,21 @@ def test_vectorfields_without_time():
     fset.U_const.eval(t=0, z=0, y=0, x=0)
 
 
+def test_interpolators_vectorfields_add():
+    ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]].rename({"U_A_grid": "U", "V_A_grid": "V"})
+    fieldset = FieldSet.from_sgrid_conventions(ds1)
+    fieldset.U.interp_method = parcels.interpolators.XNearest()
+    fieldset.UV.interp_method = parcels.interpolators.XFreeslip()
+    assert isinstance(fieldset.U.interp_method, parcels.interpolators.XNearest)
+    assert isinstance(fieldset.UV.interp_method, parcels.interpolators.XFreeslip)
+
+    ds2 = ds1.copy().rename({"U": "U2", "V": "V2"})
+    fieldset += FieldSet.from_sgrid_conventions(ds2)
+
+    assert isinstance(fieldset.U.interp_method, parcels.interpolators.XNearest)
+    assert isinstance(fieldset.UV.interp_method, parcels.interpolators.XFreeslip)
+
+
 def test_fieldset_add_error_on_duplicate_context_values():
     """Test that adding FieldSets with overlapping context value names raises a ValueError."""
     ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "grid"]].rename({"U_A_grid": "U1"})

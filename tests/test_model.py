@@ -5,6 +5,7 @@ import pytest
 
 from parcels import Field, FieldSet
 from parcels._core.model import StructuredModelData
+from parcels._datasets.structured.generated import simple_UV_dataset
 from parcels._datasets.structured.generic import T as T_structured
 from parcels._datasets.structured.generic import datasets as datasets_structured
 from parcels._python import NOTSET
@@ -29,6 +30,14 @@ def test_model_init_fail_on_float_time_dim():
         match=r"Are you sure that the time dimension on the xarray dataset is stored as timedelta, datetime or cftime datetime objects\?",
     ):
         _ = model.time_interval
+
+
+def test_time_not_increasing_monotonic():
+    ds = simple_UV_dataset(mesh_str="flat", n_times=3).copy()
+    ds["time"] = np.array([np.timedelta64(0, "h"), np.timedelta64(1, "h"), np.timedelta64(1, "h")])
+
+    with pytest.raises(ValueError):
+        FieldSet.from_sgrid_conventions(ds)
 
 
 def test_model_time_interval():

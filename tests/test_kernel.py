@@ -221,6 +221,31 @@ def test_dt_modify_age_in_kernel(fieldset, changed_dt):
     np.testing.assert_allclose(pset.age[0], expected_age)
 
 
+@pytest.mark.parametrize("with_output", [True, False])
+def test_dt_increase_in_kernel_clipped_before_next_kernel(tmp_parquet, with_output):
+    """A kernel that increases dt past endtime must not make later kernels sample beyond endtime.
+
+    Regression test: dt was only clipped to endtime before the kernels and before the position
+    update, so AdvectionRK4 sampled the fields past the end of the dataset.
+    """
+    ds = simple_UV_dataset(n_times=2, nz=1, ny=4, nx=4, mesh_str="flat")
+    ds["U"].data[:] = 1e-3
+    fieldset = FieldSet.from_sgrid_conventions(ds)
+    runtime = float((ds.time[-1] - ds.time[0]) / np.timedelta64(1, "s"))  # run to the end of the dataset
+
+    def IncreaseDt(particles, fieldset):  # pragma: no cover
+        particles.dt = 2 * runtime
+
+    x0 = 1e5
+    pset = ParticleSet(fieldset, x=[x0], y=[1e5])
+    output = ParticleFile(tmp_parquet, outputdt=runtime / 4) if with_output else None
+    pset.execute([IncreaseDt, AdvectionRK4], runtime=runtime, dt=1.0, output_file=output, verbose_progress=False)
+
+    np.testing.assert_allclose(pset.t[0], runtime)
+    # displacement must match the time advanced, i.e. RK4 used the clipped dt
+    np.testing.assert_allclose(pset.x[0], x0 + 1e-3 * runtime, rtol=1e-6)
+
+
 @pytest.mark.parametrize("dt", [1e-2, 1e-5, 1e-6, 1e-9])
 def test_small_dt(fieldset, dt):
     pset = ParticleSet(fieldset, x=[0], y=[0])
