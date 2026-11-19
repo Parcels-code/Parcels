@@ -86,7 +86,7 @@ class ParticleSet:
             minz = None
             for field in self.fieldset.fields.values():
                 has_time_varying_z = (isinstance(field.grid, UxGrid) and field.grid.z.ndim == 3) or (
-                    isinstance(field.grid, XGrid) and "Z" in field.grid.axes and field.grid._ds["depth"].ndim == 4
+                    isinstance(field.grid, XGrid) and field.grid.depth.ndim == 4
                 )
                 if has_time_varying_z:
                     raise ValueError(

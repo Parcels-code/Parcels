@@ -699,7 +699,6 @@ time interval: (np.datetime64('2000-01-02T12:00:00.000000000'), np.datetime64('2
     assert actual == expected
 
 
-@pytest.mark.filterwarnings("ignore:Time-varying \\(4D\\) z coordinates are experimental")
 @pytest.mark.parametrize(
     "n_snapshots",
     [

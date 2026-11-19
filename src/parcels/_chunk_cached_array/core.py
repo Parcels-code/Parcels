@@ -40,6 +40,10 @@ def wrap_dataset(ds: xr.Dataset, max_cache_bytes: int) -> xr.Dataset:
     # Load coordinates eagerly — they are small 1D arrays and keeping them
     # as dask arrays causes expensive task-graph construction on every .isel().
     for name in list(ds.coords):
+        # During grid construction dask backed time varying z data is backed by a ChunkCachedArray, time varying z
+        # coordinates can be large, so we don't load automatically
+        if isinstance(ds[name].variable._data, ChunkCachedArray):
+            continue
         ds[name].load()
     for name in ds.data_vars:
         var = ds.variables[name]

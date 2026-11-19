@@ -17,7 +17,7 @@ from parcels._core.basegrid import BaseGrid
 from parcels._core.field import Field, VectorField
 from parcels._core.mesh import FlatMesh, SphericalMesh, _infer_mesh_from_coordinates
 from parcels._core.utils.time import TimeInterval
-from parcels._core.uxgrid import UxGrid
+from parcels._core.uxgrid import UxGrid, _transpose_uxfield_data
 from parcels._core.xgrid import (
     XGrid,
     _transpose_xfield_data_to_tzyx,
@@ -161,6 +161,12 @@ def preprocess_sgrid_model_data(ds: xr.Dataset) -> xr.Dataset:
 
     for field_name in set(ds.data_vars) - {ds.sgrid._get_grid_topology().name}:
         ds[field_name] = _transpose_xfield_data_to_tzyx(ds[field_name], metadata)
+    return ds
+
+
+def preprocess_ugrid_model_data(ds: ux.UxDataset) -> ux.UxDataset:
+    for field_name in list(ds.data_vars):
+        ds[field_name] = _transpose_uxfield_data(ds[field_name])
     return ds
 
 
@@ -370,6 +376,8 @@ class UnstructuredModelData(ModelData):
         if not isinstance(data, ux.UxDataset):
             raise ValueError(f"Expected `data` to be an uxarray.UxDataset . Got {type(data)}")
 
+        data = preprocess_ugrid_model_data(data)
+
         if not isinstance(grid, UxGrid):
             raise ValueError(f"Expected `grid` to be a Parcels UxGrid object. Got {type(grid)}.")
 
@@ -413,6 +421,7 @@ class UnstructuredModelData(ModelData):
     def from_ugrid_conventions(
         cls, ds: ux.UxDataset, *, mesh: ptyping.TMesh | None = None, vector_fields: ptyping.VectorFields | NotSetType
     ):
+        ds = ds.copy()
         ds_dims = list(ds.dims)
         if not all(dim in ds_dims for dim in ["time", "zf", "zc"]):
             raise ValueError(
