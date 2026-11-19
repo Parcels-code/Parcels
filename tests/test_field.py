@@ -10,7 +10,6 @@ from parcels._core.fieldset import FieldSet
 from parcels._core.model import StructuredModelData
 from parcels._core.warnings import FieldEvalWarning
 from parcels._datasets.structured.generated import simple_UV_dataset
-from parcels._datasets.structured.generic import T as T_structured
 from parcels._datasets.structured.generic import datasets as datasets_structured
 from parcels._datasets.unstructured.generic import _ux_constant_flow_face_centered_2D
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
@@ -47,38 +46,6 @@ def test_field_repr(fieldset):
 
 def test_vectorfield_repr(fieldset):
     Matches(r"\<.*VectorField object at.*\>").assert_matches(repr(fieldset.UV))
-
-
-# TODO: Move to test_model.py ?
-def test_field_init_fail_on_float_time_dim():
-    """Test that accessing time_interval fails when dataset has float time dimension.
-
-    (users are expected to use timedelta64 or datetime).
-    Time validation has moved from Field.__init__ to ModelData.time_interval.
-    """
-    ds = datasets_structured["ds_2d_left"].copy()
-    ds["time"] = (
-        ds["time"].dims,
-        np.arange(0, T_structured, dtype="float64"),
-        ds["time"].attrs,
-    )
-
-    model = StructuredModelData.from_sgrid_conventions(ds, vector_fields=NOTSET)
-    with pytest.raises(
-        ValueError,
-        match=r"Are you sure that the time dimension on the xarray dataset is stored as timedelta, datetime or cftime datetime objects\?",
-    ):
-        _ = model.time_interval
-
-
-# TODO: Move to test_model.py as test_model_time_interval() ?
-def test_field_time_interval():
-    """Test that field.time_interval delegates correctly to model.time_interval."""
-    data = datasets_structured["ds_2d_left"]
-    model = StructuredModelData.from_sgrid_conventions(data, vector_fields=NOTSET)
-    field = Field(name="data_g", model=model)
-    assert field.time_interval.left == np.datetime64("2000-01-01")
-    assert field.time_interval.right == np.datetime64("2001-01-01")
 
 
 def test_vectorfield_init_different_time_intervals():

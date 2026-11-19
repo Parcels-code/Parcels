@@ -97,12 +97,6 @@ class UxGrid(BaseGrid):
 
     @property
     def depth(self):
-        """
-        Notes
-        -----
-        Included for compatibility with v3 codebase. May be removed in future.
-        TODO v4: Evaluate
-        """
         # Load time varying z lazily
         if self.z.ndim == 3:
             return self.z

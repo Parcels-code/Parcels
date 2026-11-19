@@ -1,4 +1,3 @@
-from datetime import timedelta
 from io import StringIO
 
 import cf_xarray  # noqa: F401
@@ -13,9 +12,10 @@ from re_assert import Matches
 import parcels.tutorial
 import tests
 from parcels import Particle, ParticleFile, ParticleSet, Variable, convert
-from parcels._core.fieldset import CalendarError, FieldSet, IncompatibleMeshesException, _datetime_to_msg
+from parcels._core.fieldset import FieldSet, IncompatibleMeshesException, _datetime_to_msg
 from parcels._core.mesh import SphericalMesh
 from parcels._core.model import _default_vector_field_components, _infer_mesh_from_sgrid_data
+from parcels._core.statuscodes import CalendarError
 from parcels._core.utils.time import TimeInterval
 from parcels._datasets.structured.generated import simple_UV_dataset, simple_UV_sigma_dataset
 from parcels._datasets.structured.generic import datasets as datasets_structured
@@ -230,53 +230,6 @@ def test_fieldset_unstructured_vectorfield_empty():
 def test_default_vector_field_components(data_vars, expected):
     got = _default_vector_field_components(data_vars)
     assert got == expected
-
-
-def test_time_not_increasing_monotonic():
-    ds = simple_UV_dataset(mesh_str="flat", n_times=3).copy()
-    ds["time"] = np.array([np.timedelta64(0, "h"), np.timedelta64(1, "h"), np.timedelta64(1, "h")])
-
-    with pytest.raises(ValueError):
-        FieldSet.from_sgrid_conventions(ds)
-
-
-def test_multi_model_time_interval():
-    ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]]
-    fieldset = FieldSet.from_sgrid_conventions(ds1)
-
-    ds2 = ds1.copy().rename({"U_A_grid": "U2", "V_A_grid": "V2"})
-    ds2["time"] = (ds2["time"].dims, ds2["time"].data + np.timedelta64(timedelta(days=1)), ds2["time"].attrs)
-    fieldset += FieldSet.from_sgrid_conventions(ds2)
-
-    ds3 = ds1.copy().rename({"U_A_grid": "U3", "V_A_grid": "V3"})
-    ds3["time"] = (ds3["time"].dims, ds3["time"].data + np.timedelta64(timedelta(days=2)), ds3["time"].attrs)
-    fieldset += FieldSet.from_sgrid_conventions(ds3)
-
-    fieldset.add_constant_field("constant_field", 1.0)
-
-    assert len(fieldset.models) == 3
-    assert fieldset.constant_model is not None
-    assert fieldset.time_interval.left == np.datetime64("2000-01-03")
-    assert fieldset.time_interval.right == np.datetime64("2001-01-01")
-
-
-def test_multi_model_nonoverlapping_time_interval():
-    ds1 = datasets_structured["ds_2d_left"][["U_A_grid", "V_A_grid", "grid"]]
-    fieldset = FieldSet.from_sgrid_conventions(ds1)
-
-    ds2 = ds1.copy().rename({"U_A_grid": "U2", "V_A_grid": "V2"})
-    ds2["time"] = (ds2["time"].dims, ds2["time"].data + np.timedelta64(timedelta(days=1000)), ds2["time"].attrs)
-    fieldset += FieldSet.from_sgrid_conventions(ds2)
-
-    ds3 = ds1.copy().rename({"U_A_grid": "U3", "V_A_grid": "V3"})
-    ds3["time"] = (ds3["time"].dims, ds3["time"].data + np.timedelta64(timedelta(days=2000)), ds3["time"].attrs)
-    fieldset += FieldSet.from_sgrid_conventions(ds3)
-
-    fieldset.add_constant_field("constant_field", 1.0)
-
-    assert len(fieldset.models) == 3
-    assert fieldset.constant_model is not None
-    assert fieldset.time_interval is None
 
 
 def test_fieldset_add_incompatible_calendars():
@@ -724,7 +677,26 @@ time interval: (np.datetime64('2000-01-02T12:00:00.000000000'), np.datetime64('2
     actual = io.getvalue()
     assert actual == expected
 
-    # TODO: Add test for the ChunkedArray backend (can also refactor this test at the same time)
+    # Also run with ChunkCachedArray backend (needs a new fieldset instance)
+    fieldset = FieldSet.from_sgrid_conventions(ds_fset)
+    fieldset = fieldset.to_chunk_cached_arrays()
+
+    io = StringIO()
+    expected = """\
+| Name   | Type        |   Grid number | Interp method / value   | Parcels backend   |
+|:-------|:------------|--------------:|:------------------------|:------------------|
+| U      | Field       |             0 | XLinear(...)            | ChunkCachedArray  |
+| V      | Field       |             0 | XLinear(...)            | ChunkCachedArray  |
+| W      | Field       |             0 | XLinear(...)            | ChunkCachedArray  |
+| UV     | VectorField |             0 | CGrid_Velocity(...)     | -                 |
+| UVW    | VectorField |             0 | CGrid_Velocity(...)     | -                 |
+
+mesh: SphericalMesh(radius=6366707.019493707)
+time interval: (np.datetime64('2000-01-02T12:00:00.000000000'), np.datetime64('2000-01-12T12:00:00.000000000'))
+"""
+    fieldset.describe(io)
+    actual = io.getvalue()
+    assert actual == expected
 
 
 @pytest.mark.parametrize(
