@@ -44,10 +44,10 @@ def test_metadata(fieldset, tmp_parquet):
     pset = ParticleSet(fieldset, pclass=Particle, x=0, y=0)
 
     ofile = ParticleFile(tmp_parquet, outputdt=np.timedelta64(1, "s"))
-    pset.execute(DoNothing, runtime=np.timedelta64(1, "s"), dt=np.timedelta64(1, "s"), output_file=ofile)
+    pset.execute([DoNothing, DoNothing], runtime=np.timedelta64(1, "s"), dt=np.timedelta64(1, "s"), output_file=ofile)
 
     tab = pq.read_table(tmp_parquet)
-    assert tab.schema.metadata[b"parcels_kernels"].decode().lower() == "DoNothing".lower()
+    assert tab.schema.metadata[b"parcels_kernels"].decode().lower() == "DoNothing DoNothing".lower()
 
 
 @pytest.mark.parametrize("compression", ["zstd", "gzip", "snappy", "brotli", None])
@@ -361,7 +361,6 @@ def test_pset_execute_outputdt_backwards_fieldset_timevarying():
     runtime = timedelta(days=2)
     dt = -timedelta(minutes=5)
 
-    # TODO: Not ideal using the `open_dataset` here, but I'm struggling to recreate this error using the test suite fieldsets we have
     ds_in = parcels.tutorial.open_dataset("CopernicusMarine_data_for_Argo_tutorial/data")
     fields = {"U": ds_in["uo"], "V": ds_in["vo"]}
     ds_fset = convert.copernicusmarine_to_sgrid(fields=fields)

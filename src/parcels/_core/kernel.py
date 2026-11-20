@@ -98,16 +98,9 @@ class Kernel:
         self._pclass = pset._pclass
 
         for f in kernels:
-            self.check_fieldsets_in_kernels(f)
+            self.assert_is_compatible(f)
 
         self._kernels: list[Callable] = kernels
-
-    @property  #! Ported from v3. To be removed in v4? (/find another way to name kernels in output file)
-    def funcname(self):
-        ret = ""
-        for f in self._kernels:
-            ret += f.__name__
-        return ret
 
     @property
     def pclass(self):
@@ -131,7 +124,7 @@ class Kernel:
             # Update dt in case it's increased in RK45 kernel
             particles.dt = particles.next_dt
 
-    def check_fieldsets_in_kernels(self, kernel):  # TODO v4: this can go into another method? assert_is_compatible()?
+    def assert_is_compatible(self, kernel):
         """
         Checks the integrity of the fieldset with the kernels.
 
@@ -225,6 +218,10 @@ class Kernel:
                     while np.any(repeat_particles):
                         f(pset[repeat_particles], self._fieldset)
                         repeat_particles = pset.state == StatusCode.Repeat
+
+                # a kernel may have changed dt; keep it from stepping past endtime in the next kernel
+                pset.dt, newly_clipped = _clip_dt_to_endtime(pset.dt, time_to_endtime, sign_dt)
+                dt_to_restore.extend(newly_clipped)
 
             # apply position/time update only to particles still in a normal state
             # (particles that signalled Stop*/Delete/errors should not have time/position advanced)

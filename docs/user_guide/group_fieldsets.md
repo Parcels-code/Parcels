@@ -1,7 +1,7 @@
 ```{toctree}
 :titlesonly:
 fieldsets_grids.ipynb
-fieldsets_sigma_coordinates.ipynb
+fieldsets_time_varying_z_coordinates.ipynb
 fieldsets_velocityconversion.ipynb
 fieldsets_nestedgrids.ipynb
 fieldsets_manipulating_field_data.ipynb

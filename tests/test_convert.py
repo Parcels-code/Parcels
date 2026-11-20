@@ -391,3 +391,12 @@ def test_mom6_to_sgrid_clip_ei():
         runtime=np.timedelta64(12, "h"),
         dt=np.timedelta64(1, "h"),
     )
+
+
+def test_normalize_fields_warns_about_other_variables(caplog):
+    ds = xr.Dataset({"U": ("x", [1.0]), "V": ("x", [2.0])})
+
+    result = convert._normalize_fields({"U": ds})
+
+    xr.testing.assert_identical(result["U"], ds["U"])
+    assert "other data variables are ignored for this entry: ['V']" in caplog.text
