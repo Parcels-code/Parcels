@@ -374,6 +374,25 @@ def test_mom6_to_sgrid_withdepth():
         convert.mom6_to_sgrid(fields={"U": U, "V": V}, coords=coords)
 
 
+def test_mom6_to_sgrid_clip_ei():
+    U = parcels.tutorial.open_dataset("MOM6_example_data/U")["ssu"]
+    V = parcels.tutorial.open_dataset("MOM6_example_data/V")["ssv"]
+    coords = parcels.tutorial.open_dataset("MOM6_example_data/static")
+    ds = convert.mom6_to_sgrid(fields={"U": U, "V": V}, coords=coords)
+    fieldset = FieldSet.from_sgrid_conventions(ds)
+
+    X = coords.geolon.isel(xh=-1)
+    Y = coords.geolat.isel(xh=-1)
+
+    pset = parcels.ParticleSet(fieldset=fieldset, x=X, y=Y)
+
+    pset.execute(
+        [parcels.kernels.AdvectionRK2],
+        runtime=np.timedelta64(12, "h"),
+        dt=np.timedelta64(1, "h"),
+    )
+
+
 def test_normalize_fields_warns_about_other_variables(caplog):
     ds = xr.Dataset({"U": ("x", [1.0]), "V": ("x", [2.0])})
 
