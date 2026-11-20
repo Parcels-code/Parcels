@@ -12,7 +12,6 @@ from dask.base import is_dask_collection
 
 from parcels._chunk_cached_array.core import ChunkCachedArray
 from parcels._core._windowed_array import WindowedArray
-from parcels._python import isinstance_noimport
 
 if TYPE_CHECKING:
     from parcels import Field, FieldSet, ParticleSet
@@ -129,6 +128,11 @@ def variable_repr(var: Any) -> str:
 def timeinterval_repr(ti: Any) -> str:
     """Return a pretty repr for TimeInterval"""
     return f"TimeInterval(left={ti.left!r}, right={ti.right!r})"
+
+
+def interpolator_repr(interp: Any) -> str:
+    """Return a pretty repr for scalar, vector and vertical coordinate interpolators"""
+    return f"{type(interp).__name__}(...)"
 
 
 def particlefile_repr(pfile: Any) -> str:
@@ -311,6 +315,4 @@ def spatialhash_describe(spatialhash: SpatialHash) -> str:
 
 
 def _get_parent_model(field: Field | VectorField) -> ModelData:
-    if isinstance_noimport(field, "Field"):
-        return field.model  # type:ignore[union-attr]
-    return field.U.model  # type:ignore[union-attr]
+    return field.model

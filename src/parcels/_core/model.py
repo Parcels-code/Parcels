@@ -5,6 +5,7 @@ from collections.abc import Hashable, Sequence
 from typing import TYPE_CHECKING, Any, Self
 
 import cf_xarray  # noqa: F401
+import numpy as np
 import xarray as xr
 from dask import is_dask_collection
 
@@ -16,7 +17,7 @@ from parcels._core.basegrid import BaseGrid
 from parcels._core.field import Field, VectorField
 from parcels._core.mesh import FlatMesh, SphericalMesh, _infer_mesh_from_coordinates
 from parcels._core.utils.time import TimeInterval
-from parcels._core.uxgrid import UxGrid
+from parcels._core.uxgrid import UxGrid, _transpose_uxfield_data
 from parcels._core.xgrid import (
     XGrid,
     _transpose_xfield_data_to_tzyx,
@@ -170,6 +171,12 @@ def preprocess_sgrid_model_data(ds: xr.Dataset) -> xr.Dataset:
     return ds
 
 
+def preprocess_ugrid_model_data(ds: ux.UxDataset) -> ux.UxDataset:
+    for field_name in list(ds.data_vars):
+        ds[field_name] = _transpose_uxfield_data(ds[field_name])
+    return ds
+
+
 def validate_field_data(ds: xr.Dataset) -> xr.Dataset:
     return ds.fillna(0)
 
@@ -222,9 +229,11 @@ class StructuredModelData(ModelData):
             single_fields[varname] = Field(str(varname), self)
 
         for vfield_name, components in self.vector_field_components.items():
-            interp_method = (
-                XLinear_Velocity() if _is_agrid(self.data, u=components[0], v=components[1]) else CGrid_Velocity()
-            )
+            interp_method = self.field_to_interpolator.get(vfield_name)
+            if interp_method is None:
+                interp_method = (
+                    XLinear_Velocity() if _is_agrid(self.data, u=components[0], v=components[1]) else CGrid_Velocity()
+                )
 
             component_fields = [single_fields[name] for name in components]
             vector_fields[vfield_name] = VectorField(vfield_name, *component_fields, interp_method=interp_method)  # type:ignore[misc,arg-type]
@@ -374,6 +383,8 @@ class UnstructuredModelData(ModelData):
         if not isinstance(data, ux.UxDataset):
             raise ValueError(f"Expected `data` to be an uxarray.UxDataset . Got {type(data)}")
 
+        data = preprocess_ugrid_model_data(data)
+
         if not isinstance(grid, UxGrid):
             raise ValueError(f"Expected `grid` to be a Parcels UxGrid object. Got {type(grid)}.")
 
@@ -395,7 +406,9 @@ class UnstructuredModelData(ModelData):
             single_fields[varname] = Field(str(varname), self)
 
         for vfield_name, components in self.vector_field_components.items():
-            interp_method = Ux_Velocity()
+            interp_method = self.field_to_interpolator.get(vfield_name)
+            if interp_method is None:
+                interp_method = Ux_Velocity()
 
             component_fields = [single_fields[name] for name in components]
             vector_fields[vfield_name] = VectorField(vfield_name, *component_fields, interp_method=interp_method)  # type:ignore[misc, arg-type]
@@ -415,6 +428,7 @@ class UnstructuredModelData(ModelData):
     def from_ugrid_conventions(
         cls, ds: ux.UxDataset, *, mesh: ptyping.TMesh | None = None, vector_fields: ptyping.VectorFields | NotSetType
     ):
+        ds = ds.copy()
         ds_dims = list(ds.dims)
         if not all(dim in ds_dims for dim in ["time", "zf", "zc"]):
             raise ValueError(
@@ -426,7 +440,7 @@ class UnstructuredModelData(ModelData):
 
         assert_vertical_dimensionality(ds, allowed_dimensionality=[1, 3])
 
-        grid = UxGrid(ds.uxgrid, z=ds.coords["zf"], mesh=mesh)  # type: ignore[arg-type] # uxarray coords typed as DataArray instead of UxDataArray
+        grid = UxGrid(ds.uxgrid, z=ds.coords["zf"], mesh=mesh)
         ds = _discover_ux_U_and_V(ds)
 
         vector_fields = resolve_vector_fields(ds, vector_fields)
@@ -595,4 +609,7 @@ def _assert_has_time_coordinate(da: xr.DataArray) -> None:
     if da.shape[0] > 1:
         if "time" not in da.coords:
             raise ValueError("Field data is missing a 'time' coordinate.")
+        times = da["time"].values
+        if not np.all(times[1:] > times[:-1]):
+            raise ValueError(f"Time dimension of {da.name} is not strictly increasing")
     return

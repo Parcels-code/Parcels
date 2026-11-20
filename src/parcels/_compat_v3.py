@@ -59,8 +59,6 @@ def particlefile_to_v3_zarr(from_parquet: str | Path | io.BytesIO, to_zarr: str 
     df = pl.read_parquet(from_parquet)
     table = pq.read_table(from_parquet)
 
-    # TODO: Check for available memory here and fail as a safeguard?
-
     # Rename columns to v3 conventions
     rename_map = {"particle_id": "trajectory", "t": "time", "x": "lon", "y": "lat"}
     try:

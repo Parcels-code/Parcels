@@ -250,7 +250,7 @@ def test_advection_3D_outofbounds(direction, resubmerge_particle):
 )
 def test_length1dimensions(u_value, x_slice, v_value, y_slice, w_value, z_slice):
     ds = datasets_sgrid["ds_2d_padded_high"].copy()[["U_A_grid", "grid"]]
-    ds = ds.isel(time=slice(2))  # TODO make this also work for length-1 time dimensions
+    ds = ds.isel(time=0)
     ds = ds.rename({"U_A_grid": "U"})
     ds["U"] = xr.full_like(ds["U"], u_value)
     ds["V"] = xr.full_like(ds["U"], v_value)
@@ -577,7 +577,6 @@ def test_mitgcm():
     np.testing.assert_allclose(pset.y, lat_v3, atol=1)
 
 
-@pytest.mark.filterwarnings("ignore:Time-varying \\(4D\\) z coordinates are experimental")
 def test_advection_on_moving_sigma_grid_keeps_depth():
     """With uniform u and w = 0, particles keep their depth while the sigma levels move past them."""
     n_snapshots, nz, ny, nx = 3, 6, 5, 5
