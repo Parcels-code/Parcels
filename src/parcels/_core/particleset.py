@@ -86,7 +86,7 @@ class ParticleSet:
             minz = None
             for field in self.fieldset.fields.values():
                 has_time_varying_z = (isinstance(field.grid, UxGrid) and field.grid.z.ndim == 3) or (
-                    isinstance(field.grid, XGrid) and "Z" in field.grid.axes and field.grid._ds["depth"].ndim == 4
+                    isinstance(field.grid, XGrid) and field.grid.depth.ndim == 4
                 )
                 if has_time_varying_z:
                     raise ValueError(
@@ -135,17 +135,10 @@ class ParticleSet:
                 y=y,
                 x=x,
                 particle_id=particle_ids,
+                **kwargs,
             ),
         )
         self._pclass = pclass
-
-        # update initial values provided on ParticleSet creation # TODO: Wrap this into create_particle_data
-        particle_variables = [v.name for v in pclass.variables]
-        for kwvar, kwval in kwargs.items():
-            if kwvar not in particle_variables:
-                raise RuntimeError(f"Particle class does not have Variable {kwvar}")
-            self._data[kwvar][:] = kwval
-
         self._kernel = None
 
     def __del__(self):
@@ -397,7 +390,7 @@ class ParticleSet:
         if output_file is not None:
             output_file.set_metadata(self.fieldset.gridset[0].mesh)
             output_file.set_time_interval(self.fieldset.time_interval)
-            output_file.metadata["parcels_kernels"] = self._kernel.funcname
+            output_file.metadata["parcels_kernels"] = " ".join(f.__name__ for f in self._kernel._kernels)
 
         dt, sign_dt = _convert_dt_to_float(dt)
         self._data["dt"][:] = dt

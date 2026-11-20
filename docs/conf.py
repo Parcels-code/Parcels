@@ -117,7 +117,7 @@ rediraffe_redirects = {
     "user_guide/examples/tutorial_peninsula_AvsCgrid.ipynb": "user_guide/interpolation_peninsula_AvsCgrid.ipynb",
     "user_guide/examples/tutorial_sampling.ipynb": "user_guide/kernels_sampling.ipynb",
     "user_guide/examples/tutorial_schism.ipynb": "user_guide/convert_schism.ipynb",
-    "user_guide/examples/tutorial_sigma_coordinates.ipynb": "user_guide/fieldsets_sigma_coordinates.ipynb",
+    "user_guide/examples/tutorial_sigma_coordinates.ipynb": "user_guide/fieldsets_time_varying_z_coordinates.ipynb",
     "user_guide/examples/tutorial_statuscodes.md": "user_guide/kernels_statuscodes.ipynb",
     "user_guide/examples/tutorial_stuck_particles.ipynb": "user_guide/interpolation_stuck_particles.ipynb",
     "user_guide/examples/tutorial_unstuck_Agrid.ipynb": "user_guide/interpolation_unstuck_Agrid.ipynb",
@@ -127,6 +127,7 @@ rediraffe_redirects = {
     "user_guide/getting_started/installation.md": "user_guide/installation.md",
     "user_guide/getting_started/tutorial_output.ipynb": "user_guide/gettingstarted_output.ipynb",
     "user_guide/getting_started/tutorial_quickstart.md": "user_guide/gettingstarted_quickstart.md",
+    "user_guide/fieldsets_sigma_coordinates.ipynb": "user_guide/fieldsets_time_varying_z_coordinates.ipynb",
 }
 
 # Tell Jinja2 templates the build is running on Read the Docs

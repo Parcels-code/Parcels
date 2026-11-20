@@ -6,6 +6,8 @@ from ._uxinterpolators import (
     UxConstantFaceLinearZF,
     UxLinearNodeConstantZC,
     UxLinearNodeLinearZF,
+    UxVerticalCoordinateConstantFace,
+    UxVerticalCoordinateLinearNode,
 )
 from ._xinterpolators import (
     CGrid_Tracer,
@@ -17,6 +19,9 @@ from ._xinterpolators import (
     XLinearInvdistLandTracer,
     XNearest,
     XPartialslip,
+    XVerticalCoordinateConstant,
+    XVerticalCoordinateLinear,
+    XVerticalCoordinateNearest,
 )
 
 __all__ = [  # noqa: RUF022
@@ -30,6 +35,9 @@ __all__ = [  # noqa: RUF022
     "XLinear_Velocity",
     "XNearest",
     "XPartialslip",
+    "XVerticalCoordinateConstant",
+    "XVerticalCoordinateLinear",
+    "XVerticalCoordinateNearest",
     # uxinterpolators
     "Ux_Velocity",
     "UxConstantFaceConstantZC",
@@ -38,4 +46,6 @@ __all__ = [  # noqa: RUF022
     "UxConstantEdgeLinearZF",
     "UxLinearNodeConstantZC",
     "UxLinearNodeLinearZF",
+    "UxVerticalCoordinateConstantFace",
+    "UxVerticalCoordinateLinearNode",
 ]
