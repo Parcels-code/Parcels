@@ -318,16 +318,14 @@ class VectorField:
 def _update_particles_ei(particles, grid_positions: dict, field: Field):
     """Update the element index (ei) of the particles"""
     if particles is not None:
-
-        def _maybe_clip(axis):
-            # Helper function to clip the axis indices to be within the valid range of the grid dimensions (#3062)
-            if axis not in field.grid.axes:
-                return grid_positions[axis]["index"]
-            dim = field.grid.get_axis_dim(axis)
-            return (np.clip(grid_positions[axis]["index"], 0, dim - 1),)
-
         if isinstance(field.grid, XGrid):
-            particles.ei[:, field.igrid] = field.grid.ravel_index({axis: _maybe_clip(axis) for axis in ["X", "Y", "Z"]})
+            particles.ei[:, field.igrid] = field.grid.ravel_index(
+                {
+                    "X": grid_positions["X"]["index"],
+                    "Y": grid_positions["Y"]["index"],
+                    "Z": grid_positions["Z"]["index"],
+                }
+            )
         elif isinstance(field.grid, UxGrid):
             particles.ei[:, field.igrid] = field.grid.ravel_index(
                 {
