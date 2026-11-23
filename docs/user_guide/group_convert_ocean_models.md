@@ -8,4 +8,5 @@ convert_mom6.ipynb
 convert_delft3d.ipynb
 convert_fesom.ipynb
 convert_schism.ipynb
+convert_swash.ipynb
 ```
