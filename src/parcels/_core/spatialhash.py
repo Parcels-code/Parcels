@@ -58,7 +58,7 @@ class SpatialHash:
 
         if isinstance_noimport(grid, "XGrid"):
             self._coord_dim = 2  # Number of computational coordinates is 2 (bilinear interpolation)
-            if self._source_grid._mesh.is_spherical():
+            if self._source_grid.mesh.is_spherical():
                 lon = np.deg2rad(self._source_grid.lon)
                 lat = np.deg2rad(self._source_grid.lat)
                 x, y, z = _latlon_rad_to_xyz(lat, lon)
@@ -149,7 +149,7 @@ class SpatialHash:
 
         elif isinstance_noimport(grid, "UxGrid"):
             self._coord_dim = grid.uxgrid.n_max_face_nodes  # Number of barycentric coordinates
-            if self._source_grid._mesh.is_spherical():
+            if self._source_grid.mesh.is_spherical():
                 # Reshape node coordinates to (nfaces, nnodes_per_face)
                 nids = self._source_grid.uxgrid.face_node_connectivity.values
                 lon = self._source_grid.uxgrid.node_lon.values[nids]
@@ -405,7 +405,7 @@ class SpatialHash:
 
         y = np.asarray(y)
         x = np.asarray(x)
-        if self._source_grid._mesh.is_spherical():
+        if self._source_grid.mesh.is_spherical():
             # Convert coords to Cartesian coordinates (x, y, z)
             lat = np.deg2rad(y)
             lon = np.deg2rad(x)
@@ -696,7 +696,9 @@ def _spherical_face_bounds(verts):
         # A triangle with no area encloses nothing. Rather
         # than let np.linalg.solve raise on it, conver those faces' weights to NaN.
         weights = np.full(M.shape[:-1] + (len(_AXIS_POINTS),), np.nan)
-        has_area = np.abs(np.linalg.det(M)) > 1e-14
+        # Faces with NaN nodes give a NaN determinant
+        with np.errstate(invalid="ignore"):
+            has_area = np.abs(np.linalg.det(M)) > 1e-14
         if has_area.any():
             weights[has_area] = np.linalg.solve(M[has_area], _AXIS_POINTS.T)
 

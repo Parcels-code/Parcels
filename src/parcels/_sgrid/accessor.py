@@ -22,6 +22,16 @@ class SgridAccessor:
             raise NotImplementedError("Support for 3D SGRID metadata not supported.")
         return grid
 
+    def assert_metadata_ds_consistency(self) -> None:
+        """Assert that the attached SGRID metadata is consistent with the dataset.
+
+        Raises
+        ------
+        SGridDatasetInconsistency
+            If the dataset is not consistent with its SGRID metadata.
+        """
+        _assert_metadata_ds_consistency(self._ds, self.metadata)
+
     def rename(self, name_dict: dict[str, str]) -> xr.Dataset:
         """Similar to Xarray's rename functionality - but also updates attached SGRID metadata."""
         ds = self._ds.copy()
@@ -87,11 +97,17 @@ class SgridAccessor:
         indexers = _complete_isel_indexing(self._ds, indexers, metadata)
 
         ds = self._ds.isel(indexers=indexers)
-        assert_metadata_ds_consistency(ds, metadata)
+        _assert_metadata_ds_consistency(ds, metadata)
         return ds
 
 
-def assert_metadata_ds_consistency(ds: xr.Dataset, metadata: SGrid2DMetadata):
+def _assert_metadata_ds_consistency(ds: xr.Dataset, metadata: SGrid2DMetadata):
+    _assert_face_node_sizes_consistent(ds, metadata)
+    _assert_node_dimensions_have_xy_axes(ds, metadata)
+    _assert_node_coordinates_well_defined(ds, metadata)
+
+
+def _assert_face_node_sizes_consistent(ds: xr.Dataset, metadata: SGrid2DMetadata):
     vertical_dimensions: tuple[FaceNodePadding, ...] = metadata.vertical_dimensions or tuple()
 
     for obj in itertools.chain(metadata.face_dimensions, vertical_dimensions):
@@ -113,10 +129,70 @@ def assert_metadata_ds_consistency(ds: xr.Dataset, metadata: SGrid2DMetadata):
                 f"Due to dataset padding of {padding!r}, expected face dimension {face} to actually be size {expected_n_faces}."
             )
 
-    # TODO: Also check on coordinates
+
+# Accepted CF units for longitude and latitude (https://cfconventions.org/cf-conventions/cf-conventions.html#longitude-coordinate)
+_DEGREE_UNITS = {"degree", "degrees"}
+_DEGREE_UNITS_PER_AXIS = {
+    "X": {"degrees_east", "degree_east", "degree_E", "degrees_E", "degreeE", "degreesE"} | _DEGREE_UNITS,
+    "Y": {"degrees_north", "degree_north", "degree_N", "degrees_N", "degreeN", "degreesN"} | _DEGREE_UNITS,
+}
 
 
-class SGridDatasetInconsistency(Exception):
+def _assert_node_dimensions_have_xy_axes(ds: xr.Dataset, metadata: SGrid2DMetadata):
+    # SGRID conventions don't explicitly mandate an X then Y ordering, but this is evident from all their examples
+    for dim, expected_axis in zip(metadata.node_dimensions, ("X", "Y"), strict=True):
+        if dim not in ds.variables:  # dimension has no coordinate variable in this dataset
+            continue
+
+        axis = ds[dim].attrs.get("axis")
+        if axis != expected_axis:
+            raise SGridDatasetInconsistency(
+                f"SGRID metadata lists {dim!r} in node_dimensions={metadata.node_dimensions!r}, so expected variable {dim!r} "
+                f"to have attribute axis={expected_axis!r}. Instead got axis={axis!r}. "
+                f'HINT: Make sure node_dimensions in the SGRID metadata is ordered as "X" then "Y", and that the '
+                f"coordinate variables in the dataset have the corresponding 'axis' attributes."
+            )
+
+
+def _assert_node_coordinates_well_defined(ds: xr.Dataset, metadata: SGrid2DMetadata):
+    if metadata.node_coordinates is None:
+        return
+
+    node_dims = metadata.node_dimensions
+    both_node_dims_in_ds = all(d in ds.dims for d in node_dims)
+
+    for coord, node_dim, expected_axis in zip(metadata.node_coordinates, node_dims, ("X", "Y"), strict=True):
+        if coord not in ds.variables:
+            raise SGridDatasetInconsistency(
+                f"SGRID metadata lists {coord!r} in node_coordinates={metadata.node_coordinates!r}, "
+                f"but there is no variable {coord!r} in the dataset."
+            )
+
+        da = ds[coord]
+        if not set(da.dims) <= set(node_dims):
+            raise SGridDatasetInconsistency(
+                f"Node coordinate {coord!r} has dims {da.dims}, but node coordinates can only be defined on the "
+                f"node_dimensions={node_dims!r}."
+            )
+        # A 1D node coordinate (i.e., a rectilinear grid) must lie along its own axis. If one of the node
+        # dimensions has been indexed away (e.g., via isel) a 2D coordinate can legitimately be 1D along the other
+        if both_node_dims_in_ds and da.ndim == 1 and da.dims != (node_dim,):
+            raise SGridDatasetInconsistency(
+                f"Node coordinate {coord!r} is 1D with dims {da.dims}, but as entry {expected_axis!r} in "
+                f"node_coordinates={metadata.node_coordinates!r} it is expected to be defined on node dimension {node_dim!r}. "
+                f'HINT: Make sure node_coordinates in the SGRID metadata is ordered as "X" then "Y".'
+            )
+
+        units = da.attrs.get("units")
+        if isinstance(units, str) and "degree" in units.lower() and units not in _DEGREE_UNITS_PER_AXIS[expected_axis]:
+            raise SGridDatasetInconsistency(
+                f"Node coordinate {coord!r} has units={units!r}, but as entry {expected_axis!r} in "
+                f"node_coordinates={metadata.node_coordinates!r} expected one of {sorted(_DEGREE_UNITS_PER_AXIS[expected_axis])}. "
+                f'HINT: Make sure node_coordinates in the SGRID metadata is ordered as "X" (longitude) then "Y" (latitude).'
+            )
+
+
+class SGridDatasetInconsistency(ValueError):
     """Attached metadata is not compatible with Xarray dataset"""
 
     pass

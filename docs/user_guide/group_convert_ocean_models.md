@@ -1,0 +1,11 @@
+```{toctree}
+:titlesonly:
+convert_copernicusmarine.md
+convert_nemo.ipynb
+convert_croco_3D.ipynb
+convert_mitgcm.ipynb
+convert_mom6.ipynb
+convert_delft3d.ipynb
+convert_fesom.ipynb
+convert_schism.ipynb
+```

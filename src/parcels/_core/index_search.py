@@ -41,9 +41,6 @@ def _search_1d_array(
     array of float
         Barycentric coordinate.
     """
-    # TODO v4: We probably rework this to deal with 0D arrays before this point (as we already know field dimensionality)
-    if arr.ndim > 1:
-        raise ValueError(f"Expected 1D array for {arr}, got {arr.ndim}D array")
     if len(arr) < 2:
         return np.zeros(shape=x.shape, dtype=np.int32), np.zeros_like(x)
     index = np.clip(np.searchsorted(arr, x, side="left") - 1, 0, len(arr) - 2)
@@ -150,7 +147,7 @@ def curvilinear_point_in_cell(grid, y: np.ndarray, x: np.ndarray, yi: np.ndarray
         dtype=float,
     )
 
-    if grid._mesh.is_spherical():
+    if grid.mesh.is_spherical():
         xsi, eta = _bilinear_inverse_tangent_plane(clon, clat, x, y)
         is_in_cell = np.where((xsi >= 0) & (xsi <= 1) & (eta >= 0) & (eta <= 1), 1, 0)
     else:
@@ -160,7 +157,7 @@ def curvilinear_point_in_cell(grid, y: np.ndarray, x: np.ndarray, yi: np.ndarray
     return is_in_cell, np.column_stack((xsi, eta))
 
 
-_invA = np.array(
+_inv_a = np.array(
     [
         [1, 0, 0, 0],
         [-1, 1, 0, 0],
@@ -173,7 +170,7 @@ _invA = np.array(
 def _bilinear_inverse(px, py, xq, yq):
     """Solve for (xsi, eta) s.t. bilinear blend of (px, py) corners equals (xq, yq)."""
     eta_init = -1.0 * np.ones(len(xq), dtype=float)
-    a, b = np.dot(_invA, px), np.dot(_invA, py)
+    a, b = np.dot(_inv_a, px), np.dot(_inv_a, py)
     aa = a[3] * b[2] - a[2] * b[3]
     bb = a[3] * b[0] - a[0] * b[3] + a[1] * b[2] - a[2] * b[1] + xq * b[3] - yq * a[3]
     cc = a[1] * b[0] - a[0] * b[1] + xq * b[1] - yq * a[1]
@@ -377,7 +374,7 @@ def uxgrid_point_in_cell(grid, y: np.ndarray, x: np.ndarray, yi: np.ndarray, xi:
     coords : np.ndarray
         Barycentric coordinates of the points within their respective cells.
     """
-    if grid._mesh.is_spherical():
+    if grid.mesh.is_spherical():
         lon_rad = np.deg2rad(x)
         lat_rad = np.deg2rad(y)
         x_cart, y_cart, z_cart = _latlon_rad_to_xyz(lat_rad, lon_rad)

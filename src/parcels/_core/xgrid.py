@@ -1,7 +1,6 @@
-import warnings
 from collections.abc import Hashable, Sequence
 from functools import cached_property
-from typing import Literal, cast
+from typing import cast
 
 import numpy as np
 import numpy.typing as npt
@@ -10,21 +9,26 @@ from dask import is_dask_collection
 
 import parcels._sgrid as sgrid
 import parcels._typing as ptyping
+from parcels._chunk_cached_array import ChunkCachedArray
 from parcels._core.basegrid import BaseGrid
 from parcels._core.index_search import _search_1d_array, _search_1d_columns, _search_indices_curvilinear_2d
-from parcels._core.mesh import SphericalMesh, get_mesh
-from parcels._core.warnings import FieldSetWarning
+from parcels._core.mesh import BaseMesh
 from parcels._sgrid.accessor import _get_dim_to_axis_mapping, get_dim_position
-from parcels.interpolators._xinterpolators import _get_offsets_dictionary
+from parcels.interpolators._base import VerticalCoordinateInterpolator
+from parcels.interpolators._xinterpolators import XVerticalCoordinateConstant, XVerticalCoordinateLinear
 
 _FIELD_DATA_ORDERING: Sequence[ptyping.XgcmAxisDirection] = "TZYX"
 _XGRID_AXES_ORDERING: Sequence[ptyping.XgridAxis] = "ZYX"
 
 
 def get_cell_count_along_dim(ds: xr.Dataset, fnp: sgrid.FaceNodePadding) -> int:
-    if fnp.face in ds.dims:
-        return ds.sizes[fnp.face] - 1
-    return sgrid.get_n_faces(ds.sizes[fnp.node], fnp.padding) - 1
+    if fnp.node in ds.dims:
+        n_nodes = ds.sizes[fnp.node]
+    else:
+        n_nodes = sgrid.get_n_nodes(ds.sizes[fnp.face], fnp.padding)
+
+    # N nodes define N - 1 searchable intervals; a singleton axis still uses index 0.
+    return max(1, n_nodes - 1)
 
 
 def get_time(ds: xr.Dataset, time_dim: str) -> npt.NDArray:
@@ -47,7 +51,8 @@ def _drop_field_data(ds: xr.Dataset) -> xr.Dataset:
 
 
 def assert_all_field_dims_have_axis(da: xr.DataArray, metadata: sgrid.SGrid2DMetadata) -> None:
-    dim_to_axis = _get_dim_to_axis_mapping(metadata) | {"time": "T"}
+    mock_dim_to_axis = {f"mock{ax}": ax for ax in _FIELD_DATA_ORDERING}
+    dim_to_axis = _get_dim_to_axis_mapping(metadata) | {"time": "T"} | mock_dim_to_axis
     ax_dims = [(dim_to_axis.get(str(dim)), str(dim)) for dim in da.dims]
 
     for ax, dim_name in ax_dims:
@@ -102,6 +107,7 @@ def _transpose_xfield_data_to_tzyx(da: xr.DataArray, sgrid_metadata: sgrid.SGrid
 
     if mock_dims_to_create:
         da = da.expand_dims(mock_dims_to_create, create_index_for_new_dim=False)
+        da = da.assign_coords({dim: (dim, [0], {"axis": dim_to_axis[dim]}) for dim in mock_dims_to_create})
 
     ax_dims = sorted(dim_to_axis.items(), key=lambda x: _FIELD_DATA_ORDERING.index(x[1]))
 
@@ -120,48 +126,64 @@ class XGrid(BaseGrid):
 
     """
 
-    def __init__(self, model_data: xr.Dataset, mesh: Literal["flat", "spherical"] | SphericalMesh):
+    def __init__(self, model_data: xr.Dataset, mesh: ptyping.TMesh):
+        if not isinstance(mesh, BaseMesh):
+            raise TypeError(f"mesh must be a FlatMesh or SphericalMesh object. Got {mesh=!r}")
         self.sgrid_metadata = model_data.sgrid.metadata
         self._ds = model_data
-        self._mesh = get_mesh(mesh)
+        self.mesh = mesh
         self._spatialhash = None
+        self._z_interp_method = None
         ds = model_data
 
-        # Set the coordinates for the dataset (needed to be done explicitly for curvilinear grids)
-        if "lon" in ds:
-            ds.set_coords("lon")
-        if "lat" in ds:
-            ds.set_coords("lat")
-
         axes = self.axes
-        if len(set(axes) & {"X", "Y"}) > 0:  # Only if spatial grid is >0D (see #2054 for further development)
-            assert_valid_lat_lon(ds["lat"], ds["lon"], self.sgrid_metadata)
+        if len(set(axes) & {"X", "Y"}) > 0:  # TODO also support grids with only lon or lat (see #2054)
+            if self.sgrid_metadata.node_coordinates is None:
+                raise ValueError("SGRID metadata must define 'node_coordinates' for a grid with horizontal axes.")
+            x_coordinate_name, y_coordinate_name = self.sgrid_metadata.node_coordinates
+            missing_coordinates = [name for name in (x_coordinate_name, y_coordinate_name) if name not in ds]
+            if missing_coordinates:
+                raise ValueError(
+                    f"SGRID metadata references node coordinates {missing_coordinates}, which are not present in the dataset."
+                )
+            ds = ds.set_coords([x_coordinate_name, y_coordinate_name])
+            assert_valid_lat_lon(ds[y_coordinate_name], ds[x_coordinate_name], self.sgrid_metadata)
+
+        self._ds = ds
 
         if "Z" in axes:
             depth = ds["depth"]
             if depth.ndim not in (1, 4):
                 raise ValueError(f"depth must be a 1D or 4D array of vertical coordinates, got {depth.ndim}D")
             if depth.ndim == 4:
-                assert self.sgrid_metadata.vertical_dimensions is not None
-                vertical_dim = self.sgrid_metadata.vertical_dimensions[0].node
-                fnp_x, fnp_y = self.sgrid_metadata.face_dimensions
-                expected_dims = ("time", vertical_dim, fnp_y.face, fnp_x.face)
-                if depth.dims != expected_dims:
-                    raise ValueError(f"A 4D depth must have dims {expected_dims}, got {depth.dims}")
-                warnings.warn(
-                    "Time-varying (4D) z coordinates are experimental and may cause significant memory overhead that "
-                    f"leads to OOM errors. This z coordinate has sizes {dict(depth.sizes)} ({depth.nbytes / 1e9:.3g} GB). "
-                    f"Assumptions: z has dims {expected_dims}, i.e. it is "
-                    f"defined at the layer interfaces on the cell centres, and is strictly increasing along "
-                    f"{vertical_dim!r}; each particle uses the z column at the centre of its grid cell, so z is constant "
-                    "within a cell and jumps between cells, it is linearly interpolated in time between z snapshots.",
-                    FieldSetWarning,
-                    stacklevel=5,
-                )
+                self._init_time_varying_depth()
             else:
                 assert_valid_depth(depth)
 
-        self._ds = ds
+    def _init_time_varying_depth(self) -> None:
+        """Checks the dims of a time-varying (4D) depth and assigns its default z_interp_method."""
+        depth = self.depth
+
+        assert self.sgrid_metadata.vertical_dimensions is not None
+        vertical_dim = self.sgrid_metadata.vertical_dimensions[0].node
+
+        fnp_x, fnp_y = self.sgrid_metadata.face_dimensions
+        face_registered_dims = ("time", vertical_dim, fnp_y.face, fnp_x.face)
+        node_registered_dims = ("time", vertical_dim, fnp_y.node, fnp_x.node)
+
+        if set(depth.dims) not in (set(face_registered_dims), set(node_registered_dims)):
+            raise ValueError(
+                f"A 4D depth must have dims {face_registered_dims} (cell centres) or {node_registered_dims} "
+                f"(cell corners), in any order, got {depth.dims}"
+            )
+
+        self._ds.coords["depth"] = _transpose_xfield_data_to_tzyx(depth, self.sgrid_metadata)
+        depth = self.depth
+
+        if is_dask_collection(depth.data):
+            depth.variable._data = ChunkCachedArray(depth.data, max_cache_bytes=600_000_000)
+
+        self.z_interp_method = XVerticalCoordinateLinear()
 
     # def __repr__(self):
     #     return xgrid_repr(self)
@@ -171,45 +193,53 @@ class XGrid(BaseGrid):
         return _get_xgrid_axes(self.sgrid_metadata, set(self._ds.dims))
 
     @property
+    def z_interp_method(self) -> VerticalCoordinateInterpolator | None:
+        """The ``VerticalCoordinateInterpolator`` used during the particle search to build each particle's z column.
+        Unlike a field's ``interp_method``, it is shared by every field on this grid.
+        """
+        return self._z_interp_method
+
+    @z_interp_method.setter
+    def z_interp_method(self, value: VerticalCoordinateInterpolator):
+        if not isinstance(value, VerticalCoordinateInterpolator):
+            raise ValueError(f"z_interp_method must be a `VerticalCoordinateInterpolator` object. Got {type(value)=!r}")
+        if self.depth.ndim != 4:
+            raise ValueError("z_interp_method can only be set on a grid with a time-varying (4D) depth")
+        fnp_x, fnp_y = self.sgrid_metadata.face_dimensions
+        cell_centre_dims = (fnp_y.face, fnp_x.face)
+        if isinstance(value, XVerticalCoordinateConstant) and self.depth.dims[-2:] != cell_centre_dims:
+            raise ValueError(
+                f"XVerticalCoordinateConstant needs depth on the cell centres {cell_centre_dims}, got dims {self.depth.dims}"
+            )
+        self._z_interp_method = value
+
+    @property
     def lon(self):
-        """
-        Notes
-        -----
-        Included for compatibility with v3 codebase. May be removed in future.
-        TODO v4: Evaluate
-        """
         if "X" not in self.axes:
             return np.zeros(1)
+        x_coordinate_name = self.sgrid_metadata.node_coordinates[0]
         # ensure lon is loaded into memory for dask-backed datasets, as it is used in the search method
-        if is_dask_collection(self._ds["lon"].data):
-            self._ds["lon"].load()
-        return self._ds["lon"].values
+        if is_dask_collection(self._ds[x_coordinate_name].data):
+            self._ds[x_coordinate_name].load()
+        return self._ds[x_coordinate_name].values
 
     @property
     def lat(self):
-        """
-        Notes
-        -----
-        Included for compatibility with v3 codebase. May be removed in future.
-        TODO v4: Evaluate
-        """
         if "Y" not in self.axes:
             return np.zeros(1)
+        y_coordinate_name = self.sgrid_metadata.node_coordinates[1]
         # ensure lat is loaded into memory for dask-backed datasets, as it is used in the search method
-        if is_dask_collection(self._ds["lat"].data):
-            self._ds["lat"].load()
-        return self._ds["lat"].values
+        if is_dask_collection(self._ds[y_coordinate_name].data):
+            self._ds[y_coordinate_name].load()
+        return self._ds[y_coordinate_name].values
 
     @property
     def depth(self):
-        """
-        Notes
-        -----
-        Included for compatibility with v3 codebase. May be removed in future.
-        TODO v4: Evaluate
-        """
         if "Z" not in self.axes:
             return np.zeros(1)
+        # Load time varying z lazily
+        if self._ds["depth"].ndim == 4:
+            return self._ds["depth"]
         return self._ds["depth"].values
 
     @property
@@ -225,8 +255,8 @@ class XGrid(BaseGrid):
     @property
     def deg2m(self) -> float:
         """Metres per degree of arc for this grid's mesh."""
-        if self._mesh.is_spherical():
-            return self._mesh.deg2m
+        if self.mesh.is_spherical():
+            return self.mesh.deg2m
         return 1.0
 
     @cached_property
@@ -254,9 +284,9 @@ class XGrid(BaseGrid):
         assert self.sgrid_metadata.vertical_dimensions is not None
         return get_cell_count_along_dim(self._ds, self.sgrid_metadata.vertical_dimensions[0])
 
-    def localize(
-        self, position: dict[ptyping.XgridAxis, tuple[int, float]], dims: list[str]
-    ) -> dict[str, tuple[int, float]]:
+    def localise(
+        self, position: dict[ptyping.XgridAxis, dict[str, np.ndarray]], dims: list[str]
+    ) -> dict[str, dict[str, np.ndarray]]:
         """
         Uses the grid context (i.e., the staggering of the grid) to convert a position relative
         to the f-points in the grid to a position relative to the staggered grid the array
@@ -269,25 +299,28 @@ class XGrid(BaseGrid):
         Parameters
         ----------
         position : dict
-            A mapping of the axis to a tuple of (index, barycentric coordinate) for the
-            f-points in the grid.
+            A mapping of the axis to a dict with the arrays ``"index"`` and ``"bcoord"`` (barycentric
+            coordinate) for the f-points in the grid, as returned by ``search``.
         dims : list[str]
             A list of dimension names that the DataArray is defined on. This is used to determine
             the staggering of the grid and which axis each dimension corresponds to.
 
         Returns
         -------
-        dict[str, tuple[int, float]]
-            A mapping of the dimension names to a tuple of (index, barycentric coordinate) for
+        dict[str, dict[str, np.ndarray]]
+            A mapping of the dimension names to a dict with the arrays ``"index"`` and ``"bcoord"`` for
             the staggered grid the DataArray is defined on.
 
         Example
         -------
-        >>> position = {'X': (5, 0.51), 'Y': (
-            10, 0.25), 'Z': (3, 0.75)}
-        >>> dims = ['time', 'depth', 'YC', 'XC']
-        >>> grid.localize(position, dims)
-        {'depth': (3, 0.75), 'YC': (9, 0.75), 'XC': (5, 0.01)}
+        >>> position = {
+        ...     "X": {"index": np.array([5]), "bcoord": np.array([0.51])},
+        ...     "Y": {"index": np.array([10]), "bcoord": np.array([0.25])},
+        ...     "Z": {"index": np.array([3]), "bcoord": np.array([0.75])},
+        ... }
+        >>> dims = ["time", "depth", "YC", "XC"]
+        >>> grid.localise(position, dims)
+        {'depth': {'index': array([3]), 'bcoord': array([0.75])}, 'YC': {'index': array([9]), 'bcoord': array([0.75])}, 'XC': {'index': array([5]), 'bcoord': array([0.01])}}
         """
         dim_to_axis = _get_dim_to_axis_mapping(self.sgrid_metadata)
         axis_to_var = {dim_to_axis[dim]: dim for dim in dims if dim in dim_to_axis}
@@ -296,61 +329,36 @@ class XGrid(BaseGrid):
         }
         return {
             axis_to_var[axis]: _convert_center_pos_to_fpoint(
-                index=index,
-                bcoord=bcoord,
+                index=pos["index"],
+                bcoord=pos["bcoord"],
                 position=var_positions[axis],
                 f_point_position=self._fpoint_info[axis],
             )
-            for axis, (index, bcoord) in position.items()
+            for axis, pos in position.items()
+            if axis in axis_to_var
         }
-
-    @property
-    def _z4d(self) -> Literal[0, 1]:
-        """
-        Notes
-        -----
-        Included for compatibility with v3 codebase. May be removed in future.
-        TODO v4: Evaluate
-        """
-        return 1 if self.depth.shape == 4 else 0
 
     @property
     def zonal_periodic(self): ...  # ? hmmm, from v3, do we still need this?
 
-    @property
-    def _gtype(self):
-        """This class is created *purely* for compatibility with v3 code and will be removed
-        or changed in future.
-
-        TODO: Remove
-        """
-        from parcels._core.basegrid import GridType
-
-        if len(self.lon.shape) <= 1:
-            if self.depth is None or len(self.depth.shape) <= 1:
-                return GridType.RectilinearZGrid
-            else:
-                return GridType.RectilinearSGrid
-        else:
-            if self.depth is None or len(self.depth.shape) <= 1:
-                return GridType.CurvilinearZGrid
-            else:
-                return GridType.CurvilinearSGrid
-
     def search(self, z, y, x, ei=None, ti=None, tau=None):
         ds = self._ds
+        if self.sgrid_metadata.node_coordinates is not None:
+            x_coordinate_name, y_coordinate_name = self.sgrid_metadata.node_coordinates
+            x_coordinates = ds[x_coordinate_name]
+            y_coordinates = ds[y_coordinate_name]
 
-        if "X" not in self.axes or ds.lon.ndim == 1:
+        if "X" not in self.axes or x_coordinates is None or x_coordinates.ndim == 1:
             if "Y" in self.axes:
-                yi, eta = _search_1d_array(ds.lat.values, y)
+                yi, eta = _search_1d_array(y_coordinates.values, y)
             else:
                 yi, eta = np.zeros(y.shape, dtype=int), np.zeros(y.shape, dtype=float)
 
             if "X" in self.axes:
-                xi, xsi = _search_1d_array(ds.lon.values, x)
+                xi, xsi = _search_1d_array(x_coordinates.values, x)
             else:
                 xi, xsi = np.zeros(x.shape, dtype=int), np.zeros(x.shape, dtype=float)
-        elif ds.lon.ndim == 2:
+        elif x_coordinates is not None and x_coordinates.ndim == 2:
             yi, xi = None, None
             if ei is not None:
                 axis_indices = self.unravel_index(ei)
@@ -362,7 +370,7 @@ class XGrid(BaseGrid):
             raise NotImplementedError("Searching in >2D lon/lat arrays is not implemented yet.")
 
         if "Z" in self.axes and ds.depth.ndim == 4:
-            zi, zeta = self._search_time_varying_depth(z, yi, xi, ti, tau)
+            zi, zeta = self._search_time_varying_depth(z, ti, tau, yi, eta, xi, xsi)
         elif "Z" in self.axes:
             zi, zeta = _search_1d_array(ds.depth.values, z)
         else:
@@ -374,35 +382,18 @@ class XGrid(BaseGrid):
             "X": {"index": xi, "bcoord": xsi},
         }
 
-    def _search_time_varying_depth(self, z, yi, xi, ti, tau):
-        """Vertical search of each particle in the z column at the centre of its cell using temporal linear
-        interpolation between the snapshots ti and ti + 1.
-        """
+    def _search_time_varying_depth(self, z, ti, tau, yi, eta, xi, xsi):
+        """Vertical search of each particle in the z column built by the grid's z_interp_method."""
         found = (yi >= 0) & (xi >= 0)
-        offsets = _get_offsets_dictionary(self)
-        yi_centre = yi[found] + offsets["Y"]
-        xi_centre = xi[found] + offsets["X"]
-
-        depth = self._ds["depth"]
-        fnp_x, fnp_y = self.sgrid_metadata.face_dimensions
-        cell_centres = {
-            fnp_y.face: xr.DataArray(yi_centre, dims="points"),
-            fnp_x.face: xr.DataArray(xi_centre, dims="points"),
+        grid_positions = {
+            "T": {"index": np.broadcast_to(ti, yi.shape)[found], "bcoord": np.broadcast_to(tau, yi.shape)[found]},
+            "Y": {"index": yi[found], "bcoord": eta[found]},
+            "X": {"index": xi[found], "bcoord": xsi[found]},
         }
 
-        ti_found = np.broadcast_to(ti, yi.shape)[found]
-        columns_ti = depth.isel({"time": xr.DataArray(ti_found, dims="points"), **cell_centres})
-
-        if depth.sizes["time"] == 1:
-            cell_columns = columns_ti
-        else:
-            columns_tnext = depth.isel({"time": xr.DataArray(ti_found + 1, dims="points"), **cell_centres})
-            tau_found = xr.DataArray(np.broadcast_to(tau, yi.shape)[found], dims="points")
-            cell_columns = (1 - tau_found) * columns_ti + tau_found * columns_tnext
-
         # Particles outside the grid are given a NaN z column for vertical searching
-        columns = np.full((yi.size, cell_columns.shape[1]), np.nan)
-        columns[found] = cell_columns.values
+        columns = np.full((yi.size, self.depth.shape[1]), np.nan)
+        columns[found] = self.z_interp_method.columns(grid_positions, self)
         zi, zeta = _search_1d_columns(columns, z)
 
         # Particles outside the grid are given a 0 vertical index and a NaN vertical barycentric coordinate
@@ -441,7 +432,7 @@ class XGrid(BaseGrid):
 
         Examples
         --------
-        >>> grid.get_axis_dim_mapping(['time', 'lat', 'lon'])
+        >>> grid.get_axis_dim_mapping(["time", "lat", "lon"])
         {'Y': 'lat', 'X': 'lon'}
 
         Notes
@@ -590,29 +581,29 @@ def assert_valid_depth(da_depth):
 
 def _convert_center_pos_to_fpoint(
     *,
-    index: int,
-    bcoord: float,
+    index: np.ndarray,
+    bcoord: np.ndarray,
     position: ptyping.GridPosition,
     f_point_position: sgrid.Padding,
-) -> tuple[int, float]:
+) -> dict[str, np.ndarray]:
     """Converts a physical position relative to the cell edges defined in the grid to be relative to the face center.
 
-    This is used to "localize" a position to be relative to the staggered grid at which the field is defined, so that
+    This is used to "localise" a position to be relative to the staggered grid at which the field is defined, so that
     it can be easily interpolated.
 
     This also handles different model input cell edges and centers are staggered in different directions (e.g., with NEMO and MITgcm).
     """
     if position != "face":  # Data is already defined on the F nodes
-        return index, bcoord
+        return {"index": index, "bcoord": bcoord}
 
     bcoord = bcoord - 0.5
-    if bcoord < 0:
-        bcoord += 1.0
-        index -= 1
+    wrapped = bcoord < 0
+    bcoord = np.where(wrapped, bcoord + 1.0, bcoord)
+    index = np.where(wrapped, index - 1, index)
 
     # Correct relative to the f-point position
     # Padding.BOTH was "inner", Padding.LOW was "right" in xgcm vocabulary
     if f_point_position in (sgrid.Padding.BOTH, sgrid.Padding.LOW):
-        index += 1
+        index = index + 1
 
-    return index, bcoord
+    return {"index": index, "bcoord": bcoord}

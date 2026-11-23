@@ -2,6 +2,7 @@
 
 __all__ = [
     "AllParcelsErrorCodes",
+    "CalendarError",
     "FieldOutOfBoundError",
     "FieldSamplingError",
     "KernelError",
@@ -82,6 +83,10 @@ class GridSearchingError(RuntimeError):
 
 def _raise_grid_searching_error(z, y, x):
     raise GridSearchingError(f"Grid searching failed at (z={z}, y={y}, x={x})")
+
+
+class CalendarError(ValueError):
+    """Exception raised when the calendar of a field is not compatible with the rest of the Fields. The user should ensure that they only add fields to a FieldSet that have compatible CFtime calendars."""
 
 
 class GeneralError(RuntimeError):

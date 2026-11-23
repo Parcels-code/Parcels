@@ -9,13 +9,13 @@ tags:
 authors:
   - name: Nick Hodgskin
     orcid: 0009-0003-0778-3183
-    corresponding: true
     affiliation: 1
   - name: Joe Schoonover
     orcid: 0000-0001-5650-7095
     affiliation: 2
   - name: Erik van Sebille
     orcid: 0000-0003-2041-0704
+    corresponding: true
     affiliation: 1
 
 affiliations:
@@ -103,6 +103,8 @@ Figure 2 shows the varied types of data and grid geometries that we combine, alo
 # Research impact statement
 
 Parcels has been cited in over 330 peer reviewed scientific papers so far mostly within the field of oceanography.
+
+Version 4 of Parcels, as highlighted in the [Statement of need](#statement-of-need), focusses on three main areas: native compatibility with Xarray datasets, working with different grid geometries, and supporting cross domain tooling. These features were not present in previous versions of Parcels.
 
 # AI usage disclosure
 

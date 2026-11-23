@@ -87,29 +87,34 @@ class Field:
         name: str,
         model: ModelData,
     ):
-        # TODO PR: Enable isinstance check once ModelData is moved to abc.ModelData
-        # if not isinstance(model, "ModelData"):
-        #     raise ValueError(
-        #         f"Expected `model` to be a Parcels ModelData object. Got {type(model)}."
-        #     )
+        from parcels._core.model import ModelData
+
+        if not isinstance(model, ModelData):
+            raise ValueError(f"Expected `model` to be a Parcels ModelData object. Got {type(model)}.")
 
         _assert_str_and_python_varname(name)
 
         self.name = name
         self.model = model
 
-        self.igrid = -1  # Default the grid index to -1
-
     @property
     def data(self):
         return self.model.field_data(self.name)
 
     @property
-    def grid(self):  # TODO PR: Remove in favour of referencing model grid directly
+    def grid(self):
         return self.model.grid
 
     @property
-    def time_interval(self):  # TODO PR: Remove in favour of referencing model time_interval directly
+    def igrid(self):
+        return self._igrid
+
+    @igrid.setter
+    def igrid(self, value):
+        self._igrid = value
+
+    @property
+    def time_interval(self):
         if "time" not in self.model.data[self.name].dims:
             # This field does not have a time-dimension
             return None
@@ -128,11 +133,11 @@ class Field:
             ) from e
 
     @interp_method.setter
-    def interp_method(self, value):
+    def interp_method(self, method):
         # Setting the interpolation method dynamically
-        if not isinstance(value, ScalarInterpolator):
-            raise ValueError(f"interp_method must be a `ScalarInterpolator` object. Got {type(value)=!r}")
-        self.model.field_to_interpolator[self.name] = value
+        if not isinstance(method, ScalarInterpolator):
+            raise ValueError(f"interp_method must be a `ScalarInterpolator` object. Got {type(method)=!r}")
+        self.model.field_to_interpolator[self.name] = method
 
     def _check_velocitysampling(self):
         if self.name in ["U", "V", "W"]:
@@ -215,7 +220,7 @@ class VectorField:
         self.V = V
         self.W = W
         self.grid = U.grid
-        self.igrid = U.igrid
+        self.model = U.model
 
         if W is None:
             _assert_same_time_interval((U, V))
@@ -229,23 +234,29 @@ class VectorField:
         else:
             self.vector_type = "2D"
 
-        if not isinstance(interp_method, VectorInterpolator):
-            raise ValueError(f"interp_method must be a `VectorInterpolator` object. Got {type(interp_method)=!r}")
-
-        self._interp_method = interp_method
+        self.interp_method = interp_method
 
     # def __repr__(self):
     #     return vectorfield_repr(self)
 
     @property
     def interp_method(self):
-        return self._interp_method
+        try:
+            return self.model.field_to_interpolator[self.name]
+        except KeyError as e:
+            raise AttributeError(
+                f"{type(self).__name__} doesn't have an interp_method defined for it. Use `.interp_method = ...`"
+            ) from e
 
     @interp_method.setter
     def interp_method(self, method: VectorInterpolator):
         if not isinstance(method, VectorInterpolator):
-            raise ValueError(f"method must be a `VectorInterpolator` object. Got {type(method)=!r}")
-        self._interp_method = method
+            raise ValueError(f"interp_method must be a `VectorInterpolator` object. Got {type(method)=!r}")
+        self.model.field_to_interpolator[self.name] = method
+
+    @property
+    def igrid(self):
+        return self.U.igrid
 
     def eval(self, t: datetime, z, y, x, particles=None):
         """Interpolate vectorfield values in space and time.
@@ -283,7 +294,7 @@ class VectorField:
 
         particle_positions, grid_positions = _get_positions(self.U, t, z, y, x, particles, _ei)
 
-        (u, v, w) = self._interp_method.interp(particle_positions, grid_positions, self)
+        (u, v, w) = self.interp_method.interp(particle_positions, grid_positions, self)
 
         for vel in (u, v, w):
             _update_particle_states_interp_value(particles, vel)

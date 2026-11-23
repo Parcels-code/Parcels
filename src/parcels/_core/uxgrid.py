@@ -1,21 +1,34 @@
 from __future__ import annotations
 
-import warnings
 from typing import TYPE_CHECKING, Literal
 
 import numpy as np
-import xarray as xr
 from dask import is_dask_collection
 
+from parcels._chunk_cached_array import ChunkCachedArray
 from parcels._core.basegrid import BaseGrid
 from parcels._core.index_search import GRID_SEARCH_ERROR, _search_1d_array, _search_1d_columns, uxgrid_point_in_cell
-from parcels._core.mesh import SphericalMesh, get_mesh
-from parcels._core.warnings import FieldSetWarning
+from parcels._core.mesh import BaseMesh, TMesh
+from parcels.interpolators._base import VerticalCoordinateInterpolator
+from parcels.interpolators._uxinterpolators import UxVerticalCoordinateConstantFace, UxVerticalCoordinateLinearNode
 
 if TYPE_CHECKING:
     import uxarray as ux
 
 _UXGRID_AXES = Literal["Z", "FACE"]
+
+
+def _transpose_uxfield_data(da: ux.UxDataArray) -> ux.UxDataArray:
+    """Transpose a DataArray on a UxGrid to the order (time, vertical, lateral) that the Ux interpolators assume."""
+    dim_to_position = {"time": 0, "zf": 1, "zc": 1, "n_node": 2, "n_face": 2, "n_edge": 2}
+
+    dims_not_on_grid = set(da.dims) - set(dim_to_position)
+    if dims_not_on_grid:
+        raise ValueError(
+            f"DataArray {da.name!r} with dims {da.dims} has dimensions {dims_not_on_grid} that are not on a UxGrid."
+        )
+
+    return da.transpose(*sorted(da.dims, key=dim_to_position.__getitem__))
 
 
 class UxGrid(BaseGrid):
@@ -24,9 +37,7 @@ class UxGrid(BaseGrid):
     for interpolation on unstructured grids.
     """
 
-    def __init__(
-        self, grid: ux.grid.Grid, z: ux.UxDataArray, mesh: Literal["flat", "spherical"] | SphericalMesh
-    ) -> None:
+    def __init__(self, grid: ux.grid.Grid, z: ux.UxDataArray, mesh: TMesh) -> None:
         """
         Initializes the UxGrid with a uxarray grid and vertical coordinate array.
 
@@ -37,10 +48,13 @@ class UxGrid(BaseGrid):
         z : ux.UxDataArray
             Vertical coordinates (depths) of the layer interface heights (not the mid-layer depths). Either a 1D array,
             constant in time and space (flat bottom topography, no moving vertical grid), or a 3D array with dims
-            ("time", "zf", "n_node"), varying in time and across the mesh nodes.
-        mesh : str
-            The type of mesh used for the grid. Either "flat" or "spherical".
+            ("time", "zf", "n_node") or ("time", "zf", "n_face") in any order, varying in time and across the mesh nodes
+            or faces.
+        mesh : FlatMesh or SphericalMesh
+            The mesh of the grid, e.g. ``FlatMesh()`` or ``SphericalMesh(radius=...)``.
         """
+        if not isinstance(mesh, BaseMesh):
+            raise TypeError(f"mesh must be a FlatMesh or SphericalMesh object. Got {mesh=!r}")
         import uxarray as ux
 
         if grid.n_max_face_nodes > 3:
@@ -50,41 +64,66 @@ class UxGrid(BaseGrid):
             raise TypeError("z must be an instance of ux.UxDataArray")
         if z.ndim not in (1, 3):
             raise ValueError(f"z must be a 1D or 3D array of vertical coordinates, got {z.ndim}D")
-        if z.ndim == 3 and z.dims != ("time", "zf", "n_node"):
-            raise ValueError(f"A 3D z must have dims ('time', 'zf', 'n_node'), got {z.dims}")
-        if z.ndim == 3:
-            warnings.warn(
-                "Time-varying (3D) z coordinates are experimental and may cause significant memory overhead that "
-                f"leads to OOM errors. This z coordinate has sizes {dict(z.sizes)} ({z.nbytes / 1e9:.3g} GB). "
-                "Assumptions: z is defined at the layer interfaces ('zf') on the mesh nodes ('n_node') and is strictly "
-                "increasing along 'zf'; each particle's z column is interpolated barycentrically from its face's "
-                "nodes and linearly in time between z snapshots.",
-                FieldSetWarning,
-                stacklevel=4,
-            )
+
         self.z = z
-        self._mesh = get_mesh(mesh)
+        self.mesh = mesh
         self._spatialhash = None
+        self._z_interp_method = None
+        if z.ndim == 3:
+            self._init_time_varying_z()
         if is_dask_collection(self.uxgrid.face_node_connectivity.data):
             self.uxgrid.face_node_connectivity.load()
 
+    def _init_time_varying_z(self) -> None:
+        """Checks the dims of a time-varying (3D) z and assigns its default z_interp_method."""
+        z = self.z
+
+        if set(z.dims) not in ({"time", "zf", "n_node"}, {"time", "zf", "n_face"}):
+            raise ValueError(
+                f"A 3D z must have dims ('time', 'zf', 'n_node') or ('time', 'zf', 'n_face'), in any order, "
+                f"got {z.dims}"
+            )
+
+        self.z = _transpose_uxfield_data(z)
+        z = self.z
+
+        if is_dask_collection(z.data):
+            z.variable._data = ChunkCachedArray(z.data, max_cache_bytes=600_000_000)
+
+        if z.dims[-1] == "n_node":
+            self.z_interp_method = UxVerticalCoordinateLinearNode()
+        else:
+            self.z_interp_method = UxVerticalCoordinateConstantFace()
+
     @property
     def depth(self):
-        """
-        Notes
-        -----
-        Included for compatibility with v3 codebase. May be removed in future.
-        TODO v4: Evaluate
-        """
-        try:
-            _ = self.z.values
-        except KeyError:
-            return np.zeros(1)
+        # Load time varying z lazily
+        if self.z.ndim == 3:
+            return self.z
         return self.z.values
 
     @property
     def axes(self) -> list[_UXGRID_AXES]:
         return ["Z", "FACE"]
+
+    @property
+    def z_interp_method(self) -> VerticalCoordinateInterpolator | None:
+        """The ``VerticalCoordinateInterpolator`` used during the particle search to build each particle's z column.
+        Unlike a field's ``interp_method``, it is shared by every field on this grid.
+        """
+        return self._z_interp_method
+
+    @z_interp_method.setter
+    def z_interp_method(self, value: VerticalCoordinateInterpolator):
+        if not isinstance(value, VerticalCoordinateInterpolator):
+            raise ValueError(f"z_interp_method must be a `VerticalCoordinateInterpolator` object. Got {type(value)=!r}")
+        if self.depth.ndim != 3:
+            raise ValueError("z_interp_method can only be set on a grid with a time-varying (3D) z")
+        if isinstance(value, UxVerticalCoordinateLinearNode) and self.z.dims[-1] != "n_node":
+            raise ValueError(f"UxVerticalCoordinateLinearNode needs z on the mesh nodes, got dims {self.z.dims}")
+        if isinstance(value, UxVerticalCoordinateConstantFace) and self.z.dims[-1] != "n_face":
+            raise ValueError(f"UxVerticalCoordinateConstantFace needs z on the mesh faces, got dims {self.z.dims}")
+        self._z_interp_method = value
 
     def get_axis_dim(self, axis: _UXGRID_AXES) -> int:
         if axis not in self.axes:
@@ -100,8 +139,8 @@ class UxGrid(BaseGrid):
     @property
     def deg2m(self) -> float:
         """Metres per arcdegree for this grid's mesh."""
-        if self._mesh.is_spherical():
-            return self._mesh.deg2m
+        if self.mesh.is_spherical():
+            return self.mesh.deg2m
         return 1.0
 
     def search(self, z, y, x, ei=None, ti=None, tau=None, tol=1e-6):
@@ -156,39 +195,23 @@ class UxGrid(BaseGrid):
             fi[zero_indices] = face_ids_q
 
         if self.z.ndim == 3:
-            zi, zeta = self._search_time_varying_z(z, fi, coords, ti, tau)
+            zi, zeta = self._search_time_varying_z(z, ti, tau, fi, coords)
         else:
             zi, zeta = _search_1d_array(self.z.values, z)
 
         return {"Z": {"index": zi, "bcoord": zeta}, "FACE": {"index": fi, "bcoord": coords}}
 
-    def _search_time_varying_z(self, z, fi, coords, ti, tau):
-        """Vertical search of each particle in the z column interpolated barycentrically from the nodes of its face,
-        using temporal linear interpolation between the snapshots ti and ti + 1.
-        """
+    def _search_time_varying_z(self, z, ti, tau, fi, coords):
+        """Vertical search of each particle in the z column built by the grid's z_interp_method."""
         found = fi >= 0
-        cols_ti = self.z.isel(
-            time=xr.DataArray(np.broadcast_to(ti, fi.shape)[found], dims="points"),
-            n_node=xr.DataArray(self.uxgrid.face_node_connectivity[fi[found], :].values, dims=("points", "nodes")),
-            ignore_grid=True,
-        ).compute()
+        grid_positions = {
+            "T": {"index": np.broadcast_to(ti, fi.shape)[found], "bcoord": np.broadcast_to(tau, fi.shape)[found]},
+            "FACE": {"index": fi[found], "bcoord": coords[found]},
+        }
 
-        if self.z.shape[0] == 1:
-            node_columns = cols_ti
-        else:
-            cols_tnext = self.z.isel(
-                time=xr.DataArray(np.broadcast_to(ti + 1, fi.shape)[found], dims="points"),
-                n_node=xr.DataArray(self.uxgrid.face_node_connectivity[fi[found], :].values, dims=("points", "nodes")),
-                ignore_grid=True,
-            ).compute()
-
-            tau_points = xr.DataArray(np.broadcast_to(tau, fi.shape)[found], dims="points")
-            node_columns = (1 - tau_points) * cols_ti + tau_points * cols_tnext
-
-        bcoords = xr.DataArray(coords[found], dims=("points", "nodes"))
         # Particles outside the mesh are given a NaN z column for vertical searching
         columns = np.full((fi.size, self.z.sizes["zf"]), np.nan)
-        columns[found] = xr.dot(node_columns, bcoords, dim="nodes").values
+        columns[found] = self.z_interp_method.columns(grid_positions, self)
         zi, zeta = _search_1d_columns(columns, z)
 
         # Particles outside the mesh are given a 0 vertical index and a NaN vertical barycentric coordinate

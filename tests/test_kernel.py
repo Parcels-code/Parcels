@@ -5,7 +5,9 @@ from parcels import (
     FieldSet,
     KernelWarning,
     Particle,
+    ParticleFile,
     ParticleSet,
+    StatusCode,
     Variable,
 )
 from parcels._core.kernel import Kernel
@@ -62,12 +64,10 @@ def test_kernel_init(fieldset):
 def test_kernel_merging(fieldset):
     pset = ParticleSet(fieldset, x=[0.5], y=[0.5])
     merged_kernel = Kernel(kernels=[AdvectionRK4, MoveEast, MoveNorth], pset=pset)
-    assert merged_kernel.funcname == "AdvectionRK4MoveEastMoveNorth"
     assert len(merged_kernel._kernels) == 3
     assert merged_kernel._kernels == [AdvectionRK4, MoveEast, MoveNorth]
 
     merged_kernel = Kernel(kernels=[MoveEast, MoveNorth, AdvectionRK4], pset=pset)
-    assert merged_kernel.funcname == "MoveEastMoveNorthAdvectionRK4"
     assert len(merged_kernel._kernels) == 3
     assert merged_kernel._kernels == [MoveEast, MoveNorth, AdvectionRK4]
 
@@ -84,8 +84,8 @@ def test_kernel_from_list(fieldset):
     kernels_functions = Kernel(kernels=[AdvectionRK4, MoveEast, MoveNorth], pset=pset)
 
     # Check if the kernels were combined correctly
-    assert kernels_single.funcname == "AdvectionRK4"
-    assert kernels_functions.funcname == "AdvectionRK4MoveEastMoveNorth"
+    assert [f.__name__ for f in kernels_single._kernels] == ["AdvectionRK4"]
+    assert [f.__name__ for f in kernels_functions._kernels] == ["AdvectionRK4", "MoveEast", "MoveNorth"]
 
 
 def test_kernel_from_list_error_checking(fieldset):
@@ -103,8 +103,7 @@ def test_kernel_from_list_error_checking(fieldset):
         Kernel(kernels=[AdvectionRK4, "something else"], pset=pset)
 
     with pytest.raises(TypeError, match=r".* should be a function or list of functions.*"):
-        kernels_mixed = Kernel(kernels=[Kernel(kernels=[AdvectionRK4], pset=pset), MoveEast, MoveNorth], pset=pset)
-        assert kernels_mixed.funcname == "AdvectionRK4MoveEastMoveNorth"
+        Kernel(kernels=[Kernel(kernels=[AdvectionRK4], pset=pset), MoveEast, MoveNorth], pset=pset)
 
 
 def test_RK45Kernel_error_no_next_dt(fieldset):
@@ -130,10 +129,10 @@ def test_rk45_kernel_warnings(fieldset):
 @ignore_kernel_warnings
 @pytest.mark.parametrize("kernel_type", ["update_lon", "update_dlon"])
 def test_execution_order(kernel_type):
-    ds = simple_UV_dataset(n_times=1, nz=1, ny=2, nx=2, mesh="flat")
+    ds = simple_UV_dataset(n_times=1, nz=1, ny=2, nx=2, mesh_str="flat")
     ds["U"].data[:, :] = [[0, 1], [2, 3]]
     ds["lon"].data = [0, 2]
-    fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
+    fieldset = FieldSet.from_sgrid_conventions(ds)
 
     def MoveLon_Update_X(particles, fieldset):  # pragma: no cover
         particles.x += 0.2
@@ -166,20 +165,85 @@ def test_execution_order(kernel_type):
         assert np.allclose(lons[0], 0.2)
 
 
-@pytest.mark.xfail(reason="Modifying dt in a kernel doesn't work GH2765")
-def test_dt_modify_in_kernel(fieldset):
+@pytest.mark.parametrize(("with_output", "expected_num_kernel_loops"), [(True, 7), (False, 5)])
+def test_dt_modify_in_kernel(fieldset, tmp_parquet, with_output, expected_num_kernel_loops):
+    npart = 10
+    TestParticle = Particle.add_variable(Variable("num_kernel_loops", dtype=np.float32, initial=0))
+    pset = ParticleSet(fieldset, pclass=TestParticle, x=np.linspace(0, 1, npart), y=[0] * npart)
+
+    def ModifyDt(particles, fieldset):  # pragma: no cover
+        particles.num_kernel_loops += 1
+        particles.dt = 4
+        particles[particles.x > 0.8].state = StatusCode.Delete
+
+    runtime = 17
+    output = ParticleFile(tmp_parquet, outputdt=5.0) if with_output else None
+    pset.execute(ModifyDt, runtime=runtime, dt=1.0, output_file=output, verbose_progress=False)
+
+    np.testing.assert_allclose(pset.t, runtime)
+    np.testing.assert_allclose(pset.num_kernel_loops, expected_num_kernel_loops)
+
+
+def test_dt_modify_in_kernel_vector(fieldset):
+    TestParticle = Particle.add_variable(Variable("num_kernel_loops", dtype=np.float32, initial=0))
+    pset = ParticleSet(fieldset, pclass=TestParticle, x=[0.5], y=[0])
+
+    dt_in_kernel = np.array([1, 4, 3, 4, 5, 5, 10, 2, 2])
+    fieldset.add_context("dt_in_kernel", dt_in_kernel)
+
+    def ModifyDt_FromArray(particles, fieldset):  # pragma: no cover
+        i = np.asarray(particles.num_kernel_loops).astype(int)
+        particles.dt = fieldset.dt_in_kernel[i]
+        assert particles.t == np.cumsum(np.r_[0, fieldset.dt_in_kernel])[i]
+        particles.num_kernel_loops += 1
+
+    runtime = sum(dt_in_kernel)
+    expected_num_kernel_loops = len(dt_in_kernel)
+    pset.execute(ModifyDt_FromArray, runtime=runtime, dt=1.0)
+
+    np.testing.assert_allclose(pset.t[0], runtime)
+    np.testing.assert_allclose(pset.num_kernel_loops[0], expected_num_kernel_loops)
+
+
+@pytest.mark.parametrize("changed_dt", [1, 2, 3])
+def test_dt_modify_age_in_kernel(fieldset, changed_dt):
     TestParticle = Particle.add_variable(Variable("age", dtype=np.float32, initial=0))
     pset = ParticleSet(fieldset, pclass=TestParticle, x=[0.5], y=[0])
 
     def ModifyDt(particles, fieldset):  # pragma: no cover
         particles.age += particles.dt
-        particles.dt = 2
+        particles.dt = changed_dt
 
     runtime = 10
-    expected_age = 1 + 2 * (runtime - 2)  # 1 for the first step; 2 for the remaining steps (except last)
+    expected_age = 1 + runtime - changed_dt  # 1 for the first step; changed_dt for the remaining steps (except last)
     pset.execute(ModifyDt, runtime=runtime, dt=1.0)
     np.testing.assert_allclose(pset.t[0], runtime)
     np.testing.assert_allclose(pset.age[0], expected_age)
+
+
+@pytest.mark.parametrize("with_output", [True, False])
+def test_dt_increase_in_kernel_clipped_before_next_kernel(tmp_parquet, with_output):
+    """A kernel that increases dt past endtime must not make later kernels sample beyond endtime.
+
+    Regression test: dt was only clipped to endtime before the kernels and before the position
+    update, so AdvectionRK4 sampled the fields past the end of the dataset.
+    """
+    ds = simple_UV_dataset(n_times=2, nz=1, ny=4, nx=4, mesh_str="flat")
+    ds["U"].data[:] = 1e-3
+    fieldset = FieldSet.from_sgrid_conventions(ds)
+    runtime = float((ds.time[-1] - ds.time[0]) / np.timedelta64(1, "s"))  # run to the end of the dataset
+
+    def IncreaseDt(particles, fieldset):  # pragma: no cover
+        particles.dt = 2 * runtime
+
+    x0 = 1e5
+    pset = ParticleSet(fieldset, x=[x0], y=[1e5])
+    output = ParticleFile(tmp_parquet, outputdt=runtime / 4) if with_output else None
+    pset.execute([IncreaseDt, AdvectionRK4], runtime=runtime, dt=1.0, output_file=output, verbose_progress=False)
+
+    np.testing.assert_allclose(pset.t[0], runtime)
+    # displacement must match the time advanced, i.e. RK4 used the clipped dt
+    np.testing.assert_allclose(pset.x[0], x0 + 1e-3 * runtime, rtol=1e-6)
 
 
 @pytest.mark.parametrize("dt", [1e-2, 1e-5, 1e-6, 1e-9])

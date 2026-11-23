@@ -58,6 +58,7 @@ _ODIE_REGISTRY_FILES: list[str] = (
     # ]
     + [
         "data/Delft3D_data/Rotterdam_tiny.nc",
+        "data/Delft3D_data/delft3d-fm-raw.nc",
     ]
     + [
         "data/FESOM_periodic_channel/fesom_channel.nc",
@@ -69,6 +70,11 @@ _ODIE_REGISTRY_FILES: list[str] = (
         "data/SCHISM_LakeOntario/out2d.schism_lake_ontario.nc",
         "data/SCHISM_LakeOntario/horizontalVelX.schism_lake_ontario.nc",
         "data/SCHISM_LakeOntario/horizontalVelY.schism_lake_ontario.nc",
+    ]
+    + [
+        "data/MOM6_example_data/mom6_ssu.nc",
+        "data/MOM6_example_data/mom6_ssv.nc",
+        "data/MOM6_example_data/mom6_static.nc",
     ]
     + [
         "data/NemoCurvilinear_data/U_purely_zonal-ORCA025_grid_U.nc4",
@@ -113,7 +119,7 @@ _ODIE_REGISTRY_FILES: list[str] = (
         "data/SWASH_data/field_0065557.nc",
     ]
     # + [f"data/WOA_data/woa18_decav_t{m:02d}_04.nc" for m in range(1, 13)]
-    + ["data/CROCOidealized_data/CROCO_idealized.nc"]
+    + ["data/CROCOOverflow_data/over_his.nc"]
     # These datasets are from v4 of Parcels where we're opting for Zipped zarr datasets
     + [
         "data-zarr/Benchmarks_FESOM2-baroclinic-gyre/data.zip",
@@ -234,6 +240,7 @@ _DATASET_KEYS_AND_CONFIGS: dict[str, tuple[_ParcelsDataset, _Purpose]] = dict([
     ("CopernicusMarine_data_for_Argo_tutorial/data", (_V3Dataset(_ODIE,"data/CopernicusMarine_data_for_Argo_tutorial/cmems_mod_glo_phy-*.nc"), _Purpose.TUTORIAL)),
     ("CopernicusMarine_data_for_Argo_tutorial/data_wind", (_V3Dataset(_ODIE,"data/CopernicusMarine_data_for_Argo_tutorial/cmems_obs-wind_glo_phy*.nc"), _Purpose.TUTORIAL)),
     ("Delft3D_data/Rotterdam_tiny", (_V3Dataset(_ODIE,"data/Delft3D_data/Rotterdam_tiny.nc"), _Purpose.TUTORIAL)),
+    ("Delft3D_data/delft3d-fm-raw", (_V3Dataset(_ODIE,"data/Delft3D_data/delft3d-fm-raw.nc"), _Purpose.TUTORIAL)),
     ("CopernicusMarine_data_for_stuck_particles_tutorial/data", (_V3Dataset(_ODIE,"data/CopernicusMarine_data_for_stuck_particles_tutorial/cmems_mod_glo_phy_my_0.083deg_P1D-m_NL.nc"), _Purpose.TUTORIAL)),
     # ("DecayingMovingEddy_data/U", (_V3Dataset(_ODIE,"data/DecayingMovingEddy_data/decaying_moving_eddyU.nc"), _Purpose.TUTORIAL)),
     # ("DecayingMovingEddy_data/V", (_V3Dataset(_ODIE,"data/DecayingMovingEddy_data/decaying_moving_eddyV.nc"), _Purpose.TUTORIAL)),
@@ -244,6 +251,9 @@ _DATASET_KEYS_AND_CONFIGS: dict[str, tuple[_ParcelsDataset, _Purpose]] = dict([
     ("SCHISM_LakeOntario/out2d", (_V3Dataset(_ODIE,"data/SCHISM_LakeOntario/out2d.schism_lake_ontario.nc"), _Purpose.TUTORIAL)),
     ("SCHISM_LakeOntario/horizontalVelX", (_V3Dataset(_ODIE,"data/SCHISM_LakeOntario/horizontalVelX.schism_lake_ontario.nc"), _Purpose.TUTORIAL)),
     ("SCHISM_LakeOntario/horizontalVelY", (_V3Dataset(_ODIE,"data/SCHISM_LakeOntario/horizontalVelY.schism_lake_ontario.nc"), _Purpose.TUTORIAL)),
+    ("MOM6_example_data/U", (_V3Dataset(_ODIE,"data/MOM6_example_data/mom6_ssu.nc"), _Purpose.TUTORIAL)),
+    ("MOM6_example_data/V", (_V3Dataset(_ODIE,"data/MOM6_example_data/mom6_ssv.nc"), _Purpose.TUTORIAL)),
+    ("MOM6_example_data/static", (_V3Dataset(_ODIE,"data/MOM6_example_data/mom6_static.nc"), _Purpose.TUTORIAL)),
     ("NemoCurvilinear_data_zonal/U", (_V3Dataset(_ODIE,"data/NemoCurvilinear_data/U_purely_zonal-ORCA025_grid_U.nc4"), _Purpose.TUTORIAL)),
     ("NemoCurvilinear_data_zonal/V", (_V3Dataset(_ODIE,"data/NemoCurvilinear_data/V_purely_zonal-ORCA025_grid_V.nc4"), _Purpose.TUTORIAL)),
     ("NemoCurvilinear_data_zonal/mesh_mask", (_V3Dataset(_ODIE,"data/NemoCurvilinear_data/mesh_mask.nc4", _preprocess_drop_time_from_mesh2), _Purpose.TUTORIAL)),
@@ -251,10 +261,9 @@ _DATASET_KEYS_AND_CONFIGS: dict[str, tuple[_ParcelsDataset, _Purpose]] = dict([
     ("NemoNorthSeaORCA025-N006_data/V", (_V3Dataset(_ODIE,"data/NemoNorthSeaORCA025-N006_data/ORCA025-N06_200001*05V.nc"), _Purpose.TUTORIAL)),
     ("NemoNorthSeaORCA025-N006_data/W", (_V3Dataset(_ODIE,"data/NemoNorthSeaORCA025-N006_data/ORCA025-N06_200001*05W.nc"), _Purpose.TUTORIAL)),
     ("NemoNorthSeaORCA025-N006_data/mesh_mask", (_V3Dataset(_ODIE,"data/NemoNorthSeaORCA025-N006_data/coordinates.nc", _preprocess_drop_time_from_mesh1), _Purpose.TUTORIAL)),
-    # "POPSouthernOcean_data/t.x1_SAMOC_flux.16900*.nc", # TODO v4: In v3 but should not be in v4 https://github.com/Parcels-code/Parcels/issues/2571#issuecomment-4214476973
     # ("SWASH_data/data", (_V3Dataset(_ODIE,"data/SWASH_data/field_00655*.nc"), _Purpose.TUTORIAL)),
     # ("WOA_data/data", (_V3Dataset(_ODIE,"data/WOA_data/woa18_decav_t*_04.nc", _preprocess_set_cf_calendar_360_day), _Purpose.TUTORIAL)),
-    ("CROCOidealized_data/data", (_V3Dataset(_ODIE,"data/CROCOidealized_data/CROCO_idealized.nc"), _Purpose.TUTORIAL)),
+    ("CROCOoverflow_data/data", (_V3Dataset(_ODIE,"data/CROCOOverflow_data/over_his.nc"), _Purpose.TUTORIAL)),
     ("AIFSmeteo/data", (_V3Dataset(_ODIE,"data/AIFS-meteo-data/*.nc"), _Purpose.TUTORIAL))
 ] + [
     ("Benchmarks_FESOM2-baroclinic-gyre/data", (_ZarrZipDataset(_ODIE, 'data-zarr/Benchmarks_FESOM2-baroclinic-gyre/data.zip', zarr_format=2), _Purpose.TESTING)),

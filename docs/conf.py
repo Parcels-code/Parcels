@@ -11,11 +11,11 @@
 # All configuration values have a default; values that are commented out
 # serve to show the default.
 
-import datetime
 import inspect
 import os
 import sys
 import warnings
+from datetime import datetime
 from pathlib import Path
 
 PROJECT_ROOT = (Path(__file__).parent / "..").resolve()
@@ -45,6 +45,7 @@ extensions = [
     "sphinx_design",
     "autoapi.extension",
     "notfound.extension",
+    "sphinxext.rediraffe",
 ]
 
 # Add any paths that contain templates here, relative to this directory.
@@ -62,7 +63,7 @@ master_doc = "index"
 
 # General information about the project.
 project = "Parcels"
-copyright = f"{datetime.datetime.now().year}, The Parcels Team"
+copyright = f"{datetime.now().year}, The Parcels Team"
 author = "The Parcels Team"
 
 linkcheck_ignore = [
@@ -85,6 +86,49 @@ linkcheck_ignore = [
 
 # Define the canonical URL using custom domain on Read the Docs
 html_baseurl = os.environ.get("READTHEDOCS_CANONICAL_URL", "")
+
+# Redirects for moved/deleted pages, handled by sphinxext-rediraffe. Paths are relative to
+# the docs folder, e.g. "user_guide/examples/tutorial_old.ipynb": "user_guide/examples/tutorial_new.ipynb"
+rediraffe_redirects = {
+    # Flattening user_guide/examples and user_guide/getting_started into user_guide (GH-3038)
+    "user_guide/examples/explanation_copernicusmarine.md": "user_guide/convert_copernicusmarine.md",
+    "user_guide/examples/explanation_grids.ipynb": "user_guide/fieldsets_grids.ipynb",
+    "user_guide/examples/explanation_interpolation.md": "user_guide/interpolation_explanation.md",
+    "user_guide/examples/explanation_kernelloop.md": "user_guide/kernels_loopexplanation.md",
+    "user_guide/examples/explanation_performance.md": "user_guide/simulation_performance.md",
+    "user_guide/examples/explanation_writing_convert_functions.md": "user_guide/convert_writing_functions.md",
+    "user_guide/examples/tutorial_Argofloats.ipynb": "user_guide/example_Argofloats.ipynb",
+    "user_guide/examples/tutorial_aifs.ipynb": "user_guide/convert_aifs.ipynb",
+    "user_guide/examples/tutorial_croco_3D.ipynb": "user_guide/convert_croco_3D.ipynb",
+    "user_guide/examples/tutorial_delaystart.ipynb": "user_guide/particlesets_delaystart.ipynb",
+    "user_guide/examples/tutorial_delft3d.ipynb": "user_guide/convert_delft3d.ipynb",
+    "user_guide/examples/tutorial_diffusion.ipynb": "user_guide/example_diffusion.ipynb",
+    "user_guide/examples/tutorial_dt_integrators.ipynb": "user_guide/simulation_dt_integrators.ipynb",
+    "user_guide/examples/tutorial_fesom.ipynb": "user_guide/convert_fesom.ipynb",
+    "user_guide/examples/tutorial_gsw_density.ipynb": "user_guide/example_gsw_density.ipynb",
+    "user_guide/examples/tutorial_homepage_animation.md": "user_guide/misc_homepage_animation.md",
+    "user_guide/examples/tutorial_interaction.ipynb": "user_guide/example_interaction.ipynb",
+    "user_guide/examples/tutorial_interpolation.ipynb": "user_guide/interpolation_tutorial.ipynb",
+    "user_guide/examples/tutorial_manipulating_field_data.ipynb": "user_guide/fieldsets_manipulating_field_data.ipynb",
+    "user_guide/examples/tutorial_mitgcm.ipynb": "user_guide/convert_mitgcm.ipynb",
+    "user_guide/examples/tutorial_mom6.ipynb": "user_guide/convert_mom6.ipynb",
+    "user_guide/examples/tutorial_nemo.ipynb": "user_guide/convert_nemo.ipynb",
+    "user_guide/examples/tutorial_nestedgrids.ipynb": "user_guide/fieldsets_nestedgrids.ipynb",
+    "user_guide/examples/tutorial_peninsula_AvsCgrid.ipynb": "user_guide/interpolation_peninsula_AvsCgrid.ipynb",
+    "user_guide/examples/tutorial_sampling.ipynb": "user_guide/kernels_sampling.ipynb",
+    "user_guide/examples/tutorial_schism.ipynb": "user_guide/convert_schism.ipynb",
+    "user_guide/examples/tutorial_sigma_coordinates.ipynb": "user_guide/fieldsets_time_varying_z_coordinates.ipynb",
+    "user_guide/examples/tutorial_statuscodes.md": "user_guide/kernels_statuscodes.ipynb",
+    "user_guide/examples/tutorial_stuck_particles.ipynb": "user_guide/interpolation_stuck_particles.ipynb",
+    "user_guide/examples/tutorial_unstuck_Agrid.ipynb": "user_guide/interpolation_unstuck_Agrid.ipynb",
+    "user_guide/examples/tutorial_velocityconversion.ipynb": "user_guide/fieldsets_velocityconversion.ipynb",
+    "user_guide/examples/tutorial_write_in_kernel.ipynb": "user_guide/kernels_write_in_kernel.ipynb",
+    "user_guide/getting_started/explanation_concepts.md": "user_guide/gettingstarted_concepts.md",
+    "user_guide/getting_started/installation.md": "user_guide/installation.md",
+    "user_guide/getting_started/tutorial_output.ipynb": "user_guide/gettingstarted_output.ipynb",
+    "user_guide/getting_started/tutorial_quickstart.md": "user_guide/gettingstarted_quickstart.md",
+    "user_guide/fieldsets_sigma_coordinates.ipynb": "user_guide/fieldsets_time_varying_z_coordinates.ipynb",
+}
 
 # Tell Jinja2 templates the build is running on Read the Docs
 if os.environ.get("READTHEDOCS", "") == "True":
@@ -208,6 +252,9 @@ html_theme_options = {
     "announcement": "Parcels v4 has been released! 🎉 See <a href='https://parcels-code.org/blog/parcels-v4'>our release blog post</a> for more info",
     "header_links_before_dropdown": 8,
     "navbar_align": "left",
+    "show_nav_level": 0,
+    "collapse_navigation": True,
+    "navigation_depth": 2,
 }
 
 html_context = {
@@ -517,12 +564,17 @@ epub_exclude_files = ["search.html"]
 myst_heading_anchors = 4
 
 myst_enable_extensions = ["substitution", "amsmath", "dollarmath"]
+myst_substitutions = {"version": os.environ.get("READTHEDOCS_VERSION_NAME", version)}
 
 # -- Options for MyST-nb --------------------------------------------------
 nb_execution_mode = "cache"
 nb_execution_excludepatterns = ["jupyter_execute", ".jupyter_cache"]
 nb_execution_raise_on_error = True
 nb_execution_timeout = 75
+nb_merge_streams = (
+    True  # merge consecutive stdout/stderr outputs of a cell into a single block
+)
+
 suppress_warnings = ["mystnb.unknown_mime_type"]
 nitpicky = True
 nitpick_ignore_regex = [

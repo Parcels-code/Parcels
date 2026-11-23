@@ -1,4 +1,4 @@
-import datetime
+import datetime  # noqa: ICN001
 import sys
 import types
 import warnings
@@ -23,6 +23,7 @@ from parcels._core.uxgrid import UxGrid
 from parcels._core.warnings import ParticleSetWarning
 from parcels._core.xgrid import XGrid
 from parcels._logger import logger
+from parcels._repr_utils import particleset_repr
 
 __all__ = ["ParticleSet"]
 
@@ -85,7 +86,7 @@ class ParticleSet:
             minz = None
             for field in self.fieldset.fields.values():
                 has_time_varying_z = (isinstance(field.grid, UxGrid) and field.grid.z.ndim == 3) or (
-                    isinstance(field.grid, XGrid) and "Z" in field.grid.axes and field.grid._ds["depth"].ndim == 4
+                    isinstance(field.grid, XGrid) and field.grid.depth.ndim == 4
                 )
                 if has_time_varying_z:
                     raise ValueError(
@@ -134,17 +135,10 @@ class ParticleSet:
                 y=y,
                 x=x,
                 particle_id=particle_ids,
+                **kwargs,
             ),
         )
         self._pclass = pclass
-
-        # update initial values provided on ParticleSet creation # TODO: Wrap this into create_particle_data
-        particle_variables = [v.name for v in pclass.variables]
-        for kwvar, kwval in kwargs.items():
-            if kwvar not in particle_variables:
-                raise RuntimeError(f"Particle class does not have Variable {kwvar}")
-            self._data[kwvar][:] = kwval
-
         self._kernel = None
 
     def __del__(self):
@@ -190,8 +184,8 @@ class ParticleSet:
     def size(self):
         return len(self)
 
-    # def __repr__(self):
-    #     return particleset_repr(self)
+    def __repr__(self):
+        return particleset_repr(self)
 
     def __len__(self):
         return len(self._data["particle_id"])
@@ -264,13 +258,8 @@ class ParticleSet:
         """Pre-populate guesses of particle ei (element id) indices"""
         for i, grid in enumerate(self.fieldset.gridset):
             grid_positions = grid.search(self.z, self.y, self.x)
-            self._data["ei"][:, i] = grid.ravel_index(
-                {
-                    "X": grid_positions["X"]["index"],
-                    "Y": grid_positions["Y"]["index"],
-                    "Z": grid_positions["Z"]["index"],
-                }
-            )
+            axes = ("Z", "FACE") if isinstance(grid, UxGrid) else ("X", "Y", "Z")
+            self._data["ei"][:, i] = grid.ravel_index({axis: grid_positions[axis]["index"] for axis in axes})
 
     @classmethod
     def from_particlefile(cls, fieldset, pclass, filename, restart=True, restarttime=None, **kwargs):
@@ -351,18 +340,6 @@ class ParticleSet:
         """
         return int(np.sum(self._data["state"] != StatusCode.Success))
 
-    def set_variable_write_status(self, var, write_status):
-        """Method to set the write status of a Variable.
-
-        Parameters
-        ----------
-        var :
-            Name of the variable (string)
-        write_status :
-            Write status of the variable (True, False or 'once')
-        """
-        self._data[var].set_variable_write_status(write_status)
-
     def execute(
         self,
         kernels,
@@ -411,8 +388,9 @@ class ParticleSet:
         self._kernel = Kernel(kernels, self)
 
         if output_file is not None:
-            output_file.set_metadata(self.fieldset.gridset[0]._mesh)
-            output_file.metadata["parcels_kernels"] = self._kernel.funcname
+            output_file.set_metadata(self.fieldset.gridset[0].mesh)
+            output_file.set_time_interval(self.fieldset.time_interval)
+            output_file.metadata["parcels_kernels"] = " ".join(f.__name__ for f in self._kernel._kernels)
 
         dt, sign_dt = _convert_dt_to_float(dt)
         self._data["dt"][:] = dt
@@ -461,7 +439,7 @@ class ParticleSet:
                 else:
                     next_time = end_time
 
-                self._kernel.execute(self, endtime=next_time, dt=dt)
+                self._kernel.execute(self, endtime=next_time)
 
                 if next_output is not None:
                     if np.abs(next_time - next_output) < 0.001:
@@ -472,7 +450,7 @@ class ParticleSet:
 
                 if verbose_progress:
                     pbar.set_description_str(
-                        "Integration time: " + str(float_to_datelike(time, self.fieldset.time_interval))
+                        "Integration time: " + str(float_to_datelike(next_time, self.fieldset.time_interval))
                     )
                     pbar.update(sign_dt * (next_time - time))
 

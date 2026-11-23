@@ -17,6 +17,7 @@ from parcels._core.model import (
     UnstructuredModelData,
     create_empty_constant_field_model,
 )
+from parcels._core.statuscodes import CalendarError
 from parcels._core.utils.string import _assert_str_and_python_varname
 from parcels._core.utils.time import get_datetime_type_calendar
 from parcels._core.utils.time import is_compatible as datetime_is_compatible
@@ -70,12 +71,12 @@ class FieldSet:
         for model in models:
             if not isinstance(model, ModelData):
                 raise ValueError(f"Expected `model` to be a ModelData object. Got {model}")
-        # assert_compatible_calendars(fields)
 
         self.models = models
         self.constant_model: StructuredModelData | None = None
         self._fields: dict[str, Field | VectorField] | None = None
         self.reconstruct_fields()
+        assert_compatible_calendars(self.fields.values())
         self.context: dict[str, float] = {}
         assert_models_have_same_mesh(self.models)
 
@@ -106,6 +107,9 @@ class FieldSet:
         if self.constant_model is not None:
             fields += self.constant_model.construct_fields()
         self._fields = {f.name: f for f in fields}
+        for field in self._fields.values():
+            if isinstance(field, Field):
+                field.igrid = self.gridset.index(field.grid)
 
     def __getattr__(self, name):
         """Get the field by name. If the field is not found, check if it's a context variable."""
@@ -265,7 +269,7 @@ class FieldSet:
     def from_ugrid_conventions(
         cls,
         ds: ux.UxDataset,
-        mesh: str = "spherical",
+        mesh: SphericalMesh | None = None,
         vector_fields: ptyping.VectorFields | NotSetType = NOTSET,
     ):
         """Create a FieldSet from a Parcels compliant uxarray.UxDataset.
@@ -281,6 +285,10 @@ class FieldSet:
         ----------
         ds : uxarray.UxDataset
             uxarray.UxDataset as obtained from the uxarray package but with appropriate named vertical dimensions
+        mesh : FlatMesh or SphericalMesh, optional
+            Mesh object indicating the type of mesh coordinates used during velocity interpolation, e.g.
+            ``FlatMesh()`` or ``SphericalMesh(radius=...)``. Default is None, in which case the mesh type will be
+            inferred from the units of the ``node_lon`` and ``node_lat`` coordinates of the grid.
         vector_fields : Mapping[str, tuple[str, ...]], optional
             Mapping of vector field names to tuples of component variable names in the dataset.
             For example, ``{"UV": ("U", "V"), "UVW": ("U", "V", "W")}``.
@@ -302,10 +310,10 @@ class FieldSet:
     def from_sgrid_conventions(
         cls,
         ds: xr.Dataset,
-        mesh: ptyping.TMesh | None = None,
+        mesh: SphericalMesh | None = None,
         vector_fields: ptyping.VectorFields | NotSetType = NOTSET,
         skip_field_data_validation: bool = False,
-    ):  # TODO: Update mesh to be discovered from the dataset metadata
+    ):
         """Create a FieldSet from a dataset using SGRID convention metadata.
 
         This is the primary ingestion method in Parcels for structured grid datasets.
@@ -316,9 +324,11 @@ class FieldSet:
         ----------
         ds : xarray.Dataset
             xarray.Dataset with SGRID convention metadata.
-        mesh : str
-            String indicating the type of mesh coordinates used during
-            velocity interpolation. Options are "spherical" or "flat".
+        mesh : FlatMesh or SphericalMesh, optional
+            Mesh object indicating the type of mesh coordinates used during
+            velocity interpolation, e.g. ``FlatMesh()`` or ``SphericalMesh(radius=...)``.
+            Default is None, in which case the mesh type will be inferred
+            from the units of the dataset coordinates.
         vector_fields : Mapping[str, tuple[str, ...]], optional
             Mapping of vector field names to tuples of component variable names in the dataset.
             For example, ``{"UV": ("U", "V"), "UVW": ("U", "V", "W")}``.
@@ -406,10 +416,6 @@ def assert_models_have_same_mesh(models: list[ModelData]):
             )
 
 
-class CalendarError(Exception):  # TODO: Move to a Parcels errors module
-    """Exception raised when the calendar of a field is not compatible with the rest of the Fields. The user should ensure that they only add fields to a FieldSet that have compatible CFtime calendars."""
-
-
 def assert_compatible_calendars(fields: Iterable[Field | VectorField]):
     time_intervals = [f.time_interval for f in fields if f.time_interval is not None]
 
@@ -437,39 +443,3 @@ def _datetime_to_msg(example_datetime: TimeLike) -> str:
 
 def _format_calendar_error_message(field: Field | VectorField, reference_datetime: TimeLike) -> str:
     return f"Expected field {field.name!r} to have calendar compatible with datetime object {_datetime_to_msg(reference_datetime)}. Got field with calendar {_datetime_to_msg(field.time_interval.left)}. Have you considered using xarray to update the time dimension of the dataset to have a compatible calendar?"
-
-
-_COPERNICUS_MARINE_AXIS_VARNAMES = {
-    "T": "time",
-    "Z": "depth",
-    "Y": "lat",
-    "X": "lon",
-}
-
-
-_COPERNICUS_MARINE_CF_STANDARD_NAME_FALLBACKS = {
-    "UV": [
-        (
-            "eastward_sea_water_velocity",
-            "northward_sea_water_velocity",
-        ),  # GLOBAL_ANALYSISFORECAST_PHY_001_024, MEDSEA_ANALYSISFORECAST_PHY_006_013, BALTICSEA_ANALYSISFORECAST_PHY_003_006, BLKSEA_ANALYSISFORECAST_PHY_007_001, IBI_ANALYSISFORECAST_PHY_005_001, NWSHELF_ANALYSISFORECAST_PHY_004_013, MULTIOBS_GLO_PHY_MYNRT_015_003, MULTIOBS_GLO_PHY_W_3D_REP_015_007
-        (
-            "surface_geostrophic_eastward_sea_water_velocity",
-            "surface_geostrophic_northward_sea_water_velocity",
-        ),  # SEALEVEL_GLO_PHY_L4_MY_008_047, SEALEVEL_EUR_PHY_L4_NRT_008_060
-        (
-            "geostrophic_eastward_sea_water_velocity",
-            "geostrophic_northward_sea_water_velocity",
-        ),  # MULTIOBS_GLO_PHY_TSUV_3D_MYNRT_015_012
-        (
-            "sea_surface_wave_stokes_drift_x_velocity",
-            "sea_surface_wave_stokes_drift_y_velocity",
-        ),  # GLOBAL_ANALYSISFORECAST_WAV_001_027, MEDSEA_MULTIYEAR_WAV_006_012, ARCTIC_ANALYSIS_FORECAST_WAV_002_014, BLKSEA_ANALYSISFORECAST_WAV_007_003, IBI_ANALYSISFORECAST_WAV_005_005, NWSHELF_ANALYSISFORECAST_WAV_004_014
-        ("sea_water_x_velocity", "sea_water_y_velocity"),  # ARCTIC_ANALYSISFORECAST_PHY_002_001
-        (
-            "eastward_sea_water_velocity_vertical_mean_over_pelagic_layer",
-            "northward_sea_water_velocity_vertical_mean_over_pelagic_layer",
-        ),  # GLOBAL_MULTIYEAR_BGC_001_033
-    ],
-    "W": ["upward_sea_water_velocity", "vertical_sea_water_velocity"],
-}

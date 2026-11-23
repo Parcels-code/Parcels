@@ -15,6 +15,8 @@ from parcels import (
     StatusCode,
     Variable,
 )
+from parcels._core.mesh import FlatMesh
+from parcels._core.spatialhash import SpatialHash
 from parcels._core.statuscodes import GridSearchingError
 from parcels._core.utils.time import timedelta_to_float
 from parcels._datasets.structured.generated import simple_UV_dataset
@@ -38,14 +40,14 @@ def fieldset_no_time_interval() -> FieldSet:
             "V_A_grid": "V",
         }
     )
-    return FieldSet.from_sgrid_conventions(ds, mesh="flat")
+    return FieldSet.from_sgrid_conventions(ds)
 
 
 @pytest.fixture
 def zonal_flow_fieldset() -> FieldSet:
-    ds = simple_UV_dataset(mesh="flat")
+    ds = simple_UV_dataset(mesh_str="flat")
     ds["U"].data[:] = 1.0
-    return FieldSet.from_sgrid_conventions(ds, mesh="flat")
+    return FieldSet.from_sgrid_conventions(ds)
 
 
 @pytest.fixture
@@ -56,12 +58,12 @@ def time_varying_zonal_flow_fieldset() -> FieldSet:
     clock and nothing else.
     """
     nt = 25
-    ds = simple_UV_dataset(n_times=nt, nz=2, ny=6, nx=6, mesh="flat")
+    ds = simple_UV_dataset(n_times=nt, nz=2, ny=6, nx=6, mesh_str="flat")
     times = np.array([np.timedelta64(3 * i, "h") for i in range(nt)])
     ds["time"] = ("time", times, {"axis": "T"})
     u = np.cos(2 * np.pi * (times / np.timedelta64(1, "s")) / 86400.0)  # 1 m/s, 1-day period
     ds["U"].data[:] = u[:, None, None, None]
-    return FieldSet.from_sgrid_conventions(ds, mesh="flat")
+    return FieldSet.from_sgrid_conventions(ds)
 
 
 def test_execute_trajectory_independent_of_other_particles_release_times(time_varying_zonal_flow_fieldset):
@@ -190,6 +192,39 @@ def test_sampleUonly(fieldset):
         match="Sampling of velocities should normally be done using fieldset.UV or fieldset.UVW object; tread carefully",
     ):
         pset.execute(SampleU, runtime=np.timedelta64(1, "D"), dt=np.timedelta64(1, "D"))
+
+
+def test_ei_cache_skips_spatial_hash_with_two_grids(monkeypatch):
+    """Each grid keeps its own cached ei, so stationary particles only go through the spatial hash on the first step."""
+    n_hashed = []
+    query = SpatialHash.query
+
+    def counting_query(self, y, x):
+        n_hashed.append(len(y))
+        return query(self, y, x)
+
+    monkeypatch.setattr(SpatialHash, "query", counting_query)
+
+    ds_curvilinear = datasets_structured["2d_left_rotated"][["data_g", "grid"]].rename({"data_g": "curvilinear"})
+    ds_rectilinear = datasets_structured["ds_2d_left"][["data_g", "grid"]].rename({"data_g": "rectilinear"})
+    fieldset = FieldSet.from_sgrid_conventions(ds_curvilinear, mesh=FlatMesh()) + FieldSet.from_sgrid_conventions(
+        ds_rectilinear, mesh=FlatMesh()
+    )
+
+    def SampleBothGrids(particles, fieldset):  # pragma: no cover
+        _ = fieldset.curvilinear[particles]
+        _ = fieldset.rectilinear[particles]
+
+    npart = 50
+    rng = np.random.default_rng(0)
+    pset = ParticleSet(fieldset, x=rng.uniform(1, 5, npart), y=rng.uniform(1, 5, npart), z=rng.uniform(1, 80, npart))
+    dt = np.timedelta64(1, "D")
+    pset.execute(SampleBothGrids, runtime=dt, dt=dt)
+    assert sum(n_hashed) == npart
+
+    n_hashed.clear()
+    pset.execute(SampleBothGrids, runtime=4 * dt, dt=dt)
+    assert sum(n_hashed) == 0
 
 
 def test_particleset_run_to_endtime(fieldset):
@@ -389,12 +424,6 @@ def test_some_particles_throw_outoftime(fieldset):
         pset.execute(FieldAccessOutsideTime, runtime=np.timedelta64(1, "D"), dt=np.timedelta64(10, "D"))
 
 
-def test_raise_grid_searching_error(): ...
-
-
-def test_raise_general_error(): ...
-
-
 def test_errorinterpolation(fieldset):
     class NaNInterpolator(VectorInterpolator):  # pragma: no cover
         def interp(self, particle_positions, grid_positions, field):
@@ -534,7 +563,7 @@ def test_execution_update_particle_in_kernel_function(fieldset, kernel_names, ex
 
 def test_uxstommelgyre_pset_execute():
     ds = datasets_unstructured["stommel_gyre_delaunay"]
-    fieldset = FieldSet.from_ugrid_conventions(ds, mesh="spherical")
+    fieldset = FieldSet.from_ugrid_conventions(ds)
     pset = ParticleSet(
         fieldset,
         x=[30.0],
@@ -554,7 +583,7 @@ def test_uxstommelgyre_pset_execute():
 
 def test_uxstommelgyre_multiparticle_pset_execute():
     ds = datasets_unstructured["stommel_gyre_delaunay"]
-    fieldset = FieldSet.from_ugrid_conventions(ds, mesh="spherical")
+    fieldset = FieldSet.from_ugrid_conventions(ds)
     pset = ParticleSet(
         fieldset,
         x=[30.0, 32.0],
@@ -570,24 +599,23 @@ def test_uxstommelgyre_multiparticle_pset_execute():
     )
 
 
-@pytest.mark.xfail(reason="Output file not implemented yet")
-def test_uxstommelgyre_pset_execute_output():
+def test_uxstommelgyre_pset_execute_output(tmp_parquet):
     ds = datasets_unstructured["stommel_gyre_delaunay"]
-    fieldset = FieldSet.from_ugrid_conventions(ds, mesh="spherical")
+    fieldset = FieldSet.from_ugrid_conventions(ds)
     pset = ParticleSet(
         fieldset,
-        x=[30.0],
-        y=[5.0],
-        z=[50.0],
-        t=[0.0],
+        x=30.0,
+        y=5.0,
+        z=50.0,
+        t=np.timedelta64(0, "s"),
         pclass=Particle,
     )
     output_file = ParticleFile(
-        name="stommel_uxarray_particles.zarr",  # the file name
+        path=tmp_parquet,  # the file name
         outputdt=np.timedelta64(5, "m"),  # the time step of the outputs
     )
     pset.execute(
-        runtime=np.timedelta64(10, "m"), dt=np.timedelta64(60, "s"), kernels=AdvectionEE, output_file=output_file
+        runtime=np.timedelta64(10, "m"), dt=np.timedelta64(150, "s"), kernels=AdvectionEE, output_file=output_file
     )
 
 
@@ -598,7 +626,7 @@ def test_uxgrid_particle_leaving_domain_raises():
     ``GRID_SEARCH_ERROR`` and ``pset.execute`` should raise a GridSearchingError.
     """
     ds = datasets_unstructured["ux_constant_flow_face_centered_2D"]
-    fieldset = FieldSet.from_ugrid_conventions(ds, mesh="flat")
+    fieldset = FieldSet.from_ugrid_conventions(ds, mesh=FlatMesh())
     assert isinstance(fieldset.U.interp_method, UxConstantFaceConstantZC)
     assert isinstance(fieldset.V.interp_method, UxConstantFaceConstantZC)
     assert isinstance(fieldset.UV.interp_method, Ux_Velocity)

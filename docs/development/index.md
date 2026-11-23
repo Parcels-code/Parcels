@@ -7,6 +7,7 @@
 
 Contributing Guidelines <self>
 Policies <policies>
+Parcels v4 philosophy <v4_philosophy>
 Release Notes <https://github.com/Parcels-code/Parcels/releases>
 ```
 
@@ -134,6 +135,8 @@ See below for more Pixi commands relevant to development.
 - `pixi run docs-watch` - Build and auto-rebuild documentation when files change (useful for live editing)
 - `pixi run docs-linkcheck` - Check for broken links in the documentation
 
+If you move or delete a documentation page, add an entry to `rediraffe_redirects` in `docs/conf.py` so that existing links to the page keep working.
+
 **Code quality**
 
 - `pixi run lint` - Run pre-commit hooks on all files (includes formatting, linting, and other code quality checks)
@@ -169,6 +172,7 @@ These guidelines are here to promote Python best practices, as well as standardi
 - Include tests for any new code you write. Tests are implemented using pytest and are located in the `tests` directory.
 - Follow the [NumPy docstring conventions](https://numpydoc.readthedocs.io/en/latest/format.html) when adding or modifying public API docstrings.
 - Follow the [PEP 8](https://peps.python.org/pep-0008/) style guide when writing code. This codebase also uses additional tooling to enforce additional style guidelines. You can run this tooling with `pixi run lint`, and see which tooling is run in the `.pre-commit-config.yaml` file.
+- To deprecate a function or class, use [`typing_extensions.deprecated`](https://typing-extensions.readthedocs.io/en/latest/#typing_extensions.deprecated) (or `warnings.deprecated` once Python 3.13 is the minimum supported version).
 
 ---
 

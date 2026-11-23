@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import numpy as np
 import pytest
+import xarray as xr
 from re_assert import Matches
 
 from parcels import Field, VectorField
@@ -9,7 +10,6 @@ from parcels._core.fieldset import FieldSet
 from parcels._core.model import StructuredModelData
 from parcels._core.warnings import FieldEvalWarning
 from parcels._datasets.structured.generated import simple_UV_dataset
-from parcels._datasets.structured.generic import T as T_structured
 from parcels._datasets.structured.generic import datasets as datasets_structured
 from parcels._datasets.unstructured.generic import _ux_constant_flow_face_centered_2D
 from parcels._datasets.unstructured.generic import datasets as datasets_unstructured
@@ -21,7 +21,7 @@ from parcels.interpolators import (
 
 def test_field_init_param_types():
     data = datasets_structured["ds_2d_left"]
-    model = StructuredModelData.from_sgrid_conventions(data, mesh="flat", vector_fields=NOTSET)
+    model = StructuredModelData.from_sgrid_conventions(data, vector_fields=NOTSET)
 
     with pytest.raises(TypeError, match="Expected a string for variable name, got int instead."):
         Field(name=123, model=model)
@@ -48,46 +48,23 @@ def test_vectorfield_repr(fieldset):
     Matches(r"\<.*VectorField object at.*\>").assert_matches(repr(fieldset.UV))
 
 
-# TODO: Move to test_model.py ?
-def test_field_init_fail_on_float_time_dim():
-    """Test that accessing time_interval fails when dataset has float time dimension.
-
-    (users are expected to use timedelta64 or datetime).
-    Time validation has moved from Field.__init__ to ModelData.time_interval.
-    """
-    ds = datasets_structured["ds_2d_left"].copy()
-    ds["time"] = (
-        ds["time"].dims,
-        np.arange(0, T_structured, dtype="float64"),
-        ds["time"].attrs,
-    )
-
-    model = StructuredModelData.from_sgrid_conventions(ds, mesh="flat", vector_fields=NOTSET)
-    with pytest.raises(
-        ValueError,
-        match=r"Are you sure that the time dimension on the xarray dataset is stored as timedelta, datetime or cftime datetime objects\?",
-    ):
-        _ = model.time_interval
-
-
-# TODO: Move to test_model.py as test_model_time_interval() ?
-def test_field_time_interval():
-    """Test that field.time_interval delegates correctly to model.time_interval."""
-    data = datasets_structured["ds_2d_left"]
-    model = StructuredModelData.from_sgrid_conventions(data, mesh="flat", vector_fields=NOTSET)
-    field = Field(name="data_g", model=model)
-    assert field.time_interval.left == np.datetime64("2000-01-01")
-    assert field.time_interval.right == np.datetime64("2001-01-01")
-
-
 def test_vectorfield_init_different_time_intervals():
     # Tests that a VectorField raises a ValueError if the component fields have different time domains.
-    ...
+    dsU = simple_UV_dataset(mesh_str="flat")[["U", "grid"]]
+    dsV = simple_UV_dataset(mesh_str="flat")[["V"]]
+
+    dsV = dsV.rename({"time": "timeV"})
+    dsV["timeV"] = dsV["timeV"] + np.timedelta64(1, "D")
+    dsV["timeV"].attrs["axis"] = "T"
+
+    ds = xr.merge([dsU, dsV], compat="no_conflicts")
+    with pytest.raises(ValueError, match="Multiple time coordinates"):
+        FieldSet.from_sgrid_conventions(ds)
 
 
 def test_field_invalid_interpolator():
     ds = datasets_structured["ds_2d_left"]
-    model = StructuredModelData.from_sgrid_conventions(ds, mesh="flat", vector_fields=NOTSET)
+    model = StructuredModelData.from_sgrid_conventions(ds, vector_fields=NOTSET)
     field = Field(name="data_g", model=model)
 
     def not_a_scalar_interpolator(particle_positions, grid_positions, field):
@@ -100,7 +77,7 @@ def test_field_invalid_interpolator():
 
 def test_vectorfield_invalid_interpolator():
     ds = datasets_structured["ds_2d_left"]
-    model = StructuredModelData.from_sgrid_conventions(ds, mesh="flat", vector_fields=NOTSET)
+    model = StructuredModelData.from_sgrid_conventions(ds, vector_fields=NOTSET)
     fields = {f.name: f for f in model.construct_fields()}
     U = fields["U_A_grid"]
     V = fields["V_A_grid"]
@@ -139,7 +116,7 @@ def test_field_unstructured_z_linear():
     for k, z in enumerate(ds.coords["zf"]):
         ds["W"].values[:, k, :] = z
 
-    fieldset = FieldSet.from_ugrid_conventions(ds, mesh="spherical")
+    fieldset = FieldSet.from_ugrid_conventions(ds)
     # Note that the vertical coordinate is required to be the position of the layer interfaces ("nz"), not the mid-layers ("nz1")
     P = fieldset.p
     W = fieldset.W
@@ -176,7 +153,7 @@ def test_field_unstructured_z_linear():
 
 def test_field_constant_in_time():
     """Tests field evaluation for a field with no time interval (i.e., constant in time)."""
-    fieldset = FieldSet.from_ugrid_conventions(datasets_unstructured["stommel_gyre_delaunay"], mesh="flat")
+    fieldset = FieldSet.from_ugrid_conventions(datasets_unstructured["stommel_gyre_delaunay"])
     # Note that the vertical coordinate is required to be the position of the layer interfaces ("nz"), not the mid-layers ("nz1")
     P = fieldset.p
     assert isinstance(P.interp_method, UxConstantFaceConstantZC)
@@ -207,8 +184,8 @@ def test_field_constant_in_time():
 def test_field_eval_out_of_bounds_structured(field_name, location, expected):
     """Test that Field.eval returns IndexError when queried outside the grid boundaries."""
     # eval outside of bounds should return 0.0
-    ds = simple_UV_dataset(mesh="flat")
-    fieldset = FieldSet.from_sgrid_conventions(ds, mesh="flat")
+    ds = simple_UV_dataset(mesh_str="flat")
+    fieldset = FieldSet.from_sgrid_conventions(ds)
     fieldset.U.data[:] = 1.0
     fieldset.V.data[:] = 2.0
     field = getattr(fieldset, field_name)
@@ -233,7 +210,7 @@ def test_field_eval_out_of_bounds_structured(field_name, location, expected):
 def test_field_eval_out_of_bounds_unstructured(field_name, location, expected):
     """Test that Field.eval returns IndexError when queried outside the grid boundaries."""
     ds = _ux_constant_flow_face_centered_2D()
-    fieldset = FieldSet.from_ugrid_conventions(ds, mesh="flat")
+    fieldset = FieldSet.from_ugrid_conventions(ds)
     fieldset.U.data[:] = 1.0
     fieldset.V.data[:] = 2.0
     field = getattr(fieldset, field_name)
@@ -242,15 +219,3 @@ def test_field_eval_out_of_bounds_unstructured(field_name, location, expected):
         match="Some interpolated values are out-of-bounds. These values are set to 0. Treat carefully.",
     ):
         np.testing.assert_allclose(field.eval(*location), expected)
-
-
-def test_field_unstructured_grid_creation(): ...
-
-
-def test_field_interpolation(): ...
-
-
-def test_field_interpolation_out_of_spatial_bounds(): ...
-
-
-def test_field_interpolation_out_of_time_bounds(): ...
