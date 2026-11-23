@@ -22,9 +22,13 @@ _XGRID_AXES_ORDERING: Sequence[ptyping.XgridAxis] = "ZYX"
 
 
 def get_cell_count_along_dim(ds: xr.Dataset, fnp: sgrid.FaceNodePadding) -> int:
-    if fnp.face in ds.dims:
-        return ds.sizes[fnp.face] - 1
-    return sgrid.get_n_faces(ds.sizes[fnp.node], fnp.padding) - 1
+    if fnp.node in ds.dims:
+        n_nodes = ds.sizes[fnp.node]
+    else:
+        n_nodes = sgrid.get_n_nodes(ds.sizes[fnp.face], fnp.padding)
+
+    # N nodes define N - 1 searchable intervals; a singleton axis still uses index 0.
+    return max(1, n_nodes - 1)
 
 
 def get_time(ds: xr.Dataset, time_dim: str) -> npt.NDArray:

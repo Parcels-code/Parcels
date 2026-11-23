@@ -715,4 +715,5 @@ def test_fieldset_from_simple_UV_sigma_dataset(n_snapshots):
     depth = fieldset.U.grid._ds["depth"]
     assert depth.dims == ("time", "ZF", "YC", "XC")
     assert depth.sizes["time"] == n_snapshots
-    assert fieldset.U.grid.get_axis_dim("Z") == nz
+    # N nodes define N - 1 searchable intervals along the Z axis
+    assert fieldset.U.grid.get_axis_dim("Z") == nz - 1
