@@ -7,6 +7,7 @@
 
 Contributing Guidelines <self>
 Policies <policies>
+Parcels v4 philosophy <v4_philosophy>
 Release Notes <https://github.com/Parcels-code/Parcels/releases>
 ```
 
