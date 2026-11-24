@@ -780,6 +780,13 @@ def swash_to_sgrid(
     xarray.Dataset
         Dataset following SGRID conventions, to be passed to a FieldSet constructor.
     """
+    warnings.warn(
+        "The swash_to_sgrid function is experimental and may not work for all SWASH datasets. "
+        "Furthermore, we are not entirely confident that the SGrid layout for SWASH is implemented correctly. "
+        "Please report any issues to the Parcels GitHub repository.",
+        UserWarning,
+        stacklevel=2,
+    )
     coord = scipy.io.loadmat(coord_file)
     lon = coord["Xp"]
     lat = coord["Yp"]
@@ -941,6 +948,13 @@ def swash_to_sgridTimeVarying(
     xarray.Dataset
         Dataset following SGRID conventions, to be passed to a FieldSet constructor.
     """
+    warnings.warn(
+        "The swash_to_sgrid function is experimental and may not work for all SWASH datasets. "
+        "Furthermore, we are not entirely confident that the SGrid layout for SWASH is implemented correctly. "
+        "Please report any issues to the Parcels GitHub repository.",
+        UserWarning,
+        stacklevel=2,
+    )
     coord = scipy.io.loadmat(coord_file)
     lon = coord["Xp"]
     lat = coord["Yp"]
