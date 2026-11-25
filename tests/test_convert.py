@@ -222,10 +222,12 @@ def test_convert_copernicusmarine_nodepth(caplog):
 
 
 def test_convert_swash():
-    data_file, coord_file = parcels.tutorial.get_dataset_files("SWASH_data/data")
+    files = parcels.tutorial.get_dataset_files("SWASH_data/data")
 
+    names = ["coord", "U", "V", "W", "WATLEV", "ZK"]
+    file_dict = {name: file for name, file in zip(names, files, strict=True)}
     with pytest.warns(UserWarning, match="The swash_to_sgrid function is experimental"):
-        ds_fset = convert.swash_to_sgrid(data_file=data_file, coord_file=coord_file)
+        ds_fset = convert.swash_to_sgrid(field_files=file_dict)
     FieldSet.from_sgrid_conventions(ds_fset)
 
 

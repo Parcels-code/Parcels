@@ -720,6 +720,9 @@ def delft3d_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr
     return ds
 
 
+_TS = r"_(\d{6})_(\d{3})$"  ## For time formatting
+
+
 def _decode_time_ms(t0, t1):  ## for SWASH converter
     hh = t0 // 10000
     mm = (t0 // 100) % 100
@@ -727,7 +730,13 @@ def _decode_time_ms(t0, t1):  ## for SWASH converter
     return (hh * 3600 + mm * 60 + ss) * 1000 + t1
 
 
-def _index_keys(keys, prefix):  ## for SWASH converter
+def _load(path):  ## to load the SWASH output files
+    mat = scipy.io.loadmat(path)
+    keys = [k for k in mat if not k.startswith("__")]
+    return mat, keys
+
+
+def _index_keys(keys, prefix):  ## to identify the keys or parameters inside SWASH file.
     """Map (ts_int, ts_dec) -> {layer: key} for keys matching `prefix` + timestamp.
 
     `prefix` may contain a named group `k` for the layer number; layer is None otherwise.
@@ -744,36 +753,16 @@ def _index_keys(keys, prefix):  ## for SWASH converter
     return out
 
 
-def _load(path):  ## for SWASH converter
-    mat = scipy.io.loadmat(path)
-    keys = [k for k in mat if not k.startswith("__")]
-    return mat, keys
-
-
-def swash_to_sgrid(
-    coord_file: str,
-    data_file: str | None = None,
-    u_file: str | None = None,
-    v_file: str | None = None,
-    w_file: str | None = None,
-    watlev_file: str | None = None,
-    omega_file: str | None = None,
-) -> xr.Dataset:
+def swash_to_sgrid(field_files: dict, dt: int | None = None) -> xr.Dataset:
     """Create an sgrid-compliant xarray.Dataset from SWASH MATLAB output.
-
-    Two input options:
-      1. Single file: pass `data_file` (contains Watlev, Vksi, Veta, w, omega).
-      2. Separate files: pass `u_file`, `v_file`, `w_file`, `watlev_file` and `omega_file`
-         (`omega_file` is optional; if omitted, omega is looked up in the W file).
 
     Parameters
     ----------
-    coord_file : str
-        Path to the SWASH coordinate file (Xp, Yp, Botlev).
-    data_file : str, optional
-        Path to a single SWASH data file holding all variables.
-    u_file, v_file, w_file, watlev_file, omega_file : str, optional
-        Paths to the files holding Vksi, Veta, w, Watlev, and omega respectively.
+    field_files : dict
+        Dictionary containing paths to the SWASH output files. Must include the key 'coord' for the coordinate file (Xp, Yp, Botlev).
+    field_files must also include the keys 'u_file', 'v_file', 'w_file', 'watlev_file', and 'zk_file' for the corresponding SWASH output files.
+    dt : int
+        timestep for storage [millisecond]
 
     Returns
     -------
@@ -787,282 +776,102 @@ def swash_to_sgrid(
         UserWarning,
         stacklevel=2,
     )
-    coord = scipy.io.loadmat(coord_file)
+    if "coord" not in field_files:
+        raise ValueError("Coordinate file must be provided as field_files['coord'].")
+    coord = scipy.io.loadmat(field_files["coord"])
     lon = coord["Xp"]
     lat = coord["Yp"]
-    XC = lon[0, :]  # np.arange(lon.shape[1])
-    YC = lat[:, 0]  # np.arange(lat.shape[0])
+    XG = lon[0, :]
+    YG = lat[:, 0]
     bot = coord["Botlev"]
 
-    required = [u_file, v_file, w_file, watlev_file]
-    if data_file is not None:
-        if any(f is not None for f in required + [omega_file]):
-            raise ValueError("Pass either data_file or the separate files, not both.")
-        # Option 1: everything in one file -> load once and reuse for all variables
-        mat_u, keys_u = _load(data_file)
-        mat_v, keys_v = mat_w, keys_w = mat_h, keys_h = mat_o, keys_o = mat_u, keys_u
-    else:
-        # Option 2: separate files
-        if any(f is None for f in required):
-            raise ValueError("Provide data_file, or all of u_file, v_file, w_file and watlev_file.")
-        mat_u, keys_u = _load(u_file)
-        mat_v, keys_v = _load(v_file)
-        mat_w, keys_w = _load(w_file)
-        mat_h, keys_h = _load(watlev_file)
-        if omega_file is not None:
-            mat_o, keys_o = _load(omega_file)
-        else:
-            mat_o, keys_o = mat_w, keys_w  # fall back to omega inside the W file
+    required = ["U", "V", "W", "WATLEV", "ZK"]
+    for f in required:
+        if f not in field_files:
+            raise ValueError(f"Provide all of {', '.join(required)} in field_files.")
+    u_file = field_files["U"]
+    v_file = field_files["V"]
+    w_file = field_files["W"]
+    watlev_file = field_files["WATLEV"]
+    zk_file = field_files["ZK"]
+
+    mat_u, keys_u = _load(u_file)
+    mat_v, keys_v = _load(v_file)
+    mat_w, keys_w = _load(w_file)
+    mat_h, keys_h = _load(watlev_file)
+    mat_zk, keys_zk = _load(zk_file)
 
     idx_h = _index_keys(keys_h, r"Watlev")
     idx_u = _index_keys(keys_u, r"Vksi_k(?P<k>\d+)")
     idx_v = _index_keys(keys_v, r"Veta_k(?P<k>\d+)")
     idx_w = _index_keys(keys_w, r"w(?P<k>\d+)")
-    idx_om = _index_keys(keys_o, r"omega(?P<k>\d+)")  # optional
+    idx_zf = _index_keys(keys_zk, r"zk(?P<k>\d+)")
 
     # --- time axis: Watlev is the reference, all other files must match ---
     time_keys = sorted(idx_h)
-    checks = [("U", idx_u), ("V", idx_v), ("W", idx_w)]
-    if idx_om:
-        checks.append(("omega", idx_om))
+    checks = [("U", idx_u), ("V", idx_v), ("W", idx_w), ("Zk", idx_zf)]
     for name, idx in checks:
         if set(idx) != set(time_keys):
             missing = sorted(set(time_keys) ^ set(idx))[:5]
             raise ValueError(f"Time stamps in {name} file differ from Watlev file, e.g. {missing}")
 
-    raw_ms = np.array([_decode_time_ms(*t) for t in time_keys])  # your existing helper
-    dt_ms = np.median(np.diff(np.sort(raw_ms)))
-    times_ms = np.round(raw_ms / dt_ms) * dt_ms  # drift-snapping
-    times = times_ms.astype("timedelta64[ms]")
-
-    nz = len(idx_u[time_keys[0]])
-    ZC = np.linspace(1.0 / (2 * nz), 1.0 - 1.0 / (2 * nz), nz)  # [0, 1]
-    ZG = np.linspace(0, 1, nz + 1)  # [0, 1]
-
-    nt, ny, nx = len(times), len(YC), len(XC)
-    watlev = np.full((nt, ny, nx), np.nan, dtype=np.float32)
-    vksi = np.full((nt, nz, ny, nx), np.nan, dtype=np.float32)
-    veta = np.full((nt, nz, ny, nx), np.nan, dtype=np.float32)
-    w = np.full((nt, nz + 1, ny, nx), np.nan, dtype=np.float32)
-    omega = np.full((nt, nz + 1, ny, nx), np.nan, dtype=np.float32)
-
-    for ti, tk in enumerate(time_keys):
-        watlev[ti] = mat_h[idx_h[tk][None]]
-        for k, key in idx_u[tk].items():
-            vksi[ti, nz - k] = mat_u[key]
-        for k, key in idx_v[tk].items():
-            veta[ti, k - 1] = mat_v[key]
-        for k, key in idx_w[tk].items():
-            if k < nz:
-                # w[ti, (nz - 1) - k] = mat_w[key]
-                w[ti, nz - k] = mat_w[key]
-        for k, key in idx_om.get(tk, {}).items():
-            if k < nz:
-                # omega[ti, (nz - 1) - k] = mat_o[key]
-                omega[ti, nz - k] = mat_o[key]
-
-    has_omega = bool(idx_om)
-
-    data_vars = {
-        "watlev": (["time", "YG", "XG"], watlev),
-        "U": (["time", "ZC", "YG", "XG"], vksi),
-        "V": (["time", "ZC", "YG", "XG"], veta),
-        "W": (["time", "ZG", "YC", "XC"], w),
-        "z": (
-            ["ZG"],
-            ZG.astype(np.float32),
-            {
-                "standard_name": "ocean_sigma_coordinate",
-                "units": "1",
-                "comment": "normalised sigma-coordinate of layer interfaces ([0,1]), constant in space/time",
-            },
-        ),
-        "botlev": (["YG", "XG"], bot),
-    }
-    if has_omega:
-        data_vars["omega"] = (
-            ["time", "ZG", "YC", "XC"],
-            omega,
-            {"long_name": "sigma-coordinate vertical velocity", "units": "1/s"},
-        )
-
-    ds = xr.Dataset(
-        data_vars,
-        coords={
-            "XG": (["XG"], XC + 0.5, {"axis": "X", "c_grid_axis_shift": +0.5}),
-            "XC": (["XC"], XC, {"axis": "X"}),
-            "YG": (["YG"], YC + 0.5, {"axis": "Y", "c_grid_axis_shift": +0.5}),
-            "YC": (["YC"], YC, {"axis": "Y"}),
-            "ZG": (["ZG"], ZG, {"axis": "Z", "units": "normalised", "negative": "down"}),
-            "ZC": (["ZC"], ZC, {"axis": "Z", "units": "normalised", "negative": "down"}),
-            "lat": (["YG", "XG"], lat, {"axis": "Y", "units": "m", "c_grid_axis_shift": +0.5}),
-            "lon": (["YG", "XG"], lon, {"axis": "X", "units": "m", "c_grid_axis_shift": +0.5}),
-            "time": (["time"], times, {"axis": "T", "units": "ms"}),
-            "depth": (["depth"], ZG, {"axis": "Z", "units": "normalised", "negative": "down"}),
-        },
-    ).pipe(
-        sgrid._attach_sgrid_metadata,
-        sgrid.SGrid2DMetadata(
-            cf_role="grid_topology",
-            topology_dimension=2,
-            node_dimensions=("XG", "YG"),
-            face_dimensions=(
-                sgrid.FaceNodePadding("XC", "XG", sgrid.Padding.LOW),
-                sgrid.FaceNodePadding("YC", "YG", sgrid.Padding.LOW),
-            ),
-            node_coordinates=("lon", "lat"),
-            vertical_dimensions=(sgrid.FaceNodePadding("ZC", "ZG", sgrid.Padding.NONE),),
-        ),
-    )
-    return ds
-
-
-def swash_to_sgridTimeVarying(
-    coord_file: str,
-    data_file: str | None = None,
-    u_file: str | None = None,
-    v_file: str | None = None,
-    w_file: str | None = None,
-    watlev_file: str | None = None,
-    omega_file: str | None = None,
-    zk_file: str | None = None,
-) -> xr.Dataset:
-    """Create an sgrid-compliant xarray.Dataset from SWASH MATLAB output.
-
-    Two input options:
-      1. Single file: pass `data_file` (contains Watlev, Vksi, Veta, w, omega).
-      2. Separate files: pass `u_file`, `v_file`, `w_file`, `watlev_file` and `omega_file`
-         (`omega_file` is optional; if omitted, omega is looked up in the W file).
-
-    Parameters
-    ----------
-    coord_file : str
-        Path to the SWASH coordinate file (Xp, Yp, Botlev).
-    data_file : str, optional
-        Path to a single SWASH data file holding all variables.
-    u_file, v_file, w_file, watlev_file, omega_file : str, optional
-        Paths to the files holding Vksi, Veta, w, Watlev, and omega respectively.
-
-    Returns
-    -------
-    xarray.Dataset
-        Dataset following SGRID conventions, to be passed to a FieldSet constructor.
-    """
-    warnings.warn(
-        "The swash_to_sgrid function is experimental and may not work for all SWASH datasets. "
-        "Furthermore, we are not entirely confident that the SGrid layout for SWASH is implemented correctly. "
-        "Please report any issues to the Parcels GitHub repository.",
-        UserWarning,
-        stacklevel=2,
-    )
-    coord = scipy.io.loadmat(coord_file)
-    lon = coord["Xp"]
-    lat = coord["Yp"]
-    print(lat[:, 1])
-    XG = lon[0, :]  # np.arange(lon.shape[1])
-    YG = lat[:, 0]  # np.arange(lat.shape[0])
-    bot = coord["Botlev"]
-
-    required = [u_file, v_file, w_file, watlev_file]
-    if data_file is not None:
-        if any(f is not None for f in required + [omega_file]):
-            raise ValueError("Pass either data_file or the separate files, not both.")
-        # Option 1: everything in one file -> load once and reuse for all variables
-        mat_u, keys_u = _load(data_file)
-        mat_v, keys_v = mat_w, keys_w = mat_h, keys_h = mat_o, keys_o = mat_u, keys_u
+    raw_ms = np.array([_decode_time_ms(*t) for t in time_keys])  ## time stamps from SWASH result files
+    if dt:
+        dt_ms = round(np.median(np.diff(raw_ms)) / dt) * dt  ## homogenization of time steps
     else:
-        # Option 2: separate files
-        if any(f is None for f in required):
-            raise ValueError("Provide data_file, or all of u_file, v_file, w_file and watlev_file.")
-        mat_u, keys_u = _load(u_file)
-        mat_v, keys_v = _load(v_file)
-        mat_w, keys_w = _load(w_file)
-        mat_h, keys_h = _load(watlev_file)
-        mat_zk, keys_zk = _load(zk_file)
-        if omega_file is not None:
-            mat_o, keys_o = _load(omega_file)
-        else:
-            mat_o, keys_o = mat_w, keys_w  # fall back to omega inside the W file
-
-    idx_h = _index_keys(keys_h, r"Watlev")
-    idx_u = _index_keys(keys_u, r"Vksi_k(?P<k>\d+)")
-    idx_v = _index_keys(keys_v, r"Veta_k(?P<k>\d+)")
-    idx_w = _index_keys(keys_w, r"w(?P<k>\d+)")
-    idx_om = _index_keys(keys_o, r"omega(?P<k>\d+)")  # optional
-    idx_zk = _index_keys(keys_zk, r"zk(?P<k>\d+)")
-
-    # --- time axis: Watlev is the reference, all other files must match ---
-    time_keys = sorted(idx_h)
-    checks = [("U", idx_u), ("V", idx_v), ("W", idx_w)]
-    if idx_om:
-        checks.append(("omega", idx_om))
-    for name, idx in checks:
-        if set(idx) != set(time_keys):
-            missing = sorted(set(time_keys) ^ set(idx))[:5]
-            raise ValueError(f"Time stamps in {name} file differ from Watlev file, e.g. {missing}")
-
-    raw_ms = np.array([_decode_time_ms(*t) for t in time_keys])  # your existing helper
-    dt_ms = np.median(np.diff(np.sort(raw_ms)))
+        dt_ms = np.median(np.diff(raw_ms))
     times_ms = np.round(raw_ms / dt_ms) * dt_ms  # drift-snapping
     times = times_ms.astype("timedelta64[ms]")
 
-    nz = len(idx_u[time_keys[0]])
-
+    nzf = len(idx_zf[time_keys[0]])
+    nzc = nzf - 1
     nt, ny, nx = len(times), len(YG), len(XG)
-    watlev = np.full((nt, ny, nx), np.nan, dtype=np.float32)
-    vksi = np.full((nt, nz, ny, nx), np.nan, dtype=np.float32)
-    veta = np.full((nt, nz, ny, nx), np.nan, dtype=np.float32)
-    w = np.full((nt, nz, ny, nx), np.nan, dtype=np.float32)
-    omega = np.full((nt, nz + 1, ny, nx), np.nan, dtype=np.float32)
-    zk = np.full((nt, nz, ny, nx), np.nan, dtype=np.float32)
 
+    watlev = np.full((nt, ny, nx), np.nan, dtype=np.float32)
+    U = np.full((nt, nzc, ny, nx), np.nan, dtype=np.float32)
+    V = np.full((nt, nzc, ny, nx), np.nan, dtype=np.float32)
+    W = np.full((nt, nzf, ny, nx), np.nan, dtype=np.float32)
+    zf = np.full((nt, nzf, ny, nx), np.nan, dtype=np.float32)
+
+    kU = min(idx_u[time_keys[0]])  # first layer number (1 if Vksi_k1..k20)
+    kW = min(idx_w[time_keys[0]])  # first interface number (0 if w0..w20)
+    kZ = min(idx_zf[time_keys[0]])  # first interface number (0 if zk0..zk20)
     for ti, tk in enumerate(time_keys):
         watlev[ti] = mat_h[idx_h[tk][None]]
         for k, key in idx_u[tk].items():
-            vksi[ti, nz - k] = mat_u[key]
-            # vksi[ti, k - 1] = mat_u[key]
+            U[ti, k - kU] = mat_u[key]
         for k, key in idx_v[tk].items():
-            veta[ti, k - 1] = mat_v[key]
-        for k, key in idx_zk[tk].items():
-            if k == 0:
-                zk[ti, nz - 1 - k] = mat_zk[key]
-            elif k < nz:
-                zk[ti, nz - 1 - k] = mat_zk[key]
+            V[ti, k - kU] = mat_v[key]
         for k, key in idx_w[tk].items():
-            if k < nz:
-                w[ti, (nz - 1) - k] = mat_w[key]
-                # w[ti, k] = mat_w[key]
-        for k, key in idx_om.get(tk, {}).items():
-            if k < nz:
-                # omega[ti, (nz - 1) - k] = mat_o[key]
-                omega[ti, nz - k] = mat_o[key]
+            W[ti, k - kW] = mat_w[key]
+        for k, key in idx_zf[tk].items():
+            zf[ti, k - kZ] = mat_zk[key]
 
-    has_omega = bool(idx_om)
+    depth4d = zf
+    if np.nanmean(depth4d[0, 0]) > np.nanmean(depth4d[0, -1]):  # index 0 is the bed -> flip all
+        depth4d, U, V, W = (a[:, ::-1] for a in (depth4d, U, V, W))
 
     data_vars = {
         "watlev": (["time", "YC", "XC"], watlev),
-        "U": (["time", "ZC", "YG", "XC"], vksi),
-        "V": (["time", "ZC", "YC", "XG"], veta * 0),
-        "W": (["time", "depth", "YC", "XC"], w),
-        "botlev": (["YG", "XG"], bot),
+        "U": (["time", "ZC", "YC", "XG"], U),
+        "V": (["time", "ZC", "YG", "XC"], V),
+        "W": (["time", "ZF", "YC", "XC"], W),
+        "botlev": (["YC", "XC"], bot),
     }
-    if has_omega:
-        data_vars["omega"] = (
-            ["time", "depth", "YC", "XC"],
-            omega,
-            {"long_name": "sigma-coordinate vertical velocity", "units": "1/s"},
-        )
+
     ds = xr.Dataset(
         data_vars,
         coords={
-            "XG": (["XG"], XG, {"axis": "X"}),
-            "XC": (["XC"], XG + np.diff(XG)[0] * 0.5, {"axis": "X"}),
-            "YG": (["YG"], YG, {"axis": "Y"}),
-            "YC": (["YC"], YG + np.diff(YG)[0] * 0.5, {"axis": "Y"}),
+            "XG": (["XG"], np.arange(nx), {"axis": "X"}),
+            "XC": (["XC"], np.arange(nx) + 0.5, {"axis": "X"}),
+            "YG": (["YG"], np.arange(ny), {"axis": "Y"}),
+            "YC": (["YC"], np.arange(ny) + 0.5, {"axis": "Y"}),
             "lat": (["YG"], lat[:, 0], {"axis": "Y", "units": "m", "c_grid_axis_shift": +0.5}),
-            "lon": (["XG"], lon[1], {"axis": "X", "units": "m", "c_grid_axis_shift": +0.5}),
+            "lon": (["XG"], lon[0], {"axis": "X", "units": "m", "c_grid_axis_shift": +0.5}),
             "time": (["time"], times, {"axis": "T", "units": "ms"}),
-            "depth": (["time", "depth", "YC", "XC"], zk, {"axis": "Z", "positive": "up"}),
+            "ZF": (["ZF"], np.arange(nzf), {"axis": "Z", "units": "m"}),
+            "ZC": (["ZC"], np.arange(nzc) + 0.5, {"axis": "Z", "units": "m"}),
+            "depth": (["time", "ZF", "YC", "XC"], depth4d, {"axis": "Z"}),
         },
     ).pipe(
         sgrid._attach_sgrid_metadata,
@@ -1075,7 +884,7 @@ def swash_to_sgridTimeVarying(
                 sgrid.FaceNodePadding("YC", "YG", sgrid.Padding.HIGH),
             ),
             node_coordinates=("lon", "lat"),
-            vertical_dimensions=(sgrid.FaceNodePadding("ZC", "depth", sgrid.Padding.BOTH),),  # "ZC", "ZG" was used
+            vertical_dimensions=(sgrid.FaceNodePadding("ZC", "ZF", sgrid.Padding.NONE),),
         ),
     )
     return ds
