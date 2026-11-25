@@ -720,9 +720,6 @@ def delft3d_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr
     return ds
 
 
-_TS = r"_(\d{6})_(\d{3})$"  ## For time formatting
-
-
 def _decode_time_ms(t0, t1):  ## for SWASH converter
     hh = t0 // 10000
     mm = (t0 // 100) % 100
