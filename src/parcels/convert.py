@@ -784,31 +784,24 @@ def swash_to_sgrid(field_files: dict, dt: int | None = None) -> xr.Dataset:
     YG = lat[:, 0]
     bot = coord["Botlev"]
 
-    required = ["U", "V", "W", "WATLEV", "ZK"]
-    for f in required:
-        if f not in field_files:
-            raise ValueError(f"Provide all of {', '.join(required)} in field_files.")
-    u_file = field_files["U"]
-    v_file = field_files["V"]
-    w_file = field_files["W"]
-    watlev_file = field_files["WATLEV"]
-    zk_file = field_files["ZK"]
-
-    mat_u, keys_u = _load(u_file)
-    mat_v, keys_v = _load(v_file)
-    mat_w, keys_w = _load(w_file)
-    mat_h, keys_h = _load(watlev_file)
-    mat_zk, keys_zk = _load(zk_file)
-
-    idx_h = _index_keys(keys_h, r"Watlev")
-    idx_u = _index_keys(keys_u, r"Vksi_k(?P<k>\d+)")
-    idx_v = _index_keys(keys_v, r"Veta_k(?P<k>\d+)")
-    idx_w = _index_keys(keys_w, r"w(?P<k>\d+)")
-    idx_zf = _index_keys(keys_zk, r"zk(?P<k>\d+)")
+    patterns = {
+        "U": r"Vksi_k(?P<k>\d+)",
+        "V": r"Veta_k(?P<k>\d+)",
+        "W": r"w(?P<k>\d+)",
+        "WATLEV": r"Watlev",
+        "ZK": r"zk(?P<k>\d+)",
+    }
+    for name in patterns:
+        if name not in field_files:
+            raise ValueError(f"Provide all of {', '.join(patterns)} in field_files.")
+    matrices, indices = {}, {}
+    for name, pattern in patterns.items():
+        matrices[name], keys = _load(field_files[name])
+        indices[name] = _index_keys(keys, pattern)
 
     # --- time axis: Watlev is the reference, all other files must match ---
-    time_keys = sorted(idx_h)
-    checks = [("U", idx_u), ("V", idx_v), ("W", idx_w), ("Zk", idx_zf)]
+    time_keys = sorted(indices["WATLEV"])
+    checks = [("U", indices["U"]), ("V", indices["V"]), ("W", indices["W"]), ("Zk", indices["ZK"])]
     for name, idx in checks:
         if set(idx) != set(time_keys):
             missing = sorted(set(time_keys) ^ set(idx))[:5]
@@ -819,10 +812,9 @@ def swash_to_sgrid(field_files: dict, dt: int | None = None) -> xr.Dataset:
         dt_ms = round(np.median(np.diff(raw_ms)) / dt) * dt  ## homogenization of time steps
     else:
         dt_ms = np.median(np.diff(raw_ms))
-    times_ms = np.round(raw_ms / dt_ms) * dt_ms  # drift-snapping
-    times = times_ms.astype("timedelta64[ms]")
+    times = (np.round(raw_ms / dt_ms) * dt_ms).astype("timedelta64[ms]")
 
-    nzf = len(idx_zf[time_keys[0]])
+    nzf = len(indices["ZK"][time_keys[0]])
     nzc = nzf - 1
     nt, ny, nx = len(times), len(YG), len(XG)
 
@@ -832,23 +824,16 @@ def swash_to_sgrid(field_files: dict, dt: int | None = None) -> xr.Dataset:
     W = np.full((nt, nzf, ny, nx), np.nan, dtype=np.float32)
     zf = np.full((nt, nzf, ny, nx), np.nan, dtype=np.float32)
 
-    kU = min(idx_u[time_keys[0]])  # first layer number (1 if Vksi_k1..k20)
-    kW = min(idx_w[time_keys[0]])  # first interface number (0 if w0..w20)
-    kZ = min(idx_zf[time_keys[0]])  # first interface number (0 if zk0..zk20)
+    kU, kW, kZ = (min(indices[name][time_keys[0]]) for name in ("U", "W", "ZK"))
+    field_arrays = {"U": (U, kU), "V": (V, kU), "W": (W, kW), "ZK": (zf, kZ)}
     for ti, tk in enumerate(time_keys):
-        watlev[ti] = mat_h[idx_h[tk][None]]
-        for k, key in idx_u[tk].items():
-            U[ti, k - kU] = mat_u[key]
-        for k, key in idx_v[tk].items():
-            V[ti, k - kU] = mat_v[key]
-        for k, key in idx_w[tk].items():
-            W[ti, k - kW] = mat_w[key]
-        for k, key in idx_zf[tk].items():
-            zf[ti, k - kZ] = mat_zk[key]
+        watlev[ti] = matrices["WATLEV"][indices["WATLEV"][tk][None]]
+        for name, (array, k0) in field_arrays.items():
+            for k, key in indices[name][tk].items():
+                array[ti, k - k0] = matrices[name][key]
 
-    depth4d = zf
-    if np.nanmean(depth4d[0, 0]) > np.nanmean(depth4d[0, -1]):  # index 0 is the bed -> flip all
-        depth4d, U, V, W = (a[:, ::-1] for a in (depth4d, U, V, W))
+    if np.nanmean(zf[0, 0]) > np.nanmean(zf[0, -1]):  # index 0 is the bed -> flip all
+        zf, U, V, W = (a[:, ::-1] for a in (zf, U, V, W))
 
     data_vars = {
         "watlev": (["time", "YC", "XC"], watlev),
@@ -865,12 +850,12 @@ def swash_to_sgrid(field_files: dict, dt: int | None = None) -> xr.Dataset:
             "XC": (["XC"], np.arange(nx) + 0.5, {"axis": "X"}),
             "YG": (["YG"], np.arange(ny), {"axis": "Y"}),
             "YC": (["YC"], np.arange(ny) + 0.5, {"axis": "Y"}),
-            "lat": (["YG"], lat[:, 0], {"axis": "Y", "units": "m", "c_grid_axis_shift": +0.5}),
-            "lon": (["XG"], lon[0], {"axis": "X", "units": "m", "c_grid_axis_shift": +0.5}),
+            "lat": (["YG"], lat[:, 0], {"axis": "Y", "units": "m"}),
+            "lon": (["XG"], lon[0], {"axis": "X", "units": "m"}),
             "time": (["time"], times, {"axis": "T", "units": "ms"}),
             "ZF": (["ZF"], np.arange(nzf), {"axis": "Z", "units": "m"}),
             "ZC": (["ZC"], np.arange(nzc) + 0.5, {"axis": "Z", "units": "m"}),
-            "depth": (["time", "ZF", "YC", "XC"], depth4d, {"axis": "Z"}),
+            "depth": (["time", "ZF", "YC", "XC"], zf, {"axis": "Z"}),
         },
     ).pipe(
         sgrid._attach_sgrid_metadata,
