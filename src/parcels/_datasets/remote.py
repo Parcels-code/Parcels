@@ -113,16 +113,12 @@ _ODIE_REGISTRY_FILES: list[str] = (
         "data/POPSouthernOcean_data/t.x1_SAMOC_flux.169005.nc",
     ]
     + [
-        "data/SWASH_data/field_0065532.nc",
-        "data/SWASH_data/field_0065537.nc",
-        "data/SWASH_data/field_0065542.nc",
-        "data/SWASH_data/field_0065548.nc",
-        "data/SWASH_data/field_0065552.nc",
-        "data/SWASH_data/field_0065557.nc",
-    ]
-    + [
-        "data-matlab/F1ALL.mat",
-        "data-matlab/F1GRD.mat",
+        "data-matlab/SWASH_data/F2GRD.mat",
+        "data-matlab/SWASH_data/F2UK.mat",
+        "data-matlab/SWASH_data/F2VK.mat",
+        "data-matlab/SWASH_data/F2VZ.mat",
+        "data-matlab/SWASH_data/F2WATL.mat",
+        "data-matlab/SWASH_data/F2ZK.mat",
     ]
     # + [f"data/WOA_data/woa18_decav_t{m:02d}_04.nc" for m in range(1, 13)]
     + ["data/CROCOOverflow_data/over_his.nc"]
@@ -290,7 +286,7 @@ _DATASET_KEYS_AND_CONFIGS: dict[str, tuple[_ParcelsDataset, _Purpose, _Scope]] =
     ("NemoNorthSeaORCA025-N006_data/W", (_V3Dataset(_ODIE,"data/NemoNorthSeaORCA025-N006_data/ORCA025-N06_200001*05W.nc"), _Purpose.TUTORIAL, _Scope.OPEN)),
     ("NemoNorthSeaORCA025-N006_data/mesh_mask", (_V3Dataset(_ODIE,"data/NemoNorthSeaORCA025-N006_data/coordinates.nc", _preprocess_drop_time_from_mesh1), _Purpose.TUTORIAL, _Scope.OPEN)),
     # ("WOA_data/data", (_V3Dataset(_ODIE,"data/WOA_data/woa18_decav_t*_04.nc", _preprocess_set_cf_calendar_360_day), _Purpose.TUTORIAL)),
-    ("SWASH_data/data", (_V3Dataset(_ODIE,"data-matlab/F1*.mat"), _Purpose.TUTORIAL, _Scope.DOWNLOAD_ONLY)),
+    ("SWASH_data/data", (_V3Dataset(_ODIE,"data-matlab/SWASH_data/F2*.mat"), _Purpose.TUTORIAL, _Scope.DOWNLOAD_ONLY)),
     ("CROCOoverflow_data/data", (_V3Dataset(_ODIE,"data/CROCOOverflow_data/over_his.nc"), _Purpose.TUTORIAL, _Scope.OPEN)),
     ("AIFSmeteo/data", (_V3Dataset(_ODIE,"data/AIFS-meteo-data/*.nc"), _Purpose.TUTORIAL, _Scope.OPEN))
 ] + [
