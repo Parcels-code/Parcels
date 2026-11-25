@@ -268,7 +268,7 @@ _DATASET_KEYS_AND_CONFIGS: dict[str, tuple[_ParcelsDataset, _Purpose, _Scope]] =
     ("CopernicusMarine_data_for_stuck_particles_tutorial/data", (_V3Dataset(_ODIE,"data/CopernicusMarine_data_for_stuck_particles_tutorial/cmems_mod_glo_phy_my_0.083deg_P1D-m_NL.nc"), _Purpose.TUTORIAL, _Scope.OPEN)),
     # ("DecayingMovingEddy_data/U", (_V3Dataset(_ODIE,"data/DecayingMovingEddy_data/decaying_moving_eddyU.nc"), _Purpose.TUTORIAL)),
     # ("DecayingMovingEddy_data/V", (_V3Dataset(_ODIE,"data/DecayingMovingEddy_data/decaying_moving_eddyV.nc"), _Purpose.TUTORIAL)),
-    ("FESOM_periodic_channel/fesom_channel", (_V3Dataset(_ODIE,"data/FESOM_periodic_channel/fesom_channel.nc"), _Purpose.TUTORIAL, _Scope.OPEN)),
+    ("FESOM_periodic_channel/fesom_channel", (_V3Dataset(_ODIE,"data/FESOM_periodic_channel/*fesom_channel.nc"), _Purpose.TUTORIAL, _Scope.OPEN)),
     ("FESOM_periodic_channel/u.fesom_channel", (_V3Dataset(_ODIE,"data/FESOM_periodic_channel/u.fesom_channel.nc"), _Purpose.TUTORIAL, _Scope.OPEN)),
     ("FESOM_periodic_channel/v.fesom_channel", (_V3Dataset(_ODIE,"data/FESOM_periodic_channel/v.fesom_channel.nc"), _Purpose.TUTORIAL, _Scope.OPEN)),
     ("FESOM_periodic_channel/w.fesom_channel", (_V3Dataset(_ODIE,"data/FESOM_periodic_channel/w.fesom_channel.nc"), _Purpose.TUTORIAL, _Scope.OPEN)),
