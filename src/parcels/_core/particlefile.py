@@ -7,7 +7,6 @@ from pathlib import Path
 from typing import TYPE_CHECKING, Any, Literal
 
 import numpy as np
-import pandas as pd
 import polars as pl
 import pyarrow as pa
 import pyarrow.parquet as pq
@@ -227,8 +226,8 @@ def _to_write_particles(particle_data, t):
     )[0]
 
 
-def read_particlefile(path: PathLike, decode_times: bool = True) -> pd.DataFrame:
-    """Read a Parcels particlefile (Parquet format) into a pandas DataFrame.
+def read_particlefile(path: PathLike, decode_times: bool = True) -> pl.DataFrame:
+    """Read a Parcels particlefile (Parquet format) into a Polars DataFrame.
 
     Parameters
     ----------
@@ -242,16 +241,16 @@ def read_particlefile(path: PathLike, decode_times: bool = True) -> pd.DataFrame
 
     Returns
     -------
-    pd.DataFrame
+    pl.DataFrame
         DataFrame containing the particle data.  When *decode_times* is
-        ``True``, the ``t`` column contains datetime-like values;
+        ``True``, the ``t`` column contains datetime-like or duration values;
         otherwise it contains the original numeric representation.
+        Dates requiring ``cftime`` are stored in a Polars Object column.
 
     Notes
     -----
-    For larger datasets, consider using `Polars <https://docs.pola.rs/>`_ directly,
-    e.g. ``polars.read_parquet(path)``, which offers better performance and lower
-    memory usage than pandas for large Parquet files.
+    Polars Object columns have more limited operation support than native datetime
+    columns. Use ``decode_times=False`` to retain numeric values.
     """
     path = Path(path)
 
