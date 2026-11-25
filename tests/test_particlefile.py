@@ -83,6 +83,21 @@ def test_write_fieldset_without_time(tmp_parquet):
     assert table["t"].to_numpy()[1] == 1.0
 
 
+def test_subsecond_output_without_time(tmp_parquet):
+    fieldset = FieldSet.from_sgrid_conventions(peninsula_dataset())
+    pset = ParticleSet(fieldset, pclass=Particle, x=0, y=0)
+    outputdt = np.timedelta64(250, "ms")
+    ofile = ParticleFile(tmp_parquet, outputdt=outputdt)
+    pset.execute(DoNothing, runtime=np.timedelta64(1, "s"), dt=outputdt, output_file=ofile)
+
+    raw = parcels.read_particlefile(tmp_parquet, decode_times=False)
+    np.testing.assert_array_equal(raw["t"].to_numpy(), [0.0, 0.25, 0.5, 0.75, 1.0])
+
+    decoded = parcels.read_particlefile(tmp_parquet)
+    assert decoded["t"].dtype == pl.Duration("ns")
+    np.testing.assert_array_equal(decoded["t"].to_numpy(), np.arange(5) * np.timedelta64(250, "ms"))
+
+
 def test_pfile_array_remove_particles(fieldset, tmp_parquet):
     """If a particle from the middle of a particleset is removed, that writing doesn't crash"""
     npart = 10
