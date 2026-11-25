@@ -171,6 +171,7 @@ lxml = "*" # in CI
 types-tqdm = "*"
 pandas-stubs = "*"
 pyarrow-stubs = "*"
+scipy-stubs = "*"
 
 [feature.typing.tasks]
 typing = { cmd = "mypy", description = "Run static type checking with mypy." }

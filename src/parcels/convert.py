@@ -739,12 +739,14 @@ def _index_keys(keys, prefix):  ## to identify the keys or parameters inside SWA
     `prefix` may contain a named group `k` for the layer number; layer is None otherwise.
     """
     pat = re.compile("^" + prefix + _TS)
-    out = {}
+    out: dict[tuple[int, int], dict[int | None, str]] = {}
     for key in keys:
         m = pat.match(key)
         if m:
             layer = m.groupdict().get("k")
-            out.setdefault((int(m.group(m.lastindex - 1)), int(m.group(m.lastindex))), {})[
+            lastindex = m.lastindex
+            assert lastindex is not None
+            out.setdefault((int(m.group(lastindex - 1)), int(m.group(lastindex))), {})[
                 None if layer is None else int(layer)
             ] = key
     return out
