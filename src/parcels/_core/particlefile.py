@@ -280,13 +280,16 @@ def read_particlefile(path: PathLike, decode_times: bool = True) -> pd.DataFrame
         return df
 
     values = table.column("t").to_numpy()
-    var = xr.Variable(("t",), values, attrs)
-    values = xr.coders.CFDatetimeCoder(time_unit="ns").decode(var).values
-    if "since" in attrs["units"]:
-        values = values.astype("datetime64[ns]")
-        df = df.with_columns(pl.Series("t", values, dtype=pl.Datetime("ns")))
-    else:
-        values = values.astype("timedelta64[ns]") * 1e9
-        df = df.with_columns(pl.Series("t", values, dtype=pl.Duration("ns")))
 
+    if "since" in attrs["units"]:
+        var = xr.Variable(("t",), values, attrs)
+        decoded = xr.coders.CFDatetimeCoder(time_unit="ns").decode(var).values
+        if decoded.dtype == object:
+            decoded[np.isnan(values)] = None
+            df = df.with_columns(pl.Series("t", decoded, dtype=pl.Object))
+        else:
+            df = df.with_columns(pl.Series("t", decoded, dtype=pl.Datetime("ns")))
+    else:
+        values = xr.coding.times.decode_cf_timedelta(values.copy(), attrs["units"], time_unit="ns")
+        df = df.with_columns(pl.Series("t", values, dtype=pl.Duration("ns")))
     return df
