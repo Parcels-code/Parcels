@@ -1,4 +1,6 @@
+import numpy as np
 import pytest
+import uxarray as ux
 
 from parcels import UxGrid
 from parcels._core.mesh import FlatMesh, SphericalMesh
@@ -18,6 +20,22 @@ def test_uxgrid_init_on_generic_datasets(uxds):
 def test_uxgrid_axes(uxds):
     grid = UxGrid(uxds.uxgrid, z=uxds.coords["zf"], mesh=_infer_mesh_from_ugrid_data(uxds))
     assert grid.axes == ["Z", "FACE"]
+
+
+@pytest.mark.parametrize("time_varying", [False, True])
+def test_uxgrid_depth_positive_direction(time_varying):
+    uxds = uxdatasets["stommel_gyre_delaunay"]
+    if time_varying:
+        values = np.broadcast_to(np.array([0.0, 1.0])[None, :, None], (2, 2, uxds.uxgrid.n_face))
+        z = ux.UxDataArray(values, dims=("time", "zf", "n_face"), uxgrid=uxds.uxgrid)
+    else:
+        z = uxds.coords["zf"].copy(deep=True)
+        z.attrs.pop("positive", None)
+    grid = UxGrid(uxds.uxgrid, z=z, mesh=FlatMesh())
+
+    assert grid.depth_positive_direction == "down"
+    grid.z.attrs["positive"] = "up"
+    assert grid.depth_positive_direction == "up"
 
 
 @pytest.mark.parametrize("uxds", [uxdatasets["stommel_gyre_delaunay"]])

@@ -21,7 +21,7 @@ from parcels._core.xgrid import (
     XGrid,
     _transpose_xfield_data_to_tzyx,
 )
-from parcels._datasets.structured.generated import simple_UV_sigma_dataset
+from parcels._datasets.structured.generated import simple_UV_dataset, simple_UV_sigma_dataset
 from parcels._datasets.structured.generic import X, Y, Z, datasets, datasets_sgrid
 from parcels._sgrid.accessor import SGridDatasetInconsistency
 from tests import utils
@@ -72,6 +72,27 @@ def test_xgrid_properties_ground_truth(ds, attr, expected):
 
 def test_xgrid_axes(fieldset):
     assert fieldset.U.grid.axes == ["Z", "Y", "X"]
+
+
+@pytest.mark.parametrize("time_varying", [False, True])
+def test_xgrid_depth_positive_direction(time_varying):
+    if time_varying:
+        ds = simple_UV_sigma_dataset(n_times=2, nz=3, ny=4, nx=4)
+    else:
+        ds = simple_UV_dataset(n_times=2, nz=3, ny=4, nx=4)
+    grid = FieldSet.from_sgrid_conventions(ds).U.grid
+
+    assert grid.depth_positive_direction == "down"
+    grid._ds["depth"].attrs["positive"] = "up"
+    assert grid.depth_positive_direction == "up"
+
+
+def test_xgrid_depth_positive_direction_without_vertical_axis():
+    ds = simple_UV_dataset(n_times=2, nz=3, ny=4, nx=4).isel(depth=0, drop=True)
+    grid = FieldSet.from_sgrid_conventions(ds).U.grid
+
+    assert "Z" not in grid.axes
+    assert grid.depth_positive_direction == "down"
 
 
 @pytest.mark.parametrize(

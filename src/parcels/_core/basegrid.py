@@ -28,6 +28,11 @@ class BaseGrid(ABC):
     _spatialhash: SpatialHash | None
     mesh: FlatMesh | SphericalMesh
 
+    @property
+    def depth_positive_direction(self) -> str:
+        """Direction of positive vertical coordinates, defaulting to ``"down"`` when unspecified."""
+        raise NotImplementedError
+
     @abstractmethod
     def search(
         self, z: float, y: float, x: float, ei=None, ti=None, tau=None
