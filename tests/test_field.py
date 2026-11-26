@@ -5,10 +5,12 @@ import pytest
 import xarray as xr
 from re_assert import Matches
 
-from parcels import Field, VectorField
+from parcels import Field, ParticleSet, VectorField, convert
 from parcels._core.fieldset import FieldSet
 from parcels._core.model import StructuredModelData
+from parcels._core.statuscodes import StatusCode
 from parcels._core.warnings import FieldEvalWarning
+from parcels._datasets.structured.circulation_models import datasets as datasets_circulation_models
 from parcels._datasets.structured.generated import simple_UV_dataset
 from parcels._datasets.structured.generic import datasets as datasets_structured
 from parcels._datasets.unstructured.generic import _ux_constant_flow_face_centered_2D
@@ -194,6 +196,44 @@ def test_field_eval_out_of_bounds_structured(field_name, location, expected):
         match="Some interpolated values are out-of-bounds. These values are set to 0. Treat carefully.",
     ):
         np.testing.assert_allclose(field.eval(*location), expected)
+
+
+@pytest.mark.parametrize(
+    "source, coordinate, expected",
+    [
+        (
+            "ds_copernicusmarine",
+            "depth",
+            [StatusCode.ErrorThroughSurface, StatusCode.Success, StatusCode.ErrorOutOfBounds],
+        ),
+        ("ds_MITgcm_netcdf", "Zl", [StatusCode.ErrorOutOfBounds, StatusCode.Success, StatusCode.ErrorThroughSurface]),
+    ],
+)
+@pytest.mark.parametrize("field_name", ["sample", "UV"])
+def test_field_vertical_bounds_follow_positive_attribute(source, coordinate, expected, field_name):
+    ds = datasets_circulation_models[source]
+    if source == "ds_copernicusmarine":
+        ds_fset = convert.copernicusmarine_to_sgrid(fields={"sample": ds.uo, "U": ds.uo, "V": ds.vo})
+        x, y = 0, 0
+    else:
+        ds = ds.assign_coords(T=ds.T.values.astype("timedelta64[s]")).rename(
+            {"T": "time", "Xp1": "XG", "Yp1": "YG", "X": "XC", "Y": "YC"}
+        )
+        # The converter expects high-padded horizontal dimensions of equal size.
+        ds = ds.isel(XG=slice(0, -1), YG=slice(0, -1))
+        ds_fset = convert.mitgcm_to_sgrid(
+            fields={"sample": ds.W, "U": ds.U.isel(Z=0, drop=True), "V": ds.V.isel(Z=0, drop=True)},
+            coords=ds,
+        )
+        x, y = 1000, 1000
+    fieldset = FieldSet.from_sgrid_conventions(ds_fset)
+
+    depth = ds[coordinate].sortby(coordinate)
+    z = [depth.values[0] - 1, (depth.values[0] + depth.values[-1]) / 2, depth.values[-1] + 1]
+    pset = ParticleSet(fieldset, x=[x] * 3, y=[y] * 3, z=z, t=np.timedelta64(0, "s"))
+    with pytest.warns(FieldEvalWarning, match="Some interpolated values are out-of-bounds"):
+        getattr(fieldset, field_name)[pset]
+    np.testing.assert_array_equal(pset.state, expected)
 
 
 @pytest.mark.parametrize(
