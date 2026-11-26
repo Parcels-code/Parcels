@@ -162,7 +162,7 @@ class FieldSet:
 
         return overlap
 
-    def to_windowed_arrays(self, *, max_levels: int | None = None):
+    def to_windowed_arrays(self, *, max_levels: int | None = None, time_chunk: int = 1):
         """Wrap dask-backed field data in rolling time-window caches.
 
         Opt-in optimization for forward-marching simulations where all particles
@@ -186,13 +186,20 @@ class FieldSet:
             spread across many time levels) does the window grow beyond that,
             and ``max_levels`` then bounds its size.
 
+        time_chunk: int, optional
+            The number of timesteps to be called into memory each time another
+            time level is needed. If using dask, this should be at least the
+            chunksize used by xr.open_(mf)dataset times the number of cores,
+            but should be a number of timesteps that takes less than half the
+            available memory.
+
         Returns
         -------
         FieldSet
             ``self``, to allow chaining.
         """
         for model in self.models:
-            model.to_windowed_arrays(max_levels=max_levels)
+            model.to_windowed_arrays(max_levels=max_levels, time_chunk=time_chunk)
         return self
 
     def to_chunk_cached_arrays(self, *, max_cache_bytes: int = 600_000_000):
