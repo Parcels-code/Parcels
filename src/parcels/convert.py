@@ -855,7 +855,7 @@ def swash_to_sgrid(field_files: dict, dt: int | None = None) -> xr.Dataset:
             "time": (["time"], times, {"axis": "T", "units": "ms"}),
             "ZF": (["ZF"], np.arange(nzf), {"axis": "Z", "units": "m"}),
             "ZC": (["ZC"], np.arange(nzc) + 0.5, {"axis": "Z", "units": "m"}),
-            "depth": (["time", "ZF", "YC", "XC"], zf, {"axis": "Z"}),
+            "depth": (["time", "ZF", "YC", "XC"], zf, {"axis": "Z", "positive": "up"}),
         },
     ).pipe(
         sgrid._attach_sgrid_metadata,
