@@ -163,13 +163,15 @@ def round_and_hash_float_array(arr, decimals=6):
 def assert_cftime_like_particlefile(parquet_path: Path) -> None:
     assert parquet_path.suffix == ".parquet", "Path must be a parquet file"
 
-    df = parcels.read_particlefile(parquet_path, decode_times=True)
+    message = "CF-time values in Parquet did not get properly decoded. Are the attributes correct?"
+    try:
+        df = parcels.read_particlefile(parquet_path, decode_times=True)
+    except (KeyError, ValueError) as e:
+        raise AssertionError(f"{message} {e}") from e
 
     # check first value (and hence rest of array) is what we expect
     # TODO explore use of cftime in polars
-    assert isinstance(df["t"][0], (cftime.datetime, datetime)), (
-        "CF-time values in Parquet did not get properly decoded. Are the attributes correct?"
-    )
+    assert isinstance(df["t"][0], (cftime.datetime, datetime)), message
     return
 
 

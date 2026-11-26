@@ -34,13 +34,28 @@ def test_assert_cftime_like_particlefile(tmp_path, cal):
     utils.assert_cftime_like_particlefile(path)
 
 
-def test_assert_cftime_like_particlefile_broken_parquet(tmp_path):
+@pytest.mark.parametrize(
+    "units, cause",
+    [("broken-units", KeyError), ("broken-units since 2000-01-01", ValueError)],
+)
+def test_assert_cftime_like_particlefile_broken_parquet(tmp_path, units, cause):
     path = tmp_path / "test.parquet"
-    attrs = {"units": "broken-units", "calendar": "365_day"}
+    attrs = {"units": units, "calendar": "365_day"}
     field = pa.field("t", pa.float64(), metadata=attrs)
     schema = pa.schema([field])
     table = pa.table({"t": pa.array([-20.0, 1.0])}, schema=schema)
     pq.write_table(table, path)
 
-    with pytest.raises(Exception, match="CF-time values in Parquet did not get properly decoded"):
+    with pytest.raises(AssertionError, match="CF-time values in Parquet did not get properly decoded") as exc:
+        utils.assert_cftime_like_particlefile(path)
+    assert isinstance(exc.value.__cause__, cause)
+
+
+def test_assert_cftime_like_particlefile_duration(tmp_path):
+    path = tmp_path / "test.parquet"
+    field = pa.field("t", pa.float64(), metadata={"units": "seconds"})
+    table = pa.table({"t": pa.array([1.0])}, schema=pa.schema([field]))
+    pq.write_table(table, path)
+
+    with pytest.raises(AssertionError, match="CF-time values in Parquet did not get properly decoded"):
         utils.assert_cftime_like_particlefile(path)
