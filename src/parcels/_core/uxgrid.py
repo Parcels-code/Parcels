@@ -103,6 +103,11 @@ class UxGrid(BaseGrid):
         return self.z.values
 
     @property
+    def depth_positive_direction(self) -> str:
+        """Direction of positive vertical coordinates, defaulting to ``"down"`` when unspecified."""
+        return self.z.attrs.get("positive", "down")
+
+    @property
     def axes(self) -> list[_UXGRID_AXES]:
         return ["Z", "FACE"]
 

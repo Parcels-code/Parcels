@@ -335,7 +335,7 @@ def _update_particles_ei(particles, grid_positions: dict, field: Field):
             )
 
 
-def _update_particle_states_position(particles, grid_positions: dict):
+def _update_particle_states_position(field, particles, grid_positions: dict):
     """Update the particle states based on the position dictionary."""
     if particles:
         for dim in ["X", "Y", "FACE"]:
@@ -353,15 +353,17 @@ def _update_particle_states_position(particles, grid_positions: dict):
                     particles.state,
                 )
         if "Z" in grid_positions:
+            positive = field.grid.depth_positive_direction
+            surface_bound = LEFT_OUT_OF_BOUNDS if positive == "down" else RIGHT_OUT_OF_BOUNDS
+            bottom_bound = RIGHT_OUT_OF_BOUNDS if positive == "down" else LEFT_OUT_OF_BOUNDS
+
             particles.state = np.maximum(
-                np.where(
-                    grid_positions["Z"]["index"] == RIGHT_OUT_OF_BOUNDS, StatusCode.ErrorOutOfBounds, particles.state
-                ),
+                np.where(grid_positions["Z"]["index"] == bottom_bound, StatusCode.ErrorOutOfBounds, particles.state),
                 particles.state,
             )
             particles.state = np.maximum(
                 np.where(
-                    grid_positions["Z"]["index"] == LEFT_OUT_OF_BOUNDS, StatusCode.ErrorThroughSurface, particles.state
+                    grid_positions["Z"]["index"] == surface_bound, StatusCode.ErrorThroughSurface, particles.state
                 ),
                 particles.state,
             )
@@ -415,5 +417,5 @@ def _get_positions(field: Field, t, z, y, x, particles, _ei) -> tuple[dict, dict
         field.grid.search(z, y, x, ei=_ei, ti=time_positions["T"]["index"], tau=time_positions["T"]["bcoord"])
     )
     _update_particles_ei(particles, grid_positions, field)
-    _update_particle_states_position(particles, grid_positions)
+    _update_particle_states_position(field, particles, grid_positions)
     return particle_positions, grid_positions

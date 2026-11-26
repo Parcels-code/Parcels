@@ -243,6 +243,13 @@ class XGrid(BaseGrid):
         return self._ds["depth"].values
 
     @property
+    def depth_positive_direction(self) -> str:
+        """Direction of positive vertical coordinates, defaulting to ``"down"`` when unspecified."""
+        if "Z" not in self.axes:
+            return "down"
+        return self._ds["depth"].attrs.get("positive", "down")
+
+    @property
     def _datetimes(self):
         if "time" not in self._ds.dims:
             return np.zeros(1)
