@@ -127,7 +127,6 @@ rediraffe_redirects = {
     "user_guide/getting_started/installation.md": "user_guide/installation.md",
     "user_guide/getting_started/tutorial_output.ipynb": "user_guide/gettingstarted_output.ipynb",
     "user_guide/getting_started/tutorial_quickstart.md": "user_guide/gettingstarted_quickstart.md",
-    "user_guide/fieldsets_sigma_coordinates.ipynb": "user_guide/fieldsets_time_varying_z_coordinates.ipynb",
 }
 
 # Tell Jinja2 templates the build is running on Read the Docs
@@ -233,6 +232,7 @@ numpydoc_class_members_toctree = False  # https://stackoverflow.com/a/73294408
 # so a file named "default.css" will overwrite the builtin "default.css".
 html_static_path = ["_static"]
 html_css_files = ["custom.css"]
+html_js_files = ["custom.js"]
 html_theme_options = {
     "logo": {
         "alt_text": "Parcels - Home",
