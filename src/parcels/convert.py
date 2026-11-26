@@ -14,15 +14,20 @@ from __future__ import annotations
 
 import dataclasses
 import enum
+import re
 import typing
 import warnings
 from typing import cast
 
 import numpy as np
+import scipy
+import scipy.io
 import xarray as xr
 
 import parcels._sgrid as sgrid
 from parcels._logger import logger
+
+_TS = r"_(\d{6})_(\d{3})$"  ## For SWASH converter
 
 if typing.TYPE_CHECKING:
     import uxarray as ux
@@ -712,6 +717,160 @@ def delft3d_to_sgrid(*, fields: dict[str, xr.Dataset | xr.DataArray], coords: xr
         ),
     )
 
+    return ds
+
+
+def _decode_time_ms(t0, t1):  ## for SWASH converter
+    hh = t0 // 10000
+    mm = (t0 // 100) % 100
+    ss = t0 % 100
+    return (hh * 3600 + mm * 60 + ss) * 1000 + t1
+
+
+def _load(path):  ## to load the SWASH output files
+    mat = scipy.io.loadmat(path)
+    keys = [k for k in mat if not k.startswith("__")]
+    return mat, keys
+
+
+def _index_keys(keys, prefix):  ## to identify the keys or parameters inside SWASH file.
+    """Map (ts_int, ts_dec) -> {layer: key} for keys matching `prefix` + timestamp.
+
+    `prefix` may contain a named group `k` for the layer number; layer is None otherwise.
+    """
+    pat = re.compile("^" + prefix + _TS)
+    out: dict[tuple[int, int], dict[int | None, str]] = {}
+    for key in keys:
+        m = pat.match(key)
+        if m:
+            layer = m.groupdict().get("k")
+            lastindex = m.lastindex
+            assert lastindex is not None
+            out.setdefault((int(m.group(lastindex - 1)), int(m.group(lastindex))), {})[
+                None if layer is None else int(layer)
+            ] = key
+    return out
+
+
+def swash_to_sgrid(field_files: dict, dt: int | None = None) -> xr.Dataset:
+    """Create an sgrid-compliant xarray.Dataset from SWASH MATLAB output.
+
+    Parameters
+    ----------
+    field_files : dict
+        Dictionary containing paths to the SWASH output files. Must include the key 'coord' for the coordinate file (Xp, Yp, Botlev).
+    field_files must also include the keys 'u_file', 'v_file', 'w_file', 'watlev_file', and 'zk_file' for the corresponding SWASH output files.
+    dt : int
+        timestep for storage [millisecond]
+
+    Returns
+    -------
+    xarray.Dataset
+        Dataset following SGRID conventions, to be passed to a FieldSet constructor.
+    """
+    warnings.warn(
+        "The swash_to_sgrid function is experimental and may not work for all SWASH datasets. "
+        "Furthermore, we are not entirely confident that the SGrid layout for SWASH is implemented correctly. "
+        "Please report any issues to the Parcels GitHub repository.",
+        UserWarning,
+        stacklevel=2,
+    )
+    if "coord" not in field_files:
+        raise ValueError("Coordinate file must be provided as field_files['coord'].")
+    coord = scipy.io.loadmat(field_files["coord"])
+    lon = coord["Xp"]
+    lat = coord["Yp"]
+    XG = lon[0, :]
+    YG = lat[:, 0]
+    bot = coord["Botlev"]
+
+    patterns = {
+        "U": r"Vksi_k(?P<k>\d+)",
+        "V": r"Veta_k(?P<k>\d+)",
+        "W": r"w(?P<k>\d+)",
+        "WATLEV": r"Watlev",
+        "ZK": r"zk(?P<k>\d+)",
+    }
+    for name in patterns:
+        if name not in field_files:
+            raise ValueError(f"Provide all of {', '.join(patterns)} in field_files.")
+    matrices, indices = {}, {}
+    for name, pattern in patterns.items():
+        matrices[name], keys = _load(field_files[name])
+        indices[name] = _index_keys(keys, pattern)
+
+    # --- time axis: Watlev is the reference, all other files must match ---
+    time_keys = sorted(indices["WATLEV"])
+    checks = [("U", indices["U"]), ("V", indices["V"]), ("W", indices["W"]), ("Zk", indices["ZK"])]
+    for name, idx in checks:
+        if set(idx) != set(time_keys):
+            missing = sorted(set(time_keys) ^ set(idx))[:5]
+            raise ValueError(f"Time stamps in {name} file differ from Watlev file, e.g. {missing}")
+
+    raw_ms = np.array([_decode_time_ms(*t) for t in time_keys])  ## time stamps from SWASH result files
+    if dt:
+        dt_ms = round(np.median(np.diff(raw_ms)) / dt) * dt  ## homogenization of time steps
+    else:
+        dt_ms = np.median(np.diff(raw_ms))
+    times = (np.round(raw_ms / dt_ms) * dt_ms).astype("timedelta64[ms]")
+
+    nzf = len(indices["ZK"][time_keys[0]])
+    nzc = nzf - 1
+    nt, ny, nx = len(times), len(YG), len(XG)
+
+    watlev = np.full((nt, ny, nx), np.nan, dtype=np.float32)
+    U = np.full((nt, nzc, ny, nx), np.nan, dtype=np.float32)
+    V = np.full((nt, nzc, ny, nx), np.nan, dtype=np.float32)
+    W = np.full((nt, nzf, ny, nx), np.nan, dtype=np.float32)
+    zf = np.full((nt, nzf, ny, nx), np.nan, dtype=np.float32)
+
+    kU, kW, kZ = (min(indices[name][time_keys[0]]) for name in ("U", "W", "ZK"))
+    field_arrays = {"U": (U, kU), "V": (V, kU), "W": (W, kW), "ZK": (zf, kZ)}
+    for ti, tk in enumerate(time_keys):
+        watlev[ti] = matrices["WATLEV"][indices["WATLEV"][tk][None]]
+        for name, (array, k0) in field_arrays.items():
+            for k, key in indices[name][tk].items():
+                array[ti, k - k0] = matrices[name][key]
+
+    if np.nanmean(zf[0, 0]) > np.nanmean(zf[0, -1]):  # index 0 is the bed -> flip all
+        zf, U, V, W = (a[:, ::-1] for a in (zf, U, V, W))
+
+    data_vars = {
+        "watlev": (["time", "YC", "XC"], watlev),
+        "U": (["time", "ZC", "YC", "XG"], U),
+        "V": (["time", "ZC", "YG", "XC"], V),
+        "W": (["time", "ZF", "YC", "XC"], W),
+        "botlev": (["YC", "XC"], bot),
+    }
+
+    ds = xr.Dataset(
+        data_vars,
+        coords={
+            "XG": (["XG"], np.arange(nx), {"axis": "X"}),
+            "XC": (["XC"], np.arange(nx) + 0.5, {"axis": "X"}),
+            "YG": (["YG"], np.arange(ny), {"axis": "Y"}),
+            "YC": (["YC"], np.arange(ny) + 0.5, {"axis": "Y"}),
+            "lat": (["YG"], lat[:, 0], {"axis": "Y", "units": "m"}),
+            "lon": (["XG"], lon[0], {"axis": "X", "units": "m"}),
+            "time": (["time"], times, {"axis": "T", "units": "ms"}),
+            "ZF": (["ZF"], np.arange(nzf), {"axis": "Z", "units": "m"}),
+            "ZC": (["ZC"], np.arange(nzc) + 0.5, {"axis": "Z", "units": "m"}),
+            "depth": (["time", "ZF", "YC", "XC"], zf, {"axis": "Z", "positive": "up"}),
+        },
+    ).pipe(
+        sgrid._attach_sgrid_metadata,
+        sgrid.SGrid2DMetadata(
+            cf_role="grid_topology",
+            topology_dimension=2,
+            node_dimensions=("XG", "YG"),
+            face_dimensions=(
+                sgrid.FaceNodePadding("XC", "XG", sgrid.Padding.HIGH),
+                sgrid.FaceNodePadding("YC", "YG", sgrid.Padding.HIGH),
+            ),
+            node_coordinates=("lon", "lat"),
+            vertical_dimensions=(sgrid.FaceNodePadding("ZC", "ZF", sgrid.Padding.NONE),),
+        ),
+    )
     return ds
 
 

@@ -221,6 +221,16 @@ def test_convert_copernicusmarine_nodepth(caplog):
     )
 
 
+def test_convert_swash():
+    files = parcels.tutorial.get_dataset_files("SWASH_data/data")
+
+    names = ["coord", "U", "V", "W", "WATLEV", "ZK"]
+    file_dict = {name: file for name, file in zip(names, files, strict=True)}
+    with pytest.warns(UserWarning, match="The swash_to_sgrid function is experimental"):
+        ds_fset = convert.swash_to_sgrid(field_files=file_dict)
+    FieldSet.from_sgrid_conventions(ds_fset)
+
+
 def test_convert_fesom_to_ugrid():
     grid_file = open_remote_dataset("Benchmarks_FESOM2-baroclinic-gyre/grid")
     data_files = open_remote_dataset("Benchmarks_FESOM2-baroclinic-gyre/data")

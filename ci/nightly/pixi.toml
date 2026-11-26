@@ -45,6 +45,7 @@ lxml = "*" # in CI
 types-tqdm = "*"
 pandas-stubs = "*"
 pyarrow-stubs = "*"
+scipy-stubs = "*"
 
 [feature.typing.tasks]
 typing = { cmd = "mypy src/parcels --install-types", cwd = "../..", description = "Run static type checking with mypy." }
