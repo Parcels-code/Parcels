@@ -384,9 +384,9 @@ def test_particlefile_init_existing_path_modes(fieldset, tmp_parquet):
     df_first = pd.read_parquet(tmp_parquet)
 
     with pytest.raises(ValueError, match="already exists"):
-        ParticleFile(tmp_parquet, outputdt=np.timedelta64(1, "s"))
+        ParticleFile(tmp_parquet, outputdt=np.timedelta64(1, "s"), mode=None)
 
-    overwrite_file = ParticleFile(tmp_parquet, outputdt=np.timedelta64(1, "s"), mode="w")
+    overwrite_file = ParticleFile(tmp_parquet, outputdt=np.timedelta64(1, "s"))
     pset.execute(DoNothing, runtime=np.timedelta64(10, "s"), dt=np.timedelta64(1, "s"), output_file=overwrite_file)
 
     df_overwrite = pd.read_parquet(tmp_parquet)
@@ -394,10 +394,16 @@ def test_particlefile_init_existing_path_modes(fieldset, tmp_parquet):
     assert len(df_first) == len(df_overwrite)
 
 
-def test_particlefile_init_existing_path_no_mode(tmp_parquet):
+def test_particlefile_init_existing_path_overwrites_by_default(tmp_parquet):
+    tmp_parquet.touch()
+    ParticleFile(tmp_parquet, outputdt=np.timedelta64(1, "s"))
+    assert not tmp_parquet.exists()
+
+
+def test_particlefile_init_existing_path_mode_none(tmp_parquet):
     tmp_parquet.touch()
     with pytest.raises(ValueError, match="already exists"):
-        ParticleFile(tmp_parquet, outputdt=np.timedelta64(1, "s"))
+        ParticleFile(tmp_parquet, outputdt=np.timedelta64(1, "s"), mode=None)
 
 
 def test_particlefile_init_nonexistent_parent(tmp_path):

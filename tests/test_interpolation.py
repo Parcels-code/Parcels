@@ -413,7 +413,7 @@ def test_interp_regression_v3(interp_name, interp_method, tmp_zarr, tmp_parquet)
         any_error = particles.state >= 50  # This captures all Errors
         particles[any_error].state = StatusCode.Delete
 
-    outfile = ParticleFile(tmp_parquet, outputdt=np.timedelta64(1, "s"), mode="w")
+    outfile = ParticleFile(tmp_parquet, outputdt=np.timedelta64(1, "s"))
     pset.execute(
         [AdvectionRK4_3D, DeleteParticle],
         runtime=np.timedelta64(4, "s"),
