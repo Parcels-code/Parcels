@@ -62,10 +62,10 @@ class ParticleFile:
         It is either a numpy.timedelta64, a datimetime.timedelta object or a positive float (in seconds).
     compression : {"zstd", "gzip", "snappy", "brotli", None}, optional
         Compression algorithm to use for the Parquet file. Default is "zstd".
-    mode : {None, "w"}, optional
+    mode : {"w", None}, optional
         Writing behaviour.
-        - None (default): Write dataset, and raise an error if it already exists.
-        - "w": Write dataset, overwriting it.
+        - "w" (default): Write dataset, overwriting it if it already exists.
+        - None: Write dataset, and raise an error if it already exists.
 
     Returns
     -------
@@ -78,7 +78,7 @@ class ParticleFile:
         path: PathLike,
         outputdt,
         compression: Literal["zstd", "gzip", "snappy", "brotli", None] = "zstd",
-        mode: Literal[None, "w"] = None,
+        mode: Literal["w", None] = "w",
     ):
         if not isinstance(outputdt, (np.timedelta64, timedelta, float)):
             raise ValueError(
@@ -107,7 +107,7 @@ class ParticleFile:
 
         if path.exists():
             if mode is None:
-                msg = f"Path '{path}' already exists. Use mode='w' or use a new path."
+                msg = f"Path '{path}' already exists. Use mode='w' (the default) or use a new path."
                 raise ValueError(msg)
             if mode == "w":
                 path.unlink()

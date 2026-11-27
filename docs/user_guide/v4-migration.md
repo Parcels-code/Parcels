@@ -312,14 +312,6 @@ Use <code>ParticleFile(...)</code> instead of <code>pset.ParticleFile(...)</code
 <hr class="migration-divider" />
 
 <div class="migration-bubble migration-change">
-<code>ParticleFile</code> errors out if there's existing output
-</div>
-<div class="migration-bubble migration-how">
-Remove the existing output file or add <code>mode="w"</code> to overwrite
-</div>
-<hr class="migration-divider" />
-
-<div class="migration-bubble migration-change">
 The output file does not have a <code>trajectory</code> dimension
 </div>
 <div class="migration-bubble migration-how">
